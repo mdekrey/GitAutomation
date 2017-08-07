@@ -1,0 +1,15 @@
+version: '3.1'
+
+services:
+  gitautomation:
+    image: gitautomation
+    build:
+      context: ./GitAutomation
+      dockerfile: Dockerfile
+    secrets:
+      - gitcredentials
+
+secrets:
+  gitcredentials:
+    file: ./git-credentials.txt
+

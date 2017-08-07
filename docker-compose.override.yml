@@ -1,0 +1,8 @@
+version: '3.1'
+
+services:
+  gitautomation:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "80"

@@ -1,0 +1,6 @@
+.vs
+bin
+obj
+
+/git-credentials.txt
+/GitAutomation/git.json
