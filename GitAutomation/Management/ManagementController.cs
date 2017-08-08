@@ -20,7 +20,7 @@ namespace GitAutomation.Management
         [HttpGet("gitdir")]
         public IActionResult GitDirectory()
         {
-            return Ok(System.IO.Directory.GetFiles("/working"));
+            return Ok(System.IO.Directory.GetDirectories("/working").Concat(System.IO.Directory.GetFiles("/working")));
         }
     }
 }

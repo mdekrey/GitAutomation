@@ -8,6 +8,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.IO;
+using System.Reactive.Linq;
+using GitAutomation.Processes;
 
 namespace GitAutomation
 {
@@ -32,6 +34,7 @@ namespace GitAutomation
         {
             // Add framework services.
             services.AddMvc();
+            services.AddGitUtilities();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -42,26 +45,21 @@ namespace GitAutomation
 
             Task.Run(() =>
             {
+                if (Directory.Exists("/working"))
+                {
+                    // starting from an old system? maybe... but I don't want to handle that yet.
+                    Directory.Delete("/working", true);
+                }
                 var info = Directory.CreateDirectory("/working");
-                var proc = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("git", $"clone {Configuration["git:repository"]} .")
+                var children = info.GetFileSystemInfos();
+                var proc = app.ApplicationServices.GetRequiredService<IReactiveProcessFactory>().BuildProcess(new System.Diagnostics.ProcessStartInfo("git", $"clone {Configuration["git:repository"]} /working"));
+                proc.Output.Subscribe(message =>
                 {
-                    WorkingDirectory = info.FullName,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
+                    Console.WriteLine($"{message.Channel}: {message.Message}");
+                }, onCompleted: () =>
+                {
+                    Console.WriteLine("Clone completed.");
                 });
-                while (!proc.StandardOutput.EndOfStream)
-                {
-                    string line = proc.StandardOutput.ReadLine();
-                    // do something with line
-                }
-
-                while (!proc.StandardError.EndOfStream)
-                {
-                    string line = proc.StandardError.ReadLine();
-                    // do something with line
-                }
-
             });
 
             if (env.EnvironmentName == "Development")
