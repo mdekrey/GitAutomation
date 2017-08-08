@@ -4,7 +4,7 @@ namespace GitAutomation.Repository
 {
     public interface IRepositoryState
     {
-        IObservable<string> Initialize();
+        IObservable<Processes.OutputMessage> Initialize();
         IObservable<string> Reset();
     }
 }

@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reactive.Linq;
 using System.Text;
+using System.Reactive.Subjects;
+using System.Linq;
 
 namespace GitAutomation.Repository
 {
@@ -13,16 +15,37 @@ namespace GitAutomation.Repository
         private readonly string checkoutPath;
         private readonly IReactiveProcessFactory reactiveProcessFactory;
         private readonly string repository;
+        private readonly IConnectableObservable<OutputMessage> initialize;
+        private System.Reactive.Disposables.CompositeDisposable initializeConnections = new System.Reactive.Disposables.CompositeDisposable();
 
         public RepositoryState(IReactiveProcessFactory factory, IOptions<GitRepositoryOptions> options)
         {
             this.reactiveProcessFactory = factory;
             this.repository = options.Value.Repository;
             this.checkoutPath = options.Value.CheckoutPath;
+
+            this.initialize = Observable.Create<OutputMessage>(observer =>
+            {
+                var info = Directory.CreateDirectory(checkoutPath);
+                var children = info.GetFileSystemInfos();
+                var proc = RunGit("clone", repository, checkoutPath);
+                return proc.Output.Subscribe(observer);
+            }).Publish().RefCount().Replay(1);
+        }
+
+        private IReactiveProcess RunGit(params string[] args)
+        {
+            return reactiveProcessFactory.BuildProcess(new System.Diagnostics.ProcessStartInfo(
+                "git",
+                string.Join(" ",args.Select(arg => $"\"{arg.Replace(@"\", @"\\").Replace("\"", "\\\"")}\""))
+            ));
         }
 
         public IObservable<string> Reset()
         {
+            var temp = this.initializeConnections;
+            initializeConnections = new System.Reactive.Disposables.CompositeDisposable();
+            temp.Dispose();
 
             if (Directory.Exists(checkoutPath))
             {
@@ -32,12 +55,13 @@ namespace GitAutomation.Repository
             return Observable.Empty<string>();
         }
 
-        public IObservable<string> Initialize()
+        public IObservable<OutputMessage> Initialize()
         {
-            var info = Directory.CreateDirectory(checkoutPath);
-            var children = info.GetFileSystemInfos();
-            var proc = reactiveProcessFactory.BuildProcess(new System.Diagnostics.ProcessStartInfo("git", $"clone {repository} \"{checkoutPath.Replace(@"\", @"\\").Replace("\"", "\\\"")}\""));
-            return proc.Output.Select(msg => msg.Message);
+            return Observable.Create<OutputMessage>(observer =>
+            {
+                this.initializeConnections.Add(initialize.Connect());
+                return initialize.Subscribe(observer);
+            });
         }
     }
 }

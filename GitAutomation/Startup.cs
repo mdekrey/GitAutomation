@@ -45,11 +45,21 @@ namespace GitAutomation
             loggerFactory.AddDebug();
 
             var repositoryState = app.ApplicationServices.GetRequiredService<IRepositoryState>();
-            repositoryState.Reset().Concat(repositoryState.Initialize())
-                .Subscribe(_ => Console.WriteLine(_), onCompleted: () => Console.WriteLine("Initialized!"));
 
-            if (env.EnvironmentName == "Development")
+            if (env.IsDevelopment())
             {
+                repositoryState.Reset()
+                            .Concat(repositoryState.Initialize().Select(message => message.Channel == Processes.OutputChannel.ExitCode ? $"{message.ExitCode}" : message.Message))
+                .Subscribe(
+                    _ =>
+                    {
+                        Console.WriteLine(_);
+                    },
+                    onCompleted: () =>
+                    {
+                        Console.WriteLine("Initialized!");
+                    });
+
                 app.UseDeveloperExceptionPage();
             }
             app.UseMvc();

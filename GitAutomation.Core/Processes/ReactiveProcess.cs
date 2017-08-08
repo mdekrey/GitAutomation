@@ -38,6 +38,7 @@ namespace GitAutomation.Processes
                 process.BeginErrorReadLine();
                 process.Exited += delegate
                 {
+                    observer.OnNext(Unit.Default);
                     observer.OnCompleted();
                 };
 
@@ -64,7 +65,8 @@ namespace GitAutomation.Processes
                     where e.EventArgs.Data != null
                     select new OutputMessage { Message = e.EventArgs.Data, Channel = OutputChannel.Error }
                 )
-                .TakeUntil(this.ProcessExited.Concat(Observable.Return(Unit.Default)))
+                .TakeUntil(this.ProcessExited)
+                .Merge(this.ProcessExited.Select(_ => new OutputMessage { Channel = OutputChannel.ExitCode, ExitCode = process.ExitCode }))
                 .Publish().RefCount();
         }
 

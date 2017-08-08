@@ -12,12 +12,14 @@ namespace GitAutomation.Processes
     {
         Out,
         Error,
+        ExitCode,
     }
 
     public struct OutputMessage
     {
         public OutputChannel Channel;
         public string Message;
+        public int ExitCode;
     }
 
     public interface IReactiveProcess
