@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Reactive.Linq;
-using GitAutomation.Processes;
+using GitAutomation.Repository;
 
 namespace GitAutomation
 {
@@ -35,6 +35,7 @@ namespace GitAutomation
             // Add framework services.
             services.AddMvc();
             services.AddGitUtilities();
+            services.Configure<GitRepositoryOptions>(Configuration.GetSection("git"));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -43,24 +44,9 @@ namespace GitAutomation
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
-            Task.Run(() =>
-            {
-                if (Directory.Exists("/working"))
-                {
-                    // starting from an old system? maybe... but I don't want to handle that yet.
-                    Directory.Delete("/working", true);
-                }
-                var info = Directory.CreateDirectory("/working");
-                var children = info.GetFileSystemInfos();
-                var proc = app.ApplicationServices.GetRequiredService<IReactiveProcessFactory>().BuildProcess(new System.Diagnostics.ProcessStartInfo("git", $"clone {Configuration["git:repository"]} /working"));
-                proc.Output.Subscribe(message =>
-                {
-                    Console.WriteLine($"{message.Channel}: {message.Message}");
-                }, onCompleted: () =>
-                {
-                    Console.WriteLine("Clone completed.");
-                });
-            });
+            var repositoryState = app.ApplicationServices.GetRequiredService<IRepositoryState>();
+            repositoryState.Reset().Concat(repositoryState.Initialize())
+                .Subscribe(_ => Console.WriteLine(_), onCompleted: () => Console.WriteLine("Initialized!"));
 
             if (env.EnvironmentName == "Development")
             {
