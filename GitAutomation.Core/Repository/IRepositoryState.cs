@@ -6,5 +6,6 @@ namespace GitAutomation.Repository
     {
         IObservable<Processes.OutputMessage> Initialize();
         IObservable<string> Reset();
+        IObservable<string[]> RemoteBranches();
     }
 }
