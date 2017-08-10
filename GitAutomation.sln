@@ -3,9 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26430.16
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitAutomation", "GitAutomation\GitAutomation.csproj", "{8759E081-91A2-4136-9D98-516DF1D7D385}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation", "GitAutomation\GitAutomation.csproj", "{8759E081-91A2-4136-9D98-516DF1D7D385}"
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{9FE4C16C-2C76-4232-8DB9-8DCFA98A695D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B} = {4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}
+		{8759E081-91A2-4136-9D98-516DF1D7D385} = {8759E081-91A2-4136-9D98-516DF1D7D385}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0106BA1E-6999-46B0-BD72-7BF7D902ADCA}"
 	ProjectSection(SolutionItems) = preProject
@@ -14,7 +18,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		readme.md = readme.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitAutomation.Core", "GitAutomation.Core\GitAutomation.Core.csproj", "{5020BA49-2C19-4BE1-B734-6961D2DC61BE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Core", "GitAutomation.Core\GitAutomation.Core.csproj", "{5020BA49-2C19-4BE1-B734-6961D2DC61BE}"
+EndProject
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "GitAutomation.Sql", "GitAutomation.Sql\GitAutomation.Sql.sqlproj", "{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -34,6 +40,12 @@ Global
 		{5020BA49-2C19-4BE1-B734-6961D2DC61BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5020BA49-2C19-4BE1-B734-6961D2DC61BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5020BA49-2C19-4BE1-B734-6961D2DC61BE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

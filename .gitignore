@@ -1,6 +1,9 @@
 .vs
 bin
 obj
+*.user
+*.dbmdl
+*.jfm
 
 /git-credentials.txt
 /GitAutomation/git.json

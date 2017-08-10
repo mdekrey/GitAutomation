@@ -8,6 +8,12 @@ services:
       dockerfile: Dockerfile
     secrets:
       - gitcredentials
+  gitautomationsql:
+    image: gitautomation-sql
+    build:
+      context: ./GitAutomation.Sql
+      dockerfile: Dockerfile
+
 
 secrets:
   gitcredentials:

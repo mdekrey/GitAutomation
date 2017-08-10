@@ -10,3 +10,10 @@ services:
     entrypoint: tail -f /dev/null
     labels:
       - "com.microsoft.visualstudio.targetoperatingsystem=linux"
+      
+  gitautomationsql:
+    labels:
+      - "com.microsoft.visualstudio.targetoperatingsystem=linux"
+    build:
+      args:
+        source: ${DOCKER_BUILD_SOURCE}
