@@ -2,8 +2,21 @@ version: '3.1'
 
 services:
   ci-build:
-    image: microsoft/aspnetcore-build:1.0-1.1
+    image: microsoft/aspnetcore-build:2.0
     volumes:
       - .:/src
     working_dir: /src
     command: /bin/bash -c "dotnet restore ./GitAutomation.sln && dotnet publish ./GitAutomation.sln -c Release -o ./obj/Docker/publish"
+  
+  gitautomationsql-ci:
+    image: gitautomation-sql:build
+    build:
+      context: ./GitAutomation.Sql
+      dockerfile: Dockerfile-ci
+    volumes:
+      - ./GitAutomation.Sql:/src
+    working_dir: /src
+    environment:
+      - ACCEPT_EULA=Y
+      # Only used to build the backup file, as the simple SQL script to run and tear down runs quickly and terminates the server
+      - SA_PASSWORD=weakPASSw0rd

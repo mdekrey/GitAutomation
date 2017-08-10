@@ -63,12 +63,12 @@
     <Build Include="BaseBranch.sql" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Dockerfile" />
-    <None Include="entrypoint.sh" />
+    <None Include="ci-entry.sh" />
     <None Include=".dockerignore" />
+    <None Include="Dockerfile-ci" />
   </ItemGroup>
   <PropertyGroup>
-    <PostBuildEvent>docker build -t "gitautomation-sql:build" .
+    <PostBuildEvent>docker build -t "gitautomation-sql:build" ./Dockerfile-ci
 docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=weakPASSw0rd" "gitautomation-sql:build"</PostBuildEvent>
   </PropertyGroup>
 </Project>

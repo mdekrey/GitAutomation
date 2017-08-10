@@ -27,5 +27,5 @@ fi
 /opt/mssql-tools/bin/sqlcmd -S localhost \
     -U sa -P $SA_PASSWORD \
     -d master \
-    -Q "BACKUP DATABASE [master] TO DISK = N'var/opt/mssql/data/master.bak' WITH NOFORMAT, NOINIT, NAME = 'gitautomation-full', SKIP, NOREWIND, NOUNLOAD, STATS = 10"
+    -Q "BACKUP DATABASE [master] TO DISK = N'/src/obj/Release/master.bak' WITH NOFORMAT, NOINIT, NAME = 'gitautomation-full', SKIP, NOREWIND, NOUNLOAD, STATS = 10"
 
