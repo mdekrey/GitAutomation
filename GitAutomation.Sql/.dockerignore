@@ -1,5 +1,4 @@
-*
-!*.sql
-!*.sh
-!obj/Docker/publish/*
-!obj/Docker/empty/
+bin
+obj
+!obj/Docker/*
+GitAutomation.Sql.*

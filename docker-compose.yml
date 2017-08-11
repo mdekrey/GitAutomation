@@ -8,20 +8,20 @@ services:
       dockerfile: Dockerfile
     secrets:
       - gitcredentials
-    networks:
-      - backend
+#    networks:
+#      - backend
   gitautomationsql:
     image: gitautomation-sql
     build:
       context: ./GitAutomation.Sql
       dockerfile: Dockerfile
-    networks:
-      - backend
+#    networks:
+#      - backend
 
 
 secrets:
   gitcredentials:
     file: ./git-credentials.txt
 
-networks:
-  backend:
+#networks:
+#  backend:
