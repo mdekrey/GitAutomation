@@ -15,6 +15,9 @@ services:
     build:
       context: ./GitAutomation.Sql
       dockerfile: Dockerfile
+    secrets:
+      - sqlcredentials
+      - sqleula
 #    networks:
 #      - backend
 
@@ -22,6 +25,10 @@ services:
 secrets:
   gitcredentials:
     file: ./git-credentials.txt
+  sqlcredentials:
+    file: ./sql-credentials.txt
+  sqleula:
+    file: ./sql-eula.txt
 
 #networks:
 #  backend:

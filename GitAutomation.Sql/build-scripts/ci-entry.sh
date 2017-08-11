@@ -6,12 +6,16 @@
 
 /opt/mssql-tools/bin/sqlcmd -S localhost \
     -U sa -P $SA_PASSWORD \
-    -d master \
+    -Q "CREATE DATABASE [gitautomation]"
+
+/opt/mssql-tools/bin/sqlcmd -S localhost \
+    -U sa -P $SA_PASSWORD \
+    -d gitautomation \
     -i TargetBranch.sql \
     -i BaseBranch.sql
 
 /opt/mssql-tools/bin/sqlcmd -S localhost \
     -U sa -P $SA_PASSWORD \
-    -d master \
-    -Q "BACKUP DATABASE [master] TO DISK = N'/out/obj/Docker/publish/master.bak' WITH NOFORMAT, NOINIT, NAME = 'gitautomation-full', SKIP, NOREWIND, NOUNLOAD, STATS = 10"
+    -d gitautomation \
+    -Q "BACKUP DATABASE [gitautomation] TO DISK = N'/out/obj/Docker/publish/master.bak' WITH NOFORMAT, NOINIT, NAME = 'gitautomation-full', SKIP, NOREWIND, NOUNLOAD, STATS = 10"
 
