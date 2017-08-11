@@ -68,7 +68,10 @@
     <None Include="Dockerfile-ci" />
   </ItemGroup>
   <PropertyGroup>
-    <PostBuildEvent>docker build -t "gitautomation-sql:build" ./Dockerfile-ci
-docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=weakPASSw0rd" "gitautomation-sql:build"</PostBuildEvent>
+    <PostBuildEvent>cd "$(ProjectDir)"
+docker build -t "gitautomation-sql:build" -f "Dockerfile-ci" .
+docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=weakPASSw0rd" -v "$(SolutionDir)$(ProjectName)":/src -w "/src" "gitautomation-sql:build"
+
+</PostBuildEvent>
   </PropertyGroup>
 </Project>

@@ -1,8 +1,6 @@
 FROM microsoft/mssql-server-linux:latest
 
-WORKDIR /app
-COPY *.sh ./
-COPY *.sql ./
+WORKDIR /src
 
 # Needs environment variables set up;
 # https://docs.microsoft.com/en-us/sql/linux/quickstart-install-connect-docker
