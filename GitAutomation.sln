@@ -14,8 +14,12 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0106BA1E-6999-46B0-BD72-7BF7D902ADCA}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
+		configuration.json = configuration.json
+		configuration.sample.json = configuration.sample.json
 		git-credentials.txt = git-credentials.txt
 		readme.md = readme.md
+		sql-credentials.txt = sql-credentials.txt
+		sql-eula.txt = sql-eula.txt
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Core", "GitAutomation.Core\GitAutomation.Core.csproj", "{5020BA49-2C19-4BE1-B734-6961D2DC61BE}"

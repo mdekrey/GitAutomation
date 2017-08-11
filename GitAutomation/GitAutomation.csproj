@@ -23,9 +23,6 @@
     <DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools" Version="1.0.1" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="git.sample.json" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\GitAutomation.Core\GitAutomation.Core.csproj" />
   </ItemGroup>
 

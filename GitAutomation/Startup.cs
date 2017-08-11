@@ -21,7 +21,7 @@ namespace GitAutomation
                 .SetBasePath(env.ContentRootPath)
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
-                .AddJsonFile("git.json", optional: false, reloadOnChange: true)
+                .AddJsonFile("/run/secrets/configuration.json", optional: false, reloadOnChange: true)
                 .AddEnvironmentVariables();
 
             Configuration = builder.Build();

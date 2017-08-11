@@ -6,6 +6,6 @@ obj
 *.jfm
 
 /git-credentials.txt
-/GitAutomation/git.json
+/configuration.json
 /sql-credentials.txt
 /sql-eula.txt

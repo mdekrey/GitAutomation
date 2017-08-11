@@ -7,7 +7,7 @@ To run the SQL docker container, you must accept the EULA. It is also linked to 
 # Before you get started
 Local files that are not included in the repository include:
 
- * /GitAutomation/git.json - the git repository to use. See
+ * /configuration.json - the various configuration settings to use, including the git repo and persistence database. See the `configuration.sample.json` for format.
  * /git-credentials.txt - the password to use for the git repository. Not persisted in the docker image for security purposes.
  * /sql-credentials.txt - the password to set up for the SA role for the dockerized SQL container. Not persisted in the docker image for security purposes.
  * /sql-eula.txt - whether you agree to Microsoft's EULA for the SQL docker container. Should contain a single 'Y' if you do.

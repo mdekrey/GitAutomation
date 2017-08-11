@@ -1,0 +1,10 @@
+﻿{
+  "git": {
+    "repository": "https://mdekrey@github.com/mdekrey/git-branching",
+    "apiType": "GitHub"
+  },
+  "persistence": {
+    "type": "SqlServer",
+    "connectionString": "Server=gitautomationsql;Database=gitautomation;User Id=sa;Password=THE_SA_PASSWORD;"
+  }
+}
