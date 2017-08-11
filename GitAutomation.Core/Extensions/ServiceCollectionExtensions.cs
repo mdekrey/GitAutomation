@@ -10,6 +10,7 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             services.AddSingleton<GitAutomation.Processes.IReactiveProcessFactory, GitAutomation.Processes.ReactiveProcessFactory>();
             services.AddSingleton<GitAutomation.Repository.IRepositoryState, GitAutomation.Repository.RepositoryState>();
+            services.AddSingleton<GitAutomation.Repository.GitCli, GitAutomation.Repository.GitCli>();
             return services;
         }
     }

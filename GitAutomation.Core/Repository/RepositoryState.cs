@@ -15,44 +15,20 @@ namespace GitAutomation.Repository
 {
     class RepositoryState : IRepositoryState
     {
-        private static readonly Regex remoteBranches = new Regex(@"^(?<commit>\S+)\s+refs/heads/(?<branch>.+)");
-        private struct Ref
-        {
-            public string Commit;
-            public string Name;
-        }
-
         private readonly string checkoutPath;
-        private readonly IReactiveProcessFactory reactiveProcessFactory;
-        private readonly string repository;
         private readonly IConnectableObservable<OutputMessage> initialize;
         private System.Reactive.Disposables.CompositeDisposable initializeConnections = new System.Reactive.Disposables.CompositeDisposable();
+        private readonly GitCli cli;
 
-        public RepositoryState(IReactiveProcessFactory factory, IOptions<GitRepositoryOptions> options)
+        public RepositoryState(GitCli cli, IOptions<GitRepositoryOptions> options)
         {
-            this.reactiveProcessFactory = factory;
-            this.repository = options.Value.Repository;
+            this.cli = cli;
             this.checkoutPath = options.Value.CheckoutPath;
 
-            this.initialize = Observable.Create<OutputMessage>(observer =>
-            {
-                var info = Directory.CreateDirectory(checkoutPath);
-                var children = info.GetFileSystemInfos();
-                var proc = RunGit("clone", repository, checkoutPath);
-                return proc.Output.Subscribe(observer);
-            }).Publish().RefCount().Replay(1);
+            this.initialize = BuildInitialization();
         }
 
-        private IReactiveProcess RunGit(params string[] args)
-        {
-            return reactiveProcessFactory.BuildProcess(new System.Diagnostics.ProcessStartInfo(
-                "git",
-                string.Join(" ", args.Select(arg => arg.Contains("\"") ? $"\"{arg.Replace(@"\", @"\\").Replace("\"", "\\\"")}\"" : arg))
-            )
-            {
-                WorkingDirectory = checkoutPath
-            });
-        }
+        #region Initialize and Reset
 
         public IObservable<string> Reset()
         {
@@ -66,6 +42,16 @@ namespace GitAutomation.Repository
                 Directory.Delete(checkoutPath, true);
             }
             return Observable.Empty<string>();
+        }
+
+        private IConnectableObservable<OutputMessage> BuildInitialization()
+        {
+            return Observable.Create<OutputMessage>(observer =>
+            {
+                var info = Directory.CreateDirectory(checkoutPath);
+                var proc = cli.Clone();
+                return proc.Output.Subscribe(observer);
+            }).Publish().RefCount().Replay(1);
         }
 
         public IObservable<OutputMessage> Initialize()
@@ -84,21 +70,33 @@ namespace GitAutomation.Repository
                    select message.ExitCode == 0;
         }
 
+        private IObservable<T> InitializeThen<T>(Func<T> onSuccess, Func<T> onFailure)
+        {
+            return from isSuccess in SuccessfulInitialize()
+                   select isSuccess
+                        ? onSuccess()
+                        : onFailure();
+        }
+
+        private IObservable<T> InitializeThenSwitch<T>(IObservable<T> onSuccess, IObservable<T> onFailure = null)
+        {
+            return InitializeThen(
+                onSuccess: () => onSuccess, 
+                onFailure: onFailure != null 
+                    ? (Func<IObservable<T>>)(() => onFailure) 
+                    : Observable.Empty<T>
+            ).Switch();
+        }
+
+        #endregion
+
 
         public IObservable<string[]> RemoteBranches()
         {
-            return (from remoteBranchLine in SuccessfulInitialize()
-                                            .Select(isSuccess => isSuccess
-                                                ? from output in RunGit("ls-remote", "--heads", "origin").Output
-                                                  where output.Channel == OutputChannel.Out
-                                                  select output.Message
-                                                : Observable.Empty<string>()
-                                            )
-                                            .Switch()
-                   select remoteBranches.Match(remoteBranchLine) into remoteBranch
-                   where remoteBranch.Success
-                   select new Ref { Commit = remoteBranch.Groups["commit"].Value, Name = remoteBranch.Groups["branch"].Value } into gitref
-                   select gitref.Name)
+            return InitializeThenSwitch(
+                onSuccess: from gitref in cli.GetRemoteBranches()
+                           select gitref.Name
+            )
             .Aggregate(ImmutableList<string>.Empty, (list, next) => list.Add(next))
             .Select(list => list.ToArray());
         }
