@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using GitAutomation.Repository;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,9 +12,9 @@ namespace GitAutomation.Hooks
     public class GitWebHookController : Controller
     {
         [HttpPost]
-        public void Post()
+        public void Post([FromServices] IRepositoryState repositoryState)
         {
-            // TODO - queue pull and other processing
+            repositoryState.BeginCheckForUpdates();
         }
     }
 }

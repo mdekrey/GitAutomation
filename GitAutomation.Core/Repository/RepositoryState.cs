@@ -1,15 +1,13 @@
 ﻿using GitAutomation.Processes;
 using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Reactive.Linq;
-using System.Text;
 using System.Reactive.Subjects;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Reactive.Disposables;
+using System.Reactive;
 using System.Collections.Immutable;
-using System.Text.RegularExpressions;
 
 namespace GitAutomation.Repository
 {
@@ -17,8 +15,14 @@ namespace GitAutomation.Repository
     {
         private readonly string checkoutPath;
         private readonly IConnectableObservable<OutputMessage> initialize;
-        private System.Reactive.Disposables.CompositeDisposable initializeConnections = new System.Reactive.Disposables.CompositeDisposable();
+        private CompositeDisposable initializeConnections = new CompositeDisposable();
+        private bool isInitialized = false;
         private readonly GitCli cli;
+        private readonly IObservable<OutputMessage> update;
+        private readonly IObservable<Unit> allUpdates;
+        private readonly IObservable<ImmutableList<GitCli.GitRef>> remoteBranches;
+
+        public event EventHandler Updated;
 
         public RepositoryState(GitCli cli, IOptions<GitRepositoryOptions> options)
         {
@@ -26,6 +30,12 @@ namespace GitAutomation.Repository
             this.checkoutPath = options.Value.CheckoutPath;
 
             this.initialize = BuildInitialization();
+            this.update = BuildUpdater();
+            this.allUpdates = Observable.FromEventPattern<EventHandler, EventArgs>(
+                handler => this.Updated += handler,
+                handler => this.Updated -= handler
+            ).Select(_ => Unit.Default);
+            this.remoteBranches = BuildRemoteBranches();
         }
 
         #region Initialize and Reset
@@ -33,8 +43,9 @@ namespace GitAutomation.Repository
         public IObservable<string> Reset()
         {
             var temp = this.initializeConnections;
-            initializeConnections = new System.Reactive.Disposables.CompositeDisposable();
+            initializeConnections = new CompositeDisposable();
             temp.Dispose();
+            isInitialized = false;
 
             if (Directory.Exists(checkoutPath))
             {
@@ -50,7 +61,14 @@ namespace GitAutomation.Repository
             {
                 var info = Directory.CreateDirectory(checkoutPath);
                 var proc = cli.Clone();
-                return proc.Output.Subscribe(observer);
+                return proc.Output.Do(_ =>
+                {
+                    if (_.Channel == OutputChannel.ExitCode)
+                    {
+                        isInitialized = true;
+                        OnUpdated();
+                    }
+                }).Subscribe(observer);
             }).Publish().RefCount().Replay(1);
         }
 
@@ -78,6 +96,11 @@ namespace GitAutomation.Repository
                         : onFailure();
         }
 
+        private IObservable<T> InitializeThen<T>()
+        {
+            return InitializeThen(() => Observable.Empty<T>(), () => Observable.Throw<T>(new Exception("Failed to initialize"))).Switch();
+        }
+
         private IObservable<T> InitializeThenSwitch<T>(IObservable<T> onSuccess, IObservable<T> onFailure = null)
         {
             return InitializeThen(
@@ -90,15 +113,53 @@ namespace GitAutomation.Repository
 
         #endregion
 
+        #region Updates
+
+        protected virtual void OnUpdated()
+        {
+            Updated?.Invoke(this, EventArgs.Empty);
+        }
+
+        private IObservable<OutputMessage> BuildUpdater()
+        {
+            return Observable.Create<OutputMessage>(observer =>
+            {
+                var proc = cli.Fetch();
+                return proc.Output.Do(message =>
+                {
+                    if (message.Channel == OutputChannel.ExitCode)
+                    {
+                        OnUpdated();
+                    }
+                }).Subscribe(observer);
+            }).Publish().RefCount();
+        }
+
+        public void BeginCheckForUpdates()
+        {
+            if (!isInitialized)
+            {
+                Initialize().Subscribe();
+            }
+            else
+            {
+                update.TakeWhile(message => message.Channel != OutputChannel.ExitCode).Subscribe();
+            }
+        }
+
+        #endregion
+
+        private IObservable<ImmutableList<GitCli.GitRef>> BuildRemoteBranches()
+        {
+            return InitializeThen<ImmutableList<GitCli.GitRef>>()
+                            .Concat(allUpdates.StartWith(Unit.Default).Select(_ => cli.GetRemoteBranches()).Switch())
+                            .Publish().RefCount();
+        }
 
         public IObservable<string[]> RemoteBranches()
         {
-            return InitializeThenSwitch(
-                onSuccess: from gitref in cli.GetRemoteBranches()
-                           select gitref.Name
-            )
-            .Aggregate(ImmutableList<string>.Empty, (list, next) => list.Add(next))
-            .Select(list => list.ToArray());
+            return remoteBranches
+                .Select(list => list.Select(branch => branch.Name).ToArray());
         }
     }
 }

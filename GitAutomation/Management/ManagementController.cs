@@ -29,7 +29,7 @@ namespace GitAutomation.Management
         [HttpGet("remote-branches")]
         public async Task<IActionResult> RemoteBranches()
         {
-            return Ok(await repositoryState.RemoteBranches());
+            return Ok(await repositoryState.RemoteBranches().FirstAsync());
         }
     }
 }

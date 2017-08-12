@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
@@ -27,7 +28,7 @@ namespace GitAutomation.Repository
             this.reactiveProcessFactory = factory;
             this.checkoutPath = options.Value.CheckoutPath;
             this.repository = options.Value.Repository;
-            
+
         }
 
         private IReactiveProcess RunGit(params string[] args)
@@ -46,14 +47,22 @@ namespace GitAutomation.Repository
             return RunGit("clone", repository, checkoutPath);
         }
 
-        public IObservable<GitRef> GetRemoteBranches()
+        public IReactiveProcess Fetch()
         {
-            return from output in RunGit("ls-remote", "--heads", "origin").Output
-                   where output.Channel == OutputChannel.Out
-                   let remoteBranchLine = output.Message
-                   let remoteBranch = remoteBranches.Match(remoteBranchLine)
-                   where remoteBranch.Success
-                   select new GitRef { Commit = remoteBranch.Groups["commit"].Value, Name = remoteBranch.Groups["branch"].Value };
+            return RunGit("fetch", "--prune");
+        }
+
+        public IObservable<ImmutableList<GitRef>> GetRemoteBranches()
+        {
+            return (
+                from output in RunGit("ls-remote", "--heads", "origin").Output
+                where output.Channel == OutputChannel.Out
+                let remoteBranchLine = output.Message
+                let remoteBranch = remoteBranches.Match(remoteBranchLine)
+                where remoteBranch.Success
+                select new GitRef { Commit = remoteBranch.Groups["commit"].Value, Name = remoteBranch.Groups["branch"].Value }
+            )
+                .Aggregate(ImmutableList<GitRef>.Empty, (list, next) => list.Add(next));
         }
     }
 }
