@@ -1,0 +1,26 @@
+{
+  "name": "mjd-git-automation",
+  "version": "0.0.1",
+  "description": "How I use Git",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack --watch",
+    "build": "webpack",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Matt DeKrey",
+  "license": "MIT",
+  "dependencies": {
+    "@types/d3-selection": "1.1.0",
+    "csx": "^8.2.1",
+    "d3": "4.2.3",
+    "typescript": "^2.4.1",
+    "typestyle": "^1.3.7"
+  },
+  "devDependencies": {
+    "rxjs": "5.4.3",
+    "ts-loader": "^2.2.2",
+    "webpack": "^3.1.0",
+    "webpack-dev-server": "^2.5.1"
+  }
+}

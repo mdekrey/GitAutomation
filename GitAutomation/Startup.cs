@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Reactive.Linq;
 using GitAutomation.Repository;
+using Microsoft.AspNetCore.Http;
 
 namespace GitAutomation
 {
@@ -46,13 +47,29 @@ namespace GitAutomation
 
             var repositoryState = app.ApplicationServices.GetRequiredService<IRepositoryState>();
 
+            app.UseDefaultFiles(new DefaultFilesOptions
+            {
+                DefaultFileNames =
+                {
+                    "index.html"
+                }
+            });
+
             if (env.IsDevelopment())
             {
                 repositoryState.Reset().Subscribe();
 
                 app.UseDeveloperExceptionPage();
             }
+            app.UseStaticFiles();
             app.UseMvc();
+
+            app.Use((context, next) => {
+                context.Request.Path = new PathString("/index.html");
+                return next();
+            });
+
+            app.UseStaticFiles();
         }
     }
 }
