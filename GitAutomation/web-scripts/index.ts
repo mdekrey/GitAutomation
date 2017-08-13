@@ -1,11 +1,17 @@
 import { Observable } from "rxjs";
 import { rxData } from "./utils/presentation/d3-binding";
-import { select as d3select } from "d3-selection";
+
+const domChanged = Observable.of(null);
+
+function watchElements<T extends Element>(query: string): Observable<T> {
+  return domChanged
+    .map(() => document.querySelector(query) as T | null)
+    .filter(Boolean)
+    .distinctUntilChanged();
+}
 
 rxData<string, HTMLUListElement>(
-  Observable.of(
-    d3select<HTMLUListElement, null>(`[data-locator="remote-branches"]`).node()!
-  ),
+  watchElements<HTMLUListElement>(`[data-locator="remote-branches"]`),
   Observable.ajax("/api/management/remote-branches").map(
     response => response.response as string[]
   )
