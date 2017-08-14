@@ -157,7 +157,7 @@ namespace GitAutomation.Repository
                     })
                     .Select(GitCli.BranchListingToRefs)
             )
-                .Publish().RefCount();
+                .Publish().ConnectFirst();
         }
 
         public IObservable<string[]> RemoteBranches()

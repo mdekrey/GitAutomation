@@ -32,7 +32,6 @@ namespace GitAutomation.Processes
             var process = new Process() { StartInfo = resultInfo };
             process.EnableRaisingEvents = true;
 
-            var processObservable = 
             ProcessExited = Observable.Create<Unit>(observer =>
             {
                 process.Exited += delegate
@@ -56,24 +55,28 @@ namespace GitAutomation.Processes
                 };
             }).Publish().ConnectFirst();
 
-            Output = 
+            Output =
                 Observable.Merge(
-                    from e in Observable.FromEventPattern<DataReceivedEventHandler, DataReceivedEventArgs>(
-                        handler => process.OutputDataReceived += handler,
-                        handler => process.OutputDataReceived -= handler
-                    )
-                    where e.EventArgs.Data != null
-                    select new OutputMessage { Message = e.EventArgs.Data, Channel = OutputChannel.Out },
-                    from e in Observable.FromEventPattern<DataReceivedEventHandler, DataReceivedEventArgs>(
-                        handler => process.ErrorDataReceived += handler,
-                        handler => process.ErrorDataReceived -= handler
-                    )
-                    where e.EventArgs.Data != null
-                    select new OutputMessage { Message = e.EventArgs.Data, Channel = OutputChannel.Error }
+                    (
+                        from e in Observable.FromEventPattern<DataReceivedEventHandler, DataReceivedEventArgs>(
+                            handler => process.OutputDataReceived += handler,
+                            handler => process.OutputDataReceived -= handler
+                        )
+                        select new OutputMessage { Message = e.EventArgs.Data, Channel = OutputChannel.Out }
+                    ).TakeWhile(msg => msg.Message != null),
+                    (
+                        from e in Observable.FromEventPattern<DataReceivedEventHandler, DataReceivedEventArgs>(
+                            handler => process.ErrorDataReceived += handler,
+                            handler => process.ErrorDataReceived -= handler
+                        )
+                        select new OutputMessage { Message = e.EventArgs.Data, Channel = OutputChannel.Error }
+                    ).TakeWhile(msg => msg.Message != null)
                 )
-                .TakeUntil(this.ProcessExited.Concat(Observable.Return(Unit.Default)))
+                // ProcessExited must be subscribed to or it'll never run.
+                .TakeUntil(this.ProcessExited)
                 .Concat(
-                    Observable.Create<OutputMessage>(observer => {
+                    Observable.Create<OutputMessage>(observer =>
+                    {
                         observer.OnNext(
                             new OutputMessage { Channel = OutputChannel.ExitCode, ExitCode = process.ExitCode }
                         );
