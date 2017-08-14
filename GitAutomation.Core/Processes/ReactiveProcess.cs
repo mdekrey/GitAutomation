@@ -32,7 +32,8 @@ namespace GitAutomation.Processes
             var process = new Process() { StartInfo = resultInfo };
             process.EnableRaisingEvents = true;
 
-            var processObservable = Observable.Create<Unit>(observer =>
+            var processObservable = 
+            ProcessExited = Observable.Create<Unit>(observer =>
             {
                 process.Exited += delegate
                 {
@@ -53,13 +54,7 @@ namespace GitAutomation.Processes
                         process.Kill();
                     }
                 };
-            }).Publish();
-            ProcessExited = Observable.Create<Unit>(observer =>
-            {
-                var subscription = processObservable.Subscribe(observer);
-                processObservable.Connect();
-                return subscription;
-            });
+            }).Publish().ConnectFirst();
 
             Output = 
                 Observable.Merge(
