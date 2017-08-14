@@ -17,12 +17,20 @@ Local files that are not included in the repository include:
 1. Make sure the files mentioned above are in place.
 2. Launch the sln file and build.
 
+And then to run it...
+
+3. Run the docker-compose project.
+
 # Building via Docker
 
 1. Make sure the files mentioned above are in place.
 2. `docker-compose -f docker-compose.ci.build.yml build` 
 3. `docker-compose -f docker-compose.ci.build.yml up`
-4. `docker-compose build` - TODO - verify
-5. `docker-compose up` - TODO - verify
+4. `docker-compose build`
+
+And then to run it...
+
+5. `docker-compose up`
+6. `docker ps` to get the port mapping of the `gitautomation` image.
 
 
