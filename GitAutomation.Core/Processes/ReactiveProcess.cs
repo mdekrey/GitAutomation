@@ -74,6 +74,7 @@ namespace GitAutomation.Processes
                 )
                 // ProcessExited must be subscribed to or it'll never run.
                 .TakeUntil(this.ProcessExited)
+                .Concat(this.ProcessExited.Select(_ => default(OutputMessage)))
                 .Concat(
                     Observable.Create<OutputMessage>(observer =>
                     {

@@ -18,11 +18,18 @@ namespace GitAutomation.Management
         {
             this.repositoryState = repositoryState;
         }
-        
+
         [HttpGet("remote-branches")]
         public async Task<IActionResult> RemoteBranches()
         {
             return Ok(await repositoryState.RemoteBranches().FirstAsync());
+        }
+
+
+        [HttpGet("log")]
+        public async Task<IActionResult> Log()
+        {
+            return Ok(await repositoryState.ProcessActionsLog.FirstAsync());
         }
     }
 }

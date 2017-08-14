@@ -27,6 +27,7 @@ namespace GitAutomation.Repository
 
         private readonly IObservable<ImmutableList<IRepositoryAction>> repositoryActions;
         private readonly IObservable<OutputMessage> repositoryActionProcessor;
+        private readonly IObservable<ImmutableList<OutputMessage>> repositoryActionProcessorLog;
         private readonly IObserver<QueueAlteration> queueAlterations;
 
         private readonly string checkoutPath;
@@ -69,7 +70,18 @@ namespace GitAutomation.Repository
                         this.queueAlterations.OnNext(new QueueAlteration { Kind = QueueAlterationKind.Remove, Target = action });
                     }))
                 .Switch().Publish().RefCount();
-            
+
+            this.repositoryActionProcessorLog = repositoryActionProcessor
+                .Scan(
+                    ImmutableList<OutputMessage>.Empty,
+                    (list, next) =>
+                        (
+                            list.Count >= 100
+                                ? list.RemoveRange(0, list.Count - 99)
+                                : list
+                        ).Add(next)
+                ).Replay(1).ConnectFirst();
+
             this.allUpdates = Observable.FromEventPattern<EventHandler, EventArgs>(
                 handler => this.Updated += handler,
                 handler => this.Updated -= handler
@@ -83,52 +95,13 @@ namespace GitAutomation.Repository
             return resetAction.DeferredOutput;
         }
 
-        #region Initialize and Reset
+        #region Reset
 
         public IObservable<OutputMessage> Reset()
         {
             return EnqueueAction(new ResetAction());
         }
-
-        //public IObservable<OutputMessage> Initialize()
-        //{
-        //    return Observable.Create<OutputMessage>(observer =>
-        //    {
-        //        this.initializeConnections.Add(initialize.Connect());
-        //        return initialize.Subscribe(observer);
-        //    });
-        //}
-
-        //private IObservable<bool> SuccessfulInitialize()
-        //{
-        //    return from message in Initialize()
-        //           where message.Channel == OutputChannel.ExitCode
-        //           select message.ExitCode == 0;
-        //}
-
-        //private IObservable<T> InitializeThen<T>(Func<T> onSuccess, Func<T> onFailure)
-        //{
-        //    return from isSuccess in SuccessfulInitialize()
-        //           select isSuccess
-        //                ? onSuccess()
-        //                : onFailure();
-        //}
-
-        //private IObservable<T> InitializeThen<T>()
-        //{
-        //    return InitializeThen(() => Observable.Empty<T>(), () => Observable.Throw<T>(new Exception("Failed to initialize"))).Switch();
-        //}
-
-        //private IObservable<T> InitializeThenSwitch<T>(IObservable<T> onSuccess, IObservable<T> onFailure = null)
-        //{
-        //    return InitializeThen(
-        //        onSuccess: () => onSuccess, 
-        //        onFailure: onFailure != null 
-        //            ? (Func<IObservable<T>>)(() => onFailure) 
-        //            : Observable.Empty<T>
-        //    ).Switch();
-        //}
-
+        
         #endregion
 
         #region Updates
@@ -157,7 +130,7 @@ namespace GitAutomation.Repository
                     })
                     .Select(GitCli.BranchListingToRefs)
             )
-                .Publish().ConnectFirst();
+                .Replay(1).ConnectFirst();
         }
 
         public IObservable<string[]> RemoteBranches()
@@ -170,5 +143,7 @@ namespace GitAutomation.Repository
         {
             return this.repositoryActionProcessor;
         }
+        public IObservable<ImmutableList<OutputMessage>> ProcessActionsLog => this.repositoryActionProcessorLog;
+
     }
 }
