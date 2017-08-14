@@ -85,6 +85,7 @@ namespace GitAutomation.Processes
                         return () => { };
                     })
                 )
+                .StartWith(new OutputMessage { Channel = OutputChannel.StartInfo, Message = process.StartInfo.FileName + " " + process.StartInfo.Arguments })
                 .Publish().RefCount();
         }
 

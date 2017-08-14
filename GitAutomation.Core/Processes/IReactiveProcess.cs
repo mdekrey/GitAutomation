@@ -10,6 +10,7 @@ namespace GitAutomation.Processes
 {
     public enum OutputChannel
     {
+        StartInfo,
         Out,
         Error,
         ExitCode,

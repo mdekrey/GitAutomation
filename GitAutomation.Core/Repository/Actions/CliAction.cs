@@ -22,9 +22,8 @@ namespace GitAutomation.Repository.Actions
 
         public virtual IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider)
         {
-            GetCliAction(serviceProvider.GetRequiredService<GitCli>()).Output      
-                .Subscribe(output);
-            return output;
+            return GetCliAction(serviceProvider.GetRequiredService<GitCli>()).Output      
+                .Multicast(output).ConnectFirst();
         }
 
         protected abstract IReactiveProcess GetCliAction(GitCli gitCli);
