@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Text;
@@ -31,16 +32,19 @@ namespace GitAutomation.Processes
             var process = new Process() { StartInfo = resultInfo };
             process.EnableRaisingEvents = true;
 
-            ProcessExited = Observable.Create<Unit>(observer =>
+            var processObservable = Observable.Create<Unit>(observer =>
             {
-                process.Start();
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
                 process.Exited += delegate
                 {
-                    observer.OnNext(Unit.Default);
                     observer.OnCompleted();
                 };
+                process.Start();
+                try
+                {
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+                }
+                catch { }
 
                 return () =>
                 {
@@ -49,9 +53,16 @@ namespace GitAutomation.Processes
                         process.Kill();
                     }
                 };
-            }).Publish().RefCount();
+            }).Publish();
+            ProcessExited = Observable.Create<Unit>(observer =>
+            {
+                var subscription = processObservable.Subscribe(observer);
+                processObservable.Connect();
+                return subscription;
+            });
 
-            Output = Observable.Merge(
+            Output = 
+                Observable.Merge(
                     from e in Observable.FromEventPattern<DataReceivedEventHandler, DataReceivedEventArgs>(
                         handler => process.OutputDataReceived += handler,
                         handler => process.OutputDataReceived -= handler
@@ -65,8 +76,16 @@ namespace GitAutomation.Processes
                     where e.EventArgs.Data != null
                     select new OutputMessage { Message = e.EventArgs.Data, Channel = OutputChannel.Error }
                 )
-                .TakeUntil(this.ProcessExited)
-                .Merge(this.ProcessExited.Select(_ => new OutputMessage { Channel = OutputChannel.ExitCode, ExitCode = process.ExitCode }))
+                .TakeUntil(this.ProcessExited.Concat(Observable.Return(Unit.Default)))
+                .Concat(
+                    Observable.Create<OutputMessage>(observer => {
+                        observer.OnNext(
+                            new OutputMessage { Channel = OutputChannel.ExitCode, ExitCode = process.ExitCode }
+                        );
+                        observer.OnCompleted();
+                        return () => { };
+                    })
+                )
                 .Publish().RefCount();
         }
 

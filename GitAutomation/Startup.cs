@@ -61,10 +61,25 @@ namespace GitAutomation
 
                 app.UseDeveloperExceptionPage();
             }
+            repositoryState.ProcessActions().Subscribe(
+                onNext: _ =>
+                {
+                    Console.WriteLine(_);
+                },
+                onCompleted: () =>
+                {
+                    Console.WriteLine("COMPLETED - This shouldn't happen!");
+                },
+                onError: _ =>
+                {
+                    Console.WriteLine(_);
+                }
+            );
             app.UseStaticFiles();
             app.UseMvc();
 
-            app.Use((context, next) => {
+            app.Use((context, next) =>
+            {
                 context.Request.Path = new PathString("/index.html");
                 return next();
             });

@@ -1,12 +1,15 @@
-﻿using System;
+﻿using GitAutomation.Processes;
+using System;
 
 namespace GitAutomation.Repository
 {
     public interface IRepositoryState
     {
-        IObservable<Processes.OutputMessage> Initialize();
-        IObservable<string> Reset();
-        void BeginCheckForUpdates();
+        IObservable<OutputMessage> ProcessActions();
+
+        IObservable<OutputMessage> Reset();
+        IObservable<OutputMessage> CheckForUpdates();
+
         IObservable<string[]> RemoteBranches();
     }
 }

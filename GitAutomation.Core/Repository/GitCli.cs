@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
@@ -31,6 +32,9 @@ namespace GitAutomation.Repository
 
         }
 
+        public bool IsGitInitialized =>
+            Directory.Exists(Path.Combine(checkoutPath, ".git"));
+
         private IReactiveProcess RunGit(params string[] args)
         {
             return reactiveProcessFactory.BuildProcess(new System.Diagnostics.ProcessStartInfo(
@@ -44,6 +48,7 @@ namespace GitAutomation.Repository
 
         public IReactiveProcess Clone()
         {
+            Directory.Exists(checkoutPath);
             return RunGit("clone", repository, checkoutPath);
         }
 
@@ -52,10 +57,16 @@ namespace GitAutomation.Repository
             return RunGit("fetch", "--prune");
         }
 
-        public IObservable<ImmutableList<GitRef>> GetRemoteBranches()
+        public IReactiveProcess GetRemoteBranches()
         {
+            return RunGit("ls-remote", "--heads", "origin");
+        }
+
+        public static IObservable<ImmutableList<GitRef>> BranchListingToRefs(IObservable<OutputMessage> refListing)
+        {
+
             return (
-                from output in RunGit("ls-remote", "--heads", "origin").Output
+                from output in refListing
                 where output.Channel == OutputChannel.Out
                 let remoteBranchLine = output.Message
                 let remoteBranch = remoteBranches.Match(remoteBranchLine)
