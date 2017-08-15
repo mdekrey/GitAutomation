@@ -1,6 +1,7 @@
 import { Observable } from "rxjs";
 import { rxData, rxEvent, d3element } from "./utils/presentation/d3-binding";
 import { getLog, remoteBranches, fetch } from "./api/basics";
+import { logPresentation } from "./logs/log.presentation";
 
 const domChanged = Observable.of(null);
 
@@ -35,7 +36,7 @@ rxData<string, HTMLUListElement>(
   }
 });
 
-rxData<{}, HTMLUListElement>(
+rxData(
   watchElements<HTMLUListElement>(`[data-locator="status"]`),
   getLog(
     rxEvent({
@@ -43,10 +44,4 @@ rxData<{}, HTMLUListElement>(
       eventName: "click"
     }).startWith(null)
   )
-).bind({
-  element: "li",
-  selector: "li",
-  onEach: selection => {
-    selection.text(data => JSON.stringify(data));
-  }
-});
+).bind(logPresentation);

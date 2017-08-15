@@ -1,4 +1,5 @@
 import { Observable } from "rxjs";
+import { OutputMessage } from "./output-message";
 
 export const remoteBranches = (when: Observable<any>) =>
   when.switchMap(() =>
@@ -10,7 +11,7 @@ export const remoteBranches = (when: Observable<any>) =>
 export const getLog = (when: Observable<any>) =>
   when.switchMap(() =>
     Observable.ajax("/api/management/log").map(
-      response => response.response as {}[]
+      response => response.response as OutputMessage[]
     )
   );
 
