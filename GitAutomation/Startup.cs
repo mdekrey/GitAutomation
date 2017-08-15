@@ -11,6 +11,7 @@ using System.IO;
 using System.Reactive.Linq;
 using GitAutomation.Repository;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Net.Http.Headers;
 
 namespace GitAutomation
 {
@@ -37,6 +38,13 @@ namespace GitAutomation
             services.AddMvc();
             services.AddGitUtilities();
             services.Configure<GitRepositoryOptions>(Configuration.GetSection("git"));
+            services.Configure<StaticFileOptions>(options =>
+                options.OnPrepareResponse = ctx =>
+                {
+                    ctx.Context.Response.Headers[HeaderNames.CacheControl] =
+                        "max-age=0, must-revalidate";
+                }
+            );
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
