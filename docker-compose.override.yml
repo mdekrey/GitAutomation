@@ -4,5 +4,3 @@ services:
   gitautomation:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-    ports:
-      - "80"

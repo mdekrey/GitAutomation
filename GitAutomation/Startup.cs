@@ -12,6 +12,7 @@ using System.Reactive.Linq;
 using GitAutomation.Repository;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
+using GitAutomation.BranchSettings;
 
 namespace GitAutomation
 {
@@ -36,7 +37,7 @@ namespace GitAutomation
         {
             // Add framework services.
             services.AddMvc();
-            services.AddGitUtilities();
+            services.AddGitUtilities(Configuration.GetSection("persistence").Get<PersistenceOptions>());
             services.Configure<GitRepositoryOptions>(Configuration.GetSection("git"));
             services.Configure<StaticFileOptions>(options =>
                 options.OnPrepareResponse = ctx =>
