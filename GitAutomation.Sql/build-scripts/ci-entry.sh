@@ -11,8 +11,7 @@
 /opt/mssql-tools/bin/sqlcmd -S localhost \
     -U sa -P $SA_PASSWORD \
     -d gitautomation \
-    -i TargetBranch.sql \
-    -i BaseBranch.sql
+    $(ls *.sql | awk 'BEGIN { ORS=" " }; { print "-i "$0 }')
 
 /opt/mssql-tools/bin/sqlcmd -S localhost \
     -U sa -P $SA_PASSWORD \
