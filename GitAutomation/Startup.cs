@@ -13,6 +13,8 @@ using GitAutomation.Repository;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
 using GitAutomation.BranchSettings;
+using GitAutomation.Swagger;
+using Swashbuckle.SwaggerGen.Generator;
 
 namespace GitAutomation
 {
@@ -37,6 +39,27 @@ namespace GitAutomation
         {
             // Add framework services.
             services.AddMvc();
+
+            services.AddSwaggerGen(options =>
+            {
+                options.SingleApiVersion(new Swashbuckle.Swagger.Model.Info
+                {
+                    Version = "v1",
+                    Title = "Woosti API",
+                    Description = "Create your own personal Radio",
+                    TermsOfService = "TODO"
+                });
+                options.DescribeAllEnumsAsStrings();
+                //options.OperationFilter<IgnoreCustomBindingOperationFilter>();
+                //options.OperationFilter<FixPathOperationFilter>();
+                options.OperationFilter<OperationIdFilter>();
+                //options.OperationFilter<AddValidationResponseOperationFilter>();
+                //options.CustomSchemaIds(t => t.FriendlyId(true));
+                //options.SchemaFilter<AdditionalValidationFilter>();
+                //options.SchemaFilter<ReferenceEnumFilter>();
+                //options.SchemaFilter<ClassAssemblyFilter>();
+            });
+
             services.AddGitUtilities(Configuration.GetSection("persistence").Get<PersistenceOptions>());
             services.Configure<GitRepositoryOptions>(Configuration.GetSection("git"));
             services.Configure<StaticFileOptions>(options =>
@@ -86,6 +109,8 @@ namespace GitAutomation
             );
             app.UseStaticFiles();
             app.UseMvc();
+            app.UseSwagger();
+            app.UseSwaggerUi();
 
             app.Use((context, next) =>
             {
