@@ -28,7 +28,7 @@ rxEvent({
   .switchMap(() => fetch())
   .subscribe();
 
-rxData<string, HTMLUListElement>(
+var clearBranches = rxData<string, HTMLUListElement>(
   watchElements<HTMLUListElement>(`[data-locator="remote-branches"]`),
   rxEvent({
     target: watchElements('[data-locator="remote-branches-refresh"]'),
@@ -43,6 +43,11 @@ rxData<string, HTMLUListElement>(
     selection.text(data => data);
   }
 });
+
+rxEvent({
+  target: watchElements('[data-locator="remote-branches-remove"]'),
+  eventName: "click"
+}).subscribe(() => clearBranches.unsubscribe());
 
 rxData(
   watchElements<HTMLUListElement>(`[data-locator="status"]`),

@@ -1,4 +1,4 @@
-import { Observable, Subscription, Observer } from "rxjs";
+import { Observable, Observer, Subject, Subscription } from "rxjs";
 import {
   select as d3select,
   Selection,
@@ -97,18 +97,28 @@ export function rxData<TDatum, PElement extends BaseType>(
       selector,
       ...actions
     }: IRxBindProps<GElement, TDatum, PElement, {}>) => {
-      return target
-        .switchMap(svgSelection =>
-          data.map(data =>
-            svgSelection.selectAll<GElement, {}>(selector).data(data, key)
+      return Observable.create((observer: Observer<never>) => {
+        var onUnsubscribing = new Subject<TDatum[]>();
+        var subscription = target
+          .switchMap(svgSelection =>
+            data
+              .merge(onUnsubscribing)
+              .map(data =>
+                svgSelection.selectAll<GElement, {}>(selector).data(data, key)
+              )
           )
-        )
-        .subscribe(target =>
-          bind({
-            target,
-            ...actions
-          })
-        );
+          .subscribe(target =>
+            bind({
+              target,
+              ...actions
+            })
+          );
+
+        return () => {
+          onUnsubscribing.next([]);
+          subscription.unsubscribe();
+        };
+      }).subscribe();
     }
   };
 }
