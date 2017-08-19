@@ -80,15 +80,19 @@ export const manage = (
           ).subscribe(target => target.text(data => data))
         );
 
+        const branchList = branchData.state
+          .map(state =>
+            state.branches.filter(({ branch }) => branch !== branchName)
+          )
+          .combineLatest(reset, _ => _);
+
         // display downstream branches
         subscription.add(
           rxData(
             container.let(
               selectChildren(`[data-locator="downstream-branches"]`)
             ),
-            branchData.state
-              .map(state => state.branches)
-              .combineLatest(reset, _ => _),
+            branchList,
             data => data.branch
           )
             .bind<HTMLLIElement>(
@@ -101,9 +105,7 @@ export const manage = (
         subscription.add(
           rxData(
             container.let(selectChildren(`[data-locator="upstream-branches"]`)),
-            branchData.state
-              .map(state => state.branches)
-              .combineLatest(reset, _ => _),
+            branchList,
             data => data.branch
           )
             .bind<HTMLLIElement>(
