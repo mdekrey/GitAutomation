@@ -17,7 +17,6 @@ export const homepage = (
   container
     .do(elem =>
       elem.html(`
-  <a data-locator="manage">Manage</a>
   <h1>Action Queue</h1>
   <ul data-locator="action-queue">
   </ul>
@@ -40,16 +39,6 @@ export const homepage = (
     .let(body =>
       Observable.create(() => {
         const subscription = new Subscription();
-
-        // fetch from remote
-        subscription.add(
-          rxEvent({
-            target: body.let(selectChildren('[data-locator="manage"]')),
-            eventName: "click"
-          }).subscribe(() =>
-            state.navigate({ url: "/manage", replaceCurentHistory: false })
-          )
-        );
 
         // fetch from remote
         subscription.add(
@@ -78,9 +67,27 @@ export const homepage = (
           )
             .bind<HTMLLIElement>({
               onCreate: target => target.append<HTMLLIElement>("li"),
+              onEnter: li =>
+                li.html(`
+  <span></span>
+  <a data-locator="manage">Manage</a>
+`),
               selector: "li",
               onEach: selection => {
-                selection.text(data => data);
+                selection.select(`span`).text(data => data);
+                subscription.add(
+                  rxEvent({
+                    target: Observable.of(
+                      selection.select('[data-locator="manage"]')
+                    ),
+                    eventName: "click"
+                  }).subscribe(event =>
+                    state.navigate({
+                      url: "/manage/" + event.datum,
+                      replaceCurentHistory: false
+                    })
+                  )
+                );
               }
             })
             .subscribe()

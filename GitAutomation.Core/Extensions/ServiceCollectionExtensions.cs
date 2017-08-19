@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GitAutomation.SqlServer;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Text;
@@ -20,9 +21,9 @@ namespace Microsoft.Extensions.DependencyInjection
             if (persistenceOptions.Type == "SqlServer")
             {
                 services.AddSingleton<GitAutomation.BranchSettings.IBranchSettings, GitAutomation.BranchSettings.SqlBranchSettings>();
-                services.AddScoped<DbConnection>(serviceProvider =>
+                services.AddScoped<ConnectionManagement>(serviceProvider =>
                 {
-                    var result = new System.Data.SqlClient.SqlConnection(persistenceOptions.Connectionstring);
+                    var result = new ConnectionManagement(persistenceOptions.Connectionstring);
                     return result;
                 });
             }

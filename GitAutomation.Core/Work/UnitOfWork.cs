@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace GitAutomation.Work
@@ -11,15 +13,9 @@ namespace GitAutomation.Work
         {
             public Func<IServiceProvider, Task> Action;
         }
-        struct FinalizeWork
-        {
-            public Func<IServiceProvider, Task> Prepare;
-            public Func<IServiceProvider, Task> Commit;
-            public Func<IServiceProvider, Task> Rollback;
-        }
 
         private readonly List<PortionOfWork> work = new List<PortionOfWork>();
-        private readonly Dictionary<string, FinalizeWork> finalize = new Dictionary<string, FinalizeWork>();
+        private readonly ConcurrentDictionary<Type, Type> finalize = new ConcurrentDictionary<Type, Type>();
         private readonly IServiceProvider provider;
 
         public UnitOfWork(IServiceProvider provider)
@@ -33,30 +29,22 @@ namespace GitAutomation.Work
                 Action = action,
             });
 
-        public bool PrepareAndFinalize(string key, Func<IServiceProvider, Task> prepareAction, Func<IServiceProvider, Task> commitAction, Func<IServiceProvider, Task> rollbackAction)
+        public void PrepareAndFinalize<T>()
+            where T : IUnitOfWorkLifecycleManagement
         {
-            if (finalize.ContainsKey(key))
-            {
-                return false;
-            }
-            finalize.Add(key, new FinalizeWork
-            {
-                Prepare = prepareAction,
-                Commit = commitAction,
-                Rollback = rollbackAction
-            });
-            return true;
+            finalize.GetOrAdd(typeof(T), typeof(T));
         }
 
         public async Task CommitAsync()
         {
             using (var scope = provider.CreateScope())
             {
+                var values = finalize.Values.Select(type => scope.ServiceProvider.GetRequiredService(type) as IUnitOfWorkLifecycleManagement).ToArray();
                 try
                 {
-                    foreach (var portionOfWork in finalize.Values)
+                    foreach (var portionOfWork in values)
                     {
-                        await portionOfWork.Commit?.Invoke(scope.ServiceProvider);
+                        await portionOfWork.Prepare();
                     }
 
                     foreach (var portionOfWork in work)
@@ -64,17 +52,18 @@ namespace GitAutomation.Work
                         await portionOfWork.Action(scope.ServiceProvider);
                     }
 
-                    foreach (var portionOfWork in finalize.Values)
+                    foreach (var portionOfWork in values)
                     {
-                        await portionOfWork.Commit?.Invoke(scope.ServiceProvider);
+                        await portionOfWork.Commit();
                     }
                 }
-                finally
+                catch
                 {
-                    foreach (var portionOfWork in finalize.Values)
+                    foreach (var portionOfWork in values)
                     {
-                        await portionOfWork.Rollback?.Invoke(scope.ServiceProvider);
+                        await portionOfWork.Rollback();
                     }
+                    throw;
                 }
             }
         }

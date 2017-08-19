@@ -10,7 +10,7 @@ import {
 import { windowHashStrategy } from "./routing/strategies/window-hash";
 import { RoutingComponent, renderRoute } from "./utils/routing-component";
 import { homepage } from "./home/index";
-import { manage } from "./manage/index";
+import { manage } from "./manage-branch/index";
 
 const body = Observable.of(d3element(document.body));
 
