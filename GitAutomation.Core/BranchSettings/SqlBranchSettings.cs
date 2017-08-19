@@ -63,7 +63,7 @@ VALUES (@UpstreamBranch, @DownstreamBranch)
         public static readonly CommandBuilder RemoveBranchSettingCommand = new CommandBuilder(
             commandText: @"
 DELETE FROM [UpstreamBranch]
-WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch)
+WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@UpstreamBranch", p => p.DbType = System.Data.DbType.AnsiString },
