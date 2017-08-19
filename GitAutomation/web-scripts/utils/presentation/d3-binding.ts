@@ -190,13 +190,8 @@ export function rxEvent<GElement extends BaseType, TDatum>({
   );
 }
 
-export function selectChildren<
-  T extends BaseType,
-  TDatum,
-  PElement extends BaseType,
-  PDatum
->(query: string) {
-  return (
+export function selectChildren<T extends BaseType>(query: string) {
+  return <TDatum, PElement extends BaseType, PDatum>(
     children: Observable<Selection<BaseType, TDatum, PElement, PDatum>>
   ) =>
     children
