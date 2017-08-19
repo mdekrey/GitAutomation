@@ -13,7 +13,6 @@ function navigateHash({
   url: string;
   replaceCurentHistory: boolean;
 }) {
-  console.log(url, replaceCurentHistory);
   if (typeof history !== "undefined") {
     if (!replaceCurentHistory) {
       history.pushState({}, "", "#" + url);

@@ -1,5 +1,7 @@
-import { Observable, Observer, Subject, Subscription } from "rxjs";
+import { Observable, Observer, Subject } from "rxjs";
 import {
+  event as d3event,
+  mouse as d3mouse,
   select as d3select,
   Selection,
   BaseType,
@@ -77,7 +79,7 @@ export interface BindResult<TDatum, PElement extends BaseType> {
   /** Binds to the subscription. The type corresponds to the created element. */
   bind<GElement extends BaseType>(
     bindParams: IRxBindProps<GElement, TDatum, PElement, {}>
-  ): Subscription;
+  ): Observable<never>;
 }
 
 /**
@@ -118,7 +120,7 @@ export function rxData<TDatum, PElement extends BaseType>(
           onUnsubscribing.next([]);
           subscription.unsubscribe();
         };
-      }).subscribe();
+      }) as Observable<never>;
     }
   };
 }
@@ -148,6 +150,8 @@ export interface IEventOccurred<GElement extends BaseType, TDatum> {
   datum: TDatum;
   index: number;
   groups: GElement[] | ArrayLike<GElement>;
+  event: any;
+  mouse: [number, number];
 }
 
 export function rxEvent<GElement extends BaseType, TDatum>({
@@ -159,17 +163,44 @@ export function rxEvent<GElement extends BaseType, TDatum>({
   eventName: string;
   capture?: boolean;
 }) {
-  return Observable.create(
-    (observer: Observer<IEventOccurred<GElement, TDatum>>) => {
-      return target.subscribe(element => {
-        element.on(
-          eventName,
-          function(datum, index, groups) {
-            observer.next({ target: this, datum, index, groups });
-          },
-          capture
-        );
-      });
-    }
-  ) as Observable<IEventOccurred<GElement, TDatum>>;
+  return target.switchMap(
+    element =>
+      Observable.create(
+        (observer: Observer<IEventOccurred<GElement, TDatum>>) => {
+          element.on(
+            eventName,
+            function(datum, index, groups) {
+              observer.next({
+                target: this,
+                datum,
+                index,
+                groups,
+                event: d3event,
+                mouse: d3mouse(this as any)
+              });
+            },
+            capture
+          );
+
+          return () => {
+            element.on(eventName, null);
+          };
+        }
+      ) as Observable<IEventOccurred<GElement, TDatum>>
+  );
+}
+
+export function selectChildren<
+  T extends BaseType,
+  TDatum,
+  PElement extends BaseType,
+  PDatum
+>(query: string) {
+  return (
+    children: Observable<Selection<BaseType, TDatum, PElement, PDatum>>
+  ) =>
+    children
+      .map(within => within.select<T>(query))
+      .filter(Boolean)
+      .distinctUntilChanged();
 }

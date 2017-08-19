@@ -1,7 +1,5 @@
 import { Observable } from "rxjs";
-import { rxData, rxEvent, d3element } from "./utils/presentation/d3-binding";
-import { getLog, remoteBranches, fetch } from "./api/basics";
-import { logPresentation } from "./logs/log.presentation";
+import { d3element } from "./utils/presentation/d3-binding";
 import {
   buildCascadingStrategy,
   route,
@@ -10,68 +8,28 @@ import {
   wildcard
 } from "./routing";
 import { windowHashStrategy } from "./routing/strategies/window-hash";
+import { RoutingComponent, renderRoute } from "./utils/routing-component";
+import { homepage } from "./home/index";
+import { manage } from "./manage/index";
 
-const body = Observable.of(document.body);
-
-function selectChildren<T extends Element>(query: string) {
-  return (children: Observable<Element>) =>
-    children
-      .map(within => within.querySelector(query) as T | null)
-      .filter(Boolean)
-      .distinctUntilChanged()
-      .map(d3element);
-}
-
-rxEvent({
-  target: body.let(selectChildren('[data-locator="fetch-from-remote"]')),
-  eventName: "click"
-})
-  .switchMap(() => fetch())
-  .subscribe();
-
-rxData<string, HTMLUListElement>(
-  body.let(
-    selectChildren<HTMLUListElement>(`[data-locator="remote-branches"]`)
-  ),
-  rxEvent({
-    target: body.let(
-      selectChildren('[data-locator="remote-branches-refresh"]')
-    ),
-    eventName: "click"
-  })
-    .startWith(null)
-    .switchMap(() => remoteBranches())
-).bind<HTMLLIElement>({
-  onCreate: target => target.append<HTMLLIElement>("li"),
-  selector: "li",
-  onEach: selection => {
-    selection.text(data => data);
-  }
-});
-
-rxData(
-  body.let(selectChildren<HTMLUListElement>(`[data-locator="status"]`)),
-  rxEvent({
-    target: body.let(selectChildren('[data-locator="status-refresh"]')),
-    eventName: "click"
-  })
-    .startWith(null)
-    .switchMap(() => getLog())
-).bind(logPresentation);
+const body = Observable.of(d3element(document.body));
 
 buildCascadingStrategy(windowHashStrategy)
   .let(
-    route<string>({
-      "": RouteConcrete("home"),
-      manage: RouteConcrete("manage"),
+    route<RoutingComponent>({
+      "": RouteConcrete(homepage(body)),
+      manage: RouteConcrete(manage(body)),
       admin: RouteAlias("manage"),
-      [wildcard]: RouteConcrete("wildcard")
+      [wildcard]: RouteConcrete(() => Observable.empty())
     })
   )
-  .map(routeState => {
-    return routeState;
-  })
-  .subscribe(_ => {
-    (window as any).currentRouteState = _;
-    console.log(_.state);
+  .let(renderRoute)
+  .subscribe({
+    next: _ => {
+      // (window as any).currentRouteState = _;
+      console.log(_);
+    },
+    error: ex => {
+      console.error(ex);
+    }
   });
