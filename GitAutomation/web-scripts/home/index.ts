@@ -1,11 +1,7 @@
 import { Observable, Subscription } from "rxjs";
 import { Selection } from "d3-selection";
 
-import {
-  rxData,
-  rxEvent,
-  selectChildren
-} from "../utils/presentation/d3-binding";
+import { rxData, rxEvent, fnSelect } from "../utils/presentation/d3-binding";
 
 import { RoutingComponent } from "../utils/routing-component";
 import { getLog, remoteBranches, fetch } from "../api/basics";
@@ -43,9 +39,7 @@ export const homepage = (
         // fetch from remote
         subscription.add(
           rxEvent({
-            target: body.let(
-              selectChildren('[data-locator="fetch-from-remote"]')
-            ),
+            target: body.map(fnSelect('[data-locator="fetch-from-remote"]')),
             eventName: "click"
           })
             .switchMap(() => fetch())
@@ -55,10 +49,10 @@ export const homepage = (
         // display branches
         subscription.add(
           rxData<string, HTMLUListElement>(
-            body.let(selectChildren(`[data-locator="remote-branches"]`)),
+            body.map(fnSelect(`[data-locator="remote-branches"]`)),
             rxEvent({
-              target: body.let(
-                selectChildren('[data-locator="remote-branches-refresh"]')
+              target: body.map(
+                fnSelect('[data-locator="remote-branches-refresh"]')
               ),
               eventName: "click"
             })
@@ -96,11 +90,9 @@ export const homepage = (
         // display log
         subscription.add(
           rxData(
-            body.let(selectChildren(`[data-locator="status"]`)),
+            body.map(fnSelect(`[data-locator="status"]`)),
             rxEvent({
-              target: body.let(
-                selectChildren('[data-locator="status-refresh"]')
-              ),
+              target: body.map(fnSelect('[data-locator="status-refresh"]')),
               eventName: "click"
             })
               .startWith(null)

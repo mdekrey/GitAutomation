@@ -4,7 +4,7 @@ import { Selection } from "d3-selection";
 import { RoutingComponent } from "../utils/routing-component";
 import {
   rxEvent,
-  selectChildren,
+  fnSelect,
   rxDatum,
   rxData
 } from "../utils/presentation/d3-binding";
@@ -74,10 +74,10 @@ export const manage = (
 
         // display branch name
         subscription.add(
-          rxDatum(
-            container.let(selectChildren(`[data-locator="branch-name"]`)),
-            Observable.of(branchName)
-          ).subscribe(target => target.text(data => data))
+          container
+            .map(fnSelect(`[data-locator="branch-name"]`))
+            .let(rxDatum(Observable.of(branchName)))
+            .subscribe(target => target.text(data => data))
         );
 
         const branchList = branchData.state
@@ -89,9 +89,7 @@ export const manage = (
         // display downstream branches
         subscription.add(
           rxData(
-            container.let(
-              selectChildren(`[data-locator="downstream-branches"]`)
-            ),
+            container.map(fnSelect(`[data-locator="downstream-branches"]`)),
             branchList,
             data => data.branch
           )
@@ -104,7 +102,7 @@ export const manage = (
         // display upstream branches
         subscription.add(
           rxData(
-            container.let(selectChildren(`[data-locator="upstream-branches"]`)),
+            container.map(fnSelect(`[data-locator="upstream-branches"]`)),
             branchList,
             data => data.branch
           )

@@ -128,21 +128,16 @@ export function rxData<TDatum, PElement extends BaseType>(
 /**
  * Binds d3 to Rx Observables.
  *
- * @param target The element to contain the bound data
  * @param data The data to bind to the elements
  */
-export function rxDatum<
-  GElement extends BaseType,
-  TDatum,
-  PElement extends BaseType,
-  TOldDatum
->(
-  target: Observable<Selection<GElement, any, PElement, TOldDatum>>,
-  data: Observable<TDatum>
-): Observable<Selection<GElement, TDatum, PElement, TOldDatum>> {
-  return target.switchMap(svgSelection =>
-    data.map(data => svgSelection.datum(data))
-  );
+export function rxDatum<TDatum>(data: Observable<TDatum>) {
+  return <GElement extends BaseType, PElement extends BaseType, TOldDatum>(
+    /** The element to contain the bound data */
+    target: Observable<Selection<GElement, any, PElement, TOldDatum>>
+  ): Observable<Selection<GElement, TDatum, PElement, TOldDatum>> =>
+    target.switchMap(svgSelection =>
+      data.map(data => svgSelection.datum(data))
+    );
 }
 
 export interface IEventOccurred<GElement extends BaseType, TDatum> {
@@ -190,12 +185,8 @@ export function rxEvent<GElement extends BaseType, TDatum>({
   );
 }
 
-export function selectChildren<T extends BaseType>(query: string) {
+export function fnSelect<T extends BaseType>(query: string) {
   return <TDatum, PElement extends BaseType, PDatum>(
-    children: Observable<Selection<BaseType, TDatum, PElement, PDatum>>
-  ) =>
-    children
-      .map(within => within.select<T>(query))
-      .filter(Boolean)
-      .distinctUntilChanged();
+    container: Selection<BaseType, TDatum, PElement, PDatum>
+  ) => container.select<T>(query);
 }
