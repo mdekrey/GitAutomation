@@ -20,12 +20,12 @@ export function trimSlashes(path: string) {
   return path.replace(/^\/+/, "").replace(/\/+$/, "");
 }
 
-export interface IParsedRoute {
+export interface IParsedRoute<T> {
   match: RegExp;
   // no such thing as named groups in JS RegExp - need to match varNames with order of arguments
   variables: string[];
   routeName: string;
-  route: Route;
+  route: Route<T>;
 }
 export const wildcard = "**";
 
@@ -41,7 +41,7 @@ const execAll = (pattern: RegExp, target: string) => {
   return result.filter(Boolean).map(vals => vals![1]);
 };
 
-const parseRoute = (routeName: string, route: Route): IParsedRoute =>
+const parseRoute = <T>(routeName: string, route: Route<T>): IParsedRoute<T> =>
   routeName === wildcard
     ? {
         match: /.*/,
@@ -64,34 +64,34 @@ const parseRoute = (routeName: string, route: Route): IParsedRoute =>
         route
       };
 
-const routePriority = (route: IParsedRoute) => {
+const routePriority = (route: IParsedRoute<any>) => {
   const parts = route.routeName.split("/");
   return route.routeName === wildcard
     ? -1
     : parts.length + (1 - route.variables.length / (parts.length + 1));
 };
-const simplifyAliases = (routes: Routes) =>
+const simplifyAliases = <T>(routes: Routes<T>) =>
   values(routes).reduce(
     innerRoutes =>
       mapObjIndexed(
-        (v: Route) => (isAlias(v) ? innerRoutes[v.alias] : v),
+        (v: Route<T>) => (isAlias(v) ? innerRoutes[v.alias] : v),
         innerRoutes
       ),
     routes
   );
-const prioritizeRoutes = (routes: IParsedRoute[]) =>
+const prioritizeRoutes = <T>(routes: IParsedRoute<T>[]) =>
   sortBy(a => -routePriority(a), routes);
-export const parseRoutes = (routes: Routes): IParsedRoute[] =>
+export const parseRoutes = <T>(routes: Routes<T>): IParsedRoute<T>[] =>
   prioritizeRoutes(
-    toPairs<string, Route>(simplifyAliases(routes)).map(([routeName, route]) =>
-      parseRoute(routeName, route)
-    )
+    toPairs<string, Route<T>>(
+      simplifyAliases(routes)
+    ).map(([routeName, route]) => parseRoute(routeName, route))
   );
 
-export function buildState(
-  parsedRoutes: IParsedRoute[],
-  routing: IRoutingState
-): IRoutingState {
+export function buildState<T>(
+  parsedRoutes: IParsedRoute<T>[],
+  routing: IRoutingState<any>
+): IRoutingState<T> {
   const { componentPath, remainingPath, routeVariables } = routing;
   const found = parsedRoutes
     .map(route => ({ route, matchExp: route.match.exec(remainingPath!)! }))
@@ -120,7 +120,7 @@ export function buildState(
   };
 }
 
-export function buildDefaultState(remainingPath: string): IRoutingState {
+export function buildDefaultState(remainingPath: string): IRoutingState<never> {
   return {
     remainingPath: trimSlashes(remainingPath),
     componentPath: "",

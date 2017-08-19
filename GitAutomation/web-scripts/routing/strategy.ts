@@ -7,36 +7,36 @@ export type RoutingNavigate = (
   args: { url: string; replaceCurentHistory: boolean }
 ) => void;
 
-export interface IRoutingStrategy {
-  state: Observable<IRoutingState>;
+export interface IRoutingStrategy<T> {
+  state: Observable<IRoutingState<T>>;
   navigate: RoutingNavigate;
 }
 
 export function buildStrategy(
-  state: Observable<IRoutingState>,
+  state: Observable<IRoutingState<never>>,
   navigate: RoutingNavigate
-): IRoutingStrategy {
+): IRoutingStrategy<never> {
   return { state, navigate };
 }
 
-export interface ICascadingRoutingStrategy {
-  state: IRoutingState;
+export interface ICascadingRoutingStrategy<T> {
+  state: IRoutingState<T>;
   navigate: RoutingNavigate;
 }
 
 export function buildCascadingStrategy(
-  strategy: IRoutingStrategy
-): Observable<ICascadingRoutingStrategy> {
+  strategy: IRoutingStrategy<never>
+): Observable<ICascadingRoutingStrategy<never>> {
   return strategy.state.map(state => ({
     state,
     navigate: strategy.navigate
   }));
 }
 
-export function route(routes: Routes) {
+export function route<T>(routes: Routes<T>) {
   const parsed = matchRoutes(routes);
-  return (strategy: Observable<ICascadingRoutingStrategy>) =>
-    strategy.map((current): ICascadingRoutingStrategy => {
+  return (strategy: Observable<ICascadingRoutingStrategy<any>>) =>
+    strategy.map((current): ICascadingRoutingStrategy<T> => {
       const state = parsed(current.state);
       return {
         state,

@@ -11,27 +11,32 @@ import {
 } from "./routing";
 import { windowHashStrategy } from "./routing/strategies/window-hash";
 
-const domChanged = Observable.of(null);
+const body = Observable.of(document.body);
 
-function watchElements<T extends Element>(query: string) {
-  return domChanged
-    .map(() => document.querySelector(query) as T | null)
-    .filter(Boolean)
-    .distinctUntilChanged()
-    .map(d3element);
+function selectChildren<T extends Element>(query: string) {
+  return (children: Observable<Element>) =>
+    children
+      .map(within => within.querySelector(query) as T | null)
+      .filter(Boolean)
+      .distinctUntilChanged()
+      .map(d3element);
 }
 
 rxEvent({
-  target: watchElements('[data-locator="fetch-from-remote"]'),
+  target: body.let(selectChildren('[data-locator="fetch-from-remote"]')),
   eventName: "click"
 })
   .switchMap(() => fetch())
   .subscribe();
 
-var clearBranches = rxData<string, HTMLUListElement>(
-  watchElements<HTMLUListElement>(`[data-locator="remote-branches"]`),
+rxData<string, HTMLUListElement>(
+  body.let(
+    selectChildren<HTMLUListElement>(`[data-locator="remote-branches"]`)
+  ),
   rxEvent({
-    target: watchElements('[data-locator="remote-branches-refresh"]'),
+    target: body.let(
+      selectChildren('[data-locator="remote-branches-refresh"]')
+    ),
     eventName: "click"
   })
     .startWith(null)
@@ -44,15 +49,10 @@ var clearBranches = rxData<string, HTMLUListElement>(
   }
 });
 
-rxEvent({
-  target: watchElements('[data-locator="remote-branches-remove"]'),
-  eventName: "click"
-}).subscribe(() => clearBranches.unsubscribe());
-
 rxData(
-  watchElements<HTMLUListElement>(`[data-locator="status"]`),
+  body.let(selectChildren<HTMLUListElement>(`[data-locator="status"]`)),
   rxEvent({
-    target: watchElements('[data-locator="status-refresh"]'),
+    target: body.let(selectChildren('[data-locator="status-refresh"]')),
     eventName: "click"
   })
     .startWith(null)
@@ -61,12 +61,16 @@ rxData(
 
 buildCascadingStrategy(windowHashStrategy)
   .let(
-    route({
-      [wildcard]: RouteConcrete("wildcard"),
+    route<string>({
+      "": RouteConcrete("home"),
       manage: RouteConcrete("manage"),
-      admin: RouteAlias("manage")
+      admin: RouteAlias("manage"),
+      [wildcard]: RouteConcrete("wildcard")
     })
   )
+  .map(routeState => {
+    return routeState;
+  })
   .subscribe(_ => {
     (window as any).currentRouteState = _;
     console.log(_.state);

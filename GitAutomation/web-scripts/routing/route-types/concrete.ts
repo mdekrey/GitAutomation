@@ -1,13 +1,13 @@
 export const RouteTypeConcrete = "Concrete" as "Concrete";
-export interface ConcreteRoute {
+export interface ConcreteRoute<T> {
   type: typeof RouteTypeConcrete;
-  data: any;
+  data: T;
 }
-export function RouteConcrete(data: any): ConcreteRoute {
+export function RouteConcrete<T>(data: T): ConcreteRoute<T> {
   return { type: RouteTypeConcrete, data };
 }
 export function isConcrete(
   route: any | null | undefined
-): route is ConcreteRoute {
+): route is ConcreteRoute<any> {
   return route && route.type === RouteTypeConcrete;
 }
