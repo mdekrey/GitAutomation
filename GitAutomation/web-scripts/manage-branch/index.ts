@@ -11,6 +11,7 @@ import {
 import { runBranchData } from "./data";
 import { buildBranchCheckListing } from "./branch-check-listing";
 import { bindSaveButton } from "./bind-save-button";
+import { newBranch } from "./new-branch-checkbox";
 
 export const manage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -97,6 +98,12 @@ export const manage = (
               buildBranchCheckListing(b => b.isDownstream, b => b.isUpstream)
             )
             .subscribe()
+        );
+
+        subscription.add(
+          newBranch(
+            container.map(fnSelect(`[data-locator="downstream-branches"]`))
+          ).subscribe()
         );
 
         // display upstream branches
