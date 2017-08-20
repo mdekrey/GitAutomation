@@ -11,27 +11,39 @@ using System.IO;
 
 namespace GitAutomation.Repository.Actions
 {
-    class EnsureInitializedAction : CliAction
+    class EnsureInitializedAction : IRepositoryAction
     {
-        public override string ActionType => "EnsureInitialized";
+        public string ActionType => "EnsureInitialized";
 
-        public override IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider)
+        private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
+
+        public ImmutableDictionary<string, string> Parameters => ImmutableDictionary<string, string>.Empty;
+
+        public IObservable<OutputMessage> DeferredOutput => output;
+
+        public IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider)
         {
-            if (serviceProvider.GetRequiredService<GitCli>().IsGitInitialized)
+            var cli = serviceProvider.GetRequiredService<GitCli>();
+            var gitOptions = serviceProvider.GetRequiredService<IOptions<GitRepositoryOptions>>().Value;
+
+            if (cli.IsGitInitialized)
             {
                 return Observable.Empty<OutputMessage>();
             }
 
-            var checkoutPath = serviceProvider.GetRequiredService<IOptions<GitRepositoryOptions>>().Value.CheckoutPath;
+            var checkoutPath = gitOptions.CheckoutPath;
 
             if (!Directory.Exists(checkoutPath))
             {
                 Directory.CreateDirectory(checkoutPath);
             }
 
-            return base.PerformAction(serviceProvider);
+            return Queueable(cli.Clone())
+                .Concat(Queueable(cli.Config("user.name", gitOptions.UserName)))
+                .Concat(Queueable(cli.Config("user.email", gitOptions.UserEmail)));
         }
 
-        protected override IReactiveProcess GetCliAction(GitCli gitCli) => gitCli.Clone();
+        private IObservable<OutputMessage> Queueable(IReactiveProcess reactiveProcess) => reactiveProcess.Output.Replay().ConnectFirst();
+
     }
 }

@@ -89,7 +89,7 @@ namespace GitAutomation
 
             if (env.IsDevelopment())
             {
-                repositoryState.Reset().Subscribe();
+                repositoryState.DeleteRepository().Subscribe();
 
                 app.UseDeveloperExceptionPage();
             }

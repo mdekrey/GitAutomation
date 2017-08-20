@@ -25,6 +25,8 @@ namespace GitAutomation.Repository
             public IRepositoryAction Target;
         }
 
+        const int logLength = 300;
+
         private readonly IObservable<ImmutableList<IRepositoryAction>> repositoryActions;
         private readonly IObservable<OutputMessage> repositoryActionProcessor;
         private readonly IObservable<ImmutableList<OutputMessage>> repositoryActionProcessorLog;
@@ -80,8 +82,8 @@ namespace GitAutomation.Repository
                     ImmutableList<OutputMessage>.Empty,
                     (list, next) =>
                         (
-                            list.Count >= 100
-                                ? list.RemoveRange(0, list.Count - 99)
+                            list.Count >= logLength
+                                ? list.RemoveRange(0, list.Count - (logLength - 1))
                                 : list
                         ).Add(next)
                 ).Replay(1).ConnectFirst();
@@ -101,7 +103,7 @@ namespace GitAutomation.Repository
 
         #region Reset
 
-        public IObservable<OutputMessage> Reset()
+        public IObservable<OutputMessage> DeleteRepository()
         {
             return EnqueueAction(new ClearAction());
         }

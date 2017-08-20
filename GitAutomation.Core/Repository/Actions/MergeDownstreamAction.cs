@@ -89,23 +89,25 @@ namespace GitAutomation.Repository.Actions
                     // TODO - remaining steps
                     foreach (var upstreamBranch in neededUpstreamMerges.Keys)
                     {
-                        var mergeTree = Queueable(cli.MergeTree(neededUpstreamMerges[upstreamBranch], upstreamBranch, downstreamBranch));
-                        // Excluding the output because this command is very noisy
-                        processes.OnNext(mergeTree.Where(msg => msg.Channel != OutputChannel.Out));
+                        var checkout = Queueable(cli.CheckoutRemote(downstreamBranch));
+                        processes.OnNext(checkout);
+                        await checkout;
 
-                        var mergeTreeOutput = await (from o in mergeTree where o.Channel == OutputChannel.Out select o.Message).ToList().FirstAsync();
-                        if (mergeTreeOutput.Any(hasConflict.IsMatch))
+                        var merge = Queueable(cli.MergeRemote(upstreamBranch));
+                        processes.OnNext(merge);
+                        var mergeExitCode = await (from o in merge where o.Channel == OutputChannel.ExitCode select o.ExitCode).FirstAsync();
+                        if (mergeExitCode == 0)
                         {
-                            // TODO - conflict!
-                            processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} conflicts with {upstreamBranch}" }));
+                            processes.OnNext(Queueable(cli.Push(downstreamBranch)));
                         }
                         else
                         {
-                            var doCleanMerge = Queueable(cli.CheckoutRemote(downstreamBranch))
-                                .Concat(Queueable(cli.MergeRemote(upstreamBranch)))
-                                .Concat(Queueable(cli.Push(downstreamBranch)));
+                            // TODO - conflict!
+                            processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} conflicts with {upstreamBranch}" }));
 
-                            processes.OnNext(doCleanMerge);
+                            var reset = Queueable(cli.Reset());
+                            processes.OnNext(reset);
+                            await reset;
                         }
                     }
                 }
@@ -116,7 +118,7 @@ namespace GitAutomation.Repository.Actions
                 {
                     disposable.Dispose();
                 };
-            });
+            }).Multicast(output).RefCount();
         }
 
         private IObservable<OutputMessage> Queueable(IReactiveProcess reactiveProcess) => reactiveProcess.Output.Replay().ConnectFirst();

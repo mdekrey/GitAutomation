@@ -39,7 +39,14 @@ namespace GitAutomation.Repository
         {
             return reactiveProcessFactory.BuildProcess(new System.Diagnostics.ProcessStartInfo(
                 "git",
-                string.Join(" ", args.Select(arg => arg.Contains("\"") ? $"\"{arg.Replace(@"\", @"\\").Replace("\"", "\\\"")}\"" : arg))
+                string.Join(
+                    " ", 
+                    args.Select(arg => 
+                        arg.Contains("\"") || arg.Contains(" ") 
+                            ? $"\"{arg.Replace(@"\", @"\\").Replace("\"", "\\\"")}\"" 
+                            : arg
+                    )
+                )
             )
             {
                 WorkingDirectory = checkoutPath
@@ -50,6 +57,11 @@ namespace GitAutomation.Repository
         {
             Directory.Exists(checkoutPath);
             return RunGit("clone", repository, checkoutPath);
+        }
+
+        public IReactiveProcess Config(string configKey, string configValue)
+        {
+            return RunGit("config", configKey, configValue);
         }
 
         public IReactiveProcess Fetch()
