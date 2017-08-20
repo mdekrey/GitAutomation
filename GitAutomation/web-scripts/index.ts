@@ -14,7 +14,7 @@ function watchElements<T extends Element>(query: string) {
 
 fetch(
   rxEvent({
-    target: watchElements('[data-locator="fetch-from-remote"]'),
+    target: watchElements('a[data-locator="fetch-from-remote"]'),
     eventName: "click"
   })
 ).subscribe();
