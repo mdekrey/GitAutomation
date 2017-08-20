@@ -145,9 +145,9 @@ namespace GitAutomation.Repository
                 .Select(list => list.Select(branch => branch.Name).ToArray());
         }
 
-        public IObservable<OutputMessage> CheckDownstreamMerges(string[] upstreamBranches, string downstreamBranch)
+        public IObservable<OutputMessage> CheckDownstreamMerges(string downstreamBranch)
         {
-            return EnqueueAction(new MergeDownstreamAction(upstreamBranches: upstreamBranches, downstreamBranch: downstreamBranch));
+            return EnqueueAction(new MergeDownstreamAction(downstreamBranch: downstreamBranch));
         }
 
         public IObservable<OutputMessage> ProcessActions()

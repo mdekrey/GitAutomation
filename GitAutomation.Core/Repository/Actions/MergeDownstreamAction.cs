@@ -1,4 +1,5 @@
-﻿using GitAutomation.Processes;
+﻿using GitAutomation.BranchSettings;
+using GitAutomation.Processes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
@@ -20,20 +21,17 @@ namespace GitAutomation.Repository.Actions
         private static Regex hasConflict = new Regex("^(<<<<<<<|changed in both)", RegexOptions.Compiled);
 
         private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
-        private readonly string[] upstreamBranches;
         private readonly string downstreamBranch;
 
         public string ActionType => "MergeDownstream";
 
-        public MergeDownstreamAction(string[] upstreamBranches, string downstreamBranch)
+        public MergeDownstreamAction(string downstreamBranch)
         {
-            this.upstreamBranches = upstreamBranches;
             this.downstreamBranch = downstreamBranch;
         }
 
         public ImmutableDictionary<string, string> Parameters => new Dictionary<string, string>
             {
-                { "upstreamBranches", string.Join(":", upstreamBranches) },
                 { "downstreamBranch", downstreamBranch },
             }.ToImmutableDictionary();
 
@@ -42,6 +40,7 @@ namespace GitAutomation.Repository.Actions
         public IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider)
         {
             var cli = serviceProvider.GetRequiredService<GitCli>();
+            var settings = serviceProvider.GetRequiredService<IBranchSettings>();
 
             // if these two are different, we need to do the merge
             // cli.MergeBase(upstreamBranch, downstreamBranch);
@@ -56,6 +55,7 @@ namespace GitAutomation.Repository.Actions
 
             return Observable.Create<OutputMessage>(async (observer, cancellationToken) =>
             {
+                var details = await settings.GetBranchDetails(this.downstreamBranch).FirstAsync();
                 var disposable = new CompositeDisposable();
                 var neededUpstreamMerges = new HashSet<string>();
                 var processes = new Subject<IObservable<OutputMessage>>();
@@ -63,12 +63,21 @@ namespace GitAutomation.Repository.Actions
                 disposable.Add(processes);
 
                 await System.Threading.Tasks.Task.Yield();
-                var needsRecreate = await FindNeededMerges(neededUpstreamMerges, cli, processes);
+                var needsRecreate = await FindNeededMerges(details.DirectUpstreamBranches, neededUpstreamMerges, cli, processes);
+
+                if (neededUpstreamMerges.Any() && details.RecreateFromUpstream)
+                {
+                    var deleteRemote = Queueable(cli.DeleteRemote(downstreamBranch));
+                    processes.OnNext(deleteRemote);
+                    await deleteRemote;
+
+                    needsRecreate = true;
+                }
 
                 if (needsRecreate)
                 {
                     processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{downstreamBranch} needs to be created from {string.Join(",", neededUpstreamMerges)}" }));
-                    await CreateDownstreamBranch(cli, processes);
+                    await CreateDownstreamBranch(details.DirectUpstreamBranches, cli, processes);
                 }
                 else if (neededUpstreamMerges.Any())
                 {
@@ -94,9 +103,9 @@ namespace GitAutomation.Repository.Actions
         }
 
         /// <returns>True if the entire branch needs to be created</returns>
-        private async Task<bool> FindNeededMerges(HashSet<string> neededUpstreamMerges, GitCli cli, Subject<IObservable<OutputMessage>> processes)
+        private async Task<bool> FindNeededMerges(ImmutableList<string> allUpstreamBranches, HashSet<string> neededUpstreamMerges, GitCli cli, Subject<IObservable<OutputMessage>> processes)
         {
-            foreach (var upstreamBranch in upstreamBranches)
+            foreach (var upstreamBranch in allUpstreamBranches)
             {
                 var mergeBase = Queueable(cli.MergeBase(upstreamBranch, downstreamBranch));
                 var showRef = Queueable(cli.ShowRef(upstreamBranch));
@@ -120,10 +129,10 @@ namespace GitAutomation.Repository.Actions
             return false;
         }
 
-        private async Task CreateDownstreamBranch(GitCli cli, Subject<IObservable<OutputMessage>> processes)
+        private async Task CreateDownstreamBranch(ImmutableList<string> allUpstreamBranches, GitCli cli, Subject<IObservable<OutputMessage>> processes)
         {
             // Basic process; should have checks on whether or not to create the branch
-            var initialBranch = upstreamBranches.First();
+            var initialBranch = allUpstreamBranches.First();
 
             var checkout = Queueable(cli.CheckoutRemote(initialBranch));
             processes.OnNext(checkout);
@@ -139,7 +148,7 @@ namespace GitAutomation.Repository.Actions
             processes.OnNext(createBranch);
             await createBranch;
 
-            foreach (var upstreamBranch in upstreamBranches.Skip(1))
+            foreach (var upstreamBranch in allUpstreamBranches.Skip(1))
             {
                 await MergeUpstreamBranch(upstreamBranch, cli, processes);
             }

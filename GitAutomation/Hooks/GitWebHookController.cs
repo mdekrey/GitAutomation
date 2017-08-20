@@ -22,8 +22,8 @@ namespace GitAutomation.Hooks
                     repositoryState.RemoteBranches().Take(1).SelectMany(allBranches => allBranches.ToObservable())
                         .SelectMany(upstream => branchSettings.GetDownstreamBranches(upstream).Take(1).SelectMany(branches => branches.ToObservable().Select(downstream => new { upstream, downstream })))
                         .ToList()
-                        .SelectMany(all => all.GroupBy(each => each.downstream, each => each.upstream).ToObservable())
-                        .SelectMany(branchGroup => CheckDownstreamMerges(repositoryState, branchGroup))
+                        .SelectMany(all => all.Select(each => each.downstream).Distinct().ToObservable())
+                        .SelectMany(upstreamBranch => CheckDownstreamMerges(repositoryState, upstreamBranch))
                 )
                 .Select(_ => Unit.Default)
                 .Subscribe(onNext: _ => { }, onError: (ex) =>
@@ -32,9 +32,9 @@ namespace GitAutomation.Hooks
                 });
         }
 
-        private static IObservable<Processes.OutputMessage> CheckDownstreamMerges(IRepositoryState repositoryState, IGrouping<string, string> branchGroup)
+        private static IObservable<Processes.OutputMessage> CheckDownstreamMerges(IRepositoryState repositoryState, string downstreamBranch)
         {
-            return repositoryState.CheckDownstreamMerges(upstreamBranches: branchGroup.ToArray(), downstreamBranch: branchGroup.Key);
+            return repositoryState.CheckDownstreamMerges(downstreamBranch);
         }
     }
 }

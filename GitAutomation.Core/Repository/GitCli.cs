@@ -95,6 +95,11 @@ namespace GitAutomation.Repository
             return RunGit("show-ref", RemoteBranch(branchName), "--hash");
         }
 
+        public IReactiveProcess DeleteRemote(string branchName)
+        {
+            return RunGit("push", "origin", "--delete", branchName);
+        }
+
         public IReactiveProcess CheckoutRemote(string branchName)
         {
             return RunGit("checkout", "-B", branchName, "--track", RemoteBranch(branchName));
