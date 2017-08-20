@@ -63,20 +63,21 @@ namespace GitAutomation.Management
             {
                 foreach (var addedUpstream in requestBody.AddUpstream)
                 {
-                    branchSettings.AddBranchSetting(addedUpstream, branchName, unitOfWork);
+                    branchSettings.AddBranchPropagation(addedUpstream, branchName, unitOfWork);
                 }
                 foreach (var addedDownstream in requestBody.AddDownstream)
                 {
-                    branchSettings.AddBranchSetting(branchName, addedDownstream, unitOfWork);
+                    branchSettings.AddBranchPropagation(branchName, addedDownstream, unitOfWork);
                 }
                 foreach (var removeUpstream in requestBody.RemoveUpstream)
                 {
-                    branchSettings.RemoveBranchSetting(removeUpstream, branchName, unitOfWork);
+                    branchSettings.RemoveBranchPropagation(removeUpstream, branchName, unitOfWork);
                 }
                 foreach (var removeDownstream in requestBody.RemoveDownstream)
                 {
-                    branchSettings.RemoveBranchSetting(branchName, removeDownstream, unitOfWork);
+                    branchSettings.RemoveBranchPropagation(branchName, removeDownstream, unitOfWork);
                 }
+                branchSettings.UpdateBranchSetting(branchName, requestBody.RecreateFromUpstream, unitOfWork);
 
                 await unitOfWork.CommitAsync();
             }
@@ -84,6 +85,7 @@ namespace GitAutomation.Management
 
         public class UpdateBranchRequestBody
         {
+            public bool RecreateFromUpstream { get; set; }
             public string[] AddUpstream { get; set; }
             public string[] AddDownstream { get; set; }
             public string[] RemoveUpstream { get; set; }

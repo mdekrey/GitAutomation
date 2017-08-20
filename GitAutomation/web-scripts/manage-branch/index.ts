@@ -21,6 +21,11 @@ export const manage = (
       elem.html(`
   <a data-locator="home">Home</a>
   <h1 data-locator="branch-name"></h1>
+  <h3>Settings</h3>
+  <label>
+      <input type="checkbox" data-locator="recreate-from-upstream" />
+      Recreate from Upstream
+  </label>
   <h3>Downstream Branches</h3>
   <ul data-locator="downstream-branches"></ul>
   <h3>Upstream Branches</h3>
@@ -88,6 +93,19 @@ export const manage = (
             state.branches.filter(({ branch }) => branch !== branchName)
           )
           .combineLatest(reset, _ => _);
+
+        subscription.add(
+          container
+            .map(e => e.select(`[data-locator="recreate-from-upstream"]`))
+            .switchMap(e =>
+              branchData.state
+                .map(d => d.recreateFromUpstream)
+                .map(d => e.datum(d))
+            )
+            .subscribe(target => {
+              target.property("checked", value => value);
+            })
+        );
 
         // display downstream branches
         subscription.add(

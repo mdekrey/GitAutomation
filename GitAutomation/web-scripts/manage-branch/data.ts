@@ -4,6 +4,7 @@ import { allBranches, branchDetails } from "../api/basics";
 
 export interface IManageBranch {
   isLoading: boolean;
+  recreateFromUpstream: boolean;
   branches: IBranchData[];
 }
 
@@ -19,8 +20,8 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
   const subscription = new Subscription();
 
   const initializeBranchData = allBranches()
-    .combineLatest(branchDetails(branchName), (allBranches, branchDetails) =>
-      allBranches.map((branch): IBranchData => ({
+    .combineLatest(branchDetails(branchName), (allBranches, branchDetails) => ({
+      branches: allBranches.map((branch): IBranchData => ({
         branch,
         isDownstream:
           branchDetails.directDownstreamBranches.indexOf(branch) >= 0,
@@ -29,16 +30,18 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
         isUpstream: branchDetails.directUpstreamBranches.indexOf(branch) >= 0,
         isUpstreamAllowed:
           branchDetails.downstreamBranches.indexOf(branch) == -1
-      }))
-    )
-    .do(_ => console.log(_))
-    .map((branches): IManageBranch => ({
+      })),
+      recreateFromUpstream: branchDetails.recreateFromUpstream
+    }))
+    .map(({ branches, recreateFromUpstream }): IManageBranch => ({
       branches,
+      recreateFromUpstream,
       isLoading: false
     }));
 
   const branchData = Observable.of<IManageBranch>({
     isLoading: true,
+    recreateFromUpstream: false,
     branches: []
   })
     .concat(reload.startWith(null).switchMap(() => initializeBranchData))

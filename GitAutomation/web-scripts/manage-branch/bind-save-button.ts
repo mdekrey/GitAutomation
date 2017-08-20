@@ -29,11 +29,15 @@ export const bindSaveButton = (
   const getUpdateRequest = () =>
     Observable.combineLatest(
       checkedBranches("upstream-branches"),
-      checkedBranches("downstream-branches")
+      checkedBranches("downstream-branches"),
+      container
+        .map(e => e.select(`[data-locator="recreate-from-upstream"]`))
+        .map(e => e.property(`checked`) as boolean)
     )
-      .map(([upstream, downstream]) => ({
+      .map(([upstream, downstream, recreateFromUpstream]) => ({
         upstream,
-        downstream
+        downstream,
+        recreateFromUpstream
       }))
       .take(1)
       // TODO - warn in this case, but we can't allow saving with
@@ -43,7 +47,8 @@ export const bindSaveButton = (
       )
       .withLatestFrom(
         branchData.map(d => d.branches),
-        ({ upstream, downstream }, branches) => {
+        ({ upstream, downstream, recreateFromUpstream }, branches) => {
+          console.log(upstream, downstream, recreateFromUpstream);
           const oldUpstream = branches
             .filter(b => b.isUpstream)
             .map(b => b.branch);
@@ -51,6 +56,7 @@ export const bindSaveButton = (
             .filter(b => b.isDownstream)
             .map(b => b.branch);
           return {
+            recreateFromUpstream,
             addUpstream: difference(upstream, oldUpstream),
             removeUpstream: difference(oldUpstream, upstream),
             addDownstream: difference(downstream, oldDownstream),

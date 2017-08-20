@@ -10,6 +10,7 @@ export const branchDetails = (branchName: string) =>
   Observable.ajax("/api/management/details/" + branchName).map(
     response =>
       response.response as {
+        recreateFromUpstream: boolean;
         branchName: string;
         directDownstreamBranches: string[];
         downstreamBranches: string[];
@@ -31,6 +32,7 @@ export const fetch = () =>
 export const updateBranch = (
   branchName: string,
   body: {
+    recreateFromUpstream: boolean;
     addUpstream: string[];
     addDownstream: string[];
     removeUpstream: string[];

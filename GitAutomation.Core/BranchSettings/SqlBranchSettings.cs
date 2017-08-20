@@ -16,6 +16,10 @@ namespace GitAutomation.BranchSettings
 {
     class SqlBranchSettings : IBranchSettings
     {
+        class BranchBasicDetails
+        {
+            public bool RecreateFromUpstream { get; set; }
+        }
 
         #region Getters
 
@@ -83,7 +87,7 @@ SELECT [BranchName]
                 { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
-        public static readonly CommandBuilder AddBranchSettingCommand = new CommandBuilder(
+        public static readonly CommandBuilder AddBranchPropagationCommand = new CommandBuilder(
             commandText: @"
 MERGE INTO [DownstreamBranch] AS Downstream
 USING (SELECT @DownstreamBranch AS BranchName) AS NewDownstream
@@ -98,7 +102,7 @@ VALUES (@UpstreamBranch, @DownstreamBranch)
                 { "@DownstreamBranch", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
-        public static readonly CommandBuilder RemoveBranchSettingCommand = new CommandBuilder(
+        public static readonly CommandBuilder RemoveBranchPropagationCommand = new CommandBuilder(
             commandText: @"
 DELETE FROM [UpstreamBranch]
 WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
@@ -107,6 +111,48 @@ WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
                 { "@UpstreamBranch", p => p.DbType = System.Data.DbType.AnsiString },
                 { "@DownstreamBranch", p => p.DbType = System.Data.DbType.AnsiString },
             });
+
+        public static readonly CommandBuilder GetBranchBasicDetialsCommand = new CommandBuilder(
+            commandText: @"SELECT [RecreateFromUpstream]
+  FROM [DownstreamBranch]
+  WHERE [BranchName]=@BranchName
+", parameters: new Dictionary<string, Action<DbParameter>>
+            {
+                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
+            });
+
+        public static readonly CommandBuilder UpdateBranchSettingCommand = new CommandBuilder(
+            commandText: @"
+MERGE INTO [DownstreamBranch] AS Downstream
+USING (SELECT 
+    @BranchName AS BranchName
+    , @RecreateFromUpstream AS RecreateFromUpstream
+) AS NewDownstream
+ON Downstream.BranchName = NewDownstream.BranchName
+WHEN MATCHED THEN UPDATE SET 
+    RecreateFromUpstream=NewDownstream.RecreateFromUpstream
+WHEN NOT MATCHED THEN INSERT (
+    BranchName
+    , RecreateFromUpstream
+) VALUES (
+    NewDownstream.BranchName, 
+    NewDownstream.RecreateFromUpstream
+)
+;
+", parameters: new Dictionary<string, Action<DbParameter>>
+            {
+                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
+                { "@RecreateFromUpstream", p => p.DbType = System.Data.DbType.Int32 },
+            });
+
+        public static readonly CommandBuilder DeleteBranchSettingsCommand = new CommandBuilder(
+            commandText: @"
+DELETE FROM [UpstreamBranch]
+WHERE  [BranchName]=@BranchName
+
+DELETE FROM [DownstreamBranch]
+WHERE  [BranchName]=@BranchName
+");
 
         #endregion
 
@@ -147,9 +193,11 @@ WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(async connection =>
                 {
+                    var settings = await GetBranchDetailOnce(branchName)(connection);
                     return new BranchDetails
                     {
                         BranchName = branchName,
+                        RecreateFromUpstream = settings.RecreateFromUpstream,
                         DirectDownstreamBranches = await GetDownstreamBranchesOnce(branchName)(connection),
                         DirectUpstreamBranches = await GetUpstreamBranchesOnce(branchName)(connection),
                         DownstreamBranches = await GetAllDownstreamBranchesOnce(branchName)(connection),
@@ -158,6 +206,29 @@ WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
                 }));
         }
 
+        private Func<DbConnection, Task<BranchBasicDetails>> GetBranchDetailOnce(string branchName)
+        {
+            return async connection =>
+            {
+                using (var command = GetBranchBasicDetialsCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchName", branchName } }))
+                {
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        if (await reader.ReadAsync())
+                        {
+                            return new BranchBasicDetails
+                            {
+                                RecreateFromUpstream = Convert.ToInt32(reader["RecreateFromUpstream"]) == 1,
+                            };
+                        }
+                        return new BranchBasicDetails
+                        {
+                            RecreateFromUpstream = false,
+                        };
+                    }
+                }
+            };
+        }
 
         public IObservable<ImmutableList<string>> GetDownstreamBranches(string branchName)
         {
@@ -261,27 +332,28 @@ WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
             };
         }
 
-        public void AddBranchSetting(string upstreamBranch, string downstreamBranch, IUnitOfWork work)
+        public void UpdateBranchSetting(string branchName, bool recreateFromUpstream, IUnitOfWork work)
         {
             PrepareSqlUnitOfWork(work);
             work.Defer(async sp =>
             {
-                using (var command = Transacted(sp, AddBranchSettingCommand, new Dictionary<string, object> {
-                    { "@UpstreamBranch", upstreamBranch },
-                    { "@DownstreamBranch", downstreamBranch },
+                using (var command = Transacted(sp, UpdateBranchSettingCommand, new Dictionary<string, object> {
+                    { "@BranchName", branchName },
+                    { "@RecreateFromUpstream", recreateFromUpstream ? 1 : 0 },
                 }))
                 {
                     await command.ExecuteNonQueryAsync();
                 }
             });
+            // TODO - onCommit, notify changes
         }
 
-        public void RemoveBranchSetting(string upstreamBranch, string downstreamBranch, IUnitOfWork work)
+        public void AddBranchPropagation(string upstreamBranch, string downstreamBranch, IUnitOfWork work)
         {
             PrepareSqlUnitOfWork(work);
             work.Defer(async sp =>
             {
-                using (var command = Transacted(sp, RemoveBranchSettingCommand, new Dictionary<string, object> {
+                using (var command = Transacted(sp, AddBranchPropagationCommand, new Dictionary<string, object> {
                     { "@UpstreamBranch", upstreamBranch },
                     { "@DownstreamBranch", downstreamBranch },
                 }))
@@ -289,6 +361,23 @@ WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
                     await command.ExecuteNonQueryAsync();
                 }
             });
+            // TODO - onCommit, notify changes
+        }
+
+        public void RemoveBranchPropagation(string upstreamBranch, string downstreamBranch, IUnitOfWork work)
+        {
+            PrepareSqlUnitOfWork(work);
+            work.Defer(async sp =>
+            {
+                using (var command = Transacted(sp, RemoveBranchPropagationCommand, new Dictionary<string, object> {
+                    { "@UpstreamBranch", upstreamBranch },
+                    { "@DownstreamBranch", downstreamBranch },
+                }))
+                {
+                    await command.ExecuteNonQueryAsync();
+                }
+            });
+            // TODO - onCommit, notify changes
         }
 
         private void PrepareSqlUnitOfWork(IUnitOfWork work)
