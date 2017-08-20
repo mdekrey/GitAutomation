@@ -21,8 +21,6 @@ services:
     secrets:
       - sqlcredentials
       - sqleula
-#    ports:
-#      - "1433"
 #    networks:
 #      - backend
 
