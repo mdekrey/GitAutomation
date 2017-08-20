@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[TargetBranch]
+﻿CREATE TABLE [dbo].[DownstreamBranch]
 (
     [BranchName] NVARCHAR(255) PRIMARY KEY
 )

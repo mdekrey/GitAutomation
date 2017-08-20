@@ -28,8 +28,8 @@ rxData<string, HTMLUListElement>(
       eventName: "click"
     }).startWith(null)
   )
-).bind({
-  element: "li",
+).bind<HTMLLIElement>({
+  onCreate: target => target.append<HTMLLIElement>("li"),
   selector: "li",
   onEach: selection => {
     selection.text(data => data);

@@ -9,6 +9,8 @@ services:
     secrets:
       - gitcredentials
       - configuration.json
+    ports: 
+      - "80"
 #    networks:
 #      - backend
   gitautomationsql:
@@ -19,6 +21,8 @@ services:
     secrets:
       - sqlcredentials
       - sqleula
+#    ports:
+#      - "1433"
 #    networks:
 #      - backend
 

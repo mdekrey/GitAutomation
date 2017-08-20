@@ -14,7 +14,7 @@ namespace GitAutomation.Hooks
         [HttpPost]
         public void Post([FromServices] IRepositoryState repositoryState)
         {
-            repositoryState.CheckForUpdates();
+            repositoryState.CheckForUpdates().Subscribe();
         }
     }
 }
