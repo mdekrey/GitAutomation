@@ -8,10 +8,13 @@ namespace GitAutomation.Repository
     {
         IObservable<OutputMessage> ProcessActions();
         IObservable<ImmutableList<OutputMessage>> ProcessActionsLog { get; }
+        IObservable<ImmutableList<IRepositoryAction>> ActionQueue { get; }
 
         IObservable<OutputMessage> Reset();
         IObservable<OutputMessage> CheckForUpdates();
 
         IObservable<string[]> RemoteBranches();
+        IObservable<OutputMessage> CheckDownstreamMerges(string[] upstreamBranches, string downstreamBranch);
+
     }
 }

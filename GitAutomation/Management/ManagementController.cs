@@ -39,6 +39,13 @@ namespace GitAutomation.Management
             return await repositoryState.ProcessActionsLog.FirstAsync();
         }
 
+        [HttpGet("queue")]
+        public async Task<IEnumerable<Object>> Queue()
+        {
+            return (await repositoryState.ActionQueue.FirstAsync()).Select(action => new { ActionType = action.ActionType, Parameters = action.Parameters });
+        }
+
+
 
         [HttpGet("downstream-branches/{*branchName}")]
         public async Task<string[]> DownstreamBranches(string branchName)

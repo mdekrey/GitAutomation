@@ -11,11 +11,11 @@ using System.Text;
 
 namespace GitAutomation.Repository.Actions
 {
-    class ResetAction : IRepositoryAction
+    class ClearAction : IRepositoryAction
     {
         private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
 
-        public string ActionType => "Reset";
+        public string ActionType => "Clear";
 
         public ImmutableDictionary<string, string> Parameters =>
             ImmutableDictionary<string, string>.Empty;

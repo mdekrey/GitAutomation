@@ -62,6 +62,50 @@ namespace GitAutomation.Repository
             return RunGit("ls-remote", "--heads", "origin");
         }
 
+        public IReactiveProcess Reset()
+        {
+            return RunGit("reset", "--hard");
+        }
+
+        /// <summary>
+        /// Yields commitish of common ancestor
+        /// </summary>
+        public IReactiveProcess MergeBase(string branchA, string branchB)
+        {
+            return RunGit("merge-base", RemoteBranch(branchA), RemoteBranch(branchB));
+        }
+
+        /// <summary>
+        /// Yields commitish of branch
+        /// </summary>
+        public IReactiveProcess ShowRef(string branchName)
+        {
+            return RunGit("show-ref", RemoteBranch(branchName), "--hash");
+        }
+
+        /// <summary>
+        /// Gets the merge patch info for inspection
+        /// </summary>
+        public IReactiveProcess MergeTree(string mergeBase, string branchA, string branchB)
+        {
+            return RunGit("merge-tree", mergeBase, RemoteBranch(branchA), RemoteBranch(branchB));
+        }
+
+        public IReactiveProcess CheckoutRemote(string branchName)
+        {
+            return RunGit("checkout", "-B", branchName, "--track", RemoteBranch(branchName));
+        }
+
+        public IReactiveProcess MergeRemote(string branchName)
+        {
+            return RunGit("merge", RemoteBranch(branchName));
+        }
+
+        public IReactiveProcess Push(string branchName)
+        {
+            return RunGit("push", "origin", $"{branchName}:{branchName}");
+        }
+
         public static IObservable<ImmutableList<GitRef>> BranchListingToRefs(IObservable<OutputMessage> refListing)
         {
 
@@ -75,5 +119,7 @@ namespace GitAutomation.Repository
             )
                 .Aggregate(ImmutableList<GitRef>.Empty, (list, next) => list.Add(next));
         }
+
+        private string RemoteBranch(string branchName) => $"origin/{branchName}";
     }
 }

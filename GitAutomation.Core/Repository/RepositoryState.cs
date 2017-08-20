@@ -65,7 +65,11 @@ namespace GitAutomation.Repository
             this.repositoryActionProcessor = repositoryActions.Select(action => action.FirstOrDefault()).DistinctUntilChanged()
                 .Select(action => action == null
                     ? Observable.Empty<OutputMessage>()
-                    : action.PerformAction(serviceProvider).Finally(() =>
+                    : action.PerformAction(serviceProvider).Catch<OutputMessage, Exception>(ex =>
+                    {
+                        // TODO - better logging
+                        return Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"Action {action.ActionType} encountered an exception: {ex.Message}" });
+                    }).Finally(() =>
                     {
                         this.queueAlterations.OnNext(new QueueAlteration { Kind = QueueAlterationKind.Remove, Target = action });
                     }))
@@ -99,7 +103,7 @@ namespace GitAutomation.Repository
 
         public IObservable<OutputMessage> Reset()
         {
-            return EnqueueAction(new ResetAction());
+            return EnqueueAction(new ClearAction());
         }
         
         #endregion
@@ -139,11 +143,16 @@ namespace GitAutomation.Repository
                 .Select(list => list.Select(branch => branch.Name).ToArray());
         }
 
+        public IObservable<OutputMessage> CheckDownstreamMerges(string[] upstreamBranches, string downstreamBranch)
+        {
+            return EnqueueAction(new MergeDownstreamAction(upstreamBranches: upstreamBranches, downstreamBranch: downstreamBranch));
+        }
+
         public IObservable<OutputMessage> ProcessActions()
         {
             return this.repositoryActionProcessor;
         }
         public IObservable<ImmutableList<OutputMessage>> ProcessActionsLog => this.repositoryActionProcessorLog;
-
+        public IObservable<ImmutableList<IRepositoryAction>> ActionQueue => this.repositoryActions;
     }
 }

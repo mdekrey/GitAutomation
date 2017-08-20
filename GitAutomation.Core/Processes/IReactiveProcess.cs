@@ -25,7 +25,6 @@ namespace GitAutomation.Processes
 
     public interface IReactiveProcess
     {
-        IObservable<Unit> ProcessExited { get; }
         IObservable<OutputMessage> Output { get; }
     }
 }
