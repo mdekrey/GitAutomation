@@ -108,9 +108,16 @@ namespace GitAutomation.Repository
             return RunGit("checkout", "-B", branchName, "--track", RemoteBranch(branchName));
         }
 
-        public IReactiveProcess MergeRemote(string branchName)
+        public IReactiveProcess MergeRemote(string branchName, string message = null)
         {
-            return RunGit("merge", RemoteBranch(branchName));
+            if (message == null)
+            {
+                return RunGit("merge", RemoteBranch(branchName));
+            }
+            else
+            {
+                return RunGit("merge", RemoteBranch(branchName), "-m", message);
+            }
         }
 
         public IReactiveProcess Push(string branchName)

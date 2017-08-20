@@ -93,7 +93,7 @@ namespace GitAutomation.Repository.Actions
                         processes.OnNext(checkout);
                         await checkout;
 
-                        var merge = Queueable(cli.MergeRemote(upstreamBranch));
+                        var merge = Queueable(cli.MergeRemote(upstreamBranch, message: $"Auto-merge branch '{upstreamBranch}' into '{downstreamBranch}'"));
                         processes.OnNext(merge);
                         var mergeExitCode = await (from o in merge where o.Channel == OutputChannel.ExitCode select o.ExitCode).FirstAsync();
                         if (mergeExitCode == 0)
