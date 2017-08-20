@@ -23,3 +23,5 @@ services:
     build:
       args:
         source: ${DOCKER_BUILD_SOURCE}
+    ports:
+      - "1433"
