@@ -1,4 +1,4 @@
-import { Observable, Subscription } from "rxjs";
+import { Observable, Subscription, Subject } from "rxjs";
 import { Selection } from "d3-selection";
 
 import { RoutingComponent } from "../utils/routing-component";
@@ -36,6 +36,7 @@ export const manage = (
       Observable.create(() => {
         const subscription = new Subscription();
         const branchName = state.state.remainingPath!;
+        const reload = new Subject<null>();
 
         // go home
         subscription.add(
@@ -61,7 +62,7 @@ export const manage = (
           .refCount()
           .startWith(null);
 
-        const branchData = runBranchData(branchName!);
+        const branchData = runBranchData(branchName!, reload);
         subscription.add(branchData.subscription);
 
         subscription.add(
@@ -69,7 +70,8 @@ export const manage = (
             branchName,
             '[data-locator="save"]',
             container,
-            branchData.state
+            branchData.state,
+            () => reload.next(null)
           )
         );
 
@@ -95,7 +97,10 @@ export const manage = (
             data => data.branch
           )
             .bind<HTMLLIElement>(
-              buildBranchCheckListing(b => b.isDownstream, b => b.isUpstream)
+              buildBranchCheckListing(
+                b => b.isDownstream,
+                b => !b.isDownstreamAllowed && !b.isDownstream
+              )
             )
             .subscribe()
         );
@@ -114,7 +119,10 @@ export const manage = (
             data => data.branch
           )
             .bind<HTMLLIElement>(
-              buildBranchCheckListing(b => b.isUpstream, b => b.isDownstream)
+              buildBranchCheckListing(
+                b => b.isUpstream,
+                b => !b.isUpstreamAllowed && !b.isUpstream
+              )
             )
             .subscribe()
         );

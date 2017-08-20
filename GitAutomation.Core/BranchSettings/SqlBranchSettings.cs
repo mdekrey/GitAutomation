@@ -45,6 +45,44 @@ SELECT [BranchName]
                 { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
+        public static readonly CommandBuilder GetAllDownstreamBranchesCommand = new CommandBuilder(
+            commandText: @"
+WITH RecursiveUpstream ( DownstreamBranch, BranchName )
+AS (
+	SELECT DownstreamBranch, BranchName FROM [UpstreamBranch] WHERE BranchName=@BranchName
+UNION ALL
+	SELECT [UpstreamBranch].DownstreamBranch, RecursiveUpstream.BranchName
+	FROM [UpstreamBranch]
+	INNER JOIN RecursiveUpstream ON RecursiveUpstream.DownstreamBranch = [UpstreamBranch].BranchName
+)
+SELECT [DownstreamBranch]
+  FROM RecursiveUpstream
+  GROUP BY DownstreamBranch, BranchName
+  ORDER BY DownstreamBranch
+", parameters: new Dictionary<string, Action<DbParameter>>
+            {
+                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
+            });
+
+        public static readonly CommandBuilder GetAllUpstreamBranchesCommand = new CommandBuilder(
+            commandText: @"
+WITH RecursiveDownstream ( DownstreamBranch, BranchName )
+AS (
+	SELECT DownstreamBranch, BranchName FROM [UpstreamBranch] WHERE DownstreamBranch=@BranchName
+UNION ALL
+	SELECT RecursiveDownstream.DownstreamBranch, [UpstreamBranch].BranchName
+	FROM [UpstreamBranch]
+	INNER JOIN RecursiveDownstream ON [UpstreamBranch].DownstreamBranch = RecursiveDownstream.BranchName
+)
+SELECT [BranchName]
+  FROM RecursiveDownstream
+  GROUP BY DownstreamBranch, BranchName
+  ORDER BY DownstreamBranch
+", parameters: new Dictionary<string, Action<DbParameter>>
+            {
+                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
+            });
+
         public static readonly CommandBuilder AddBranchSettingCommand = new CommandBuilder(
             commandText: @"
 MERGE INTO [DownstreamBranch] AS Downstream
@@ -81,19 +119,16 @@ WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
             this.serviceProvider = serviceProvider;
         }
 
-        public IObservable<string[]> GetConfiguredBranches()
+        public IObservable<ImmutableList<string>> GetConfiguredBranches()
         {
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
-                .SelectMany(_ => GetConfiguredBranchesOnce());
+                .SelectMany(_ => WithConnection(GetConfiguredBranchesOnce));
         }
 
-        private async Task<string[]> GetConfiguredBranchesOnce()
+        private async Task<ImmutableList<string>> GetConfiguredBranchesOnce(DbConnection connection)
         { 
-            using (var scope = serviceProvider.CreateScope())
-            using (var connection = GetSqlConnection(scope.ServiceProvider))
             using (var command = GetConfiguredBranchesCommand.BuildFrom(connection, ImmutableDictionary<string, object>.Empty))
             {
-                await connection.OpenAsync();
                 using (var reader = await command.ExecuteReaderAsync())
                 {
                     var results = new List<string>();
@@ -101,59 +136,129 @@ WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
                     {
                         results.Add(Convert.ToString(reader["BranchName"]));
                     }
-                    return results.ToArray();
+                    return results.ToImmutableList();
                 }
             }
         }
 
-        public IObservable<string[]> GetDownstreamBranches(string branchName)
+        public IObservable<BranchDetails> GetBranchDetails(string branchName)
+        {
+            // TODO - better notification
+            return notifiers.GetAnyNotification().StartWith(Unit.Default)
+                .SelectMany(_ => WithConnection(async connection =>
+                {
+                    return new BranchDetails
+                    {
+                        BranchName = branchName,
+                        DirectDownstreamBranches = await GetDownstreamBranchesOnce(branchName)(connection),
+                        DirectUpstreamBranches = await GetUpstreamBranchesOnce(branchName)(connection),
+                        DownstreamBranches = await GetAllDownstreamBranchesOnce(branchName)(connection),
+                        UpstreamBranches = await GetAllUpstreamBranchesOnce(branchName)(connection),
+                    };
+                }));
+        }
+
+
+        public IObservable<ImmutableList<string>> GetDownstreamBranches(string branchName)
         {
             return notifiers.GetDownstreamBranchesChangedNotifier(upstreamBranch: branchName).StartWith(Unit.Default)
-                .SelectMany(_ => GetDownstreamBranchesOnce(branchName));
+                .SelectMany(_ => WithConnection(GetDownstreamBranchesOnce(branchName)));
         }
 
-        private async Task<string[]> GetDownstreamBranchesOnce(string branchName)
+        private Func<DbConnection, Task<ImmutableList<string>>> GetDownstreamBranchesOnce(string branchName)
         {
-            using (var scope = serviceProvider.CreateScope())
-            using (var connection = GetSqlConnection(scope.ServiceProvider))
-            using (var command = GetDownstreamBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchName", branchName } }))
+            return async connection =>
             {
-                await connection.OpenAsync();
-                using (var reader = await command.ExecuteReaderAsync())
+                using (var command = GetDownstreamBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchName", branchName } }))
                 {
-                    var results = new List<string>();
-                    while (await reader.ReadAsync())
+                    using (var reader = await command.ExecuteReaderAsync())
                     {
-                        results.Add(Convert.ToString(reader["DownstreamBranch"]));
+                        var results = new List<string>();
+                        while (await reader.ReadAsync())
+                        {
+                            results.Add(Convert.ToString(reader["DownstreamBranch"]));
+                        }
+                        return results.ToImmutableList();
                     }
-                    return results.ToArray();
                 }
-            }
+            };
         }
 
-        public IObservable<string[]> GetUpstreamBranches(string branchName)
+        public IObservable<ImmutableList<string>> GetAllDownstreamBranches(string branchName)
+        {
+            // TODO - better notifications
+            return notifiers.GetAnyNotification().StartWith(Unit.Default)
+                .SelectMany(_ => WithConnection(GetAllDownstreamBranchesOnce(branchName)));
+        }
+
+        private Func<DbConnection, Task<ImmutableList<string>>> GetAllDownstreamBranchesOnce(string branchName)
+        {
+            return async connection =>
+            {
+                using (var command = GetAllDownstreamBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchName", branchName } }))
+                {
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        var results = new List<string>();
+                        while (await reader.ReadAsync())
+                        {
+                            results.Add(Convert.ToString(reader["DownstreamBranch"]));
+                        }
+                        return results.ToImmutableList();
+                    }
+                }
+            };
+        }
+
+        public IObservable<ImmutableList<string>> GetUpstreamBranches(string branchName)
         {
             return notifiers.GetUpstreamBranchesChangedNotifier(downstreamBranch: branchName).StartWith(Unit.Default)
-                .SelectMany(_ => GetUpstreamBranchesOnce(branchName));
+                .SelectMany(_ => WithConnection(GetUpstreamBranchesOnce(branchName)));
         }
 
-        private async Task<string[]> GetUpstreamBranchesOnce(string branchName)
+        private Func<DbConnection, Task<ImmutableList<string>>> GetUpstreamBranchesOnce(string branchName)
         {
-            using (var scope = serviceProvider.CreateScope())
-            using (var connection = GetSqlConnection(scope.ServiceProvider))
-            using (var command = GetUpstreamBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchName", branchName } }))
+            return async connection =>
             {
-                await connection.OpenAsync();
-                using (var reader = await command.ExecuteReaderAsync())
+                using (var command = GetUpstreamBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchName", branchName } }))
                 {
-                    var results = new List<string>();
-                    while (await reader.ReadAsync())
+                    using (var reader = await command.ExecuteReaderAsync())
                     {
-                        results.Add(Convert.ToString(reader["BranchName"]));
+                        var results = new List<string>();
+                        while (await reader.ReadAsync())
+                        {
+                            results.Add(Convert.ToString(reader["BranchName"]));
+                        }
+                        return results.ToImmutableList();
                     }
-                    return results.ToArray();
                 }
-            }
+            };
+        }
+
+        public IObservable<ImmutableList<string>> GetAllUpstreamBranches(string branchName)
+        {
+            // TODO - better notifications
+            return notifiers.GetAnyNotification().StartWith(Unit.Default)
+                .SelectMany(_ => WithConnection(GetAllUpstreamBranchesOnce(branchName)));
+        }
+
+        private Func<DbConnection, Task<ImmutableList<string>>> GetAllUpstreamBranchesOnce(string branchName)
+        {
+            return async connection =>
+            {
+                using (var command = GetAllUpstreamBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchName", branchName } }))
+                {
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        var results = new List<string>();
+                        while (await reader.ReadAsync())
+                        {
+                            results.Add(Convert.ToString(reader["BranchName"]));
+                        }
+                        return results.ToImmutableList();
+                    }
+                }
+            };
         }
 
         public void AddBranchSetting(string upstreamBranch, string downstreamBranch, IUnitOfWork work)
@@ -206,5 +311,14 @@ WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
             return scope.GetRequiredService<ConnectionManagement>().Transaction;
         }
 
+        private async Task<T> WithConnection<T>(Func<DbConnection, Task<T>> target)
+        {
+            using (var scope = serviceProvider.CreateScope())
+            using (var connection = GetSqlConnection(scope.ServiceProvider))
+            {
+                await connection.OpenAsync();
+                return await target(connection);
+            }
+        }
     }
 }

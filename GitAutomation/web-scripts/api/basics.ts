@@ -1,19 +1,21 @@
 import { Observable } from "rxjs";
 import { OutputMessage } from "./output-message";
 
-export const remoteBranches = () =>
-  Observable.ajax("/api/management/remote-branches").map(
+export const allBranches = () =>
+  Observable.ajax("/api/management/all-branches").map(
     response => response.response as string[]
   );
 
-export const downstreamBranches = (branchName: string) =>
-  Observable.ajax("/api/management/downstream-branches/" + branchName).map(
-    response => response.response as string[]
-  );
-
-export const upstreamBranches = (branchName: string) =>
-  Observable.ajax("/api/management/upstream-branches/" + branchName).map(
-    response => response.response as string[]
+export const branchDetails = (branchName: string) =>
+  Observable.ajax("/api/management/details/" + branchName).map(
+    response =>
+      response.response as {
+        branchName: string;
+        directDownstreamBranches: string[];
+        downstreamBranches: string[];
+        directUpstreamBranches: string[];
+        upstreamBranches: string[];
+      }
   );
 
 export const getLog = () =>
@@ -36,7 +38,7 @@ export const updateBranch = (
   }
 ) =>
   Observable.ajax
-    .put("/api/management/branch/" + branchName, body, {
+    .put("/api/management/branch/propagation/" + branchName, body, {
       "Content-Type": "application/json"
     })
     .map(response => response.response as null);

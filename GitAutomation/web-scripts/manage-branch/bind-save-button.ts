@@ -10,7 +10,8 @@ export const bindSaveButton = (
   branchName: string,
   selector: string,
   container: Observable<Selection<HTMLElement, any, any, any>>,
-  branchData: Observable<IManageBranch>
+  branchData: Observable<IManageBranch>,
+  onSaved: () => void
 ) => {
   /** Runs once and determines currently checked branches */
   const checkedBranches = (branchType: string) =>
@@ -66,6 +67,7 @@ export const bindSaveButton = (
     })
       .switchMap(_ => getUpdateRequest())
       .switchMap(requestBody => updateBranch(branchName, requestBody))
+      .do(_ => onSaved())
       // TODO - success/error message
       .subscribe({
         error: _ => console.log(_)

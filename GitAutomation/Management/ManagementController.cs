@@ -26,13 +26,6 @@ namespace GitAutomation.Management
             this.unitOfWorkFactory = unitOfWorkFactory;
         }
 
-        [HttpGet("remote-branches")]
-        public async Task<string[]> RemoteBranches()
-        {
-            return await repositoryState.RemoteBranches().FirstAsync();
-        }
-
-
         [HttpGet("log")]
         public async Task<ImmutableList<Processes.OutputMessage>> Log()
         {
@@ -44,28 +37,26 @@ namespace GitAutomation.Management
         {
             return (await repositoryState.ActionQueue.FirstAsync()).Select(action => new { ActionType = action.ActionType, Parameters = action.Parameters });
         }
-
-
-
-        [HttpGet("downstream-branches/{*branchName}")]
-        public async Task<string[]> DownstreamBranches(string branchName)
-        {
-            return await branchSettings.GetDownstreamBranches(branchName).FirstAsync();
-        }
-
-        [HttpGet("upstream-branches/{*branchName}")]
-        public async Task<string[]> UpstreamBranches(string branchName)
-        {
-            return await branchSettings.GetUpstreamBranches(branchName).FirstAsync();
-        }
-
+        
         [HttpGet("all-branches")]
-        public async Task<string[]> AllBranches()
+        public async Task<ImmutableList<string>> AllBranches()
         {
-            return await branchSettings.GetConfiguredBranches().FirstAsync();
+            return await (
+                branchSettings.GetConfiguredBranches()
+                .WithLatestFrom(
+                    repositoryState.RemoteBranches(), 
+                    (first, second) => first.Concat(second).Distinct().OrderBy(a => a).ToImmutableList()
+                )
+            ).FirstAsync();
         }
 
-        [HttpPut("branch/{*branchName}")]
+        [HttpGet("details/{*branchName}")]
+        public async Task<BranchDetails> GetDetails(string branchName)
+        {
+            return await branchSettings.GetBranchDetails(branchName).FirstAsync();
+        }
+
+        [HttpPut("branch/propagation/{*branchName}")]
         public async Task UpdateBranch(string branchName, [FromBody] UpdateBranchRequestBody requestBody)
         {
             using (var unitOfWork = unitOfWorkFactory.CreateUnitOfWork())

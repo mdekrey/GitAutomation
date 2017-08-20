@@ -4,7 +4,7 @@ import { Selection } from "d3-selection";
 import { rxData, rxEvent, fnSelect } from "../utils/presentation/d3-binding";
 
 import { RoutingComponent } from "../utils/routing-component";
-import { getLog, remoteBranches, fetch } from "../api/basics";
+import { getLog, allBranches, fetch } from "../api/basics";
 import { logPresentation } from "../logs/log.presentation";
 
 export const homepage = (
@@ -57,7 +57,7 @@ export const homepage = (
               eventName: "click"
             })
               .startWith(null)
-              .switchMap(() => remoteBranches())
+              .switchMap(() => allBranches())
           )
             .bind<HTMLLIElement>({
               onCreate: target => target.append<HTMLLIElement>("li"),
