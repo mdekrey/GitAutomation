@@ -40,10 +40,10 @@ namespace GitAutomation.Repository
             return reactiveProcessFactory.BuildProcess(new System.Diagnostics.ProcessStartInfo(
                 "git",
                 string.Join(
-                    " ", 
-                    args.Select(arg => 
-                        arg.Contains("\"") || arg.Contains(" ") 
-                            ? $"\"{arg.Replace(@"\", @"\\").Replace("\"", "\\\"")}\"" 
+                    " ",
+                    args.Select(arg =>
+                        arg.Contains("\"") || arg.Contains(" ")
+                            ? $"\"{arg.Replace(@"\", @"\\").Replace("\"", "\\\"")}\""
                             : arg
                     )
                 )
@@ -95,17 +95,14 @@ namespace GitAutomation.Repository
             return RunGit("show-ref", RemoteBranch(branchName), "--hash");
         }
 
-        /// <summary>
-        /// Gets the merge patch info for inspection
-        /// </summary>
-        public IReactiveProcess MergeTree(string mergeBase, string branchA, string branchB)
-        {
-            return RunGit("merge-tree", mergeBase, RemoteBranch(branchA), RemoteBranch(branchB));
-        }
-
         public IReactiveProcess CheckoutRemote(string branchName)
         {
             return RunGit("checkout", "-B", branchName, "--track", RemoteBranch(branchName));
+        }
+
+        public IReactiveProcess CheckoutNew(string branchName)
+        {
+            return RunGit("checkout", "-B", branchName);
         }
 
         public IReactiveProcess MergeRemote(string branchName, string message = null)
@@ -120,9 +117,16 @@ namespace GitAutomation.Repository
             }
         }
 
-        public IReactiveProcess Push(string branchName)
+        public IReactiveProcess Push(string branchName, string remoteBranchName = null)
         {
-            return RunGit("push", "origin", $"{branchName}:{branchName}");
+            if (remoteBranchName == null)
+            {
+                return RunGit("push", "origin", branchName);
+            }
+            else
+            {
+                return RunGit("push", "origin", $"{branchName}:{remoteBranchName}");
+            }
         }
 
         public static IObservable<ImmutableList<GitRef>> BranchListingToRefs(IObservable<OutputMessage> refListing)
