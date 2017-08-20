@@ -1,12 +1,13 @@
-import { Observable } from "rxjs";
+import { BehaviorSubject, Observable } from "rxjs";
 import { Selection } from "d3-selection";
 
 import { rxData } from "../utils/presentation/d3-binding";
 
 export const newBranch = (
   container: Observable<Selection<HTMLElement, any, any, any>>
-) =>
-  rxData(container, Observable.of([{}])).bind({
+) => {
+  const label = new BehaviorSubject<string>("");
+  return rxData(container, label.map(v => [v])).bind({
     selector: `li[data-locator="new-branch"]`,
     onCreate: elem => elem.append("li").attr("data-locator", "new-branch"),
     onEnter: li =>
@@ -15,20 +16,17 @@ export const newBranch = (
         <input type="text" data-locator="branch-text" />
       `),
     onEach: target => {
-      const input = target.select<HTMLInputElement>(
-        `input[data-locator="branch-text"]`
-      );
-      const checkbox = target.select(`input[data-locator="check"]`);
-
-      checkbox.property("disabled", true);
-      if (input.nodes().length) {
-        checkbox.property("checked", Boolean(input.property("value")));
-      }
-
-      input.on("input", function() {
-        checkbox
-          .property("checked", Boolean(this.value))
-          .attr("data-branch", this.value);
-      });
+      target
+        .select(`input[data-locator="check"]`)
+        .property("disabled", true)
+        .property("checked", d => Boolean(d))
+        .attr("data-branch", d => d);
+      target
+        .select<HTMLInputElement>(`input[data-locator="branch-text"]`)
+        .property("value", d => d)
+        .on("input", function(_, index) {
+          label.next(this.value);
+        });
     }
   });
+};
