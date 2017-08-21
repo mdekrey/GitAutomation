@@ -15,7 +15,7 @@ namespace GitAutomation.BranchSettings
         IObservable<ImmutableList<string>> GetUpstreamBranches(string branchName);
         IObservable<ImmutableList<string>> GetAllUpstreamBranches(string branchName);
 
-        void UpdateBranchSetting(string branchName, bool recreateFromUpstream, Work.IUnitOfWork work);
+        void UpdateBranchSetting(string branchName, bool recreateFromUpstream, bool isServiceLine, Work.IUnitOfWork work);
         void AddBranchPropagation(string upstreamBranch, string downstreamBranch, Work.IUnitOfWork work);
         void RemoveBranchPropagation(string upstreamBranch, string downstreamBranch, Work.IUnitOfWork work);
 

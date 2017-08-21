@@ -77,7 +77,7 @@ namespace GitAutomation.Management
                 {
                     branchSettings.RemoveBranchPropagation(branchName, removeDownstream, unitOfWork);
                 }
-                branchSettings.UpdateBranchSetting(branchName, requestBody.RecreateFromUpstream, unitOfWork);
+                branchSettings.UpdateBranchSetting(branchName, requestBody.RecreateFromUpstream, requestBody.IsServiceLine, unitOfWork);
 
                 await unitOfWork.CommitAsync();
             }
@@ -86,6 +86,7 @@ namespace GitAutomation.Management
         public class UpdateBranchRequestBody
         {
             public bool RecreateFromUpstream { get; set; }
+            public bool IsServiceLine { get; set; }
             public string[] AddUpstream { get; set; }
             public string[] AddDownstream { get; set; }
             public string[] RemoveUpstream { get; set; }

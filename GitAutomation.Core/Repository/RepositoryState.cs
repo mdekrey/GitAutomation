@@ -9,6 +9,7 @@ using System.Reactive.Disposables;
 using System.Reactive;
 using System.Collections.Immutable;
 using GitAutomation.Repository.Actions;
+using GitAutomation.BranchSettings;
 
 namespace GitAutomation.Repository
 {
@@ -36,12 +37,14 @@ namespace GitAutomation.Repository
 
         private readonly IObservable<Unit> allUpdates;
         private readonly IObservable<ImmutableList<GitCli.GitRef>> remoteBranches;
+        private readonly IBranchSettings branchSettings;
 
         public event EventHandler Updated;
 
-        public RepositoryState(IOptions<GitRepositoryOptions> options, IServiceProvider serviceProvider)
+        public RepositoryState(IBranchSettings branchSettings, IOptions<GitRepositoryOptions> options, IServiceProvider serviceProvider)
         {
             this.checkoutPath = options.Value.CheckoutPath;
+            this.branchSettings = branchSettings;
 
             var queueAlterations = new Subject<QueueAlteration>();
             this.queueAlterations = queueAlterations;
@@ -148,6 +151,15 @@ namespace GitAutomation.Repository
         public IObservable<OutputMessage> CheckDownstreamMerges(string downstreamBranch)
         {
             return EnqueueAction(new MergeDownstreamAction(downstreamBranch: downstreamBranch));
+        }
+
+        public IObservable<OutputMessage> CheckAllDownstreamMerges()
+        {
+            return RemoteBranches().Take(1).SelectMany(allBranches => allBranches.ToObservable())
+                        .SelectMany(upstream => branchSettings.GetDownstreamBranches(upstream).Take(1).SelectMany(branches => branches.ToObservable().Select(downstream => new { upstream, downstream })))
+                        .ToList()
+                        .SelectMany(all => all.Select(each => each.downstream).Distinct().ToObservable())
+                        .SelectMany(upstreamBranch => CheckDownstreamMerges(upstreamBranch));
         }
 
         public IObservable<OutputMessage> ProcessActions()

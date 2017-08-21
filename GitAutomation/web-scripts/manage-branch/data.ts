@@ -5,6 +5,7 @@ import { allBranches, branchDetails } from "../api/basics";
 export interface IManageBranch {
   isLoading: boolean;
   recreateFromUpstream: boolean;
+  isServiceLine: boolean;
   branches: IBranchData[];
 }
 
@@ -31,17 +32,22 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
         isUpstreamAllowed:
           branchDetails.downstreamBranches.indexOf(branch) == -1
       })),
+      isServiceLine: branchDetails.isServiceLine,
       recreateFromUpstream: branchDetails.recreateFromUpstream
     }))
-    .map(({ branches, recreateFromUpstream }): IManageBranch => ({
-      branches,
-      recreateFromUpstream,
-      isLoading: false
-    }));
+    .map(
+      ({ branches, recreateFromUpstream, isServiceLine }): IManageBranch => ({
+        branches,
+        recreateFromUpstream,
+        isServiceLine,
+        isLoading: false
+      })
+    );
 
   const branchData = Observable.of<IManageBranch>({
     isLoading: true,
     recreateFromUpstream: false,
+    isServiceLine: false,
     branches: []
   })
     .concat(reload.startWith(null).switchMap(() => initializeBranchData))

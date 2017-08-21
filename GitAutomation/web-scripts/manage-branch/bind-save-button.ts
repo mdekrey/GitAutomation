@@ -32,12 +32,16 @@ export const bindSaveButton = (
       checkedBranches("downstream-branches"),
       container
         .map(e => e.select(`[data-locator="recreate-from-upstream"]`))
-        .map(e => e.property(`checked`) as boolean)
+          .map(e => e.property(`checked`) as boolean),
+      container
+          .map(e => e.select(`[data-locator="is-service-line"]`))
+          .map(e => e.property(`checked`) as boolean)
     )
-      .map(([upstream, downstream, recreateFromUpstream]) => ({
+      .map(([upstream, downstream, recreateFromUpstream, isServiceLine]) => ({
         upstream,
         downstream,
-        recreateFromUpstream
+        recreateFromUpstream,
+        isServiceLine
       }))
       .take(1)
       // TODO - warn in this case, but we can't allow saving with
@@ -47,8 +51,8 @@ export const bindSaveButton = (
       )
       .withLatestFrom(
         branchData.map(d => d.branches),
-        ({ upstream, downstream, recreateFromUpstream }, branches) => {
-          console.log(upstream, downstream, recreateFromUpstream);
+        ({ upstream, downstream, recreateFromUpstream, isServiceLine }, branches) => {
+          console.log(upstream, downstream, recreateFromUpstream, isServiceLine);
           const oldUpstream = branches
             .filter(b => b.isUpstream)
             .map(b => b.branch);
@@ -57,6 +61,7 @@ export const bindSaveButton = (
             .map(b => b.branch);
           return {
             recreateFromUpstream,
+            isServiceLine,
             addUpstream: difference(upstream, oldUpstream),
             removeUpstream: difference(oldUpstream, upstream),
             addDownstream: difference(downstream, oldDownstream),

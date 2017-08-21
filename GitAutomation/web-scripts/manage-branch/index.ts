@@ -26,6 +26,10 @@ export const manage = (
       <input type="checkbox" data-locator="recreate-from-upstream" />
       Recreate from Upstream
   </label>
+  <label>
+      <input type="checkbox" data-locator="is-service-line" />
+      Is Service Line?
+  </label>
   <h3>Downstream Branches</h3>
   <ul data-locator="downstream-branches"></ul>
   <h3>Upstream Branches</h3>
@@ -101,6 +105,17 @@ export const manage = (
               branchData.state
                 .map(d => d.recreateFromUpstream)
                 .map(d => e.datum(d))
+            )
+            .subscribe(target => {
+              target.property("checked", value => value);
+            })
+        );
+
+        subscription.add(
+          container
+            .map(e => e.select(`[data-locator="is-service-line"]`))
+            .switchMap(e =>
+              branchData.state.map(d => d.isServiceLine).map(d => e.datum(d))
             )
             .subscribe(target => {
               target.property("checked", value => value);

@@ -11,6 +11,7 @@ export const branchDetails = (branchName: string) =>
     response =>
       response.response as {
         recreateFromUpstream: boolean;
+        isServiceLine: boolean;
         branchName: string;
         directDownstreamBranches: string[];
         downstreamBranches: string[];
@@ -33,6 +34,7 @@ export const updateBranch = (
   branchName: string,
   body: {
     recreateFromUpstream: boolean;
+    isServiceLine: boolean;
     addUpstream: string[];
     addDownstream: string[];
     removeUpstream: string[];

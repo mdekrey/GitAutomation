@@ -19,6 +19,7 @@ namespace GitAutomation.BranchSettings
         class BranchBasicDetails
         {
             public bool RecreateFromUpstream { get; set; }
+            public bool IsServiceLine { get; set; }
         }
 
         #region Getters
@@ -113,7 +114,7 @@ WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
             });
 
         public static readonly CommandBuilder GetBranchBasicDetialsCommand = new CommandBuilder(
-            commandText: @"SELECT [RecreateFromUpstream]
+            commandText: @"SELECT [RecreateFromUpstream], [IsServiceLine]
   FROM [DownstreamBranch]
   WHERE [BranchName]=@BranchName
 ", parameters: new Dictionary<string, Action<DbParameter>>
@@ -127,22 +128,27 @@ MERGE INTO [DownstreamBranch] AS Downstream
 USING (SELECT 
     @BranchName AS BranchName
     , @RecreateFromUpstream AS RecreateFromUpstream
+    , @IsServiceLine As IsServiceLine
 ) AS NewDownstream
 ON Downstream.BranchName = NewDownstream.BranchName
 WHEN MATCHED THEN UPDATE SET 
     RecreateFromUpstream=NewDownstream.RecreateFromUpstream
+    , IsServiceLine=NewDownstream.IsServiceLine
 WHEN NOT MATCHED THEN INSERT (
     BranchName
     , RecreateFromUpstream
+    , IsServiceLine
 ) VALUES (
-    NewDownstream.BranchName, 
-    NewDownstream.RecreateFromUpstream
+    NewDownstream.BranchName 
+    , NewDownstream.RecreateFromUpstream
+    , NewDownstream.IsServiceLine
 )
 ;
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
                 { "@RecreateFromUpstream", p => p.DbType = System.Data.DbType.Int32 },
+                { "@IsServiceLine", p => p.DbType = System.Data.DbType.Int32 },
             });
 
         public static readonly CommandBuilder DeleteBranchSettingsCommand = new CommandBuilder(
@@ -198,6 +204,7 @@ WHERE  [BranchName]=@BranchName
                     {
                         BranchName = branchName,
                         RecreateFromUpstream = settings.RecreateFromUpstream,
+                        IsServiceLine = settings.IsServiceLine,
                         DirectDownstreamBranches = await GetDownstreamBranchesOnce(branchName)(connection),
                         DirectUpstreamBranches = await GetUpstreamBranchesOnce(branchName)(connection),
                         DownstreamBranches = await GetAllDownstreamBranchesOnce(branchName)(connection),
@@ -219,11 +226,13 @@ WHERE  [BranchName]=@BranchName
                             return new BranchBasicDetails
                             {
                                 RecreateFromUpstream = Convert.ToInt32(reader["RecreateFromUpstream"]) == 1,
+                                IsServiceLine = Convert.ToInt32(reader["IsServiceLine"]) == 1,
                             };
                         }
                         return new BranchBasicDetails
                         {
                             RecreateFromUpstream = false,
+                            IsServiceLine = false,
                         };
                     }
                 }
@@ -332,7 +341,7 @@ WHERE  [BranchName]=@BranchName
             };
         }
 
-        public void UpdateBranchSetting(string branchName, bool recreateFromUpstream, IUnitOfWork work)
+        public void UpdateBranchSetting(string branchName, bool recreateFromUpstream, bool isServiceLine, IUnitOfWork work)
         {
             PrepareSqlUnitOfWork(work);
             work.Defer(async sp =>
@@ -340,6 +349,7 @@ WHERE  [BranchName]=@BranchName
                 using (var command = Transacted(sp, UpdateBranchSettingCommand, new Dictionary<string, object> {
                     { "@BranchName", branchName },
                     { "@RecreateFromUpstream", recreateFromUpstream ? 1 : 0 },
+                    { "@IsServiceLine", isServiceLine ? 1 : 0 },
                 }))
                 {
                     await command.ExecuteNonQueryAsync();
