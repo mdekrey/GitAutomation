@@ -46,3 +46,14 @@ export const updateBranch = (
       "Content-Type": "application/json"
     })
     .map(response => response.response as null);
+
+export const promoteServiceLine = (body: {
+  releaseCandidate: string;
+  serviceLine: string;
+  tagName: string;
+}) =>
+  Observable.ajax
+    .put("/api/management/branch/promote", body, {
+      "Content-Type": "application/json"
+    })
+    .map(response => response.response as null);

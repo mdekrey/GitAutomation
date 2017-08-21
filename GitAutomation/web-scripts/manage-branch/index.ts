@@ -12,6 +12,7 @@ import { runBranchData } from "./data";
 import { buildBranchCheckListing } from "./branch-check-listing";
 import { bindSaveButton } from "./bind-save-button";
 import { newBranch } from "./new-branch-checkbox";
+import { promoteServiceLine } from "../api/basics";
 
 export const manage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -37,6 +38,17 @@ export const manage = (
   <button type="button" data-locator="reset">Reset</button>
   <button type="button" data-locator="home">Cancel</button>
   <button type="button" data-locator="save">Save</button>
+
+  <h3>Release to Service Line</h3>
+  <label>
+    <span>Service Line Branch</span>
+    <input type="text" data-locator="service-line-branch" />
+  </label>
+  <label>
+    <span>Release Tag</span>
+    <input type="text" data-locator="release-tag" />
+  </label>
+  <button type="button" data-locator="promote-service-line">Release to Service Line</button>
 `)
     )
     .publishReplay(1)
@@ -158,6 +170,33 @@ export const manage = (
               )
             )
             .subscribe()
+        );
+
+        subscription.add(
+          rxEvent({
+            target: container.map(
+              fnSelect(`[data-locator="promote-service-line"]`)
+            ),
+            eventName: "click"
+          })
+            .withLatestFrom(
+              container
+                .map(fnSelect(`[data-locator="service-line-branch"]`))
+                .map(sl => sl.property("value")),
+              container
+                .map(fnSelect(`[data-locator="release-tag"]`))
+                .map(sl => sl.property("value")),
+              (_, serviceLine, tagName) => ({
+                releaseCandidate: branchName,
+                serviceLine,
+                tagName
+              })
+            )
+            .take(1)
+            .switchMap(promoteServiceLine)
+            .subscribe(response => {
+              state.navigate({ url: "/", replaceCurentHistory: false });
+            })
         );
 
         return subscription;
