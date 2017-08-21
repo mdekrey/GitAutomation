@@ -146,6 +146,10 @@ namespace GitAutomation.Repository.Actions
             processes.OnNext(createBranch);
             await createBranch;
 
+            var push = Queueable(cli.Push(downstreamBranch));
+            processes.OnNext(push);
+            await push;
+
             foreach (var upstreamBranch in allUpstreamBranches.Skip(1))
             {
                 await MergeUpstreamBranch(upstreamBranch, cli, processes);
