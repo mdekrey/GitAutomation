@@ -4,7 +4,7 @@ import { Selection } from "d3-selection";
 import { rxData, rxEvent, fnSelect } from "../utils/presentation/d3-binding";
 
 import { RoutingComponent } from "../utils/routing-component";
-import { getLog, allBranches, fetch } from "../api/basics";
+import { getLog, allBranches, fetch, actionQueue } from "../api/basics";
 import { logPresentation } from "../logs/log.presentation";
 
 export const homepage = (
@@ -14,6 +14,7 @@ export const homepage = (
     .do(elem =>
       elem.html(`
   <h1>Action Queue</h1>
+  <a data-locator="action-queue-refresh">Refresh</a>
   <ul data-locator="action-queue">
   </ul>
 
@@ -42,6 +43,34 @@ export const homepage = (
             eventName: "click"
           })
             .switchMap(() => fetch())
+            .subscribe()
+        );
+
+        // display actions
+        subscription.add(
+          rxData(
+            body.map(
+              fnSelect<HTMLUListElement>(`[data-locator="action-queue"]`)
+            ),
+            rxEvent({
+              target: body.map(
+                fnSelect('[data-locator="action-queue-refresh"]')
+              ),
+              eventName: "click"
+            })
+              .startWith(null)
+              .switchMap(() => actionQueue())
+          )
+            .bind<HTMLLIElement>({
+              onCreate: target => target.append<HTMLLIElement>("li"),
+              onEnter: li =>
+                li.html(`
+  <span></span>
+`),
+              selector: "li",
+              onEach: selection =>
+                selection.select(`span`).text(data => JSON.stringify(data))
+            })
             .subscribe()
         );
 

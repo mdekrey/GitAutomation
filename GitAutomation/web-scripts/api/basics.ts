@@ -1,6 +1,12 @@
 import { Observable } from "rxjs";
 import { OutputMessage } from "./output-message";
 
+export const actionQueue = () =>
+  Observable.ajax("/api/management/queue").map(
+    response =>
+      response.response as { actionType: string; parameters: string[] }[]
+  );
+
 export const allBranches = () =>
   Observable.ajax("/api/management/all-branches").map(
     response => response.response as string[]
