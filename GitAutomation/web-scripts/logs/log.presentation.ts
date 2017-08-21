@@ -1,5 +1,5 @@
 import { IRxBindProps } from "../utils/presentation/d3-binding";
-import { OutputMessage } from "../api/output-message";
+import { OutputMessage, OutputMessageChannel } from "../api/output-message";
 
 export const logPresentation: IRxBindProps<
   HTMLLIElement,
