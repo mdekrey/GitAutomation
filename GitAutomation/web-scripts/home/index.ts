@@ -19,7 +19,6 @@ export const homepage = (
 
   <h1>Remote Branches</h1>
   <a data-locator="remote-branches-refresh">Refresh</a>
-  <a data-locator="remote-branches-remove">Remove</a>
   <a data-locator="fetch-from-remote">Fetch</a>
   <ul data-locator="remote-branches">
   </ul>
