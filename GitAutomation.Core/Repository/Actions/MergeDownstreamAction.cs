@@ -18,8 +18,6 @@ namespace GitAutomation.Repository.Actions
 {
     class MergeDownstreamAction : IRepositoryAction
     {
-        private static Regex hasConflict = new Regex("^(<<<<<<<|changed in both)", RegexOptions.Compiled);
-
         private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
         private readonly string downstreamBranch;
 

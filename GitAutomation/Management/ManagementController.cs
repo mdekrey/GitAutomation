@@ -83,6 +83,12 @@ namespace GitAutomation.Management
             }
         }
 
+        [HttpPut("branch/promote")]
+        public void PromoteServiceLine([FromBody] PromoteServiceLineBody requestBody)
+        {
+            repositoryState.ConsolidateServiceLine(requestBody.ReleaseCandidate, requestBody.ServiceLine);
+        }
+
         public class UpdateBranchRequestBody
         {
             public bool RecreateFromUpstream { get; set; }
@@ -91,6 +97,12 @@ namespace GitAutomation.Management
             public string[] AddDownstream { get; set; }
             public string[] RemoveUpstream { get; set; }
             public string[] RemoveDownstream { get; set; }
+        }
+
+        public class PromoteServiceLineBody
+        {
+            public string ServiceLine { get; set; }
+            public string ReleaseCandidate { get; set; }
         }
     }
 }

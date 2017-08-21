@@ -160,6 +160,53 @@ DELETE FROM [DownstreamBranch]
 WHERE  [BranchName]=@BranchName
 ");
 
+        public static readonly CommandBuilder ConsolidateServiceLineCommand = new CommandBuilder(
+            commandText: @"
+DECLARE @OldDownstream TABLE (DownstreamBranch VARCHAR(256));
+DECLARE @RemainingDownstream TABLE (DownstreamBranch VARCHAR(256));
+
+WITH RecursiveDownstream ( DownstreamBranch, BranchName )
+AS (
+	SELECT DownstreamBranch, BranchName FROM [UpstreamBranch] WHERE DownstreamBranch=@BranchName
+UNION ALL
+	SELECT RecursiveDownstream.DownstreamBranch, [UpstreamBranch].BranchName
+	FROM [UpstreamBranch]
+	INNER JOIN RecursiveDownstream ON [UpstreamBranch].DownstreamBranch = RecursiveDownstream.BranchName
+)
+INSERT INTO @OldDownstream
+SELECT BranchName FROM RecursiveDownstream
+GROUP BY BranchName
+
+INSERT INTO @RemainingDownstream (DownstreamBranch)
+SELECT UpstreamBranch.DownstreamBranch
+FROM UpstreamBranch
+INNER JOIN @OldDownstream as ShouldMatch ON UpstreamBranch.BranchName=ShouldMatch.DownstreamBranch
+LEFT JOIN @OldDownstream as DoNotMatch ON UpstreamBranch.DownstreamBranch=DoNotMatch.DownstreamBranch
+WHERE DoNotMatch.DownstreamBranch IS NULL AND UpstreamBranch.DownstreamBranch != @BranchName
+GROUP BY UpstreamBranch.DownstreamBranch;
+
+MERGE INTO [DownstreamBranch] AS Downstream
+USING (SELECT @ServiceLineBranchName AS BranchName) AS NewDownstream
+ON Downstream.BranchName = NewDownstream.BranchName
+WHEN NOT MATCHED THEN INSERT (BranchName, RecreateFromUpstream, IsServiceLine) VALUES (NewDownstream.BranchName, 0, 1);
+
+DELETE FROM [UpstreamBranch]
+WHERE BranchName IN (SELECT DownstreamBranch FROM @OldDownstream) OR DownstreamBranch IN (SELECT DownstreamBranch FROM @OldDownstream);
+
+DELETE FROM [DownstreamBranch]
+WHERE BranchName IN (SELECT DownstreamBranch FROM @OldDownstream) OR (BranchName = @BranchName AND ServiceLine = 0);
+
+MERGE INTO [UpstreamBranch] AS T
+USING @RemainingDownstream AS NewDownstream
+ON T.DownstreamBranch = NewDownstream.DownstreamBranch AND T.BranchName=@ServiceLineBranchName
+WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLineBranchName, NewDownstream.DownstreamBranch);
+
+", parameters: new Dictionary<string, Action<DbParameter>>
+            {
+                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
+                { "@ServiceLineBranchName", p => p.DbType = System.Data.DbType.AnsiString },
+            });
+
         #endregion
 
         private readonly IBranchSettingsNotifiers notifiers;
@@ -389,6 +436,22 @@ WHERE  [BranchName]=@BranchName
             });
             // TODO - onCommit, notify changes
         }
+
+        public void ConsolidateServiceLine(string releaseCandidateBranch, string serviceLineBranch, Work.IUnitOfWork work)
+        {
+            PrepareSqlUnitOfWork(work);
+            work.Defer(async sp =>
+            {
+                using (var command = Transacted(sp, ConsolidateServiceLineCommand, new Dictionary<string, object> {
+                    { "@BranchName", releaseCandidateBranch },
+                    { "@ServiceLineBranchName", serviceLineBranch },
+                }))
+                {
+                    await command.ExecuteNonQueryAsync();
+                }
+            });
+        }
+
 
         private void PrepareSqlUnitOfWork(IUnitOfWork work)
         {

@@ -122,6 +122,11 @@ namespace GitAutomation.Repository
             }
         }
 
+        public IReactiveProcess MergeFastForward(string branchName)
+        {
+            return RunGit("merge", RemoteBranch(branchName), "--ff-only");
+        }
+
         public IReactiveProcess Push(string branchName, string remoteBranchName = null)
         {
             if (remoteBranchName == null)
@@ -133,7 +138,7 @@ namespace GitAutomation.Repository
                 return RunGit("push", "origin", $"{branchName}:{remoteBranchName}");
             }
         }
-
+        
         public static IObservable<ImmutableList<GitRef>> BranchListingToRefs(IObservable<OutputMessage> refListing)
         {
 

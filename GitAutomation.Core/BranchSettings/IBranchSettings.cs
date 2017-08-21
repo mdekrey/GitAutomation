@@ -18,6 +18,7 @@ namespace GitAutomation.BranchSettings
         void UpdateBranchSetting(string branchName, bool recreateFromUpstream, bool isServiceLine, Work.IUnitOfWork work);
         void AddBranchPropagation(string upstreamBranch, string downstreamBranch, Work.IUnitOfWork work);
         void RemoveBranchPropagation(string upstreamBranch, string downstreamBranch, Work.IUnitOfWork work);
+        void ConsolidateServiceLine(string releaseCandidateBranch, string serviceLineBranch, Work.IUnitOfWork work);
 
     }
 }
