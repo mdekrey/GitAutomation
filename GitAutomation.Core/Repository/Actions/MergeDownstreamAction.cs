@@ -177,7 +177,9 @@ namespace GitAutomation.Repository.Actions
                 processes.OnNext(reset);
                 await reset;
 
-                // TODO - git clean -fx
+                var clean = Queueable(cli.Clean());
+                processes.OnNext(clean);
+                await clean;
             }
         }
 

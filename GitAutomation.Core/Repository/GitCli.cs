@@ -79,6 +79,11 @@ namespace GitAutomation.Repository
             return RunGit("reset", "--hard");
         }
 
+        public IReactiveProcess Clean()
+        {
+            return RunGit("clean", "-fx");
+        }
+
         /// <summary>
         /// Yields commitish of common ancestor
         /// </summary>
