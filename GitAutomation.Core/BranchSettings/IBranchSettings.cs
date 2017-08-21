@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Reactive;
 using System.Text;
+using GitAutomation.Work;
 
 namespace GitAutomation.BranchSettings
 {
@@ -20,6 +21,6 @@ namespace GitAutomation.BranchSettings
         void AddBranchPropagation(string upstreamBranch, string downstreamBranch, Work.IUnitOfWork work);
         void RemoveBranchPropagation(string upstreamBranch, string downstreamBranch, Work.IUnitOfWork work);
         void ConsolidateServiceLine(string releaseCandidateBranch, string serviceLineBranch, Work.IUnitOfWork work);
-
+        void DeleteBranchSettings(string deletingBranch, IUnitOfWork unitOfWork);
     }
 }

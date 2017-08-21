@@ -50,6 +50,12 @@ namespace GitAutomation.Management
             ).FirstAsync();
         }
 
+        [HttpDelete("branch/{*branchName}")]
+        public async Task DeleteBranch(string branchName)
+        {
+            repositoryState.DeleteBranch(branchName);
+        }
+
         [HttpGet("details/{*branchName}")]
         public async Task<BranchDetails> GetDetails(string branchName)
         {

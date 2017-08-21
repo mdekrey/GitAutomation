@@ -175,11 +175,14 @@ WHEN NOT MATCHED THEN INSERT (
         public static readonly CommandBuilder DeleteBranchSettingsCommand = new CommandBuilder(
             commandText: @"
 DELETE FROM [UpstreamBranch]
-WHERE  [BranchName]=@BranchName
+WHERE  [BranchName]=@BranchName OR [DownstreamBranch]=@BranchName
 
 DELETE FROM [DownstreamBranch]
 WHERE  [BranchName]=@BranchName
-");
+", parameters: new Dictionary<string, Action<DbParameter>>
+            {
+                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
+            });
 
         public static readonly CommandBuilder ConsolidateServiceLineCommand = new CommandBuilder(
             commandText: @"
@@ -494,6 +497,20 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
                 using (var command = Transacted(sp, ConsolidateServiceLineCommand, new Dictionary<string, object> {
                     { "@BranchName", releaseCandidateBranch },
                     { "@ServiceLineBranchName", serviceLineBranch },
+                }))
+                {
+                    await command.ExecuteNonQueryAsync();
+                }
+            });
+        }
+
+        public void DeleteBranchSettings(string deletingBranch, IUnitOfWork work)
+        {
+            PrepareSqlUnitOfWork(work);
+            work.Defer(async sp =>
+            {
+                using (var command = Transacted(sp, DeleteBranchSettingsCommand, new Dictionary<string, object> {
+                    { "@BranchName", deletingBranch },
                 }))
                 {
                     await command.ExecuteNonQueryAsync();

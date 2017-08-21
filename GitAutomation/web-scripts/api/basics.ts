@@ -63,3 +63,8 @@ export const promoteServiceLine = (body: {
       "Content-Type": "application/json"
     })
     .map(response => response.response as null);
+
+export const deleteBranch = (branchName: string) =>
+  Observable.ajax
+    .delete("/api/management/branch/" + branchName)
+    .map(response => response.response as null);

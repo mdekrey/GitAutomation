@@ -148,6 +148,11 @@ namespace GitAutomation.Repository
                 .Select(list => list.Select(branch => branch.Name).ToArray());
         }
 
+        public IObservable<OutputMessage> DeleteBranch(string branchName)
+        {
+            return EnqueueAction(new DeleteBranchAction(branchName));
+        }
+
         public IObservable<OutputMessage> CheckDownstreamMerges(string downstreamBranch)
         {
             return EnqueueAction(new MergeDownstreamAction(downstreamBranch: downstreamBranch));

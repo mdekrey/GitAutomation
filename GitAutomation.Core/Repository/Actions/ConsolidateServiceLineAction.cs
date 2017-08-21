@@ -63,7 +63,7 @@ namespace GitAutomation.Repository.Actions
                 disposable.Add(Observable.Concat(processes).Subscribe(observer));
                 disposable.Add(processes);
 
-                var tag = Queueable(cli.Tag(tagName, $"Automated release to service line {serviceLineBranch} from {releaseCandidateBranch}"));
+                var tag = Queueable(cli.AnnotatedTag(tagName, $"Automated release to service line {serviceLineBranch} from {releaseCandidateBranch}"));
                 processes.OnNext(tag);
                 await tag;
 

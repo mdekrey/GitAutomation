@@ -12,7 +12,7 @@ import { runBranchData } from "./data";
 import { buildBranchCheckListing } from "./branch-check-listing";
 import { bindSaveButton } from "./bind-save-button";
 import { newBranch } from "./new-branch-checkbox";
-import { promoteServiceLine } from "../api/basics";
+import { promoteServiceLine, deleteBranch } from "../api/basics";
 
 export const manage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -49,6 +49,10 @@ export const manage = (
     <input type="text" data-locator="release-tag" />
   </label>
   <button type="button" data-locator="promote-service-line">Release to Service Line</button>
+
+    <h3>Delete Branch</h3>
+    <p>This action cannot be undone.</p>
+    <button type="button" data-locator="delete-branch">Delete</button>
 `)
     )
     .publishReplay(1)
@@ -194,6 +198,19 @@ export const manage = (
             )
             .take(1)
             .switchMap(promoteServiceLine)
+            .subscribe(response => {
+              state.navigate({ url: "/", replaceCurentHistory: false });
+            })
+        );
+
+        subscription.add(
+          rxEvent({
+            target: container.map(fnSelect(`[data-locator="delete-branch"]`)),
+            eventName: "click"
+          })
+            .map(() => branchName)
+            .take(1)
+            .switchMap(deleteBranch)
             .subscribe(response => {
               state.navigate({ url: "/", replaceCurentHistory: false });
             })
