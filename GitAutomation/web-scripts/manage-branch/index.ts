@@ -183,18 +183,19 @@ export const manage = (
             ),
             eventName: "click"
           })
-            .withLatestFrom(
-              container
-                .map(fnSelect(`[data-locator="service-line-branch"]`))
-                .map(sl => sl.property("value")),
-              container
-                .map(fnSelect(`[data-locator="release-tag"]`))
-                .map(sl => sl.property("value")),
-              (_, serviceLine, tagName) => ({
+            .switchMap(_ =>
+              Observable.combineLatest(
+                container
+                  .map(fnSelect(`[data-locator="service-line-branch"]`))
+                  .map(sl => sl.property("value") as string),
+                container
+                  .map(fnSelect(`[data-locator="release-tag"]`))
+                  .map(sl => sl.property("value") as string)
+              ).map(([serviceLine, tagName]) => ({
                 releaseCandidate: branchName,
                 serviceLine,
                 tagName
-              })
+              }))
             )
             .take(1)
             .switchMap(promoteServiceLine)
