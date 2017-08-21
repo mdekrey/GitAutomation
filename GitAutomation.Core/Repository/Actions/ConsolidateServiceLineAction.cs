@@ -70,7 +70,7 @@ namespace GitAutomation.Repository.Actions
                 }
                 else
                 {
-                    var branchesToRemove = await settings.GetAllUpstreamBranches(releaseCandidateBranch).FirstAsync();
+                    var branchesToRemove = await settings.GetAllUpstreamRemovableBranches(releaseCandidateBranch).FirstAsync();
 
                     var push = Queueable(cli.Push(serviceLineBranch));
                     processes.OnNext(push);
@@ -91,6 +91,10 @@ namespace GitAutomation.Repository.Actions
                     }
 
                 }
+
+                var fetch = Queueable(cli.Fetch());
+                processes.OnNext(fetch);
+                await fetch;
 
                 processes.OnCompleted();
 

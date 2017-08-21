@@ -88,6 +88,27 @@ SELECT [BranchName]
                 { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
+        public static readonly CommandBuilder GetAllUpstreamRemovableBranchesCommand = new CommandBuilder(
+            commandText: @"
+WITH RecursiveDownstream ( DownstreamBranch, BranchName )
+AS (
+	SELECT DownstreamBranch, BranchName FROM [UpstreamBranch] WHERE DownstreamBranch=@BranchName
+UNION ALL
+	SELECT RecursiveDownstream.DownstreamBranch, [UpstreamBranch].BranchName
+	FROM [UpstreamBranch]
+	INNER JOIN RecursiveDownstream ON [UpstreamBranch].DownstreamBranch = RecursiveDownstream.BranchName
+)
+SELECT RecursiveDownstream.[BranchName]
+  FROM RecursiveDownstream
+  LEFT JOIN DownstreamBranch ON RecursiveDownstream.BranchName=DownstreamBranch.BranchName
+  WHERE DownstreamBranch.IsServiceLine IS NULL OR DownstreamBranch.IsServiceLine = 0
+  GROUP BY DownstreamBranch, RecursiveDownstream.BranchName
+  ORDER BY DownstreamBranch
+", parameters: new Dictionary<string, Action<DbParameter>>
+            {
+                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
+            });
+
         public static readonly CommandBuilder AddBranchPropagationCommand = new CommandBuilder(
             commandText: @"
 MERGE INTO [DownstreamBranch] AS Downstream
@@ -174,8 +195,10 @@ UNION ALL
 	INNER JOIN RecursiveDownstream ON [UpstreamBranch].DownstreamBranch = RecursiveDownstream.BranchName
 )
 INSERT INTO @OldDownstream
-SELECT BranchName FROM RecursiveDownstream
-GROUP BY BranchName
+SELECT RecursiveDownstream.BranchName FROM RecursiveDownstream
+LEFT JOIN DownstreamBranch ON RecursiveDownstream.BranchName=DownstreamBranch.BranchName
+WHERE DownstreamBranch.IsServiceLine IS NULL OR DownstreamBranch.IsServiceLine = 0
+GROUP BY RecursiveDownstream.BranchName
 
 INSERT INTO @RemainingDownstream (DownstreamBranch)
 SELECT UpstreamBranch.DownstreamBranch
@@ -194,7 +217,7 @@ DELETE FROM [UpstreamBranch]
 WHERE BranchName IN (SELECT DownstreamBranch FROM @OldDownstream) OR DownstreamBranch IN (SELECT DownstreamBranch FROM @OldDownstream);
 
 DELETE FROM [DownstreamBranch]
-WHERE BranchName IN (SELECT DownstreamBranch FROM @OldDownstream) OR (BranchName = @BranchName AND ServiceLine = 0);
+WHERE BranchName IN (SELECT DownstreamBranch FROM @OldDownstream) OR (BranchName = @BranchName AND IsServiceLine = 0);
 
 MERGE INTO [UpstreamBranch] AS T
 USING @RemainingDownstream AS NewDownstream
@@ -374,6 +397,32 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
             return async connection =>
             {
                 using (var command = GetAllUpstreamBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchName", branchName } }))
+                {
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        var results = new List<string>();
+                        while (await reader.ReadAsync())
+                        {
+                            results.Add(Convert.ToString(reader["BranchName"]));
+                        }
+                        return results.ToImmutableList();
+                    }
+                }
+            };
+        }
+
+        public IObservable<ImmutableList<string>> GetAllUpstreamRemovableBranches(string branchName)
+        {
+            // TODO - better notifications
+            return notifiers.GetAnyNotification().StartWith(Unit.Default)
+                .SelectMany(_ => WithConnection(GetAllUpstreamRemovableBranchesOnce(branchName)));
+        }
+
+        private Func<DbConnection, Task<ImmutableList<string>>> GetAllUpstreamRemovableBranchesOnce(string branchName)
+        {
+            return async connection =>
+            {
+                using (var command = GetAllUpstreamRemovableBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchName", branchName } }))
                 {
                     using (var reader = await command.ExecuteReaderAsync())
                     {
