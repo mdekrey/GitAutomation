@@ -21,13 +21,15 @@ namespace GitAutomation.Repository.Actions
         private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
         private readonly string releaseCandidateBranch;
         private readonly string serviceLineBranch;
+        private readonly string tagName;
 
         public string ActionType => "ConsolidateServiceLine";
 
-        public ConsolidateServiceLineAction(string releaseCandidateBranch, string serviceLineBranch)
+        public ConsolidateServiceLineAction(string releaseCandidateBranch, string serviceLineBranch, string tagName)
         {
             this.releaseCandidateBranch = releaseCandidateBranch;
             this.serviceLineBranch = serviceLineBranch;
+            this.tagName = tagName;
         }
 
         public ImmutableDictionary<string, string> Parameters => new Dictionary<string, string>
@@ -61,6 +63,13 @@ namespace GitAutomation.Repository.Actions
                 disposable.Add(Observable.Concat(processes).Subscribe(observer));
                 disposable.Add(processes);
 
+                var tag = Queueable(cli.Tag(tagName, $"Automated release to service line {serviceLineBranch} from {releaseCandidateBranch}"));
+                processes.OnNext(tag);
+                await tag;
+
+                var pushTag = Queueable(cli.Push(tagName));
+                processes.OnNext(pushTag);
+                await pushTag;
 
                 var readyToFinalize = await CreateOrFastForwardServiceLine(cli, processes);
 

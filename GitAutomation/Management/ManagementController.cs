@@ -86,7 +86,7 @@ namespace GitAutomation.Management
         [HttpPut("branch/promote")]
         public void PromoteServiceLine([FromBody] PromoteServiceLineBody requestBody)
         {
-            repositoryState.ConsolidateServiceLine(requestBody.ReleaseCandidate, requestBody.ServiceLine);
+            repositoryState.ConsolidateServiceLine(requestBody.ReleaseCandidate, requestBody.ServiceLine, requestBody.TagName);
         }
 
         public class UpdateBranchRequestBody
@@ -103,6 +103,7 @@ namespace GitAutomation.Management
         {
             public string ServiceLine { get; set; }
             public string ReleaseCandidate { get; set; }
+            public string TagName { get; set; }
         }
     }
 }

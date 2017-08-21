@@ -162,9 +162,9 @@ namespace GitAutomation.Repository
                         .SelectMany(upstreamBranch => CheckDownstreamMerges(upstreamBranch));
         }
 
-        public IObservable<OutputMessage> ConsolidateServiceLine(string releaseCandidateBranch, string serviceLineBranch)
+        public IObservable<OutputMessage> ConsolidateServiceLine(string releaseCandidateBranch, string serviceLineBranch, string tagName)
         {
-            return EnqueueAction(new ConsolidateServiceLineAction(releaseCandidateBranch, serviceLineBranch));
+            return EnqueueAction(new ConsolidateServiceLineAction(releaseCandidateBranch, serviceLineBranch, tagName));
         }
 
 
