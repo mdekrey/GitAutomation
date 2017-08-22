@@ -11,7 +11,6 @@ import {
 import { runBranchData } from "./data";
 import { buildBranchCheckListing } from "./branch-check-listing";
 import { bindSaveButton } from "./bind-save-button";
-import { newBranch } from "./new-branch-checkbox";
 import { promoteServiceLine, deleteBranch } from "../api/basics";
 
 export const manage = (
@@ -152,12 +151,6 @@ export const manage = (
               )
             )
             .subscribe()
-        );
-
-        subscription.add(
-          newBranch(
-            container.map(fnSelect(`[data-locator="downstream-branches"]`))
-          ).subscribe()
         );
 
         // display upstream branches
