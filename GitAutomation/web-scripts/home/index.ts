@@ -21,6 +21,7 @@ export const homepage = (
   <h1>Remote Branches</h1>
   <a data-locator="remote-branches-refresh">Refresh</a>
   <a data-locator="fetch-from-remote">Fetch</a>
+  <a data-locator="new-branch">New Branch</a>
   <ul data-locator="remote-branches">
   </ul>
 
@@ -128,6 +129,15 @@ export const homepage = (
           )
             .bind(logPresentation)
             .subscribe()
+        );
+
+        subscription.add(
+          rxEvent({
+            target: body.map(fnSelect('[data-locator="new-branch"]')),
+            eventName: "click"
+          }).subscribe(() =>
+            state.navigate({ url: "/new-branch", replaceCurentHistory: false })
+          )
         );
 
         return subscription;
