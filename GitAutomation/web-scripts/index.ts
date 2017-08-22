@@ -11,6 +11,7 @@ import { windowHashStrategy } from "./routing/strategies/window-hash";
 import { RoutingComponent, renderRoute } from "./utils/routing-component";
 import { homepage } from "./home/index";
 import { manage } from "./manage-branch/index";
+import { newBranch } from "./new-branch/index";
 
 const body = Observable.of(d3element(document.body));
 
@@ -19,6 +20,7 @@ buildCascadingStrategy(windowHashStrategy)
     route<RoutingComponent>({
       "": RouteConcrete(homepage(body)),
       manage: RouteConcrete(manage(body)),
+      "new-branch": RouteConcrete(newBranch(body)),
       admin: RouteAlias("manage"),
       [wildcard]: RouteConcrete(() => Observable.empty())
     })
