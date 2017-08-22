@@ -31,6 +31,13 @@ export const manage = (
       <input type="checkbox" data-locator="is-service-line" />
       Is Service Line?
   </label>
+  <label>
+      Conflict Mode
+      <select data-locator="conflict-mode">
+        <option value="PullRequest">Pull Request</option>
+        <option value="IntegrationBranch">Integration Branch</option>
+      </select>
+  </label>
   <h3>Downstream Branches</h3>
   <ul data-locator="downstream-branches"></ul>
   <h3>Upstream Branches</h3>
@@ -135,6 +142,19 @@ export const manage = (
             )
             .subscribe(target => {
               target.property("checked", value => value);
+            })
+        );
+
+        subscription.add(
+          container
+            .map(e => e.select(`[data-locator="conflict-mode"]`))
+            .switchMap(e =>
+              branchData.state
+                .map(d => d.conflictResolutionMode)
+                .map(d => e.datum(d))
+            )
+            .subscribe(target => {
+              target.property("value", value => value);
             })
         );
 

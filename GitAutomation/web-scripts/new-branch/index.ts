@@ -28,6 +28,12 @@ export const newBranch = (
       <input type="checkbox" data-locator="is-service-line" />
       Is Service Line?
   </label>
+  <label>
+      Conflict Mode
+      <select data-locator="conflict-mode">
+        <option value="PullRequest">Pull Request</option>
+      </select>
+  </label>
   <h3>Upstream Branches</h3>
   <ul data-locator="upstream-branches"></ul>
   <button type="button" data-locator="home">Cancel</button>

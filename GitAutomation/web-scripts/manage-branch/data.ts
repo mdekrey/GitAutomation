@@ -6,6 +6,7 @@ export interface IManageBranch {
   isLoading: boolean;
   recreateFromUpstream: boolean;
   isServiceLine: boolean;
+  conflictResolutionMode: string;
   branches: IBranchData[];
 }
 
@@ -33,13 +34,20 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
           branchDetails.downstreamBranches.indexOf(branch) == -1
       })),
       isServiceLine: branchDetails.isServiceLine,
-      recreateFromUpstream: branchDetails.recreateFromUpstream
+      recreateFromUpstream: branchDetails.recreateFromUpstream,
+      conflictResolutionMode: branchDetails.conflictResolutionMode
     }))
     .map(
-      ({ branches, recreateFromUpstream, isServiceLine }): IManageBranch => ({
+      ({
         branches,
         recreateFromUpstream,
         isServiceLine,
+        conflictResolutionMode
+      }): IManageBranch => ({
+        branches,
+        recreateFromUpstream,
+        isServiceLine,
+        conflictResolutionMode,
         isLoading: false
       })
     );
@@ -48,6 +56,7 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
     isLoading: true,
     recreateFromUpstream: false,
     isServiceLine: false,
+    conflictResolutionMode: "PullRequest",
     branches: []
   })
     .concat(reload.startWith(null).switchMap(() => initializeBranchData))

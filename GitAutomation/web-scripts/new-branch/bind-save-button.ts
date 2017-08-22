@@ -33,28 +33,51 @@ export const bindSaveButton = (
         .map(e => e.property(`checked`) as boolean),
       container
         .map(e => e.select(`[data-locator="is-service-line"]`))
-        .map(e => e.property(`checked`) as boolean)
+        .map(e => e.property(`checked`) as boolean),
+      container
+        .map(e => e.select(`[data-locator="conflict-mode"]`))
+        .map(e => e.property(`value`) as string)
     )
-      .map(([branchName, upstream, recreateFromUpstream, isServiceLine]) => ({
-        branchName,
-        upstream,
-        recreateFromUpstream,
-        isServiceLine
-      }))
-      .take(1)
-      .map(({ branchName, upstream, recreateFromUpstream, isServiceLine }) => {
-        return {
-          branchName,
-          requestBody: {
+      .map(
+        (
+          [
+            branchName,
+            upstream,
             recreateFromUpstream,
             isServiceLine,
-            addUpstream: upstream,
-            removeUpstream: [],
-            addDownstream: [],
-            removeDownstream: []
-          }
-        };
-      });
+            conflictResolutionMode
+          ]
+        ) => ({
+          branchName,
+          upstream,
+          recreateFromUpstream,
+          isServiceLine,
+          conflictResolutionMode
+        })
+      )
+      .take(1)
+      .map(
+        ({
+          branchName,
+          upstream,
+          recreateFromUpstream,
+          isServiceLine,
+          conflictResolutionMode
+        }) => {
+          return {
+            branchName,
+            requestBody: {
+              recreateFromUpstream,
+              isServiceLine,
+              conflictResolutionMode,
+              addUpstream: upstream,
+              removeUpstream: [],
+              addDownstream: [],
+              removeDownstream: []
+            }
+          };
+        }
+      );
 
   // save
   return (

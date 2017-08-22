@@ -19,6 +19,7 @@ export const branchDetails = (branchName: string) =>
         recreateFromUpstream: boolean;
         isServiceLine: boolean;
         branchName: string;
+        conflictResolutionMode: string;
         directDownstreamBranches: string[];
         downstreamBranches: string[];
         directUpstreamBranches: string[];

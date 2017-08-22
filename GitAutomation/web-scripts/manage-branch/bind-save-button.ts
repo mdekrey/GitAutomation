@@ -32,17 +32,31 @@ export const bindSaveButton = (
       checkedBranches("downstream-branches"),
       container
         .map(e => e.select(`[data-locator="recreate-from-upstream"]`))
-          .map(e => e.property(`checked`) as boolean),
+        .map(e => e.property(`checked`) as boolean),
       container
-          .map(e => e.select(`[data-locator="is-service-line"]`))
-          .map(e => e.property(`checked`) as boolean)
+        .map(e => e.select(`[data-locator="is-service-line"]`))
+        .map(e => e.property(`checked`) as boolean),
+      container
+        .map(e => e.select(`[data-locator="conflict-mode"]`))
+        .map(e => e.property(`value`) as string)
     )
-      .map(([upstream, downstream, recreateFromUpstream, isServiceLine]) => ({
-        upstream,
-        downstream,
-        recreateFromUpstream,
-        isServiceLine
-      }))
+      .map(
+        (
+          [
+            upstream,
+            downstream,
+            recreateFromUpstream,
+            isServiceLine,
+            conflictResolutionMode
+          ]
+        ) => ({
+          upstream,
+          downstream,
+          recreateFromUpstream,
+          isServiceLine,
+          conflictResolutionMode
+        })
+      )
       .take(1)
       // TODO - warn in this case, but we can't allow saving with
       // upstream and downstream having the same branch.
@@ -51,8 +65,16 @@ export const bindSaveButton = (
       )
       .withLatestFrom(
         branchData.map(d => d.branches),
-        ({ upstream, downstream, recreateFromUpstream, isServiceLine }, branches) => {
-          console.log(upstream, downstream, recreateFromUpstream, isServiceLine);
+        (
+          {
+            upstream,
+            downstream,
+            recreateFromUpstream,
+            isServiceLine,
+            conflictResolutionMode
+          },
+          branches
+        ) => {
           const oldUpstream = branches
             .filter(b => b.isUpstream)
             .map(b => b.branch);
@@ -62,6 +84,7 @@ export const bindSaveButton = (
           return {
             recreateFromUpstream,
             isServiceLine,
+            conflictResolutionMode,
             addUpstream: difference(upstream, oldUpstream),
             removeUpstream: difference(oldUpstream, upstream),
             addDownstream: difference(downstream, oldDownstream),

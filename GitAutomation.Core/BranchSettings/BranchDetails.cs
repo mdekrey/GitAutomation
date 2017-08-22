@@ -11,6 +11,7 @@ namespace GitAutomation.BranchSettings
 
         public bool RecreateFromUpstream { get; set; }
         public bool IsServiceLine { get; set; }
+        public string ConflictResolutionMode { get; set; }
 
         public ImmutableList<string> DirectDownstreamBranches { get; set; }
         public ImmutableList<string> DownstreamBranches { get; set; }
