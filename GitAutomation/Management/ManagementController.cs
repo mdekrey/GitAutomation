@@ -51,7 +51,7 @@ namespace GitAutomation.Management
         }
 
         [HttpDelete("branch/{*branchName}")]
-        public async Task DeleteBranch(string branchName)
+        public void DeleteBranch(string branchName)
         {
             repositoryState.DeleteBranch(branchName);
         }
