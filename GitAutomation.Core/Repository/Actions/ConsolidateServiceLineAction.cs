@@ -63,14 +63,6 @@ namespace GitAutomation.Repository.Actions
                 disposable.Add(Observable.Concat(processes).Subscribe(observer));
                 disposable.Add(processes);
 
-                var tag = Queueable(cli.AnnotatedTag(tagName, $"Automated release to service line {serviceLineBranch} from {releaseCandidateBranch}"));
-                processes.OnNext(tag);
-                await tag;
-
-                var pushTag = Queueable(cli.Push(tagName));
-                processes.OnNext(pushTag);
-                await pushTag;
-
                 var readyToFinalize = await CreateOrFastForwardServiceLine(cli, processes);
 
                 if (!readyToFinalize)
@@ -79,6 +71,14 @@ namespace GitAutomation.Repository.Actions
                 }
                 else
                 {
+                    var tag = Queueable(cli.AnnotatedTag(tagName, $"Automated release to service line {serviceLineBranch} from {releaseCandidateBranch}"));
+                    processes.OnNext(tag);
+                    await tag;
+
+                    var pushTag = Queueable(cli.Push(tagName));
+                    processes.OnNext(pushTag);
+                    await pushTag;
+
                     var branchesToRemove = await settings.GetAllUpstreamRemovableBranches(releaseCandidateBranch).FirstAsync();
 
                     var push = Queueable(cli.Push(serviceLineBranch));
