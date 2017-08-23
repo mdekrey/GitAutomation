@@ -1,9 +1,11 @@
 ﻿using GitAutomation.BranchSettings;
+using GitAutomation.GitService;
 using GitAutomation.Repository;
 using GitAutomation.SqlServer;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Net.Http;
 using System.Text;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -15,6 +17,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddSingleton<GitAutomation.Processes.IReactiveProcessFactory, GitAutomation.Processes.ReactiveProcessFactory>();
             services.AddSingleton<IRepositoryState, RepositoryState>();
             services.AddSingleton<GitCli>();
+            services.AddSingleton<Func<HttpClient>>(() => new HttpClient());
 
             services.AddSingleton<GitAutomation.Work.IUnitOfWorkFactory, GitAutomation.Work.UnitOfWorkFactory>();
 
@@ -37,7 +40,7 @@ namespace Microsoft.Extensions.DependencyInjection
             // TODO - should have some sort of registry for Repository API types
             if (repositoryOptions.ApiType == "GitHub")
             {
-                // TODO
+                services.AddSingleton<IGitServiceApi, GitHubServiceApi>();
             }
             else
             {

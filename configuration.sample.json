@@ -1,6 +1,7 @@
 ﻿{
   "git": {
     "repository": "https://mdekrey@github.com/mdekrey/git-branching",
+    "password": "YOUR_GITHUB_PASSWORD",
     "apiType": "GitHub",
     "userEmail": "git.automation@example.com",
     "userName": "Git Automation"
