@@ -60,8 +60,9 @@ namespace GitAutomation
                 //options.SchemaFilter<ClassAssemblyFilter>();
             });
 
-            services.AddGitUtilities(Configuration.GetSection("persistence").Get<PersistenceOptions>());
+            services.AddGitUtilities(Configuration.GetSection("persistence").Get<PersistenceOptions>(), Configuration.GetSection("git").Get<GitRepositoryOptions>());
             services.Configure<GitRepositoryOptions>(Configuration.GetSection("git"));
+            services.Configure<PersistenceOptions>(Configuration.GetSection("persistence"));
             services.Configure<StaticFileOptions>(options =>
                 options.OnPrepareResponse = ctx =>
                 {
