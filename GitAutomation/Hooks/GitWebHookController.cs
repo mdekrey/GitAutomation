@@ -18,9 +18,6 @@ namespace GitAutomation.Hooks
         public void Post([FromServices] IRepositoryState repositoryState, [FromServices] IBranchSettings branchSettings)
         {
             repositoryState.CheckForUpdates()
-                .Concat(
-                    repositoryState.CheckAllDownstreamMerges()
-                )
                 .Subscribe(onNext: _ => { }, onError: (ex) =>
                 {
                     Console.WriteLine(ex);
