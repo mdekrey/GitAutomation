@@ -86,7 +86,7 @@ namespace GitAutomation.GitService
             }
             if (targetBranch != null)
             {
-                nvc.Add("base", FullBranchRef(targetBranch));
+                nvc.Add("base", targetBranch);
             }
             using (var response = await client.GetAsync($"/repos/{owner}/{repository}/pulls{ToQueryString(nvc)}"))
             {
