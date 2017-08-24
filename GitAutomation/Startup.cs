@@ -15,6 +15,7 @@ using Microsoft.Net.Http.Headers;
 using GitAutomation.BranchSettings;
 using GitAutomation.Swagger;
 using Swashbuckle.SwaggerGen.Generator;
+using GitAutomation.Orchestration;
 
 namespace GitAutomation
 {
@@ -79,7 +80,6 @@ namespace GitAutomation
             loggerFactory.AddDebug();
 
             var repositoryStateRunner = app.ApplicationServices.GetRequiredService<IRepositoryStateDriver>();
-            var repositoryState = app.ApplicationServices.GetRequiredService<IRepositoryState>();
 
             app.UseDefaultFiles(new DefaultFilesOptions
             {
@@ -91,6 +91,7 @@ namespace GitAutomation
 
             if (env.IsDevelopment())
             {
+                var repositoryState = app.ApplicationServices.GetRequiredService<IRepositoryState>();
                 repositoryState.DeleteRepository();
 
                 app.UseDeveloperExceptionPage();

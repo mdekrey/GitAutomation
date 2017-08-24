@@ -93,9 +93,9 @@ namespace GitAutomation.Management
         }
 
         [HttpPut("branch/promote")]
-        public void PromoteServiceLine([FromBody] PromoteServiceLineBody requestBody)
+        public void PromoteServiceLine([FromBody] PromoteServiceLineBody requestBody, [FromServices] IOrchestrationActions orchestrationActions)
         {
-            repositoryState.ConsolidateServiceLine(requestBody.ReleaseCandidate, requestBody.ServiceLine, requestBody.TagName);
+            orchestrationActions.ConsolidateServiceLine(requestBody.ReleaseCandidate, requestBody.ServiceLine, requestBody.TagName);
         }
 
         public class UpdateBranchRequestBody

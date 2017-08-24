@@ -27,13 +27,13 @@ namespace GitAutomation.GitService
         public GitHubServiceApi(IOptions<GitRepositoryOptions> options, Func<HttpClient> clientFactory)
         {
             // TODO - ETag/304 the GET requests
-            this.client = BuildHttpClient(clientFactory);
             this.options = options.Value;
             var repository = new UriBuilder(this.options.Repository);
             this.username = repository.UserName;
             var match = githubUrlParse.Match(repository.Path);
             this.owner = match.Groups["owner"].Value;
             this.repository = match.Groups["repository"].Value;
+            this.client = BuildHttpClient(clientFactory);
         }
 
         async Task<bool> IGitServiceApi.OpenPullRequest(string title, string targetBranch, string sourceBranch, string body)

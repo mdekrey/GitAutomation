@@ -1,5 +1,6 @@
 ﻿using GitAutomation.BranchSettings;
 using GitAutomation.GitService;
+using GitAutomation.Orchestration;
 using GitAutomation.Repository;
 using GitAutomation.SqlServer;
 using System;
@@ -15,8 +16,10 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddGitUtilities(this IServiceCollection services, PersistenceOptions persistenceOptions, GitRepositoryOptions repositoryOptions)
         {
             services.AddSingleton<GitAutomation.Processes.IReactiveProcessFactory, GitAutomation.Processes.ReactiveProcessFactory>();
-            services.AddSingleton<IRepositoryState, RepositoryState>();
+            services.AddSingleton<IRepositoryOrchestration, RepositoryOrchestration>();
+            services.AddSingleton<IOrchestrationActions, OrchestrationActions>();
             services.AddSingleton<IRepositoryStateDriver, RepositoryStateDriver>();
+            services.AddSingleton<IRepositoryState, RepositoryState>();
             services.AddSingleton<GitCli>();
             services.AddSingleton<Func<HttpClient>>(() => new HttpClient());
 

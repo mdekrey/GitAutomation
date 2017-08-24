@@ -11,10 +11,6 @@ namespace GitAutomation.Repository
         IObservable<OutputMessage> CheckForUpdates();
 
         IObservable<string[]> RemoteBranches();
-        IObservable<OutputMessage> CheckDownstreamMerges(string downstreamBranch);
-        IObservable<OutputMessage> CheckAllDownstreamMerges();
-
-        IObservable<OutputMessage> ConsolidateServiceLine(string releaseCandidateBranch, string serviceLineBranch, string tagName);
 
     }
 }

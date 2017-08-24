@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GitAutomation.Repository
+namespace GitAutomation.Orchestration
 {
     public interface IRepositoryStateDriver : IDisposable
     {

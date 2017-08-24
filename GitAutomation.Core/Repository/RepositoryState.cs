@@ -9,7 +9,6 @@ using System.Reactive.Disposables;
 using System.Reactive;
 using System.Collections.Immutable;
 using GitAutomation.Orchestration.Actions;
-using GitAutomation.BranchSettings;
 using GitAutomation.Orchestration;
 
 namespace GitAutomation.Repository
@@ -20,15 +19,13 @@ namespace GitAutomation.Repository
 
         private readonly IObservable<Unit> allUpdates;
         private readonly IObservable<ImmutableList<GitCli.GitRef>> remoteBranches;
-        private readonly IBranchSettings branchSettings;
         private readonly IRepositoryOrchestration orchestration;
 
         public event EventHandler Updated;
 
-        public RepositoryState(IRepositoryOrchestration orchestration, IBranchSettings branchSettings, IOptions<GitRepositoryOptions> options, IServiceProvider serviceProvider)
+        public RepositoryState(IRepositoryOrchestration orchestration, IOptions<GitRepositoryOptions> options)
         {
             this.checkoutPath = options.Value.CheckoutPath;
-            this.branchSettings = branchSettings;
             this.orchestration = orchestration;
 
             this.allUpdates = Observable.FromEventPattern<EventHandler, EventArgs>(
@@ -56,7 +53,7 @@ namespace GitAutomation.Repository
 
         public IObservable<OutputMessage> CheckForUpdates()
         {
-            return orchestration.EnqueueAction(new UpdateAction()).Finally(() => this.OnUpdated());
+            return orchestration.EnqueueAction(new UpdateAction()).Finally(OnUpdated);
         }
 
         #endregion
@@ -84,36 +81,7 @@ namespace GitAutomation.Repository
 
         public IObservable<OutputMessage> DeleteBranch(string branchName)
         {
-            return orchestration.EnqueueAction(new DeleteBranchAction(branchName));
-        }
-
-        public IObservable<OutputMessage> CheckDownstreamMerges(string downstreamBranch)
-        {
-            return orchestration.EnqueueAction(new MergeDownstreamAction(downstreamBranch: downstreamBranch));
-        }
-
-        public IObservable<OutputMessage> CheckAllDownstreamMerges()
-        {
-            return RemoteBranches().Take(1).SelectMany(allBranches => allBranches.ToObservable())
-                        .SelectMany(
-                            upstream => 
-                                branchSettings
-                                    .GetDownstreamBranches(upstream)
-                                    .Take(1)
-                                    .SelectMany(branches => 
-                                        branches
-                                            .ToObservable()
-                                            .Select(downstream => new { upstream, downstream })
-                                    )
-                        )
-                        .ToList()
-                        .SelectMany(all => all.Select(each => each.downstream).Distinct().ToObservable())
-                        .SelectMany(upstreamBranch => CheckDownstreamMerges(upstreamBranch));
-        }
-
-        public IObservable<OutputMessage> ConsolidateServiceLine(string releaseCandidateBranch, string serviceLineBranch, string tagName)
-        {
-            return orchestration.EnqueueAction(new ConsolidateServiceLineAction(releaseCandidateBranch, serviceLineBranch, tagName));
+            return orchestration.EnqueueAction(new DeleteBranchAction(branchName)).Finally(OnUpdated);
         }
 
 
