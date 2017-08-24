@@ -78,6 +78,7 @@ namespace GitAutomation
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
+            var repositoryStateRunner = app.ApplicationServices.GetRequiredService<IRepositoryStateDriver>();
             var repositoryState = app.ApplicationServices.GetRequiredService<IRepositoryState>();
 
             app.UseDefaultFiles(new DefaultFilesOptions
@@ -90,24 +91,11 @@ namespace GitAutomation
 
             if (env.IsDevelopment())
             {
-                repositoryState.DeleteRepository().Subscribe();
+                repositoryState.DeleteRepository();
 
                 app.UseDeveloperExceptionPage();
             }
-            repositoryState.ProcessActions().Subscribe(
-                onNext: _ =>
-                {
-                    Console.WriteLine(_);
-                },
-                onCompleted: () =>
-                {
-                    Console.WriteLine("COMPLETED - This shouldn't happen!");
-                },
-                onError: _ =>
-                {
-                    Console.WriteLine(_);
-                }
-            );
+            repositoryStateRunner.Start();
             app.UseStaticFiles();
             app.UseMvc();
             app.UseSwagger();

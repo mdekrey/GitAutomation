@@ -16,6 +16,7 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             services.AddSingleton<GitAutomation.Processes.IReactiveProcessFactory, GitAutomation.Processes.ReactiveProcessFactory>();
             services.AddSingleton<IRepositoryState, RepositoryState>();
+            services.AddSingleton<IRepositoryStateDriver, RepositoryStateDriver>();
             services.AddSingleton<GitCli>();
             services.AddSingleton<Func<HttpClient>>(() => new HttpClient());
 
