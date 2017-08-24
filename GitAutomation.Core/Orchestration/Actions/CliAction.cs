@@ -1,4 +1,5 @@
 ﻿using GitAutomation.Processes;
+using GitAutomation.Repository;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -7,7 +8,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text;
 
-namespace GitAutomation.Repository.Actions
+namespace GitAutomation.Orchestration.Actions
 {
     abstract class CliAction : IRepositoryAction
     {

@@ -8,8 +8,9 @@ using System.Reactive.Subjects;
 using System.Reactive.Linq;
 using Microsoft.Extensions.Options;
 using System.IO;
+using GitAutomation.Repository;
 
-namespace GitAutomation.Repository.Actions
+namespace GitAutomation.Orchestration.Actions
 {
     class EnsureInitializedAction : IRepositoryAction
     {

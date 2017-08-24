@@ -19,38 +19,36 @@ namespace GitAutomation.GitService
         private static Regex githubUrlParse = new Regex(@"^/?(?<owner>[^/]+)/(?<repository>[^/]+)");
 
         private readonly GitRepositoryOptions options;
-        private readonly Func<HttpClient> clientFactory;
         private readonly string owner;
         private readonly string repository;
         private readonly string username;
+        private readonly HttpClient client;
 
         public GitHubServiceApi(IOptions<GitRepositoryOptions> options, Func<HttpClient> clientFactory)
         {
+            // TODO - ETag/304 the GET requests
+            this.client = BuildHttpClient(clientFactory);
             this.options = options.Value;
             var repository = new UriBuilder(this.options.Repository);
             this.username = repository.UserName;
             var match = githubUrlParse.Match(repository.Path);
             this.owner = match.Groups["owner"].Value;
             this.repository = match.Groups["repository"].Value;
-            this.clientFactory = clientFactory;
         }
 
-        public async Task<bool> OpenPullRequest(string title, string targetBranch, string sourceBranch, string body = null)
+        async Task<bool> IGitServiceApi.OpenPullRequest(string title, string targetBranch, string sourceBranch, string body)
         {
-            using (var client = BuildHttpClient())
+            var hasPr = await HasOpenPullRequest(targetBranch: targetBranch, sourceBranch: sourceBranch);
+
+            if (!hasPr)
             {
-                var hasPr = await HasOpenPullRequest(client, targetBranch: targetBranch, sourceBranch: sourceBranch);
-
-                if (!hasPr)
-                {
-                    return await OpenPullRequest(client, title: title, targetBranch: targetBranch, sourceBranch: sourceBranch, body: body);
-                }
-
-                return true;
+                return await OpenPullRequest(title: title, targetBranch: targetBranch, sourceBranch: sourceBranch, body: body);
             }
+
+            return true;
         }
 
-        private async Task<bool> OpenPullRequest(HttpClient client, string title, string targetBranch, string sourceBranch, string body)
+        private async Task<bool> OpenPullRequest(string title, string targetBranch, string sourceBranch, string body)
         {
             using (var response = await client.PostAsync($"/repos/{owner}/{repository}/pulls", JsonContent(new
             {
@@ -65,16 +63,8 @@ namespace GitAutomation.GitService
                 return true;
             }
         }
-
+        
         public async Task<bool> HasOpenPullRequest(string targetBranch = null, string sourceBranch = null)
-        {
-            using (var client = BuildHttpClient())
-            {
-                return await HasOpenPullRequest(client, targetBranch: targetBranch, sourceBranch: sourceBranch);
-            }
-        }
-
-        private async Task<bool> HasOpenPullRequest(HttpClient client, string targetBranch = null, string sourceBranch = null)
         {
             var nvc = new NameValueCollection
             {
@@ -100,7 +90,7 @@ namespace GitAutomation.GitService
         private string FullBranchRef(string branchName) =>
             $"{owner}:{branchName}";
 
-        private HttpClient BuildHttpClient()
+        private HttpClient BuildHttpClient(Func<HttpClient> clientFactory)
         {
             var client = clientFactory();
             client.BaseAddress = new Uri("https://api.github.com");

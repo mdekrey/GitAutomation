@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GitAutomation.Orchestration;
+using System;
 using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -8,11 +9,13 @@ namespace GitAutomation.Repository
 {
     class RepositoryStateDriver : IRepositoryStateDriver
     {
+        private readonly IRepositoryOrchestration orchestration;
         private readonly IRepositoryState repositoryState;
         private CompositeDisposable disposable = null;
 
-        public RepositoryStateDriver(IRepositoryState repositoryState)
+        public RepositoryStateDriver(IRepositoryOrchestration orchestration, IRepositoryState repositoryState)
         {
+            this.orchestration = orchestration;
             this.repositoryState = repositoryState;
         }
 
@@ -24,7 +27,7 @@ namespace GitAutomation.Repository
         public void Start()
         {
             disposable = new CompositeDisposable(
-                repositoryState.ProcessActions().Subscribe(
+                orchestration.ProcessActions().Subscribe(
                     onNext: _ =>
                     {
                         Console.WriteLine(_);

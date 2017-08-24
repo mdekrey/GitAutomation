@@ -1,5 +1,6 @@
 ﻿using GitAutomation.BranchSettings;
 using GitAutomation.Processes;
+using GitAutomation.Repository;
 using GitAutomation.Work;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -14,7 +15,7 @@ using System.Reactive.Subjects;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-namespace GitAutomation.Repository.Actions
+namespace GitAutomation.Orchestration.Actions
 {
     class ConsolidateServiceLineAction : IRepositoryAction
     {

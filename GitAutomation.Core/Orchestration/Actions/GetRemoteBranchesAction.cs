@@ -1,9 +1,10 @@
 ﻿using GitAutomation.Processes;
+using GitAutomation.Repository;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace GitAutomation.Repository.Actions
+namespace GitAutomation.Orchestration.Actions
 {
     class GetRemoteBranchesAction : CliAction
     {

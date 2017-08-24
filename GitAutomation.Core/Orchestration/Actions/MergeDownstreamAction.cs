@@ -1,6 +1,7 @@
 ﻿using GitAutomation.BranchSettings;
 using GitAutomation.GitService;
 using GitAutomation.Processes;
+using GitAutomation.Repository;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
@@ -15,7 +16,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace GitAutomation.Repository.Actions
+namespace GitAutomation.Orchestration.Actions
 {
     class MergeDownstreamAction : IRepositoryAction
     {

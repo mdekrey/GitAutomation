@@ -9,6 +9,7 @@ using System.Reactive.Linq;
 using GitAutomation.BranchSettings;
 using System.Collections.Immutable;
 using GitAutomation.Work;
+using GitAutomation.Orchestration;
 
 namespace GitAutomation.Management
 {
@@ -18,24 +19,26 @@ namespace GitAutomation.Management
         private readonly IRepositoryState repositoryState;
         private readonly IBranchSettings branchSettings;
         private readonly IUnitOfWorkFactory unitOfWorkFactory;
+        private readonly IRepositoryOrchestration orchestration;
 
-        public ManagementController(IRepositoryState repositoryState, IBranchSettings branchSettings, IUnitOfWorkFactory unitOfWorkFactory)
+        public ManagementController(IRepositoryState repositoryState, IBranchSettings branchSettings, IUnitOfWorkFactory unitOfWorkFactory, IRepositoryOrchestration orchestration)
         {
             this.repositoryState = repositoryState;
             this.branchSettings = branchSettings;
             this.unitOfWorkFactory = unitOfWorkFactory;
+            this.orchestration = orchestration;
         }
 
         [HttpGet("log")]
         public async Task<ImmutableList<Processes.OutputMessage>> Log()
         {
-            return await repositoryState.ProcessActionsLog.FirstAsync();
+            return await orchestration.ProcessActionsLog.FirstAsync();
         }
 
         [HttpGet("queue")]
         public async Task<IEnumerable<Object>> Queue()
         {
-            return (await repositoryState.ActionQueue.FirstAsync()).Select(action => new { ActionType = action.ActionType, Parameters = action.Parameters });
+            return (await orchestration.ActionQueue.FirstAsync()).Select(action => new { ActionType = action.ActionType, Parameters = action.Parameters });
         }
         
         [HttpGet("all-branches")]

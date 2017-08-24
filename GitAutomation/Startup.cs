@@ -50,15 +50,15 @@ namespace GitAutomation
                     TermsOfService = "TODO"
                 });
                 options.DescribeAllEnumsAsStrings();
-                //options.OperationFilter<IgnoreCustomBindingOperationFilter>();
-                //options.OperationFilter<FixPathOperationFilter>();
-                options.OperationFilter<OperationIdFilter>();
-                //options.OperationFilter<AddValidationResponseOperationFilter>();
-                //options.CustomSchemaIds(t => t.FriendlyId(true));
-                //options.SchemaFilter<AdditionalValidationFilter>();
-                //options.SchemaFilter<ReferenceEnumFilter>();
-                //options.SchemaFilter<ClassAssemblyFilter>();
-            });
+          //options.OperationFilter<IgnoreCustomBindingOperationFilter>();
+          //options.OperationFilter<FixPathOperationFilter>();
+          options.OperationFilter<OperationIdFilter>();
+          //options.OperationFilter<AddValidationResponseOperationFilter>();
+          //options.CustomSchemaIds(t => t.FriendlyId(true));
+          //options.SchemaFilter<AdditionalValidationFilter>();
+          //options.SchemaFilter<ReferenceEnumFilter>();
+          //options.SchemaFilter<ClassAssemblyFilter>();
+      });
 
             services.AddGitUtilities(Configuration.GetSection("persistence").Get<PersistenceOptions>(), Configuration.GetSection("git").Get<GitRepositoryOptions>());
             services.Configure<GitRepositoryOptions>(Configuration.GetSection("git"));

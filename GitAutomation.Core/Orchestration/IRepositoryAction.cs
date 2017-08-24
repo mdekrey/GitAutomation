@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
 
-namespace GitAutomation.Repository
+namespace GitAutomation.Orchestration
 {
     public interface IRepositoryAction
     {
