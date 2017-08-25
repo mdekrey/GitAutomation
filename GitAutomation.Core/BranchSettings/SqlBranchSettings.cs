@@ -16,13 +16,6 @@ namespace GitAutomation.BranchSettings
 {
     class SqlBranchSettings : IBranchSettings
     {
-        class BranchBasicDetails
-        {
-            public bool RecreateFromUpstream { get; set; }
-            public bool IsServiceLine { get; set; }
-            public string ConflictResolutionMode { get; set; }
-        }
-
         #region Getters
 
         public static readonly CommandBuilder GetConfiguredBranchesCommand = new CommandBuilder(
