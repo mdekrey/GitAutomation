@@ -192,8 +192,8 @@ WHERE  [BranchName]=@BranchName
 
         public static readonly CommandBuilder ConsolidateServiceLineCommand = new CommandBuilder(
             commandText: @"
-DECLARE @OldDownstream TABLE (DownstreamBranch VARCHAR(256));
-DECLARE @RemainingDownstream TABLE (DownstreamBranch VARCHAR(256));
+DECLARE @OldDownstream TABLE (DownstreamBranch VARCHAR(256) INDEX IX1 CLUSTERED);
+DECLARE @RemainingDownstream TABLE (DownstreamBranch VARCHAR(256) INDEX IX1 CLUSTERED);
 
 WITH RecursiveDownstream ( DownstreamBranch, BranchName )
 AS (
