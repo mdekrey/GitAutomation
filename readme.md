@@ -16,6 +16,8 @@ Local files that are not included in the repository include:
  * /sql-credentials.txt - the password to set up for the SA role for the dockerized SQL container. Not persisted in the docker image for security purposes.
  * /sql-eula.txt - whether you agree to Microsoft's EULA for the SQL docker container. Should contain a single 'Y' if you do.
 
+ When you add these files, they should be without line endings and without UTF headers or you'll get difficult-to-track errors.
+
 # Building via Visual Studio 2017
 
 1. Make sure the files mentioned above are in place.
@@ -36,4 +38,16 @@ And then to run it...
 5. `docker-compose up`
 6. `docker ps` to get the port mapping of the `gitautomation` image.
 
+# To run the tests
 
+1. Make sure the files mentioned above are in place.
+2. Also make the following files:
+
+    * /GitAutomation.Core.Tests/configuration.json - See the corresponding `configuration.sample.json` for an example.
+	* /GitAutomation.Core.Tests/sql-credentials.txt - This should correspond to the configuration.json.
+
+3. Start the docker-compose file from the working directory of the tests:
+
+        docker-compose up --build
+
+4. Run the tests via Visual Studio or run `dotnet test`. (Dockerfile for the tests to come.)

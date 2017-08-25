@@ -26,6 +26,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Core", "GitAu
 EndProject
 Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "GitAutomation.Sql", "GitAutomation.Sql\GitAutomation.Sql.sqlproj", "{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitAutomation.Core.Tests", "GitAutomation.Core.Tests\GitAutomation.Core.Tests.csproj", "{D3F761A1-0008-4A0C-9656-D4E17971B3F4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,6 +52,10 @@ Global
 		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{D3F761A1-0008-4A0C-9656-D4E17971B3F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3F761A1-0008-4A0C-9656-D4E17971B3F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3F761A1-0008-4A0C-9656-D4E17971B3F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3F761A1-0008-4A0C-9656-D4E17971B3F4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

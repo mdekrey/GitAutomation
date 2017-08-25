@@ -1,0 +1,20 @@
+version: '3.1'
+
+services:
+  gitautomationsql:
+    image: gitautomation-sql
+    build:
+      context: ../GitAutomation.Sql
+      dockerfile: Dockerfile
+    secrets:
+      - sqlcredentials
+      - sqleula
+    ports: 
+      - "31433:1433"
+
+
+secrets:
+  sqlcredentials:
+    file: ./sql-credentials.txt
+  sqleula:
+    file: ../sql-eula.txt
