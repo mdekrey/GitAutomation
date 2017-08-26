@@ -22,15 +22,16 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
 
   const initializeBranchData = allBranches()
     .combineLatest(branchDetails(branchName), (allBranches, branchDetails) => ({
-      branches: allBranches.map((branch): IBranchData => ({
-        branch,
+      branches: allBranches.map(({ branchName }): IBranchData => ({
+        branch: branchName,
         isDownstream:
-          branchDetails.directDownstreamBranches.indexOf(branch) >= 0,
+          branchDetails.directDownstreamBranches.indexOf(branchName) >= 0,
         isDownstreamAllowed:
-          branchDetails.upstreamBranches.indexOf(branch) == -1,
-        isUpstream: branchDetails.directUpstreamBranches.indexOf(branch) >= 0,
+          branchDetails.upstreamBranches.indexOf(branchName) == -1,
+        isUpstream:
+          branchDetails.directUpstreamBranches.indexOf(branchName) >= 0,
         isUpstreamAllowed:
-          branchDetails.downstreamBranches.indexOf(branch) == -1
+          branchDetails.downstreamBranches.indexOf(branchName) == -1
       })),
       branchType: branchDetails.branchType,
       recreateFromUpstream: branchDetails.recreateFromUpstream,

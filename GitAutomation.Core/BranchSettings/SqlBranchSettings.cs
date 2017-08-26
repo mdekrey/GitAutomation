@@ -19,11 +19,12 @@ namespace GitAutomation.BranchSettings
         #region Getters
 
         public static readonly CommandBuilder GetConfiguredBranchesCommand = new CommandBuilder(
-            commandText: @"SELECT [BranchName]
+            commandText: @"
+SELECT COALESCE([UpstreamBranch].BranchName, [DownstreamBranch].BranchName) AS [BranchName],
+		COALESCE([DownstreamBranch].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
+		COALESCE([DownstreamBranch].BranchType, 'Feature') AS [BranchType]
   FROM [UpstreamBranch]
-UNION
-SELECT [BranchName]
-  FROM [DownstreamBranch]
+  FULL OUTER JOIN [DownstreamBranch] ON [UpstreamBranch].BranchName = [DownstreamBranch].BranchName
 ");
 
         public static readonly CommandBuilder GetDownstreamBranchesCommand = new CommandBuilder(
@@ -129,7 +130,7 @@ WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
             });
 
         public static readonly CommandBuilder GetBranchBasicDetialsCommand = new CommandBuilder(
-            commandText: @"SELECT [RecreateFromUpstream], [BranchType]
+            commandText: @"SELECT [BranchName], [RecreateFromUpstream], [BranchType]
   FROM [DownstreamBranch]
   WHERE [BranchName]=@BranchName
 ", parameters: new Dictionary<string, Action<DbParameter>>
@@ -238,22 +239,22 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
             this.serviceProvider = serviceProvider;
         }
 
-        public IObservable<ImmutableList<string>> GetConfiguredBranches()
+        public IObservable<ImmutableList<BranchBasicDetails>> GetConfiguredBranches()
         {
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(GetConfiguredBranchesOnce));
         }
 
-        private async Task<ImmutableList<string>> GetConfiguredBranchesOnce(DbConnection connection)
+        private async Task<ImmutableList<BranchBasicDetails>> GetConfiguredBranchesOnce(DbConnection connection)
         { 
             using (var command = GetConfiguredBranchesCommand.BuildFrom(connection, ImmutableDictionary<string, object>.Empty))
             {
                 using (var reader = await command.ExecuteReaderAsync())
                 {
-                    var results = new List<string>();
+                    var results = new List<BranchBasicDetails>();
                     while (await reader.ReadAsync())
                     {
-                        results.Add(Convert.ToString(reader["BranchName"]));
+                        results.Add(ReadBranchBasicDetails(reader));
                     }
                     return results.ToImmutableList();
                 }
@@ -290,21 +291,28 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
                     {
                         if (await reader.ReadAsync())
                         {
-                            return new BranchBasicDetails
-                            {
-                                RecreateFromUpstream = Convert.ToInt32(reader["RecreateFromUpstream"]) == 1,
-                                BranchType = Enum.TryParse<BranchType>(reader["BranchType"] as string, out var branchType)
-                                    ? branchType
-                                    : BranchType.Feature,
-                            };
+                            return ReadBranchBasicDetails(reader);
                         }
                         return new BranchBasicDetails
                         {
+                            BranchName = branchName,
                             RecreateFromUpstream = false,
                             BranchType = BranchType.Feature,
                         };
                     }
                 }
+            };
+        }
+
+        private static BranchBasicDetails ReadBranchBasicDetails(System.Data.IDataRecord reader)
+        {
+            return new BranchBasicDetails
+            {
+                BranchName = reader["BranchName"] as string,
+                RecreateFromUpstream = Convert.ToInt32(reader["RecreateFromUpstream"]) == 1,
+                BranchType = Enum.TryParse<BranchType>(reader["BranchType"] as string, out var branchType)
+                    ? branchType
+                    : BranchType.Feature,
             };
         }
 

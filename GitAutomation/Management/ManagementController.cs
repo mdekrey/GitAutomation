@@ -42,13 +42,21 @@ namespace GitAutomation.Management
         }
         
         [HttpGet("all-branches")]
-        public async Task<ImmutableList<string>> AllBranches()
+        public async Task<ImmutableList<BranchBasicDetails>> AllBranches()
         {
             return await (
                 branchSettings.GetConfiguredBranches()
                 .WithLatestFrom(
                     repositoryState.RemoteBranches(), 
-                    (first, second) => first.Concat(second).Distinct().OrderBy(a => a).ToImmutableList()
+                    (first, second) => 
+                        first
+                            .Concat(
+                                from branchName in second
+                                where !first.Any(b => b.BranchName == branchName)
+                                select new BranchBasicDetails { BranchName = branchName }
+                            )
+                            .OrderBy(a => a.BranchName)
+                            .ToImmutableList()
                 )
             ).FirstAsync();
         }

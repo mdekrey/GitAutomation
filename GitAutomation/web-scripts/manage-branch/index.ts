@@ -140,10 +140,7 @@ export const manage = (
               branchData.state.map(d => d.branchType).map(d => e.datum(d))
             )
             .subscribe(target => {
-              target.property("value", value => {
-                console.log(value);
-                return value;
-              });
+              target.property("value", value => value);
             })
         );
 

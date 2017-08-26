@@ -7,8 +7,6 @@ namespace GitAutomation.BranchSettings
 {
     public class BranchDetails : BranchBasicDetails
     {
-        public string BranchName { get; set; }
-
         public ImmutableList<string> DirectDownstreamBranches { get; set; }
         public ImmutableList<string> DownstreamBranches { get; set; }
         public ImmutableList<string> DirectUpstreamBranches { get; set; }
