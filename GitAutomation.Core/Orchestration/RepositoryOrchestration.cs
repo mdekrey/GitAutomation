@@ -65,7 +65,7 @@ namespace GitAutomation.Orchestration
                     }))
                 .Switch().Publish().RefCount();
 
-            this.repositoryActionProcessorLog = repositoryActionProcessor
+            var temp = repositoryActionProcessor
                 .Scan(
                     ImmutableList<OutputMessage>.Empty,
                     (list, next) =>
@@ -74,8 +74,9 @@ namespace GitAutomation.Orchestration
                                 ? list.RemoveRange(0, list.Count - (logLength - 1))
                                 : list
                         ).Add(next)
-                ).Replay(1).ConnectFirst();
-            
+                ).Replay(1);
+            temp.Connect();
+            this.repositoryActionProcessorLog = temp;
         }
 
         public IObservable<OutputMessage> ProcessActions()

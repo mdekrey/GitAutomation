@@ -27,14 +27,14 @@ export const manage = (
       Recreate from Upstream
   </label>
   <label>
-      <input type="checkbox" data-locator="is-service-line" />
-      Is Service Line?
-  </label>
-  <label>
-      Conflict Mode
-      <select data-locator="conflict-mode">
-        <option value="PullRequest">Pull Request</option>
-        <option value="IntegrationBranch">Integration Branch</option>
+      Branch Type
+      <select data-locator="branch-type">
+        <option value="Feature">Feature</option>
+        <option value="ReleaseCandidate">Release Candidate</option>
+        <option value="ServiceLine">Service Line</option>
+        <option value="Infrastructure">Infrastructure</option>
+        <option value="Integration">Integration</option>
+        <option value="Hotfix">Hotfix</option>
       </select>
   </label>
   <h3>Downstream Branches</h3>
@@ -135,25 +135,15 @@ export const manage = (
 
         subscription.add(
           container
-            .map(e => e.select(`[data-locator="is-service-line"]`))
+            .map(e => e.select(`[data-locator="branch-type"]`))
             .switchMap(e =>
-              branchData.state.map(d => d.isServiceLine).map(d => e.datum(d))
+              branchData.state.map(d => d.branchType).map(d => e.datum(d))
             )
             .subscribe(target => {
-              target.property("checked", value => value);
-            })
-        );
-
-        subscription.add(
-          container
-            .map(e => e.select(`[data-locator="conflict-mode"]`))
-            .switchMap(e =>
-              branchData.state
-                .map(d => d.conflictResolutionMode)
-                .map(d => e.datum(d))
-            )
-            .subscribe(target => {
-              target.property("value", value => value);
+              target.property("value", value => {
+                console.log(value);
+                return value;
+              });
             })
         );
 

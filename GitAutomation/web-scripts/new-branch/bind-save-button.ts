@@ -32,52 +32,29 @@ export const bindSaveButton = (
         .map(e => e.select(`[data-locator="recreate-from-upstream"]`))
         .map(e => e.property(`checked`) as boolean),
       container
-        .map(e => e.select(`[data-locator="is-service-line"]`))
-        .map(e => e.property(`checked`) as boolean),
-      container
-        .map(e => e.select(`[data-locator="conflict-mode"]`))
+        .map(e => e.select(`[data-locator="branch-type"]`))
         .map(e => e.property(`value`) as string)
     )
-      .map(
-        (
-          [
-            branchName,
-            upstream,
-            recreateFromUpstream,
-            isServiceLine,
-            conflictResolutionMode
-          ]
-        ) => ({
-          branchName,
-          upstream,
-          recreateFromUpstream,
-          isServiceLine,
-          conflictResolutionMode
-        })
-      )
+      .map(([branchName, upstream, recreateFromUpstream, branchType]) => ({
+        branchName,
+        upstream,
+        recreateFromUpstream,
+        branchType
+      }))
       .take(1)
-      .map(
-        ({
+      .map(({ branchName, upstream, recreateFromUpstream, branchType }) => {
+        return {
           branchName,
-          upstream,
-          recreateFromUpstream,
-          isServiceLine,
-          conflictResolutionMode
-        }) => {
-          return {
-            branchName,
-            requestBody: {
-              recreateFromUpstream,
-              isServiceLine,
-              conflictResolutionMode,
-              addUpstream: upstream,
-              removeUpstream: [],
-              addDownstream: [],
-              removeDownstream: []
-            }
-          };
-        }
-      );
+          requestBody: {
+            recreateFromUpstream,
+            branchType,
+            addUpstream: upstream,
+            removeUpstream: [],
+            addDownstream: [],
+            removeDownstream: []
+          }
+        };
+      });
 
   // save
   return (

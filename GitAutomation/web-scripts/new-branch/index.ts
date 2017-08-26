@@ -25,13 +25,14 @@ export const newBranch = (
       Recreate from Upstream
   </label>
   <label>
-      <input type="checkbox" data-locator="is-service-line" />
-      Is Service Line?
-  </label>
-  <label>
-      Conflict Mode
-      <select data-locator="conflict-mode">
-        <option value="PullRequest">Pull Request</option>
+      Branch Type
+      <select data-locator="branch-type">
+        <option value="Feature">Feature</option>
+        <option value="ReleaseCandidate">Release Candidate</option>
+        <option value="ServiceLine">Service Line</option>
+        <option value="Infrastructure">Infrastructure</option>
+        <option value="Integration">Integration</option>
+        <option value="Hotfix">Hotfix</option>
       </select>
   </label>
   <h3>Upstream Branches</h3>

@@ -95,7 +95,7 @@ UNION ALL
 SELECT RecursiveDownstream.[BranchName]
   FROM RecursiveDownstream
   LEFT JOIN DownstreamBranch ON RecursiveDownstream.BranchName=DownstreamBranch.BranchName
-  WHERE DownstreamBranch.IsServiceLine IS NULL OR DownstreamBranch.IsServiceLine = 0
+  WHERE COALESCE(DownstreamBranch.BranchType, 'Feature') != 'ServiceLine'
   GROUP BY DownstreamBranch, RecursiveDownstream.BranchName
   ORDER BY DownstreamBranch
 ", parameters: new Dictionary<string, Action<DbParameter>>
@@ -129,7 +129,7 @@ WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
             });
 
         public static readonly CommandBuilder GetBranchBasicDetialsCommand = new CommandBuilder(
-            commandText: @"SELECT [RecreateFromUpstream], [IsServiceLine], [ConflictResolutionMode]
+            commandText: @"SELECT [RecreateFromUpstream], [BranchType]
   FROM [DownstreamBranch]
   WHERE [BranchName]=@BranchName
 ", parameters: new Dictionary<string, Action<DbParameter>>
@@ -143,32 +143,27 @@ MERGE INTO [DownstreamBranch] AS Downstream
 USING (SELECT 
     @BranchName AS BranchName
     , @RecreateFromUpstream AS RecreateFromUpstream
-    , @IsServiceLine As IsServiceLine
-    , @ConflictResolutionMode As ConflictResolutionMode
+    , @BranchType As BranchType
 ) AS NewDownstream
 ON Downstream.BranchName = NewDownstream.BranchName
 WHEN MATCHED THEN UPDATE SET 
     RecreateFromUpstream=NewDownstream.RecreateFromUpstream
-    , IsServiceLine=NewDownstream.IsServiceLine
-    , ConflictResolutionMode=NewDownstream.ConflictResolutionMode
+    , BranchType=NewDownstream.BranchType
 WHEN NOT MATCHED THEN INSERT (
     BranchName
     , RecreateFromUpstream
-    , IsServiceLine
-    , ConflictResolutionMode
+    , BranchType
 ) VALUES (
     NewDownstream.BranchName 
     , NewDownstream.RecreateFromUpstream
-    , NewDownstream.IsServiceLine
-    , NewDownstream.ConflictResolutionMode
+    , NewDownstream.BranchType
 )
 ;
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
                 { "@RecreateFromUpstream", p => p.DbType = System.Data.DbType.Int32 },
-                { "@IsServiceLine", p => p.DbType = System.Data.DbType.Int32 },
-                { "@ConflictResolutionMode", p => p.DbType = System.Data.DbType.AnsiString },
+                { "@BranchType", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
         public static readonly CommandBuilder DeleteBranchSettingsCommand = new CommandBuilder(
@@ -199,7 +194,7 @@ UNION ALL
 INSERT INTO @OldDownstream
 SELECT RecursiveDownstream.BranchName FROM RecursiveDownstream
 LEFT JOIN DownstreamBranch ON RecursiveDownstream.BranchName=DownstreamBranch.BranchName
-WHERE DownstreamBranch.IsServiceLine IS NULL OR DownstreamBranch.IsServiceLine = 0
+WHERE COALESCE(DownstreamBranch.BranchType, 'Feature') != 'ServiceLine'
 GROUP BY RecursiveDownstream.BranchName
 
 INSERT INTO @RemainingDownstream (DownstreamBranch)
@@ -213,13 +208,13 @@ GROUP BY UpstreamBranch.DownstreamBranch;
 MERGE INTO [DownstreamBranch] AS Downstream
 USING (SELECT @ServiceLineBranchName AS BranchName) AS NewDownstream
 ON Downstream.BranchName = NewDownstream.BranchName
-WHEN NOT MATCHED THEN INSERT (BranchName, RecreateFromUpstream, IsServiceLine) VALUES (NewDownstream.BranchName, 0, 1);
+WHEN NOT MATCHED THEN INSERT (BranchName, RecreateFromUpstream, BranchType) VALUES (NewDownstream.BranchName, 0, 'ServiceLine');
 
 DELETE FROM [UpstreamBranch]
 WHERE BranchName IN (SELECT DownstreamBranch FROM @OldDownstream) OR DownstreamBranch IN (SELECT DownstreamBranch FROM @OldDownstream);
 
 DELETE FROM [DownstreamBranch]
-WHERE BranchName IN (SELECT DownstreamBranch FROM @OldDownstream) OR (BranchName = @BranchName AND IsServiceLine = 0);
+WHERE BranchName IN (SELECT DownstreamBranch FROM @OldDownstream) OR (BranchName = @BranchName AND BranchType != 'ServiceLine');
 
 MERGE INTO [UpstreamBranch] AS T
 USING @RemainingDownstream AS NewDownstream
@@ -276,8 +271,7 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
                     {
                         BranchName = branchName,
                         RecreateFromUpstream = settings.RecreateFromUpstream,
-                        IsServiceLine = settings.IsServiceLine,
-                        ConflictResolutionMode = settings.ConflictResolutionMode,
+                        BranchType = settings.BranchType,
                         DirectDownstreamBranches = await GetDownstreamBranchesOnce(branchName)(connection),
                         DirectUpstreamBranches = await GetUpstreamBranchesOnce(branchName)(connection),
                         DownstreamBranches = await GetAllDownstreamBranchesOnce(branchName)(connection),
@@ -299,15 +293,15 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
                             return new BranchBasicDetails
                             {
                                 RecreateFromUpstream = Convert.ToInt32(reader["RecreateFromUpstream"]) == 1,
-                                IsServiceLine = Convert.ToInt32(reader["IsServiceLine"]) == 1,
-                                ConflictResolutionMode = reader["ConflictResolutionMode"] as string,
+                                BranchType = Enum.TryParse<BranchType>(reader["BranchType"] as string, out var branchType)
+                                    ? branchType
+                                    : BranchType.Feature,
                             };
                         }
                         return new BranchBasicDetails
                         {
                             RecreateFromUpstream = false,
-                            IsServiceLine = false,
-                            ConflictResolutionMode = "PullRequest",
+                            BranchType = BranchType.Feature,
                         };
                     }
                 }
@@ -442,7 +436,7 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
             };
         }
 
-        public void UpdateBranchSetting(string branchName, bool recreateFromUpstream, bool isServiceLine, string conflictResolutionMode, IUnitOfWork work)
+        public void UpdateBranchSetting(string branchName, bool recreateFromUpstream, BranchType branchType, IUnitOfWork work)
         {
             PrepareSqlUnitOfWork(work);
             work.Defer(async sp =>
@@ -450,8 +444,7 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
                 using (var command = Transacted(sp, UpdateBranchSettingCommand, new Dictionary<string, object> {
                     { "@BranchName", branchName },
                     { "@RecreateFromUpstream", recreateFromUpstream ? 1 : 0 },
-                    { "@IsServiceLine", isServiceLine ? 1 : 0 },
-                    { "@ConflictResolutionMode", conflictResolutionMode },
+                    { "@BranchType", branchType.ToString("g") },
                 }))
                 {
                     await command.ExecuteNonQueryAsync();

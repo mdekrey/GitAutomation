@@ -7,8 +7,7 @@ namespace GitAutomation.BranchSettings
     public class BranchBasicDetails
     {
         public bool RecreateFromUpstream { get; set; }
-        public bool IsServiceLine { get; set; }
-        public string ConflictResolutionMode { get; set; }
+        public BranchType BranchType { get; set; }
     }
 
 }

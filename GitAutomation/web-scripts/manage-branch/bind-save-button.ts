@@ -34,29 +34,15 @@ export const bindSaveButton = (
         .map(e => e.select(`[data-locator="recreate-from-upstream"]`))
         .map(e => e.property(`checked`) as boolean),
       container
-        .map(e => e.select(`[data-locator="is-service-line"]`))
-        .map(e => e.property(`checked`) as boolean),
-      container
-        .map(e => e.select(`[data-locator="conflict-mode"]`))
+        .map(e => e.select(`[data-locator="branch-type"]`))
         .map(e => e.property(`value`) as string)
     )
-      .map(
-        (
-          [
-            upstream,
-            downstream,
-            recreateFromUpstream,
-            isServiceLine,
-            conflictResolutionMode
-          ]
-        ) => ({
-          upstream,
-          downstream,
-          recreateFromUpstream,
-          isServiceLine,
-          conflictResolutionMode
-        })
-      )
+      .map(([upstream, downstream, recreateFromUpstream, branchType]) => ({
+        upstream,
+        downstream,
+        recreateFromUpstream,
+        branchType
+      }))
       .take(1)
       // TODO - warn in this case, but we can't allow saving with
       // upstream and downstream having the same branch.
@@ -66,13 +52,7 @@ export const bindSaveButton = (
       .withLatestFrom(
         branchData.map(d => d.branches),
         (
-          {
-            upstream,
-            downstream,
-            recreateFromUpstream,
-            isServiceLine,
-            conflictResolutionMode
-          },
+          { upstream, downstream, recreateFromUpstream, branchType },
           branches
         ) => {
           const oldUpstream = branches
@@ -83,8 +63,7 @@ export const bindSaveButton = (
             .map(b => b.branch);
           return {
             recreateFromUpstream,
-            isServiceLine,
-            conflictResolutionMode,
+            branchType,
             addUpstream: difference(upstream, oldUpstream),
             removeUpstream: difference(oldUpstream, upstream),
             addDownstream: difference(downstream, oldDownstream),
