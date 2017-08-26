@@ -64,7 +64,7 @@ namespace GitAutomation.Orchestration.Actions
                 disposable.Add(processes);
 
                 await System.Threading.Tasks.Task.Yield();
-                var needsRecreate = await FindNeededMerges(details.DirectUpstreamBranches, neededUpstreamMerges, cli, processes);
+                var needsRecreate = await FindNeededMerges(details.DirectUpstreamBranches.Select(branch => branch.BranchName), neededUpstreamMerges, cli, processes);
 
                 if (neededUpstreamMerges.Any() && details.RecreateFromUpstream)
                 {
@@ -78,7 +78,7 @@ namespace GitAutomation.Orchestration.Actions
                 if (needsRecreate)
                 {
                     processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{downstreamBranch} needs to be created from {string.Join(",", neededUpstreamMerges)}" }));
-                    await CreateDownstreamBranch(details.DirectUpstreamBranches, cli, processes, gitServiceApi);
+                    await CreateDownstreamBranch(details.DirectUpstreamBranches.Select(branch => branch.BranchName), cli, processes, gitServiceApi);
                 }
                 else if (neededUpstreamMerges.Any())
                 {
@@ -104,7 +104,7 @@ namespace GitAutomation.Orchestration.Actions
         }
 
         /// <returns>True if the entire branch needs to be created</returns>
-        private async Task<bool> FindNeededMerges(ImmutableList<string> allUpstreamBranches, HashSet<string> neededUpstreamMerges, GitCli cli, Subject<IObservable<OutputMessage>> processes)
+        private async Task<bool> FindNeededMerges(IEnumerable<string> allUpstreamBranches, HashSet<string> neededUpstreamMerges, GitCli cli, Subject<IObservable<OutputMessage>> processes)
         {
             foreach (var upstreamBranch in allUpstreamBranches)
             {
@@ -130,7 +130,7 @@ namespace GitAutomation.Orchestration.Actions
             return false;
         }
 
-        private async Task CreateDownstreamBranch(ImmutableList<string> allUpstreamBranches, GitCli cli, Subject<IObservable<OutputMessage>> processes, IGitServiceApi gitServiceApi)
+        private async Task CreateDownstreamBranch(IEnumerable<string> allUpstreamBranches, GitCli cli, Subject<IObservable<OutputMessage>> processes, IGitServiceApi gitServiceApi)
         {
             // Basic process; should have checks on whether or not to create the branch
             var initialBranch = allUpstreamBranches.First();

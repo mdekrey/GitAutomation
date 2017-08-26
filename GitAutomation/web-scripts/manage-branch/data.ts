@@ -21,22 +21,32 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
   const subscription = new Subscription();
 
   const initializeBranchData = allBranches()
-    .combineLatest(branchDetails(branchName), (allBranches, branchDetails) => ({
-      branches: allBranches.map(({ branchName }): IBranchData => ({
-        branch: branchName,
-        isDownstream:
-          branchDetails.directDownstreamBranches.indexOf(branchName) >= 0,
-        isDownstreamAllowed:
-          branchDetails.upstreamBranches.indexOf(branchName) == -1,
-        isUpstream:
-          branchDetails.directUpstreamBranches.indexOf(branchName) >= 0,
-        isUpstreamAllowed:
-          branchDetails.downstreamBranches.indexOf(branchName) == -1
-      })),
-      branchType: branchDetails.branchType,
-      recreateFromUpstream: branchDetails.recreateFromUpstream,
-      conflictResolutionMode: branchDetails.conflictResolutionMode
-    }))
+    .combineLatest(branchDetails(branchName), (allBranches, branchDetails) => {
+      const directDownstreamBranches = branchDetails.directDownstreamBranches.map(
+        b => b.branchName
+      );
+      const upstreamBranches = branchDetails.upstreamBranches.map(
+        b => b.branchName
+      );
+      const directUpstreamBranches = branchDetails.directUpstreamBranches.map(
+        b => b.branchName
+      );
+      const downstreamBranches = branchDetails.downstreamBranches.map(
+        b => b.branchName
+      );
+      return {
+        branches: allBranches.map(({ branchName }): IBranchData => ({
+          branch: branchName,
+          isDownstream: directDownstreamBranches.indexOf(branchName) >= 0,
+          isDownstreamAllowed: upstreamBranches.indexOf(branchName) == -1,
+          isUpstream: directUpstreamBranches.indexOf(branchName) >= 0,
+          isUpstreamAllowed: downstreamBranches.indexOf(branchName) == -1
+        })),
+        branchType: branchDetails.branchType,
+        recreateFromUpstream: branchDetails.recreateFromUpstream,
+        conflictResolutionMode: branchDetails.conflictResolutionMode
+      };
+    })
     .map(
       ({
         branches,

@@ -28,17 +28,25 @@ SELECT COALESCE([UpstreamBranch].BranchName, [DownstreamBranch].BranchName) AS [
 ");
 
         public static readonly CommandBuilder GetDownstreamBranchesCommand = new CommandBuilder(
-            commandText: @"SELECT [DownstreamBranch]
+            commandText: @"
+SELECT [DownstreamBranch].BranchName AS [BranchName],
+		[DownstreamBranch].RecreateFromUpstream AS [RecreateFromUpstream],
+		[DownstreamBranch].BranchType AS [BranchType]
   FROM [UpstreamBranch]
-  WHERE [BranchName]=@BranchName
+  INNER JOIN [DownstreamBranch] ON [UpstreamBranch].DownstreamBranch = [DownstreamBranch].BranchName
+  WHERE [UpstreamBranch].[BranchName]=@BranchName
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
         public static readonly CommandBuilder GetUpstreamBranchesCommand = new CommandBuilder(
-            commandText: @"SELECT [BranchName]
+            commandText: @"
+SELECT COALESCE([UpstreamBranch].BranchName, [DownstreamBranch].BranchName) AS [BranchName],
+		COALESCE([DownstreamBranch].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
+		COALESCE([DownstreamBranch].BranchType, 'Feature') AS [BranchType]
   FROM [UpstreamBranch]
+  LEFT JOIN [DownstreamBranch] ON [UpstreamBranch].BranchName = [DownstreamBranch].BranchName
   WHERE [DownstreamBranch]=@BranchName
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
@@ -55,10 +63,14 @@ UNION ALL
 	FROM [UpstreamBranch]
 	INNER JOIN RecursiveUpstream ON RecursiveUpstream.DownstreamBranch = [UpstreamBranch].BranchName
 )
-SELECT [DownstreamBranch]
-  FROM RecursiveUpstream
-  GROUP BY DownstreamBranch, BranchName
-  ORDER BY DownstreamBranch
+SELECT COALESCE([UpstreamBranch].BranchName, [DownstreamBranch].BranchName) AS [BranchName],
+		COALESCE([DownstreamBranch].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
+		COALESCE([DownstreamBranch].BranchType, 'Feature') AS [BranchType]
+  FROM (SELECT [BranchName]
+		  FROM RecursiveUpstream
+		  GROUP BY DownstreamBranch, BranchName
+		) AS [UpstreamBranch]
+  FULL OUTER JOIN [DownstreamBranch] ON [UpstreamBranch].BranchName = [DownstreamBranch].BranchName
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
@@ -74,10 +86,14 @@ UNION ALL
 	FROM [UpstreamBranch]
 	INNER JOIN RecursiveDownstream ON [UpstreamBranch].DownstreamBranch = RecursiveDownstream.BranchName
 )
-SELECT [BranchName]
-  FROM RecursiveDownstream
-  GROUP BY DownstreamBranch, BranchName
-  ORDER BY DownstreamBranch
+SELECT COALESCE([UpstreamBranch].BranchName, [DownstreamBranch].BranchName) AS [BranchName],
+		COALESCE([DownstreamBranch].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
+		COALESCE([DownstreamBranch].BranchType, 'Feature') AS [BranchType]
+  FROM (SELECT [BranchName]
+		  FROM RecursiveDownstream
+		  GROUP BY DownstreamBranch, BranchName
+		) AS [UpstreamBranch]
+  FULL OUTER JOIN [DownstreamBranch] ON [UpstreamBranch].BranchName = [DownstreamBranch].BranchName
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
@@ -316,13 +332,13 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
             };
         }
 
-        public IObservable<ImmutableList<string>> GetDownstreamBranches(string branchName)
+        public IObservable<ImmutableList<BranchBasicDetails>> GetDownstreamBranches(string branchName)
         {
             return notifiers.GetDownstreamBranchesChangedNotifier(upstreamBranch: branchName).StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(GetDownstreamBranchesOnce(branchName)));
         }
 
-        private Func<DbConnection, Task<ImmutableList<string>>> GetDownstreamBranchesOnce(string branchName)
+        private Func<DbConnection, Task<ImmutableList<BranchBasicDetails>>> GetDownstreamBranchesOnce(string branchName)
         {
             return async connection =>
             {
@@ -330,10 +346,10 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
                 {
                     using (var reader = await command.ExecuteReaderAsync())
                     {
-                        var results = new List<string>();
+                        var results = new List<BranchBasicDetails>();
                         while (await reader.ReadAsync())
                         {
-                            results.Add(Convert.ToString(reader["DownstreamBranch"]));
+                            results.Add(ReadBranchBasicDetails(reader));
                         }
                         return results.ToImmutableList();
                     }
@@ -341,14 +357,14 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
             };
         }
 
-        public IObservable<ImmutableList<string>> GetAllDownstreamBranches(string branchName)
+        public IObservable<ImmutableList<BranchBasicDetails>> GetAllDownstreamBranches(string branchName)
         {
             // TODO - better notifications
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(GetAllDownstreamBranchesOnce(branchName)));
         }
 
-        private Func<DbConnection, Task<ImmutableList<string>>> GetAllDownstreamBranchesOnce(string branchName)
+        private Func<DbConnection, Task<ImmutableList<BranchBasicDetails>>> GetAllDownstreamBranchesOnce(string branchName)
         {
             return async connection =>
             {
@@ -356,10 +372,10 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
                 {
                     using (var reader = await command.ExecuteReaderAsync())
                     {
-                        var results = new List<string>();
+                        var results = new List<BranchBasicDetails>();
                         while (await reader.ReadAsync())
                         {
-                            results.Add(Convert.ToString(reader["DownstreamBranch"]));
+                            results.Add(ReadBranchBasicDetails(reader));
                         }
                         return results.ToImmutableList();
                     }
@@ -367,13 +383,13 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
             };
         }
 
-        public IObservable<ImmutableList<string>> GetUpstreamBranches(string branchName)
+        public IObservable<ImmutableList<BranchBasicDetails>> GetUpstreamBranches(string branchName)
         {
             return notifiers.GetUpstreamBranchesChangedNotifier(downstreamBranch: branchName).StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(GetUpstreamBranchesOnce(branchName)));
         }
 
-        private Func<DbConnection, Task<ImmutableList<string>>> GetUpstreamBranchesOnce(string branchName)
+        private Func<DbConnection, Task<ImmutableList<BranchBasicDetails>>> GetUpstreamBranchesOnce(string branchName)
         {
             return async connection =>
             {
@@ -381,10 +397,10 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
                 {
                     using (var reader = await command.ExecuteReaderAsync())
                     {
-                        var results = new List<string>();
+                        var results = new List<BranchBasicDetails>();
                         while (await reader.ReadAsync())
                         {
-                            results.Add(Convert.ToString(reader["BranchName"]));
+                            results.Add(ReadBranchBasicDetails(reader));
                         }
                         return results.ToImmutableList();
                     }
@@ -392,14 +408,14 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
             };
         }
 
-        public IObservable<ImmutableList<string>> GetAllUpstreamBranches(string branchName)
+        public IObservable<ImmutableList<BranchBasicDetails>> GetAllUpstreamBranches(string branchName)
         {
             // TODO - better notifications
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(GetAllUpstreamBranchesOnce(branchName)));
         }
 
-        private Func<DbConnection, Task<ImmutableList<string>>> GetAllUpstreamBranchesOnce(string branchName)
+        private Func<DbConnection, Task<ImmutableList<BranchBasicDetails>>> GetAllUpstreamBranchesOnce(string branchName)
         {
             return async connection =>
             {
@@ -407,10 +423,10 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
                 {
                     using (var reader = await command.ExecuteReaderAsync())
                     {
-                        var results = new List<string>();
+                        var results = new List<BranchBasicDetails>();
                         while (await reader.ReadAsync())
                         {
-                            results.Add(Convert.ToString(reader["BranchName"]));
+                            results.Add(ReadBranchBasicDetails(reader));
                         }
                         return results.ToImmutableList();
                     }
