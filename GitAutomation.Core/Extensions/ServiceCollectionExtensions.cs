@@ -46,6 +46,10 @@ namespace Microsoft.Extensions.DependencyInjection
             {
                 services.AddSingleton<IGitServiceApi, GitHubServiceApi>();
             }
+            else if (repositoryOptions.ApiType == "Memory")
+            {
+                services.AddSingleton<IGitServiceApi, MemoryGitServiceApi>();
+            }
             else
             {
                 throw new NotSupportedException($"Unknown repository api type: {repositoryOptions.ApiType}. Supported options: SqlServer");
