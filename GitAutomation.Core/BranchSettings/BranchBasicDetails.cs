@@ -6,8 +6,9 @@ namespace GitAutomation.BranchSettings
 {
     public class BranchBasicDetails
     {
-        public bool RecreateFromUpstream { get; set; }
-        public BranchType BranchType { get; set; }
+        public string BranchName { get; set; }
+        public bool RecreateFromUpstream { get; set; } = false;
+        public BranchType BranchType { get; set; } = BranchType.Feature;
     }
 
 }

@@ -108,7 +108,7 @@ namespace GitAutomation.Orchestration.Actions
                 if (needsRecreate)
                 {
                     processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{downstreamBranch} needs to be created from {string.Join(",", neededUpstreamMerges)}" }));
-                    await CreateDownstreamBranch(details.DirectUpstreamBranches);
+                    await CreateDownstreamBranch(details.DirectUpstreamBranches.Select(branch => branch.BranchName));
                 }
                 else if (neededUpstreamMerges.Any())
                 {

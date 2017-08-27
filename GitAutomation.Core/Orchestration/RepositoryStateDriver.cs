@@ -65,7 +65,8 @@ namespace GitAutomation.Orchestration
                                         )
                             )
                             .ToList()
-                            .SelectMany(all => all.Select(each => each.downstream).Distinct().ToObservable())
+                            // TODO - order by depth
+                            .SelectMany(all => all.Select(each => each.downstream.BranchName).Distinct().ToObservable())
                             .SelectMany(downstreamBranch => orchestrationActions.CheckDownstreamMerges(downstreamBranch))
                             .Subscribe(
                                 onNext: _ => { }, 

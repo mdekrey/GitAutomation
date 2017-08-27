@@ -6,6 +6,7 @@ import { rxData, rxEvent, fnSelect } from "../utils/presentation/d3-binding";
 import { RoutingComponent } from "../utils/routing-component";
 import { getLog, allBranches, fetch, actionQueue } from "../api/basics";
 import { logPresentation } from "../logs/log.presentation";
+import { BasicBranch } from "../api/basic-branch";
 
 export const homepage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -77,7 +78,7 @@ export const homepage = (
 
         // display branches
         subscription.add(
-          rxData<string, HTMLUListElement>(
+          rxData<BasicBranch, HTMLUListElement>(
             body.map(fnSelect(`[data-locator="remote-branches"]`)),
             rxEvent({
               target: body.map(
@@ -97,7 +98,7 @@ export const homepage = (
 `),
               selector: "li",
               onEach: selection => {
-                selection.select(`span`).text(data => data);
+                selection.select(`span`).text(data => data.branchName);
                 subscription.add(
                   rxEvent({
                     target: Observable.of(
@@ -106,7 +107,7 @@ export const homepage = (
                     eventName: "click"
                   }).subscribe(event =>
                     state.navigate({
-                      url: "/manage/" + event.datum,
+                      url: "/manage/" + event.datum.branchName,
                       replaceCurentHistory: false
                     })
                   )
