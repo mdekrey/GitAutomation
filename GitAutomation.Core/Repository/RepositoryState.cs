@@ -66,6 +66,7 @@ namespace GitAutomation.Repository
                     .Select(_ =>
                     {
                         orchestration.EnqueueAction(new EnsureInitializedAction());
+                        // TODO - because listing remote branches doesn't affect the index, it doesn't need to be an action, but it does need to wait until initialization is ensured.
                         return orchestration.EnqueueAction(new GetRemoteBranchesAction());
                     })
                     .Select(GitCli.BranchListingToRefs)

@@ -63,5 +63,10 @@ namespace GitAutomation.BranchSettings
         [TestMethod]
         public void HaveAValidConsolidateServiceLineCommand() =>
             SqlBranchSettings.ConsolidateServiceLineCommand.ExplainMultipleResult(database.BuildSqlConnection());
+
+        [TestMethod]
+        public void HaveAValidGetIntegrationBranchCommand() =>
+            SqlBranchSettings.GetIntegrationBranchCommand.ExplainMultipleResult(database.BuildSqlConnection());
+
     }
 }

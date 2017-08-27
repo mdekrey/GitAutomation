@@ -227,6 +227,26 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
                 { "@ServiceLineBranchName", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
+        public static readonly CommandBuilder GetIntegrationBranchCommand = new CommandBuilder(
+            commandText: @"
+SELECT 
+	DownstreamBranch.BranchName,
+	DownstreamBranch.RecreateFromUpstream,
+	DownstreamBranch.BranchType,
+	BranchA.BranchName As BranchA,
+	BranchB.BranchName as BranchB,
+	BranchC.BranchName as BranchC
+	FROM [dbo].[DownstreamBranch]
+LEFT JOIN [dbo].[UpstreamBranch] as BranchA ON BranchA.DownstreamBranch=DownstreamBranch.BranchName
+LEFT JOIN [dbo].[UpstreamBranch] as BranchB ON BranchB.DownstreamBranch=DownstreamBranch.BranchName AND BranchA.BranchName < BranchB.BranchName
+LEFT JOIN [dbo].[UpstreamBranch] as BranchC ON BranchC.DownstreamBranch=DownstreamBranch.BranchName AND BranchB.BranchName < BranchC.BranchName
+WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.BranchName=@BranchB AND BranchC.BranchName IS NULL
+", parameters: new Dictionary<string, Action<DbParameter>>
+            {
+                { "@BranchA", p => p.DbType = System.Data.DbType.AnsiString },
+                { "@BranchB", p => p.DbType = System.Data.DbType.AnsiString },
+            });
+
         #endregion
 
         private readonly IBranchSettingsNotifiers notifiers;
@@ -417,6 +437,18 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
                 .SelectMany(_ => WithConnection(GetAllUpstreamRemovableBranchesOnce(branchName)));
         }
 
+        public Task<string> GetIntegrationBranch(string branchA, string branchB)
+        {
+            return WithConnection(async connection =>
+            {
+                using (var command = GetIntegrationBranchCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchA", branchA }, { "@BranchB", branchB } }))
+                {
+                    return await command.ExecuteScalarAsync() as string;
+                }
+            });
+        }
+
+
         private Func<DbConnection, Task<ImmutableList<string>>> GetAllUpstreamRemovableBranchesOnce(string branchName)
         {
             return async connection =>
@@ -514,6 +546,12 @@ WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLine
             });
         }
 
+        public void CreateIntegrationBranch(string branchA, string branchB, string integrationBranchName, IUnitOfWork work)
+        {
+            UpdateBranchSetting(integrationBranchName, false, BranchType.Integration, work);
+            AddBranchPropagation(branchA, integrationBranchName, work);
+            AddBranchPropagation(branchB, integrationBranchName, work);
+        }
 
         private void PrepareSqlUnitOfWork(IUnitOfWork work)
         {
