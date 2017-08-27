@@ -64,7 +64,7 @@ namespace GitAutomation.Orchestration.Actions
                 disposable.Add(processes);
 
                 await System.Threading.Tasks.Task.Yield();
-                var needsRecreate = await FindNeededMerges(details.DirectUpstreamBranches, neededUpstreamMerges, cli, processes);
+                var needsRecreate = await FindNeededMerges(details.DirectUpstreamBranches, neededUpstreamMerges, cli, processes, gitServiceApi);
 
                 if (neededUpstreamMerges.Any() && details.RecreateFromUpstream)
                 {
@@ -104,9 +104,9 @@ namespace GitAutomation.Orchestration.Actions
         }
 
         /// <returns>True if the entire branch needs to be created</returns>
-        private async Task<bool> FindNeededMerges(ImmutableList<string> allUpstreamBranches, HashSet<string> neededUpstreamMerges, GitCli cli, Subject<IObservable<OutputMessage>> processes)
+        private async Task<bool> FindNeededMerges(ImmutableList<string> allUpstreamBranches, HashSet<string> neededUpstreamMerges, GitCli cli, Subject<IObservable<OutputMessage>> processes, IGitServiceApi gitServiceApi)
         {
-            foreach (var upstreamBranch in allUpstreamBranches)
+            foreach (var upstreamBranch in await FilterUpstreamReadyForMerge(allUpstreamBranches, gitServiceApi, processes))
             {
                 var mergeBase = Queueable(cli.MergeBase(upstreamBranch, downstreamBranch));
                 var showRef = Queueable(cli.ShowRef(upstreamBranch));
@@ -132,8 +132,10 @@ namespace GitAutomation.Orchestration.Actions
 
         private async Task CreateDownstreamBranch(ImmutableList<string> allUpstreamBranches, GitCli cli, Subject<IObservable<OutputMessage>> processes, IGitServiceApi gitServiceApi)
         {
+            var validUpstream = await FilterUpstreamReadyForMerge(allUpstreamBranches, gitServiceApi, processes);
+
             // Basic process; should have checks on whether or not to create the branch
-            var initialBranch = allUpstreamBranches.First();
+            var initialBranch = validUpstream.First();
 
             var checkout = Queueable(cli.CheckoutRemote(initialBranch));
             processes.OnNext(checkout);
@@ -153,10 +155,28 @@ namespace GitAutomation.Orchestration.Actions
             processes.OnNext(push);
             await push;
 
-            foreach (var upstreamBranch in allUpstreamBranches.Skip(1))
+            foreach (var upstreamBranch in validUpstream.Skip(1))
             {
                 await MergeUpstreamBranch(upstreamBranch, cli, processes, gitServiceApi);
             }
+        }
+
+        private static async Task<List<string>> FilterUpstreamReadyForMerge(ImmutableList<string> allUpstreamBranches, IGitServiceApi gitServiceApi, Subject<IObservable<OutputMessage>> processes)
+        {
+            var validUpstream = new List<string>();
+            foreach (var upstream in allUpstreamBranches)
+            {
+                if (!await gitServiceApi.HasOpenPullRequest(targetBranch: upstream))
+                {
+                    validUpstream.Add(upstream);
+                }
+                else
+                {
+                    processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{upstream} skipped due to open pull request" }));
+                }
+            }
+
+            return validUpstream;
         }
 
         /// <summary>

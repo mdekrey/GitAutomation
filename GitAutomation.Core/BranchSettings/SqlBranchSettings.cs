@@ -46,18 +46,18 @@ SELECT [BranchName]
 
         public static readonly CommandBuilder GetAllDownstreamBranchesCommand = new CommandBuilder(
             commandText: @"
-WITH RecursiveUpstream ( DownstreamBranch, BranchName )
+WITH RecursiveUpstream ( DownstreamBranch, BranchName, Ordinal )
 AS (
-	SELECT DownstreamBranch, BranchName FROM [UpstreamBranch] WHERE BranchName=@BranchName
+	SELECT DownstreamBranch, BranchName, 1 FROM [UpstreamBranch] WHERE BranchName=@BranchName
 UNION ALL
-	SELECT [UpstreamBranch].DownstreamBranch, RecursiveUpstream.BranchName
+	SELECT [UpstreamBranch].DownstreamBranch, RecursiveUpstream.BranchName, RecursiveUpstream.Ordinal + 11
 	FROM [UpstreamBranch]
 	INNER JOIN RecursiveUpstream ON RecursiveUpstream.DownstreamBranch = [UpstreamBranch].BranchName
 )
 SELECT [DownstreamBranch]
   FROM RecursiveUpstream
   GROUP BY DownstreamBranch, BranchName
-  ORDER BY DownstreamBranch
+  ORDER BY MIN(Ordinal), DownstreamBranch
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
@@ -65,18 +65,18 @@ SELECT [DownstreamBranch]
 
         public static readonly CommandBuilder GetAllUpstreamBranchesCommand = new CommandBuilder(
             commandText: @"
-WITH RecursiveDownstream ( DownstreamBranch, BranchName )
+WITH RecursiveDownstream ( DownstreamBranch, BranchName, Ordinal )
 AS (
-	SELECT DownstreamBranch, BranchName FROM [UpstreamBranch] WHERE DownstreamBranch=@BranchName
+	SELECT DownstreamBranch, BranchName, 1 FROM [UpstreamBranch] WHERE DownstreamBranch=@BranchName
 UNION ALL
-	SELECT RecursiveDownstream.DownstreamBranch, [UpstreamBranch].BranchName
+	SELECT RecursiveDownstream.DownstreamBranch, [UpstreamBranch].BranchName, RecursiveDownstream.Ordinal + 1
 	FROM [UpstreamBranch]
 	INNER JOIN RecursiveDownstream ON [UpstreamBranch].DownstreamBranch = RecursiveDownstream.BranchName
 )
 SELECT [BranchName]
   FROM RecursiveDownstream
   GROUP BY DownstreamBranch, BranchName
-  ORDER BY DownstreamBranch
+  ORDER BY MAX(RecursiveDownstream.Ordinal) DESC, DownstreamBranch
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
