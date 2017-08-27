@@ -29,16 +29,16 @@ Local files that are not included in the repository include:
 
 ## Testing
 
-As part of the unit test suite, there is a docker image that sets up a basic repository; you can set up and tear down the test suite's docker-compose to try out various features and techniques.
+As part of the debug compose file, there is a docker image that sets up a basic repository; you can set up and tear down the test suite's docker-compose to try out various features and techniques.
 
 Repositories: 
- - http://tester@localhost:8081/git/gittesting1.git
- - http://tester@localhost:8081/git/gittesting2.git
- - http://tester@localhost:8081/git/gittesting3.git
+ - http://tester@git-server/git/gittesting1.git
+ - http://tester@git-server/git/gittesting2.git
+ - http://tester@git-server/git/gittesting3.git
 Password:
  - TEST_PASSWORD
 
-They all start out as identical.
+They all start out as identical. If you want to clone them locally, they should be accessible on port 8082.
 
 # Building via Visual Studio 2017
 
