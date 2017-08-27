@@ -39,32 +39,61 @@ namespace GitAutomation.Orchestration.Actions
 
         public IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider)
         {
-            var cli = serviceProvider.GetRequiredService<GitCli>();
-            var settings = serviceProvider.GetRequiredService<IBranchSettings>();
-            var gitServiceApi = serviceProvider.GetRequiredService<IGitServiceApi>();
+            return ActivatorUtilities.CreateInstance<MergeDownstreamActionProcess>(serviceProvider, downstreamBranch).Process().Multicast(output).RefCount();
+        }
 
-            // if these two are different, we need to do the merge
-            // cli.MergeBase(upstreamBranch, downstreamBranch);
-            // cli.ShowRef(upstreamBranch);
+        private class MergeDownstreamActionProcess
+        {
+            private readonly GitCli cli;
+            private readonly IBranchSettings settings;
+            private readonly IGitServiceApi gitServiceApi;
+            private readonly string downstreamBranch;
+            private readonly IObservable<OutputMessage> process;
+            private readonly Subject<IObservable<OutputMessage>> processes;
 
-            // do the actual merge
-            // cli.CheckoutRemote(downstreamBranch);
-            // cli.MergeRemote(upstreamBranch);
-
-            // if it was successful
-            // cli.Push();
-
-            return Observable.Create<OutputMessage>(async (observer, cancellationToken) =>
+            public MergeDownstreamActionProcess(GitCli cli, IBranchSettings settings, IGitServiceApi gitServiceApi, string downstreamBranch)
             {
-                var details = await settings.GetBranchDetails(this.downstreamBranch).FirstAsync();
+                this.cli = cli;
+                this.settings = settings;
+                this.gitServiceApi = gitServiceApi;
+                this.downstreamBranch = downstreamBranch;
                 var disposable = new CompositeDisposable();
-                var neededUpstreamMerges = new HashSet<string>();
-                var processes = new Subject<IObservable<OutputMessage>>();
-                disposable.Add(Observable.Concat(processes).Subscribe(observer));
+                this.processes = new Subject<IObservable<OutputMessage>>();
                 disposable.Add(processes);
 
-                await System.Threading.Tasks.Task.Yield();
-                var needsRecreate = await FindNeededMerges(details.DirectUpstreamBranches, neededUpstreamMerges, cli, processes, gitServiceApi);
+                this.process = Observable.Create<OutputMessage>(async (observer, cancellationToken) =>
+                {
+                    if (disposable.IsDisposed)
+                    {
+                        observer.OnError(new ObjectDisposedException(nameof(disposable)));
+                    }
+                    disposable.Add(Observable.Concat(processes).Subscribe(observer));
+                    await RunProcess();
+
+                    return () =>
+                    {
+                        disposable.Dispose();
+                    };
+                }).Publish().RefCount();
+            }
+
+            private async Task RunProcess()
+            {
+                var neededUpstreamMerges = new HashSet<string>();
+                // if these two are different, we need to do the merge
+                // cli.MergeBase(upstreamBranch, downstreamBranch);
+                // cli.ShowRef(upstreamBranch);
+
+                // do the actual merge
+                // cli.CheckoutRemote(downstreamBranch);
+                // cli.MergeRemote(upstreamBranch);
+
+                // if it was successful
+                // cli.Push();
+
+                var details = await settings.GetBranchDetails(downstreamBranch).FirstAsync();
+
+                var needsRecreate = await FindNeededMerges(details.DirectUpstreamBranches, neededUpstreamMerges);
 
                 if (neededUpstreamMerges.Any() && details.RecreateFromUpstream)
                 {
@@ -78,7 +107,7 @@ namespace GitAutomation.Orchestration.Actions
                 if (needsRecreate)
                 {
                     processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{downstreamBranch} needs to be created from {string.Join(",", neededUpstreamMerges)}" }));
-                    await CreateDownstreamBranch(details.DirectUpstreamBranches, cli, processes, gitServiceApi);
+                    await CreateDownstreamBranch(details.DirectUpstreamBranches);
                 }
                 else if (neededUpstreamMerges.Any())
                 {
@@ -90,124 +119,124 @@ namespace GitAutomation.Orchestration.Actions
 
                     foreach (var upstreamBranch in neededUpstreamMerges)
                     {
-                        await MergeUpstreamBranch(upstreamBranch, cli, processes, gitServiceApi);
+                        await MergeUpstreamBranch(upstreamBranch);
                     }
                 }
 
                 processes.OnCompleted();
+            }
 
-                return () =>
-                {
-                    disposable.Dispose();
-                };
-            }).Multicast(output).RefCount();
-        }
-
-        /// <returns>True if the entire branch needs to be created</returns>
-        private async Task<bool> FindNeededMerges(ImmutableList<string> allUpstreamBranches, HashSet<string> neededUpstreamMerges, GitCli cli, Subject<IObservable<OutputMessage>> processes, IGitServiceApi gitServiceApi)
-        {
-            foreach (var upstreamBranch in await FilterUpstreamReadyForMerge(allUpstreamBranches, gitServiceApi, processes))
+            public IObservable<OutputMessage> Process()
             {
-                var mergeBase = Queueable(cli.MergeBase(upstreamBranch, downstreamBranch));
-                var showRef = Queueable(cli.ShowRef(upstreamBranch));
+                return this.process;
+            }
 
-                processes.OnNext(mergeBase);
-                var mergeBaseResult = await (from o in mergeBase where o.Channel == OutputChannel.Out select o.Message).FirstOrDefaultAsync();
-                if (mergeBaseResult == null)
+            /// <returns>True if the entire branch needs to be created</returns>
+            private async Task<bool> FindNeededMerges(ImmutableList<string> allUpstreamBranches, HashSet<string> neededUpstreamMerges)
+            {
+                foreach (var upstreamBranch in await FilterUpstreamReadyForMerge(allUpstreamBranches))
                 {
-                    return true;
+                    var mergeBase = Queueable(cli.MergeBase(upstreamBranch, downstreamBranch));
+                    var showRef = Queueable(cli.ShowRef(upstreamBranch));
+
+                    processes.OnNext(mergeBase);
+                    var mergeBaseResult = await (from o in mergeBase where o.Channel == OutputChannel.Out select o.Message).FirstOrDefaultAsync();
+                    if (mergeBaseResult == null)
+                    {
+                        return true;
+                    }
+
+                    processes.OnNext(showRef);
+                    var showRefResult = await (from o in showRef where o.Channel == OutputChannel.Out select o.Message).FirstOrDefaultAsync();
+
+                    if (mergeBaseResult != showRefResult)
+                    {
+                        neededUpstreamMerges.Add(upstreamBranch);
+                    }
                 }
 
-                processes.OnNext(showRef);
-                var showRefResult = await (from o in showRef where o.Channel == OutputChannel.Out select o.Message).FirstOrDefaultAsync();
+                return false;
+            }
 
-                if (mergeBaseResult != showRefResult)
+            private async Task CreateDownstreamBranch(ImmutableList<string> allUpstreamBranches)
+            {
+                var validUpstream = await FilterUpstreamReadyForMerge(allUpstreamBranches);
+
+                // Basic process; should have checks on whether or not to create the branch
+                var initialBranch = validUpstream.First();
+
+                var checkout = Queueable(cli.CheckoutRemote(initialBranch));
+                processes.OnNext(checkout);
+                var checkoutError = await (from o in checkout where o.Channel == OutputChannel.Error select o.Message).FirstOrDefaultAsync();
+                await checkout;
+                if (!string.IsNullOrEmpty(checkoutError) && checkoutError.StartsWith("fatal"))
                 {
-                    neededUpstreamMerges.Add(upstreamBranch);
+                    processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} unable to be branched from {initialBranch}; aborting" }));
+                    return;
+                }
+
+                var createBranch = Queueable(cli.CheckoutNew(downstreamBranch));
+                processes.OnNext(createBranch);
+                await createBranch;
+
+                var push = Queueable(cli.Push(downstreamBranch));
+                processes.OnNext(push);
+                await push;
+
+                foreach (var upstreamBranch in validUpstream.Skip(1))
+                {
+                    await MergeUpstreamBranch(upstreamBranch);
                 }
             }
 
-            return false;
-        }
-
-        private async Task CreateDownstreamBranch(ImmutableList<string> allUpstreamBranches, GitCli cli, Subject<IObservable<OutputMessage>> processes, IGitServiceApi gitServiceApi)
-        {
-            var validUpstream = await FilterUpstreamReadyForMerge(allUpstreamBranches, gitServiceApi, processes);
-
-            // Basic process; should have checks on whether or not to create the branch
-            var initialBranch = validUpstream.First();
-
-            var checkout = Queueable(cli.CheckoutRemote(initialBranch));
-            processes.OnNext(checkout);
-            var checkoutError = await (from o in checkout where o.Channel == OutputChannel.Error select o.Message).FirstOrDefaultAsync();
-            await checkout;
-            if (!string.IsNullOrEmpty(checkoutError) && checkoutError.StartsWith("fatal"))
+            private async Task<List<string>> FilterUpstreamReadyForMerge(ImmutableList<string> allUpstreamBranches)
             {
-                processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} unable to be branched from {initialBranch}; aborting" }));
-                return;
-            }
-
-            var createBranch = Queueable(cli.CheckoutNew(downstreamBranch));
-            processes.OnNext(createBranch);
-            await createBranch;
-
-            var push = Queueable(cli.Push(downstreamBranch));
-            processes.OnNext(push);
-            await push;
-
-            foreach (var upstreamBranch in validUpstream.Skip(1))
-            {
-                await MergeUpstreamBranch(upstreamBranch, cli, processes, gitServiceApi);
-            }
-        }
-
-        private static async Task<List<string>> FilterUpstreamReadyForMerge(ImmutableList<string> allUpstreamBranches, IGitServiceApi gitServiceApi, Subject<IObservable<OutputMessage>> processes)
-        {
-            var validUpstream = new List<string>();
-            foreach (var upstream in allUpstreamBranches)
-            {
-                if (!await gitServiceApi.HasOpenPullRequest(targetBranch: upstream))
+                var validUpstream = new List<string>();
+                foreach (var upstream in allUpstreamBranches)
                 {
-                    validUpstream.Add(upstream);
+                    if (!await gitServiceApi.HasOpenPullRequest(targetBranch: upstream))
+                    {
+                        validUpstream.Add(upstream);
+                    }
+                    else
+                    {
+                        processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{upstream} skipped due to open pull request" }));
+                    }
+                }
+
+                return validUpstream;
+            }
+
+            /// <summary>
+            /// Notice - assumes that downstream is already checked out!
+            /// </summary>
+            private async Task MergeUpstreamBranch(string upstreamBranch)
+            {
+                var merge = Queueable(cli.MergeRemote(upstreamBranch, message: $"Auto-merge branch '{upstreamBranch}' into '{downstreamBranch}'"));
+                processes.OnNext(merge);
+                var mergeExitCode = await (from o in merge where o.Channel == OutputChannel.ExitCode select o.ExitCode).FirstAsync();
+                if (mergeExitCode == 0)
+                {
+                    processes.OnNext(Queueable(cli.Push(downstreamBranch, downstreamBranch)));
                 }
                 else
                 {
-                    processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{upstream} skipped due to open pull request" }));
+                    // TODO - conflict!
+                    processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} conflicts with {upstreamBranch}" }));
+
+                    var prResult = await gitServiceApi.OpenPullRequest(title: $"Auto-Merge: {downstreamBranch}", targetBranch: downstreamBranch, sourceBranch: upstreamBranch, body: "Failed due to merge conflicts.");
+
+                    var reset = Queueable(cli.Reset());
+                    processes.OnNext(reset);
+                    await reset;
+
+                    var clean = Queueable(cli.Clean());
+                    processes.OnNext(clean);
+                    await clean;
                 }
             }
 
-            return validUpstream;
+            private IObservable<OutputMessage> Queueable(IReactiveProcess reactiveProcess) => reactiveProcess.Output.Replay().ConnectFirst();
         }
-
-        /// <summary>
-        /// Notice - assumes that downstream is already checked out!
-        /// </summary>
-        private async Task MergeUpstreamBranch(string upstreamBranch, GitCli cli, Subject<IObservable<OutputMessage>> processes, IGitServiceApi gitServiceApi)
-        {
-            var merge = Queueable(cli.MergeRemote(upstreamBranch, message: $"Auto-merge branch '{upstreamBranch}' into '{downstreamBranch}'"));
-            processes.OnNext(merge);
-            var mergeExitCode = await (from o in merge where o.Channel == OutputChannel.ExitCode select o.ExitCode).FirstAsync();
-            if (mergeExitCode == 0)
-            {
-                processes.OnNext(Queueable(cli.Push(downstreamBranch, downstreamBranch)));
-            }
-            else
-            {
-                // TODO - conflict!
-                processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} conflicts with {upstreamBranch}" }));
-
-                var prResult = await gitServiceApi.OpenPullRequest(title: $"Auto-Merge: {downstreamBranch}", targetBranch: downstreamBranch, sourceBranch: upstreamBranch, body: "Failed due to merge conflicts.");
-
-                var reset = Queueable(cli.Reset());
-                processes.OnNext(reset);
-                await reset;
-
-                var clean = Queueable(cli.Clean());
-                processes.OnNext(clean);
-                await clean;
-            }
-        }
-
-        private IObservable<OutputMessage> Queueable(IReactiveProcess reactiveProcess) => reactiveProcess.Output.Replay().ConnectFirst();
     }
 }
