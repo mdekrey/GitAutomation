@@ -11,7 +11,13 @@ services:
       - sqleula
     ports: 
       - "31433:1433"
-
+  testing-git-server:
+    image: testing-git-server
+    build:
+      context: ../git-server
+      dockerfile: dockerfile
+    ports:
+      - "8081:80"
 
 secrets:
   sqlcredentials:
