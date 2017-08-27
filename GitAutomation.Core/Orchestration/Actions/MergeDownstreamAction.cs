@@ -50,6 +50,7 @@ namespace GitAutomation.Orchestration.Actions
             private readonly string downstreamBranch;
             private readonly IObservable<OutputMessage> process;
             private readonly Subject<IObservable<OutputMessage>> processes;
+            private BranchDetails details;
 
             public MergeDownstreamActionProcess(GitCli cli, IBranchSettings settings, IGitServiceApi gitServiceApi, string downstreamBranch)
             {
@@ -91,7 +92,7 @@ namespace GitAutomation.Orchestration.Actions
                 // if it was successful
                 // cli.Push();
 
-                var details = await settings.GetBranchDetails(downstreamBranch).FirstAsync();
+                details = await settings.GetBranchDetails(downstreamBranch).FirstAsync();
 
                 var needsRecreate = await FindNeededMerges(details.DirectUpstreamBranches, neededUpstreamMerges);
 
@@ -194,7 +195,7 @@ namespace GitAutomation.Orchestration.Actions
                 var validUpstream = new List<string>();
                 foreach (var upstream in allUpstreamBranches)
                 {
-                    if (!await gitServiceApi.HasOpenPullRequest(targetBranch: upstream))
+                    if (!await gitServiceApi.HasOpenPullRequest(targetBranch: upstream) && !await gitServiceApi.HasOpenPullRequest(targetBranch: downstreamBranch, sourceBranch: upstream))
                     {
                         validUpstream.Add(upstream);
                     }
@@ -224,8 +225,6 @@ namespace GitAutomation.Orchestration.Actions
                     // TODO - conflict!
                     processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} conflicts with {upstreamBranch}" }));
 
-                    var prResult = await gitServiceApi.OpenPullRequest(title: $"Auto-Merge: {downstreamBranch}", targetBranch: downstreamBranch, sourceBranch: upstreamBranch, body: "Failed due to merge conflicts.");
-
                     var reset = Queueable(cli.Reset());
                     processes.OnNext(reset);
                     await reset;
@@ -233,7 +232,50 @@ namespace GitAutomation.Orchestration.Actions
                     var clean = Queueable(cli.Clean());
                     processes.OnNext(clean);
                     await clean;
+
+                    var canUseIntegrationBranch = details.BranchType != BranchType.Integration && details.DirectUpstreamBranches.Count != 1;
+                    var createdIntegrationBranch = canUseIntegrationBranch
+                        ? await CreateIntegrationBranches(details.DirectUpstreamBranches)
+                        : false;
+
+                    if (!createdIntegrationBranch)
+                    {
+                        // Open a PR if we can't open a new integration branch
+                        await gitServiceApi.OpenPullRequest(title: $"Auto-Merge: {downstreamBranch}", targetBranch: downstreamBranch, sourceBranch: upstreamBranch, body: "Failed due to merge conflicts.");
+                    }
                 }
+            }
+
+            private async Task<bool> CreateIntegrationBranches(ImmutableList<string> upstreamBranches)
+            {
+                // 1. Find branches that conflict
+                // 2. Create integration branches for them
+                // 3. Add the integration branch for ourselves
+
+
+                // When finding branches that conflict, we should go to the earliest point of conflict... so we need to know full ancestry.
+                // Except... we can start at the direct upstream, and if those conflict, then move up; a double breadth-first search.
+                //
+                // A & B -> C
+                // D & E & F -> G
+                // H & I -> J
+                // C and G do not conflict.
+                // C and J conflict.
+                // G and J do not conflict.
+                // A and J conflict.
+                // B and J conflict.
+                // A and H conflict.
+                // B and H do not conflict.
+                // A and I do not conflict.
+                // B and I do conflict.
+                //
+                // Two integration branches are needed: A-H and B-I. A-H is already found, so only B-I is created.
+                // A-H and B-I are added to the downstream branch, if A-H was not already added to the downstream branch.
+
+                await Task.Yield();
+                // TODO
+
+                return false;
             }
 
             private IObservable<OutputMessage> Queueable(IReactiveProcess reactiveProcess) => reactiveProcess.Output.Replay().ConnectFirst();
