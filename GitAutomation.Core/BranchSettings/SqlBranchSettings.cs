@@ -11,6 +11,7 @@ using System.Reactive.Threading.Tasks;
 using System.Reactive.Linq;
 using System.Reactive;
 using GitAutomation.SqlServer;
+using System.Linq;
 
 namespace GitAutomation.BranchSettings
 {
@@ -20,11 +21,13 @@ namespace GitAutomation.BranchSettings
 
         public static readonly CommandBuilder GetConfiguredBranchesCommand = new CommandBuilder(
             commandText: @"
-SELECT COALESCE([UpstreamBranch].BranchName, [DownstreamBranch].BranchName) AS [BranchName],
+SELECT [Branch].BranchName,
 		COALESCE([DownstreamBranch].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
 		COALESCE([DownstreamBranch].BranchType, 'Feature') AS [BranchType]
-  FROM [UpstreamBranch]
-  FULL OUTER JOIN [DownstreamBranch] ON [UpstreamBranch].BranchName = [DownstreamBranch].BranchName
+  FROM (
+	SELECT BranchName FROM [UpstreamBranch] UNION SELECT BranchName FROM [DownstreamBranch] GROUP BY BranchName
+) AS [Branch]
+  LEFT JOIN [DownstreamBranch] ON [Branch].BranchName = [DownstreamBranch].BranchName
 ");
 
         public static readonly CommandBuilder GetDownstreamBranchesCommand = new CommandBuilder(
@@ -59,19 +62,19 @@ WITH RecursiveUpstream ( DownstreamBranch, BranchName, Ordinal )
 AS (
 	SELECT DownstreamBranch, BranchName, 1 FROM [UpstreamBranch] WHERE BranchName=@BranchName
 UNION ALL
-	SELECT [UpstreamBranch].DownstreamBranch, RecursiveUpstream.BranchName, RecursiveUpstream.Ordinal + 11
+	SELECT [UpstreamBranch].DownstreamBranch, RecursiveUpstream.BranchName, RecursiveUpstream.Ordinal + 1
 	FROM [UpstreamBranch]
 	INNER JOIN RecursiveUpstream ON RecursiveUpstream.DownstreamBranch = [UpstreamBranch].BranchName
 )
-SELECT COALESCE([UpstreamBranch].BranchName, [DownstreamBranch].BranchName) AS [BranchName],
+SELECT COALESCE([UpstreamBranch].DownstreamBranch, [DownstreamBranch].BranchName) AS [BranchName],
 		COALESCE([DownstreamBranch].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
 		COALESCE([DownstreamBranch].BranchType, 'Feature') AS [BranchType]
-  FROM (SELECT [BranchName], MIN(Ordinal)
+  FROM (SELECT DownstreamBranch, MIN(Ordinal) AS Ordinal
 		  FROM RecursiveUpstream
 		  GROUP BY DownstreamBranch, BranchName
 		) AS [UpstreamBranch]
-  FULL OUTER JOIN [DownstreamBranch] ON [UpstreamBranch].BranchName = [DownstreamBranch].BranchName
-  ORDER BY Ordinal, [UpstreamBranch].BranchName
+  LEFT JOIN [DownstreamBranch] ON [UpstreamBranch].DownstreamBranch = [DownstreamBranch].BranchName
+  ORDER BY Ordinal, [UpstreamBranch].DownstreamBranch
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
@@ -94,7 +97,7 @@ SELECT COALESCE([UpstreamBranch].BranchName, [DownstreamBranch].BranchName) AS [
 		  FROM RecursiveDownstream
 		  GROUP BY DownstreamBranch, BranchName
 		) AS [UpstreamBranch]
-  FULL OUTER JOIN [DownstreamBranch] ON [UpstreamBranch].BranchName = [DownstreamBranch].BranchName
+  LEFT JOIN [DownstreamBranch] ON [UpstreamBranch].BranchName = [DownstreamBranch].BranchName
   ORDER BY Ordinal DESC, [UpstreamBranch].BranchName
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
@@ -465,9 +468,14 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
 
         public Task<string> GetIntegrationBranch(string branchA, string branchB)
         {
+            var branches = new[] { branchA, branchB }.OrderBy(a => a).ToArray();
             return WithConnection(async connection =>
             {
-                using (var command = GetIntegrationBranchCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchA", branchA }, { "@BranchB", branchB } }))
+                using (var command = GetIntegrationBranchCommand.BuildFrom(connection, new Dictionary<string, object>
+                {
+                    { "@BranchA", branches[0] },
+                    { "@BranchB", branches[1] }
+                }))
                 {
                     return await command.ExecuteScalarAsync() as string;
                 }

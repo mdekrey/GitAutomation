@@ -2,6 +2,7 @@
 using GitAutomation.GitService;
 using GitAutomation.Processes;
 using GitAutomation.Repository;
+using GitAutomation.Work;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
@@ -47,16 +48,20 @@ namespace GitAutomation.Orchestration.Actions
             private readonly GitCli cli;
             private readonly IBranchSettings settings;
             private readonly IGitServiceApi gitServiceApi;
+            private readonly IUnitOfWorkFactory workFactory;
+            private readonly IRepositoryOrchestration orchestration;
             private readonly string downstreamBranch;
             private readonly IObservable<OutputMessage> process;
             private readonly Subject<IObservable<OutputMessage>> processes;
             private BranchDetails details;
 
-            public MergeDownstreamActionProcess(GitCli cli, IBranchSettings settings, IGitServiceApi gitServiceApi, string downstreamBranch)
+            public MergeDownstreamActionProcess(GitCli cli, IBranchSettings settings, IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, string downstreamBranch)
             {
                 this.cli = cli;
                 this.settings = settings;
                 this.gitServiceApi = gitServiceApi;
+                this.workFactory = workFactory;
+                this.orchestration = orchestration;
                 this.downstreamBranch = downstreamBranch;
                 var disposable = new CompositeDisposable();
                 this.processes = new Subject<IObservable<OutputMessage>>();
@@ -94,7 +99,7 @@ namespace GitAutomation.Orchestration.Actions
 
                 details = await settings.GetBranchDetails(downstreamBranch).FirstAsync();
 
-                var needsRecreate = await FindNeededMerges(details.DirectUpstreamBranches, neededUpstreamMerges);
+                var needsRecreate = await FindNeededMerges(details.DirectUpstreamBranches.Select(branch => branch.BranchName), neededUpstreamMerges);
 
                 if (neededUpstreamMerges.Any() && details.RecreateFromUpstream)
                 {
@@ -114,10 +119,6 @@ namespace GitAutomation.Orchestration.Actions
                 {
                     processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{downstreamBranch} needs merges from {string.Join(",", neededUpstreamMerges)}" }));
 
-                    var checkout = Queueable(cli.CheckoutRemote(downstreamBranch));
-                    processes.OnNext(checkout);
-                    await checkout;
-
                     foreach (var upstreamBranch in neededUpstreamMerges)
                     {
                         await MergeUpstreamBranch(upstreamBranch);
@@ -133,7 +134,7 @@ namespace GitAutomation.Orchestration.Actions
             }
 
             /// <returns>True if the entire branch needs to be created</returns>
-            private async Task<bool> FindNeededMerges(ImmutableList<string> allUpstreamBranches, HashSet<string> neededUpstreamMerges)
+            private async Task<bool> FindNeededMerges(IEnumerable<string> allUpstreamBranches, HashSet<string> neededUpstreamMerges)
             {
                 foreach (var upstreamBranch in await FilterUpstreamReadyForMerge(allUpstreamBranches))
                 {
@@ -159,7 +160,7 @@ namespace GitAutomation.Orchestration.Actions
                 return false;
             }
 
-            private async Task CreateDownstreamBranch(ImmutableList<string> allUpstreamBranches)
+            private async Task CreateDownstreamBranch(IEnumerable<string> allUpstreamBranches)
             {
                 var validUpstream = await FilterUpstreamReadyForMerge(allUpstreamBranches);
 
@@ -190,7 +191,7 @@ namespace GitAutomation.Orchestration.Actions
                 }
             }
 
-            private async Task<List<string>> FilterUpstreamReadyForMerge(ImmutableList<string> allUpstreamBranches)
+            private async Task<List<string>> FilterUpstreamReadyForMerge(IEnumerable<string> allUpstreamBranches)
             {
                 var validUpstream = new List<string>();
                 foreach (var upstream in allUpstreamBranches)
@@ -213,10 +214,8 @@ namespace GitAutomation.Orchestration.Actions
             /// </summary>
             private async Task MergeUpstreamBranch(string upstreamBranch)
             {
-                var merge = Queueable(cli.MergeRemote(upstreamBranch, message: $"Auto-merge branch '{upstreamBranch}' into '{downstreamBranch}'"));
-                processes.OnNext(merge);
-                var mergeExitCode = await (from o in merge where o.Channel == OutputChannel.ExitCode select o.ExitCode).FirstAsync();
-                if (mergeExitCode == 0)
+                bool isSuccessfulMerge = await DoMerge(upstreamBranch, downstreamBranch, message: $"Auto-merge branch '{upstreamBranch}' into '{downstreamBranch}'");
+                if (isSuccessfulMerge)
                 {
                     processes.OnNext(Queueable(cli.Push(downstreamBranch, downstreamBranch)));
                 }
@@ -224,18 +223,11 @@ namespace GitAutomation.Orchestration.Actions
                 {
                     // TODO - conflict!
                     processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} conflicts with {upstreamBranch}" }));
-
-                    var reset = Queueable(cli.Reset());
-                    processes.OnNext(reset);
-                    await reset;
-
-                    var clean = Queueable(cli.Clean());
-                    processes.OnNext(clean);
-                    await clean;
+                    await CleanIndex();
 
                     var canUseIntegrationBranch = details.BranchType != BranchType.Integration && details.DirectUpstreamBranches.Count != 1;
                     var createdIntegrationBranch = canUseIntegrationBranch
-                        ? await CreateIntegrationBranches(details.DirectUpstreamBranches)
+                        ? await CreateIntegrationBranches(details.DirectUpstreamBranches.Select(branch => branch.BranchName))
                         : false;
 
                     if (!createdIntegrationBranch)
@@ -243,10 +235,52 @@ namespace GitAutomation.Orchestration.Actions
                         // Open a PR if we can't open a new integration branch
                         await gitServiceApi.OpenPullRequest(title: $"Auto-Merge: {downstreamBranch}", targetBranch: downstreamBranch, sourceBranch: upstreamBranch, body: "Failed due to merge conflicts.");
                     }
+                    else
+                    {
+                        processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} had integration branches added." }));
+                    }
                 }
             }
 
-            private async Task<bool> CreateIntegrationBranches(ImmutableList<string> upstreamBranches)
+            private async Task CleanIndex()
+            {
+                var reset = Queueable(cli.Reset());
+                processes.OnNext(reset);
+                await reset;
+
+                var clean = Queueable(cli.Clean());
+                processes.OnNext(clean);
+                await clean;
+            }
+
+            private async Task<bool> DoMerge(string upstreamBranch, string targetBranch, string message)
+            {
+                var checkout = Queueable(cli.CheckoutRemote(targetBranch));
+                processes.OnNext(checkout);
+                await checkout;
+
+                var merge = Queueable(cli.MergeRemote(upstreamBranch, message));
+                processes.OnNext(merge);
+                var mergeExitCode = await (from o in merge where o.Channel == OutputChannel.ExitCode select o.ExitCode).FirstAsync();
+                var isSuccessfulMerge = mergeExitCode == 0;
+                return isSuccessfulMerge;
+            }
+
+            struct PossibleConflictingBranches
+            {
+                public string BranchA;
+                public string BranchB;
+
+                public ConflictingBranches? ConflictWhenSuccess;
+            }
+
+            struct ConflictingBranches
+            {
+                public string BranchA;
+                public string BranchB;
+            }
+
+            private async Task<bool> CreateIntegrationBranches(IEnumerable<string> initialUpstreamBranches)
             {
                 // 1. Find branches that conflict
                 // 2. Create integration branches for them
@@ -267,15 +301,105 @@ namespace GitAutomation.Orchestration.Actions
                 // A and H conflict.
                 // B and H do not conflict.
                 // A and I do not conflict.
-                // B and I do conflict.
+                // B and I do not conflict.
                 //
-                // Two integration branches are needed: A-H and B-I. A-H is already found, so only B-I is created.
-                // A-H and B-I are added to the downstream branch, if A-H was not already added to the downstream branch.
+                // Two integration branches are needed: A-H and B-J. A-H is already found, so only B-J is created.
+                // A-H and B-J are added to the downstream branch, if A-H was not already added to the downstream branch.
 
-                await Task.Yield();
-                // TODO
+                var upstreamBranchListings = new Dictionary<string, ImmutableList<string>>();
+                var rootConflicts = new HashSet<ConflictingBranches>();
+                var possibleConflicts = new Stack<PossibleConflictingBranches>(
+                    from branchA in initialUpstreamBranches
+                    from branchB in initialUpstreamBranches
+                    where branchA.CompareTo(branchB) < 0
+                    select new PossibleConflictingBranches { BranchA = branchA, BranchB = branchB }
+                );
 
-                return false;
+                while (possibleConflicts.Count > 0)
+                {
+                    var possibleConflict = possibleConflicts.Pop();
+                    if (rootConflicts.Contains(new ConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possibleConflict.BranchB }))
+                    {
+                        continue;
+                    }
+                    var isSuccessfulMerge = await DoMerge(possibleConflict.BranchA, possibleConflict.BranchB, "CONFLICT TEST; DO NOT PUSH");
+                    await CleanIndex();
+                    if (isSuccessfulMerge)
+                    {
+                        // successful, not a conflict
+                        if (possibleConflict.ConflictWhenSuccess.HasValue)
+                        {
+                            rootConflicts.Add(possibleConflict.ConflictWhenSuccess.Value);
+                        }
+                    }
+                    else
+                    {
+                        // there was a conflict, check deeper
+                        var conflict = new ConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possibleConflict.BranchB };
+                        var upstreamBranches = await GetUpstreamBranches(possibleConflict.BranchA, upstreamBranchListings);
+                        if (upstreamBranches.Count > 0)
+                        {
+                            foreach (var possible in upstreamBranches)
+                            {
+                                possibleConflicts.Push(new PossibleConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possible, ConflictWhenSuccess = conflict });
+                            }
+                        }
+                        else
+                        { 
+                            var otherUpstream = await GetUpstreamBranches(possibleConflict.BranchB, upstreamBranchListings);
+                            if (otherUpstream.Count > 0)
+                            {
+                                foreach (var possible in otherUpstream)
+                                {
+                                    possibleConflicts.Push(new PossibleConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possible, ConflictWhenSuccess = conflict });
+                                }
+                            }
+                            else
+                            {
+                                // Nothing deeper; this is our conflict
+                                rootConflicts.Add(conflict);
+                            }
+                        }
+                    }
+                }
+
+                var addedIntegrationBranch = false;
+                using (var work = workFactory.CreateUnitOfWork())
+                {
+                    foreach (var conflict in rootConflicts)
+                    {
+                        var integrationBranch = await settings.GetIntegrationBranch(conflict.BranchA, conflict.BranchB);
+                        if (integrationBranch == null)
+                        {
+                            // TODO - integration branch naming
+                            integrationBranch = $"integrate/{Guid.NewGuid().ToString()}";
+                            settings.CreateIntegrationBranch(conflict.BranchA, conflict.BranchB, integrationBranch, work);
+                            orchestration.EnqueueAction(new MergeDownstreamAction(integrationBranch)).Subscribe();
+                        }
+                        if (!details.UpstreamBranches.Any(b => b.BranchName == integrationBranch))
+                        {
+                            addedIntegrationBranch = true;
+                            settings.AddBranchPropagation(integrationBranch, this.downstreamBranch, work);
+                            settings.RemoveBranchPropagation(conflict.BranchA, this.downstreamBranch, work);
+                            settings.RemoveBranchPropagation(conflict.BranchB, this.downstreamBranch, work);
+                        }
+                    }
+                    await work.CommitAsync();
+                }
+                
+                return addedIntegrationBranch;
+            }
+
+            private async Task<ImmutableList<string>> GetUpstreamBranches(string branch, Dictionary<string, ImmutableList<string>> upstreamBranchListings)
+            {
+                if (!upstreamBranchListings.ContainsKey(branch))
+                {
+                    upstreamBranchListings[branch] = (
+                        from b in (await settings.GetUpstreamBranches(branch).FirstOrDefaultAsync())
+                        select b.BranchName
+                    ).ToImmutableList();
+                }
+                return upstreamBranchListings[branch];
             }
 
             private IObservable<OutputMessage> Queueable(IReactiveProcess reactiveProcess) => reactiveProcess.Output.Replay().ConnectFirst();
