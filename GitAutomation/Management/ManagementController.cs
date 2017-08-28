@@ -106,6 +106,12 @@ namespace GitAutomation.Management
             orchestrationActions.ConsolidateServiceLine(requestBody.ReleaseCandidate, requestBody.ServiceLine, requestBody.TagName);
         }
 
+        [HttpGet("detect-upstream/{*branchName}")]
+        public async Task<IEnumerable<string>> DetectUpstream(string branchName)
+        {
+            return await repositoryState.DetectUpstream(branchName);
+        }
+
         public class UpdateBranchRequestBody
         {
             public bool RecreateFromUpstream { get; set; }
