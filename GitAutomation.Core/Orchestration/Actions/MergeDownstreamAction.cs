@@ -217,7 +217,9 @@ namespace GitAutomation.Orchestration.Actions
                 bool isSuccessfulMerge = await DoMerge(upstreamBranch, downstreamBranch, message: $"Auto-merge branch '{upstreamBranch}' into '{downstreamBranch}'");
                 if (isSuccessfulMerge)
                 {
-                    processes.OnNext(Queueable(cli.Push(downstreamBranch, downstreamBranch)));
+                    var push = Queueable(cli.Push(downstreamBranch, downstreamBranch));
+                    processes.OnNext(push);
+                    await push;
                 }
                 else
                 {
