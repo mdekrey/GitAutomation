@@ -93,17 +93,16 @@ namespace GitAutomation.Repository
             var remotes = await RemoteBranches().FirstAsync();
             Func<IReactiveProcess, Task<string>> getFirstOutput = target => 
                 (from o in target.Output
-                            .Do(_ => Console.WriteLine(_))
                  where o.Channel == OutputChannel.Out
                  select o.Message).FirstOrDefaultAsync().ToTask();
 
-            var allBranches = from remote in remotes
+            var allBranches = (from remote in remotes
                               select new
                               {
                                   branchName = remote,
                                   mergeBase = getFirstOutput(cli.MergeBase(remote, branchName)),
                                   commitish = getFirstOutput(cli.ShowRef(remote)),
-                              };
+                              }).ToArray();
             var currentCommitish = await getFirstOutput(cli.ShowRef(branchName));
 
             await Task.WhenAll(from branch in allBranches
@@ -111,10 +110,8 @@ namespace GitAutomation.Repository
                                select task);
 
             return (from branch in allBranches
-                    let commitish = branch.commitish.Result
-                    let mergeBase = branch.mergeBase.Result
-                    where commitish == mergeBase
-                    where commitish != currentCommitish
+                    where branch.commitish.Result == branch.mergeBase.Result
+                    where branch.commitish.Result != currentCommitish
                     select branch.branchName).ToImmutableList();
         }
 
