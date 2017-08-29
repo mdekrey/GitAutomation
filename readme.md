@@ -1,3 +1,6 @@
+Built to follow the [Scaled Git Process](https://medium.com/@matt.dekrey/a-better-git-branching-model-b3bc8b73e472).
+
+_Please note: GitAutomation will try to follow SemVer: the first major release will be v1.0.0._
 
 # Notices
 The Docker SQL images require at least 3.5GB of RAM. See https://github.com/Microsoft/mssql-docker/issues/114 for how to set the memory requirements.
