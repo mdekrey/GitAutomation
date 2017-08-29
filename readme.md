@@ -1,3 +1,12 @@
+# Automation for Scaled Git Flow!
+
+This is an automation project for [Scaled Git Flow](https://medium.com/@matt.dekrey/a-better-git-branching-model-b3bc8b73e472). 
+This currently a work in progress, as is noted by the Issues list, but will work for a minimal set of use-cases. However, it isn't recommended
+for production yet, as there is no security to actually connect to the web-hooks.
+
+## Prerequisites
+
+You need docker for your operating system. That's it!
 
 # Notices
 The Docker SQL images require at least 3.5GB of RAM. See https://github.com/Microsoft/mssql-docker/issues/114 for how to set the memory requirements.
@@ -17,6 +26,19 @@ Local files that are not included in the repository include:
  * /sql-eula.txt - whether you agree to Microsoft's EULA for the SQL docker container. Should contain a single 'Y' if you do.
 
  When you add these files, they should be without line endings and without UTF headers or you'll get difficult-to-track errors.
+
+## Testing
+
+As part of the unit test suite, there is a docker image that sets up a basic repository; you can set up and tear down the test suite's docker-compose to try out various features and techniques.
+
+Repositories: 
+ - http://tester@localhost:8081/git/gittesting1.git
+ - http://tester@localhost:8081/git/gittesting2.git
+ - http://tester@localhost:8081/git/gittesting3.git
+Password:
+ - TEST_PASSWORD
+
+They all start out as identical.
 
 # Building via Visual Studio 2017
 

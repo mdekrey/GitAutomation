@@ -7,7 +7,8 @@ node_modules
 *.jfm
 .vscode
 
-/git-credentials.txt
-/configuration.json
+/git-credentials*.txt
+/configuration*.json
+!/configuration.sample.json
 /sql-credentials.txt
 /sql-eula.txt
