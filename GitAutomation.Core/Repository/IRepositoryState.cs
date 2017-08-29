@@ -1,6 +1,8 @@
 ﻿using GitAutomation.Processes;
 using System;
 using System.Collections.Immutable;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace GitAutomation.Repository
 {
@@ -11,6 +13,6 @@ namespace GitAutomation.Repository
         IObservable<OutputMessage> CheckForUpdates();
 
         IObservable<string[]> RemoteBranches();
-
+        Task<ImmutableList<string>> DetectUpstream(string branchName);
     }
 }

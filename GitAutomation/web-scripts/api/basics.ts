@@ -19,6 +19,11 @@ export const branchDetails = (branchName: string) =>
     response => response.response as BranchDetails
   );
 
+export const detectUpstream = (branchName: string) =>
+  Observable.ajax("/api/management/detect-upstream/" + branchName).map(
+    response => response.response as string[]
+  );
+
 export const getLog = () =>
   Observable.ajax("/api/management/log").map(
     response => response.response as OutputMessage[]

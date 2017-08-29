@@ -10,6 +10,8 @@ using System.Reactive;
 using System.Collections.Immutable;
 using GitAutomation.Orchestration.Actions;
 using GitAutomation.Orchestration;
+using System.Threading.Tasks;
+using System.Reactive.Threading.Tasks;
 
 namespace GitAutomation.Repository
 {
@@ -20,13 +22,15 @@ namespace GitAutomation.Repository
         private readonly IObservable<Unit> allUpdates;
         private readonly IObservable<ImmutableList<GitCli.GitRef>> remoteBranches;
         private readonly IRepositoryOrchestration orchestration;
+        private readonly GitCli cli;
 
         public event EventHandler Updated;
 
-        public RepositoryState(IRepositoryOrchestration orchestration, IOptions<GitRepositoryOptions> options)
+        public RepositoryState(IRepositoryOrchestration orchestration, IOptions<GitRepositoryOptions> options, GitCli cli)
         {
             this.checkoutPath = options.Value.CheckoutPath;
             this.orchestration = orchestration;
+            this.cli = cli;
 
             this.allUpdates = Observable.FromEventPattern<EventHandler, EventArgs>(
                 handler => this.Updated += handler,
@@ -83,6 +87,33 @@ namespace GitAutomation.Repository
         public IObservable<OutputMessage> DeleteBranch(string branchName)
         {
             return orchestration.EnqueueAction(new DeleteBranchAction(branchName)).Finally(OnUpdated);
+        }
+
+        public async Task<ImmutableList<string>> DetectUpstream(string branchName)
+        {
+            var remotes = await RemoteBranches().FirstAsync();
+            Func<IReactiveProcess, Task<string>> getFirstOutput = target => 
+                (from o in target.Output
+                 where o.Channel == OutputChannel.Out
+                 select o.Message).FirstOrDefaultAsync().ToTask();
+
+            var allBranches = (from remote in remotes
+                              select new
+                              {
+                                  branchName = remote,
+                                  mergeBase = getFirstOutput(cli.MergeBase(remote, branchName)),
+                                  commitish = getFirstOutput(cli.ShowRef(remote)),
+                              }).ToArray();
+            var currentCommitish = await getFirstOutput(cli.ShowRef(branchName));
+
+            await Task.WhenAll(from branch in allBranches
+                               from task in new[] { branch.mergeBase, branch.commitish }
+                               select task);
+
+            return (from branch in allBranches
+                    where branch.commitish.Result == branch.mergeBase.Result
+                    where branch.commitish.Result != currentCommitish
+                    select branch.branchName).ToImmutableList();
         }
 
 
