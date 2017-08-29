@@ -25,3 +25,13 @@ services:
         source: ${DOCKER_BUILD_SOURCE}
     ports:
       - "1433"
+
+  git-server:
+    image: testing-git-server
+    build:
+      context: ./git-server
+      dockerfile: dockerfile
+    ports:
+      - "8082:80"
+    labels:
+      - "com.microsoft.visualstudio.targetoperatingsystem=linux"
