@@ -52,7 +52,7 @@ namespace Microsoft.Extensions.DependencyInjection
             }
             else
             {
-                throw new NotSupportedException($"Unknown repository api type: {repositoryOptions.ApiType}. Supported options: SqlServer");
+                throw new NotSupportedException($"Unknown repository api type: {repositoryOptions.ApiType}. Supported options: GitHub, Memory");
             }
 
             return services;
