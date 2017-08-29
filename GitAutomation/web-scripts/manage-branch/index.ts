@@ -11,7 +11,11 @@ import {
 import { runBranchData } from "./data";
 import { buildBranchCheckListing } from "./branch-check-listing";
 import { bindSaveButton } from "./bind-save-button";
-import { promoteServiceLine, deleteBranch } from "../api/basics";
+import {
+  promoteServiceLine,
+  deleteBranch,
+  detectUpstream
+} from "../api/basics";
 
 export const manage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -40,6 +44,7 @@ export const manage = (
   <h3>Downstream Branches</h3>
   <ul data-locator="downstream-branches"></ul>
   <h3>Upstream Branches</h3>
+  <a data-locator="detect-upstream">Detect Upstream Branches</a>
   <ul data-locator="upstream-branches"></ul>
   <button type="button" data-locator="reset">Reset</button>
   <button type="button" data-locator="home">Cancel</button>
@@ -56,9 +61,9 @@ export const manage = (
   </label>
   <button type="button" data-locator="promote-service-line">Release to Service Line</button>
 
-    <h3>Delete Branch</h3>
-    <p>This action cannot be undone.</p>
-    <button type="button" data-locator="delete-branch">Delete</button>
+  <h3>Delete Branch</h3>
+  <p>This action cannot be undone.</p>
+  <button type="button" data-locator="delete-branch">Delete</button>
 `)
     )
     .publishReplay(1)
@@ -174,6 +179,28 @@ export const manage = (
               )
             )
             .subscribe()
+        );
+
+        subscription.add(
+          rxEvent({
+            target: container.map(fnSelect(`[data-locator="detect-upstream"]`)),
+            eventName: "click"
+          })
+            .withLatestFrom(
+              container.map(fnSelect(`[data-locator="upstream-branches"]`)),
+              (_, elem) => elem
+            )
+            .subscribe(elements => {
+              detectUpstream(branchName).subscribe(branchNames =>
+                branchNames.forEach(upstreamBranchName =>
+                  elements
+                    .select(
+                      `[data-locator="check"][data-branch="${upstreamBranchName}"]`
+                    )
+                    .property("checked", true)
+                )
+              );
+            })
         );
 
         subscription.add(
