@@ -223,13 +223,13 @@ namespace GitAutomation.Orchestration.Actions
                 }
                 else
                 {
-                    // TODO - conflict!
+                    // conflict!
                     processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} conflicts with {upstreamBranch}" }));
                     await CleanIndex();
 
                     var canUseIntegrationBranch = details.BranchType != BranchType.Integration && details.DirectUpstreamBranches.Count != 1;
                     var createdIntegrationBranch = canUseIntegrationBranch
-                        ? await CreateIntegrationBranches(details.DirectUpstreamBranches.Select(branch => branch.BranchName))
+                        ? await FindAndCreateIntegrationBranches(details.DirectUpstreamBranches.Select(branch => branch.BranchName))
                         : false;
 
                     if (!createdIntegrationBranch)
@@ -282,7 +282,7 @@ namespace GitAutomation.Orchestration.Actions
                 public string BranchB;
             }
 
-            private async Task<bool> CreateIntegrationBranches(IEnumerable<string> initialUpstreamBranches)
+            private async Task<bool> FindAndCreateIntegrationBranches(IEnumerable<string> initialUpstreamBranches)
             {
                 // 1. Find branches that conflict
                 // 2. Create integration branches for them
@@ -309,19 +309,49 @@ namespace GitAutomation.Orchestration.Actions
                 // A-H and B-J are added to the downstream branch, if A-H was not already added to the downstream branch.
 
                 var upstreamBranchListings = new Dictionary<string, ImmutableList<string>>();
-                var rootConflicts = new HashSet<ConflictingBranches>();
+                var hasOpenPullRequest = new Dictionary<string, bool>();
+                var leafConflicts = new HashSet<ConflictingBranches>();
+                var unflippedConflicts = new HashSet<ConflictingBranches>();
+                // Remove from `middleConflicts` if we find a deeper one that conflicts
+                var middleConflicts = new HashSet<ConflictingBranches>();
                 var possibleConflicts = new Stack<PossibleConflictingBranches>(
                     from branchA in initialUpstreamBranches
                     from branchB in initialUpstreamBranches
                     where branchA.CompareTo(branchB) < 0
-                    select new PossibleConflictingBranches { BranchA = branchA, BranchB = branchB }
+                    select new PossibleConflictingBranches { BranchA = branchA, BranchB = branchB, ConflictWhenSuccess = null }
                 );
 
+                Func<PossibleConflictingBranches, Task<bool>> digDeeper = async (possibleConflict) =>
+                {
+                    var upstreamBranches = await GetUpstreamBranches(possibleConflict.BranchA, upstreamBranchListings);
+                    if (upstreamBranches.Count > 0)
+                    {
+                        // go deeper on the left side
+                        foreach (var possible in upstreamBranches)
+                        {
+                            possibleConflicts.Push(new PossibleConflictingBranches
+                            {
+                                BranchA = possible,
+                                BranchB = possibleConflict.BranchB,
+                                ConflictWhenSuccess = new ConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possibleConflict.BranchB }
+                            });
+                        }
+                        return true;
+                    }
+                    return false;
+                };
+
+                var skippedDueToPullRequest = false;
                 while (possibleConflicts.Count > 0)
                 {
                     var possibleConflict = possibleConflicts.Pop();
-                    if (rootConflicts.Contains(new ConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possibleConflict.BranchB }))
+                    if (leafConflicts.Contains(new ConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possibleConflict.BranchB }))
                     {
+                        continue;
+                    }
+                    if (await CachedHasOpenPullRequest(possibleConflict.BranchA, hasOpenPullRequest) || await CachedHasOpenPullRequest(possibleConflict.BranchB, hasOpenPullRequest))
+                    {
+                        skippedDueToPullRequest = true;
                         continue;
                     }
                     var isSuccessfulMerge = await DoMerge(possibleConflict.BranchA, possibleConflict.BranchB, "CONFLICT TEST; DO NOT PUSH");
@@ -329,38 +359,80 @@ namespace GitAutomation.Orchestration.Actions
                     if (isSuccessfulMerge)
                     {
                         // successful, not a conflict
-                        if (possibleConflict.ConflictWhenSuccess.HasValue)
-                        {
-                            rootConflicts.Add(possibleConflict.ConflictWhenSuccess.Value);
-                        }
                     }
                     else
                     {
-                        // there was a conflict, check deeper
-                        var conflict = new ConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possibleConflict.BranchB };
-                        var upstreamBranches = await GetUpstreamBranches(possibleConflict.BranchA, upstreamBranchListings);
-                        if (upstreamBranches.Count > 0)
+                        // there was a conflict
+                        if (possibleConflict.ConflictWhenSuccess.HasValue && unflippedConflicts.Contains(possibleConflict.ConflictWhenSuccess.Value))
                         {
-                            foreach (var possible in upstreamBranches)
-                            {
-                                possibleConflicts.Push(new PossibleConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possible, ConflictWhenSuccess = conflict });
-                            }
+                            // so remove the intermediary
+                            unflippedConflicts.Remove(possibleConflict.ConflictWhenSuccess.Value);
+                        }
+                        // ...and check deeper
+                        var conflict = new ConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possibleConflict.BranchB };
+                        unflippedConflicts.Add(conflict);
+                        if (await digDeeper(possibleConflict))
+                        {
+                            // succeeded to dig deeper on branchA
+                        }
+                    }
+                }
+
+                foreach (var conflict in unflippedConflicts)
+                {
+                    if (await digDeeper(new PossibleConflictingBranches
+                    {
+                        BranchA = conflict.BranchB,
+                        BranchB = conflict.BranchA,
+                        ConflictWhenSuccess = null,
+                    }))
+                    {
+                        middleConflicts.Add(new ConflictingBranches { BranchA = conflict.BranchB, BranchB = conflict.BranchA });
+                    }
+                    else
+                    {
+                        // Nothing deeper; this is our conflict
+                        leafConflicts.Add(conflict);
+                    }
+                }
+
+                while (possibleConflicts.Count > 0)
+                {
+                    var possibleConflict = possibleConflicts.Pop();
+                    if (leafConflicts.Contains(new ConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possibleConflict.BranchB }))
+                    {
+                        continue;
+                    }
+                    if (await CachedHasOpenPullRequest(possibleConflict.BranchA, hasOpenPullRequest) || await CachedHasOpenPullRequest(possibleConflict.BranchB, hasOpenPullRequest))
+                    {
+                        skippedDueToPullRequest = true;
+                        continue;
+                    }
+                    var isSuccessfulMerge = await DoMerge(possibleConflict.BranchA, possibleConflict.BranchB, "CONFLICT TEST; DO NOT PUSH");
+                    await CleanIndex();
+                    if (isSuccessfulMerge)
+                    {
+                        // successful, not a conflict
+                    }
+                    else
+                    {
+                        // there was a conflict
+                        if (possibleConflict.ConflictWhenSuccess.HasValue && middleConflicts.Contains(possibleConflict.ConflictWhenSuccess.Value))
+                        {
+                            // so remove the intermediary
+                            middleConflicts.Remove(possibleConflict.ConflictWhenSuccess.Value);
+                        }
+                        // ...and check deeper
+                        var conflict = new ConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possibleConflict.BranchB };
+                        if (await digDeeper(possibleConflict))
+                        {
+                            // succeeded to dig deeper on branchA
+                            middleConflicts.Add(conflict);
                         }
                         else
-                        { 
-                            var otherUpstream = await GetUpstreamBranches(possibleConflict.BranchB, upstreamBranchListings);
-                            if (otherUpstream.Count > 0)
-                            {
-                                foreach (var possible in otherUpstream)
-                                {
-                                    possibleConflicts.Push(new PossibleConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possible, ConflictWhenSuccess = conflict });
-                                }
-                            }
-                            else
-                            {
-                                // Nothing deeper; this is our conflict
-                                rootConflicts.Add(conflict);
-                            }
+                        {
+                            // Nothing deeper; this is our conflict
+                            leafConflicts.Add(conflict);
                         }
                     }
                 }
@@ -368,7 +440,7 @@ namespace GitAutomation.Orchestration.Actions
                 var addedIntegrationBranch = false;
                 using (var work = workFactory.CreateUnitOfWork())
                 {
-                    foreach (var conflict in rootConflicts)
+                    foreach (var conflict in leafConflicts.Concat(middleConflicts))
                     {
                         var integrationBranch = await settings.GetIntegrationBranch(conflict.BranchA, conflict.BranchB);
                         if (integrationBranch == null)
@@ -389,7 +461,16 @@ namespace GitAutomation.Orchestration.Actions
                     await work.CommitAsync();
                 }
                 
-                return addedIntegrationBranch;
+                return addedIntegrationBranch || skippedDueToPullRequest;
+            }
+
+            private async Task<bool> CachedHasOpenPullRequest(string branch, Dictionary<string, bool> hasOpenPullRequest)
+            {
+                if (!hasOpenPullRequest.ContainsKey(branch))
+                {
+                    hasOpenPullRequest[branch] = await gitServiceApi.HasOpenPullRequest(targetBranch: branch);
+                }
+                return hasOpenPullRequest[branch];
             }
 
             private async Task<ImmutableList<string>> GetUpstreamBranches(string branch, Dictionary<string, ImmutableList<string>> upstreamBranchListings)
