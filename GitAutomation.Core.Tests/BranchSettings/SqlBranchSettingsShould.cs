@@ -33,6 +33,10 @@ namespace GitAutomation.BranchSettings
             SqlBranchSettings.GetAllDownstreamBranchesCommand.ExplainMultipleResult(database.BuildSqlConnection());
 
         [TestMethod]
+        public void HaveAValidGetAllDownstreamBranchesFromBranchCommand() =>
+            SqlBranchSettings.GetAllDownstreamBranchesFromBranchCommand.ExplainMultipleResult(database.BuildSqlConnection());
+
+        [TestMethod]
         public void HaveAValidGetAllUpstreamBranchesCommand() =>
             SqlBranchSettings.GetAllUpstreamBranchesCommand.ExplainMultipleResult(database.BuildSqlConnection());
 

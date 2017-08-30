@@ -52,21 +52,8 @@ namespace GitAutomation.Orchestration
                     .RemoteBranches()
                     .Where(branches => branches.Length > 0)
                     .Subscribe(allBranches =>
-                        allBranches.ToObservable()
-                            .SelectMany(
-                                upstream =>
-                                    branchSettings
-                                        .GetDownstreamBranches(upstream)
-                                        .Take(1)
-                                        .SelectMany(branches =>
-                                            branches
-                                                .ToObservable()
-                                                .Select(downstream => new { upstream, downstream })
-                                        )
-                            )
-                            .ToList()
-                            // TODO - order by depth
-                            .SelectMany(all => all.Select(each => each.downstream.BranchName).Distinct().ToObservable())
+                        branchSettings.GetAllDownstreamBranches()
+                            .SelectMany(all => all.Select(each => each.BranchName).ToObservable())
                             .SelectMany(downstreamBranch => orchestrationActions.CheckDownstreamMerges(downstreamBranch))
                             .Subscribe(
                                 onNext: _ => { }, 
