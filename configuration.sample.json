@@ -8,6 +8,6 @@
   },
   "persistence": {
     "type": "SqlServer",
-    "connectionString": "Server=gitautomationsql;Database=gitautomation;User Id=sa;Password=THE_SA_PASSWORD;"
+    "connectionString": "Server=gitautomation-sql;Database=gitautomation;User Id=sa;Password=THE_SA_PASSWORD;"
   }
 }

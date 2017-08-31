@@ -42,8 +42,13 @@ They all start out as identical. If you want to clone them locally, they should 
 
 # Building via Visual Studio 2017
 
+As of VS2017 update 15.3, the [Visual Studio Tools for Docker no longer handle non-dotnet Dockerfiles as part of compose.](https://developercommunity.visualstudio.com/content/problem/96130/solution-build-fails-with-docker-compose-error-in.html)
+This is a bug, but the repositories have been updated to reflect it.
+
 1. Make sure the files mentioned above are in place.
-2. Launch the sln file and build.
+2. `docker-compose -f docker-compose.ci.build.yml up --build` 
+3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml build`
+4. Launch the sln file and build.
 
 And then to run it...
 
@@ -53,7 +58,7 @@ And then to run it...
 
 1. Make sure the files mentioned above are in place.
 2. `docker-compose -f docker-compose.ci.build.yml up --build` 
-4. `docker-compose build`
+4. `docker-compose -f docker-compose.yml -f docker-compose.build.yml build`
 
 And then to run it...
 
