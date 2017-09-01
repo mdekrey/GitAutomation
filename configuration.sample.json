@@ -9,5 +9,14 @@
   "persistence": {
     "type": "SqlServer",
     "connectionString": "Server=gitautomation-sql;Database=gitautomation;User Id=sa;Password=THE_SA_PASSWORD;"
+  },
+  "authentication": {
+    "oauth": {
+      "clientId": "YOUR_CLIENT_ID",
+      "clientSecret": "YOUR_CLIENT_SECRET",
+      "authorizationEndpoint": "etc",
+      "tokenEndpoint": "etc",
+      "userInformationEndpoint": "YOUR_CLIENT_ID"
+    }
   }
 }

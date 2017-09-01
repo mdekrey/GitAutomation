@@ -16,6 +16,7 @@ using GitAutomation.BranchSettings;
 using GitAutomation.Swagger;
 using Swashbuckle.SwaggerGen.Generator;
 using GitAutomation.Orchestration;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace GitAutomation
 {
@@ -50,20 +51,20 @@ namespace GitAutomation
                 options.SingleApiVersion(new Swashbuckle.Swagger.Model.Info
                 {
                     Version = "v1",
-                    Title = "Woosti API",
-                    Description = "Create your own personal Radio",
+                    Title = "GitAutomation",
+                    Description = "Automate your Git Repository",
                     TermsOfService = "TODO"
                 });
                 options.DescribeAllEnumsAsStrings();
-          //options.OperationFilter<IgnoreCustomBindingOperationFilter>();
-          //options.OperationFilter<FixPathOperationFilter>();
-          options.OperationFilter<OperationIdFilter>();
-          //options.OperationFilter<AddValidationResponseOperationFilter>();
-          //options.CustomSchemaIds(t => t.FriendlyId(true));
-          //options.SchemaFilter<AdditionalValidationFilter>();
-          //options.SchemaFilter<ReferenceEnumFilter>();
-          //options.SchemaFilter<ClassAssemblyFilter>();
-      });
+                //options.OperationFilter<IgnoreCustomBindingOperationFilter>();
+                //options.OperationFilter<FixPathOperationFilter>();
+                options.OperationFilter<OperationIdFilter>();
+                //options.OperationFilter<AddValidationResponseOperationFilter>();
+                //options.CustomSchemaIds(t => t.FriendlyId(true));
+                //options.SchemaFilter<AdditionalValidationFilter>();
+                //options.SchemaFilter<ReferenceEnumFilter>();
+                //options.SchemaFilter<ClassAssemblyFilter>();
+            });
 
             services.AddGitUtilities(Configuration.GetSection("persistence").Get<PersistenceOptions>(), Configuration.GetSection("git").Get<GitRepositoryOptions>());
             services.Configure<GitRepositoryOptions>(Configuration.GetSection("git"));
@@ -75,6 +76,23 @@ namespace GitAutomation
                         "max-age=0, must-revalidate";
                 }
             );
+
+            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie()
+                .AddOAuth(Auth.Names.OAuthAuthenticationScheme, options =>
+                {
+                    Configuration.GetSection("authentication:oauth").Bind(options);
+                    options.CallbackPath = new PathString("/custom-oauth-signin");
+                });
+            services.AddAuthorization(options =>
+            {
+                var bearerOnly = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme)
+                    .Build();
+                options.AddPolicy(Auth.Names.DefaultPolicy, bearerOnly);
+                options.DefaultPolicy = bearerOnly;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -85,6 +103,15 @@ namespace GitAutomation
 
             var repositoryStateRunner = app.ApplicationServices.GetRequiredService<IRepositoryStateDriver>();
 
+            if (env.IsDevelopment())
+            {
+                var repositoryState = app.ApplicationServices.GetRequiredService<IRepositoryState>();
+                repositoryState.DeleteRepository();
+
+                app.UseDeveloperExceptionPage();
+            }
+            app.UseAuthentication();
+            
             app.UseDefaultFiles(new DefaultFilesOptions
             {
                 DefaultFileNames =
@@ -93,13 +120,6 @@ namespace GitAutomation
                 }
             });
 
-            if (env.IsDevelopment())
-            {
-                var repositoryState = app.ApplicationServices.GetRequiredService<IRepositoryState>();
-                repositoryState.DeleteRepository();
-
-                app.UseDeveloperExceptionPage();
-            }
             repositoryStateRunner.Start();
             app.UseStaticFiles();
             app.UseMvc();

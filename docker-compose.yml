@@ -10,7 +10,7 @@ services:
       - gitcredentials
       - configuration.json
     ports: 
-      - "80"
+      - "32768:80"
   gitautomation-sql:
     image: gitautomation-sql
 #    build:
