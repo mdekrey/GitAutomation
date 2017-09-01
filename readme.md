@@ -45,6 +45,8 @@ They all start out as identical. If you want to clone them locally, they should 
 As of VS2017 update 15.3, the [Visual Studio Tools for Docker no longer handle non-dotnet Dockerfiles as part of compose.](https://developercommunity.visualstudio.com/content/problem/96130/solution-build-fails-with-docker-compose-error-in.html)
 This is a bug, but the repositories have been updated to reflect it.
 
+This uses [.NET Core 2.0.0 SDK](https://github.com/dotnet/core/blob/master/release-notes/download-archives/2.0.0-download.md) to run. ([Permalink to that version.](https://github.com/dotnet/core/blob/5f845efbe93063325bf317dadd81ddce42fd3b63/release-notes/download-archives/2.0.0-download.md))
+
 1. Make sure the files mentioned above are in place.
 2. `docker-compose -f docker-compose.ci.build.yml up --build` 
 3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml build`
