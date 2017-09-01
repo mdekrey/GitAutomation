@@ -24,7 +24,10 @@ namespace GitAutomation.Auth
         [HttpGet("claims")]
         public IActionResult GetClaims()
         {
-            return Ok(User.Claims.Select(claim => new { Type = claim.Type, Value = claim.Value }));
+            return Ok(new {
+                All = User.Claims.Select(claim => new { Type = claim.Type, Value = claim.Value }),
+                Roles = User.Claims.Where(claim => claim.Type == Names.RoleType).Select(claim => claim.Value),
+            });
         }
     }
 }

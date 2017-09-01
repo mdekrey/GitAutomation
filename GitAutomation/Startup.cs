@@ -84,7 +84,22 @@ namespace GitAutomation
             );
 
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie()
+                .AddCookie(options =>
+                {
+                    options.Events = new CookieAuthenticationEvents
+                    {
+                        OnSigningIn = async (context) =>
+                        {
+                            await Task.Yield();
+                            var original = context.Principal.Identity as ClaimsIdentity;
+
+                            var id = new ClaimsIdentity(Auth.Names.AuthenticationType, original.NameClaimType, Auth.Names.RoleType);
+                            id.AddClaims(original.Claims.Where(claim => claim.Type != Auth.Names.RoleType));
+                            id.AddClaim(new Claim(id.RoleClaimType, "what"));
+                            context.Principal = new ClaimsPrincipal(id);
+                        }
+                    };
+                })
                 .AddOAuth(Auth.Names.OAuthAuthenticationScheme, options =>
                 {
                     Configuration.GetSection("authentication:oauth").Bind(options);

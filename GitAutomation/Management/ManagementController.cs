@@ -10,9 +10,11 @@ using GitAutomation.BranchSettings;
 using System.Collections.Immutable;
 using GitAutomation.Work;
 using GitAutomation.Orchestration;
+using Microsoft.AspNetCore.Authorization;
 
 namespace GitAutomation.Management
 {
+    [Authorize]
     [Route("api/[controller]")]
     public class ManagementController : Controller
     {
