@@ -2,12 +2,14 @@
   "git": {
     "repository": "https://mdekrey@github.com/mdekrey/git-branching",
     "password": "YOUR_GITHUB_PASSWORD",
-    "apiType": "GitHub",
+    "apiType": "GitAutomation.GitHub.RegisterGitHub",
     "userEmail": "git.automation@example.com",
     "userName": "Git Automation"
   },
   "persistence": {
     "type": "SqlServer",
-    "connectionString": "Server=gitautomation-sql;Database=gitautomation;User Id=sa;Password=THE_SA_PASSWORD;"
+    "sqlServer": {
+      "connectionString": "Server=gitautomation-sql;Database=gitautomation;User Id=sa;Password=THE_SA_PASSWORD;"
+    }
   }
 }

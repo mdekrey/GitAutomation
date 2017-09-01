@@ -1,8 +1,9 @@
 ﻿using GitAutomation.BranchSettings;
 using GitAutomation.GitService;
 using GitAutomation.Orchestration;
+using GitAutomation.Plugins;
 using GitAutomation.Repository;
-using GitAutomation.SqlServer;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -13,7 +14,7 @@ namespace Microsoft.Extensions.DependencyInjection
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddGitUtilities(this IServiceCollection services, PersistenceOptions persistenceOptions, GitRepositoryOptions repositoryOptions)
+        public static IServiceCollection AddGitUtilities(this IServiceCollection services, IConfiguration persistenceConfiguration, IConfiguration repositoryConfiguration)
         {
             services.AddSingleton<GitAutomation.Processes.IReactiveProcessFactory, GitAutomation.Processes.ReactiveProcessFactory>();
             services.AddSingleton<IRepositoryOrchestration, RepositoryOrchestration>();
@@ -25,35 +26,19 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddSingleton<GitAutomation.Work.IUnitOfWorkFactory, GitAutomation.Work.UnitOfWorkFactory>();
 
-            // TODO - should have some sort of registry for persistence types
             services.AddSingleton<IBranchSettingsNotifiers, BranchSettingsNotifiers>();
-            if (persistenceOptions.Type == "SqlServer")
-            {
-                services.AddSingleton<IBranchSettings, SqlBranchSettings>();
-                services.AddScoped(serviceProvider =>
-                {
-                    var result = new ConnectionManagement(persistenceOptions.Connectionstring);
-                    return result;
-                });
-            }
-            else
-            {
-                throw new NotSupportedException($"Unknown persistence type: {persistenceOptions.Type}. Supported options: SqlServer");
-            }
 
-            // TODO - should have some sort of registry for Repository API types
-            if (repositoryOptions.ApiType == "GitHub")
-            {
-                services.AddSingleton<IGitServiceApi, GitHubServiceApi>();
-            }
-            else if (repositoryOptions.ApiType == "Memory")
-            {
-                services.AddSingleton<IGitServiceApi, MemoryGitServiceApi>();
-            }
-            else
-            {
-                throw new NotSupportedException($"Unknown repository api type: {repositoryOptions.ApiType}. Supported options: GitHub, Memory");
-            }
+            var persistenceOptions = persistenceConfiguration.Get<PersistenceOptions>();
+            PluginActivator.GetPlugin<IRegisterBranchSettings>(
+                typeName: persistenceOptions.Type,
+                errorMessage: $"Unknown persistence registry: {persistenceOptions.Type}. Specify a .Net type."
+            ).RegisterBranchSettings(services, persistenceConfiguration);
+            
+            var repositoryOptions = repositoryConfiguration.Get<GitRepositoryOptions>();
+            PluginActivator.GetPlugin<IRegisterGitServiceApi>(
+                typeName: repositoryOptions.ApiType,
+                errorMessage: $"Unknown git service api registry: {repositoryOptions.ApiType}. Specify a .Net type, such as `{typeof(RegisterMemory).FullName}`"
+            ).RegisterGitServiceApi(services, repositoryConfiguration);
 
             return services;
         }
