@@ -17,6 +17,12 @@ using GitAutomation.Swagger;
 using Swashbuckle.SwaggerGen.Generator;
 using GitAutomation.Orchestration;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using Microsoft.AspNetCore.Authentication.OAuth;
+using Newtonsoft.Json.Linq;
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
 
 namespace GitAutomation
 {
@@ -83,6 +89,28 @@ namespace GitAutomation
                 {
                     Configuration.GetSection("authentication:oauth").Bind(options);
                     options.CallbackPath = new PathString("/custom-oauth-signin");
+                    options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "id");
+                    options.ClaimActions.MapJsonKey(ClaimTypes.Name, "login");
+                    options.ClaimActions.MapJsonKey("urn:github:name", "name");
+                    options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email", ClaimValueTypes.Email);
+                    options.ClaimActions.MapJsonKey("urn:github:url", "url");
+                    options.Events = new OAuthEvents
+                    {
+                        OnCreatingTicket = async context =>
+                        {
+                            // Get the GitHub user
+                            var request = new HttpRequestMessage(HttpMethod.Get, context.Options.UserInformationEndpoint);
+                            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", context.AccessToken);
+                            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                            var response = await context.Backchannel.SendAsync(request, context.HttpContext.RequestAborted);
+                            response.EnsureSuccessStatusCode();
+
+                            var user = JObject.Parse(await response.Content.ReadAsStringAsync());
+
+                            context.RunClaimActions(user);
+                        }
+                    };
                 });
             services.AddAuthorization(options =>
             {

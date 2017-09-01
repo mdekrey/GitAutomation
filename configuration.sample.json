@@ -14,9 +14,9 @@
     "oauth": {
       "clientId": "YOUR_CLIENT_ID",
       "clientSecret": "YOUR_CLIENT_SECRET",
-      "authorizationEndpoint": "etc",
-      "tokenEndpoint": "etc",
-      "userInformationEndpoint": "YOUR_CLIENT_ID"
+      "authorizationEndpoint": "https://github.com/login/oauth/authorize",
+      "tokenEndpoint": "https://github.com/login/oauth/access_token",
+      "userInformationEndpoint": "https://api.github.com/user"
     }
   }
 }
