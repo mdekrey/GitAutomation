@@ -1,4 +1,5 @@
 ﻿using GitAutomation.Work;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -13,9 +14,9 @@ namespace GitAutomation.SqlServer
         private readonly SqlConnection connection;
         private SqlTransaction transaction;
 
-        public ConnectionManagement(string connectionString)
+        public ConnectionManagement(IOptions<SqlServerOptions> options)
         {
-            this.connection = new SqlConnection(connectionString);
+            this.connection = new SqlConnection(options.Value.ConnectionString);
         }
 
         public DbConnection Connection => connection;

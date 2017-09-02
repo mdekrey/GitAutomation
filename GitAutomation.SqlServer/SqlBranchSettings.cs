@@ -12,8 +12,9 @@ using System.Reactive.Linq;
 using System.Reactive;
 using GitAutomation.SqlServer;
 using System.Linq;
+using GitAutomation.BranchSettings;
 
-namespace GitAutomation.BranchSettings
+namespace GitAutomation.SqlServer
 {
     class SqlBranchSettings : IBranchSettings
     {

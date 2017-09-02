@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GitAutomation.Core\GitAutomation.Core.csproj" />
+    <ProjectReference Include="..\GitAutomation.SqlServer\GitAutomation.SqlServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>
