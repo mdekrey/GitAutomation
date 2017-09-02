@@ -75,9 +75,6 @@
     <None Include="runtime-scripts\entrypoint.sh" />
     <None Include="shared-scripts\wait-for-sql.sh" />
   </ItemGroup>
-  <ItemGroup>
-    <RefactorLog Include="GitAutomation.Sql.refactorlog" />
-  </ItemGroup>
   <PropertyGroup>
     <PostBuildEvent>cd "$(ProjectDir)"
 docker build -t "gitautomation-sql:build" -f "Dockerfile-ci" .
