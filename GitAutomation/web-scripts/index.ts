@@ -12,8 +12,14 @@ import { RoutingComponent, renderRoute } from "./utils/routing-component";
 import { homepage } from "./home/index";
 import { manage } from "./manage-branch/index";
 import { newBranch } from "./new-branch/index";
+import { currentClaims } from "./api/basics";
+import { ClaimDetails } from "./api/claim-details";
+import { login } from "./login/index";
 
 const body = Observable.of(d3element(document.body));
+
+const claims = currentClaims().publishReplay(1);
+claims.connect();
 
 buildCascadingStrategy(windowHashStrategy)
   .let(
@@ -22,16 +28,28 @@ buildCascadingStrategy(windowHashStrategy)
       manage: RouteConcrete(manage(body)),
       "new-branch": RouteConcrete(newBranch(body)),
       admin: RouteAlias("manage"),
-      [wildcard]: RouteConcrete(() => Observable.empty())
+      login: RouteConcrete(login(body, claims)),
+      [wildcard]: RouteConcrete(() =>
+        body.do(elem => elem.html(`Four-oh-four`))
+      )
     })
   )
   .let(renderRoute)
   .subscribe({
-    next: _ => {
-      // (window as any).currentRouteState = _;
-      console.log(_);
-    },
     error: ex => {
       console.error(ex);
     }
   });
+
+buildCascadingStrategy(windowHashStrategy)
+  .let(
+    route<RoutingComponent>({
+      login: RouteConcrete(() => Observable.empty()),
+      [wildcard]: RouteConcrete(() => claims)
+    })
+  )
+  .let(renderRoute)
+  .filter<ClaimDetails>(claims => claims.roles.length === 0)
+  .subscribe(() =>
+    windowHashStrategy.navigate({ url: "/login", replaceCurentHistory: true })
+  );
