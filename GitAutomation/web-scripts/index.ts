@@ -15,6 +15,7 @@ import { newBranch } from "./new-branch/index";
 import { currentClaims } from "./api/basics";
 import { ClaimDetails } from "./api/claim-details";
 import { login } from "./login/index";
+import "./style/global";
 
 const body = Observable.of(d3element(document.body));
 
