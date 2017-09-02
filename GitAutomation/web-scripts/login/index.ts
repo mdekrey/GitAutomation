@@ -23,6 +23,7 @@ export const login = (
   <a data-locator="log-in">Log In</a>
 
   <h1 data-locator="current-claims">Your current claims</h1>
+  <p>If you're seeing this screen, share the below values with your administrator so they can give you access.</p>
   <ul data-locator="claims">
   </ul>
 `)
@@ -64,10 +65,7 @@ export const login = (
         rxDatum(claims.map(claim => Boolean(claim.claims.length)))(
           body.map(fnSelect('[data-locator="current-claims"]'))
         ).subscribe(target => {
-          target.style(
-            "display",
-            hasClaims => (hasClaims ? "initial" : "none")
-          );
+          target.style("display", hasClaims => (hasClaims ? null : "none"));
         });
 
         return subscription;
