@@ -45,7 +45,7 @@ export const login = (
 
         // display actions
         subscription.add(
-          rxData(body, claims.map(claim => claim.all))
+          rxData(body, claims.map(claim => claim.claims))
             .bind<HTMLLIElement>({
               onCreate: target => target.append<HTMLLIElement>("li"),
               onEnter: li =>
@@ -61,7 +61,7 @@ export const login = (
             .subscribe()
         );
 
-        rxDatum(claims.map(claim => Boolean(claim.all.length)))(
+        rxDatum(claims.map(claim => Boolean(claim.claims.length)))(
           body.map(fnSelect('[data-locator="current-claims"]'))
         ).subscribe(target => {
           target.style(
