@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Authentication.OAuth;
 using Newtonsoft.Json.Linq;
 using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
+using GitAutomation.Plugins;
 
 namespace GitAutomation
 {
@@ -83,7 +84,7 @@ namespace GitAutomation
                 }
             );
 
-            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            var authBuilder = services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie(options =>
                 {
                     options.Events = new CookieAuthenticationEvents
@@ -99,34 +100,16 @@ namespace GitAutomation
                             context.Principal = new ClaimsPrincipal(id);
                         }
                     };
-                })
-                .AddOAuth(Auth.Names.OAuthAuthenticationScheme, options =>
-                {
-                    Configuration.GetSection("authentication:oauth").Bind(options);
-                    options.CallbackPath = new PathString("/custom-oauth-signin");
-                    options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "id");
-                    options.ClaimActions.MapJsonKey(ClaimTypes.Name, "login");
-                    options.ClaimActions.MapJsonKey("urn:github:name", "name");
-                    options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email", ClaimValueTypes.Email);
-                    options.ClaimActions.MapJsonKey("urn:github:url", "url");
-                    options.Events = new OAuthEvents
-                    {
-                        OnCreatingTicket = async context =>
-                        {
-                            // Get the GitHub user
-                            var request = new HttpRequestMessage(HttpMethod.Get, context.Options.UserInformationEndpoint);
-                            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", context.AccessToken);
-                            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                            var response = await context.Backchannel.SendAsync(request, context.HttpContext.RequestAborted);
-                            response.EnsureSuccessStatusCode();
-
-                            var user = JObject.Parse(await response.Content.ReadAsStringAsync());
-
-                            context.RunClaimActions(user);
-                        }
-                    };
                 });
+
+            var authenticationSection = Configuration.GetSection("authentication");
+            var authenticationOptions = authenticationSection.Get<Plugins.AuthenticationOptions>();
+            services.Configure<Plugins.AuthenticationOptions>(authenticationSection);
+            PluginActivator.GetPlugin<IRegisterAuthentication>(
+                typeName: authenticationOptions.Type,
+                errorMessage: $"Unknown git service api registry: {authenticationOptions.Type}. Specify a .Net type.`"
+            ).RegisterAuthentication(services, authBuilder, authenticationSection);
+
             services.AddAuthorization(options =>
             {
                 var bearerOnly = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()

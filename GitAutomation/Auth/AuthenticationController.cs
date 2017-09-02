@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,13 +13,13 @@ namespace GitAutomation.Auth
     {
 
         [HttpGet("sign-in")]
-        public IActionResult SignIn()
+        public IActionResult SignIn([FromServices] IOptions<Plugins.AuthenticationOptions> options)
         {
             // TODO
-            return this.Challenge(new Microsoft.AspNetCore.Authentication.AuthenticationProperties
+            return this.Challenge(new AuthenticationProperties
             {
                 RedirectUri = "/"
-            }, Names.OAuthAuthenticationScheme);
+            }, options.Value.Scheme);
         }
 
         [HttpGet("claims")]

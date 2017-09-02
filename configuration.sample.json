@@ -2,7 +2,7 @@
   "git": {
     "repository": "https://mdekrey@github.com/mdekrey/git-branching",
     "password": "YOUR_GITHUB_PASSWORD",
-    "apiType": "GitAutomation.GitHub.RegisterGitHub",
+    "apiType": "GitAutomation.GitHub.RegisterGitHub, GitAutomation.GitHub",
     "userEmail": "git.automation@example.com",
     "userName": "Git Automation"
   },
@@ -13,6 +13,8 @@
     }
   },
   "authentication": {
+    "type": "GitAutomation.GitHub.RegisterGitHub, GitAutomation.GitHub",
+    "scheme": "GitHubScheme",
     "oauth": {
       "clientId": "YOUR_CLIENT_ID",
       "clientSecret": "YOUR_CLIENT_SECRET",
