@@ -1,6 +1,6 @@
 ﻿{
   "git": {
-    "repository": "https://mdekrey@github.com/mdekrey/git-branching",
+    "repository": "https://mdekrey@github.com/mdekrey/gitautomation",
     "password": "YOUR_GITHUB_PASSWORD",
     "apiType": "GitAutomation.GitHub.RegisterGitHub, GitAutomation.GitHub",
     "userEmail": "git.automation@example.com",
@@ -14,13 +14,9 @@
   },
   "authentication": {
     "type": "GitAutomation.GitHub.RegisterGitHub, GitAutomation.GitHub",
-    "scheme": "GitHubScheme",
     "oauth": {
       "clientId": "YOUR_CLIENT_ID",
-      "clientSecret": "YOUR_CLIENT_SECRET",
-      "authorizationEndpoint": "https://github.com/login/oauth/authorize",
-      "tokenEndpoint": "https://github.com/login/oauth/access_token",
-      "userInformationEndpoint": "https://api.github.com/user"
+      "clientSecret": "YOUR_CLIENT_SECRET"
     }
   },
   "authorization": {
@@ -32,7 +28,7 @@
         }
       ],
       "read": [
-        { "all": "true" }
+        { "type": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name" }
       ]
     }
   }

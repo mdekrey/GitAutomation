@@ -21,9 +21,12 @@ namespace GitAutomation.GitHub
         {
             var authenticationOptions = configuration.Get<Plugins.AuthenticationOptions>();
             authBuilder
-                .AddOAuth(authenticationOptions.Scheme, options =>
+                .AddOAuth(Auth.Constants.AuthenticationScheme, options =>
                 {
                     configuration.GetSection("oauth").Bind(options);
+                    options.AuthorizationEndpoint = "https://github.com/login/oauth/authorize";
+                    options.TokenEndpoint = "https://github.com/login/oauth/access_token";
+                    options.UserInformationEndpoint = "https://api.github.com/user";
                     options.CallbackPath = new PathString("/custom-oauth-signin");
                     options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "id");
                     options.ClaimActions.MapJsonKey(ClaimTypes.Name, "login");

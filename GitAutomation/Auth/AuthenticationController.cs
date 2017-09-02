@@ -14,13 +14,13 @@ namespace GitAutomation.Auth
     {
 
         [HttpGet("sign-in")]
-        public IActionResult SignIn([FromServices] IOptions<Plugins.AuthenticationOptions> options)
+        public IActionResult SignIn()
         {
             // TODO
             return this.Challenge(new AuthenticationProperties
             {
                 RedirectUri = "/"
-            }, options.Value.Scheme);
+            }, Auth.Constants.AuthenticationScheme);
         }
 
         [HttpGet("sign-out")]

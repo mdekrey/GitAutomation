@@ -7,7 +7,5 @@ namespace GitAutomation.Plugins
     public class AuthenticationOptions
     {
         public string Type { get; set; }
-
-        public string Scheme { get; set; }
     }
 }
