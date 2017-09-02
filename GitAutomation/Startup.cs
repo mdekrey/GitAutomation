@@ -85,28 +85,34 @@ namespace GitAutomation
             );
 
             var authorizationSection = Configuration.GetSection("authorization");
-            var authorizationOptions = authorizationSection.Get<Plugins.AuthorizationOptions>();
+            var authorizationOptions = authorizationSection.Get<Auth.AuthorizationOptions>();
+            foreach (var plugin in authorizationOptions.Types.Select(PluginActivator.GetPluginOrNull<Auth.IRegisterPrincipalValidation>))
+            {
+                plugin?.RegisterPrincipalValidation(services, authorizationSection);
+            }
+
             var authBuilder = services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie(options =>
                 {
                     options.Events = new CookieAuthenticationEvents
                     {
-                        OnSigningIn = async (context) =>
+                        OnValidatePrincipal = async (context) =>
                         {
-                            await Task.Yield();
-                            var original = context.Principal.Identity as ClaimsIdentity;
-
-                            var id = new ClaimsIdentity(Auth.Names.AuthenticationType, original.NameClaimType, Auth.Names.RoleType);
-                            id.AddClaims(original.Claims.Where(claim => claim.Type != Auth.Names.RoleType));
-                            id.AddClaims(
-                                from role in authorizationOptions?.Roles ?? Enumerable.Empty<KeyValuePair<string, ClaimRule[]>>()
-                                where (from rule in role.Value
-                                       from claim in original.Claims
-                                       where rule.IsMatch(claim)
-                                       select rule).Any()
-                                select new Claim(id.RoleClaimType, role.Key)
-                            );
-                            context.Principal = new ClaimsPrincipal(id);
+                            var principalValidation = context.HttpContext.RequestServices.GetServices<Auth.IPrincipalValidation>();
+                            var currentPrincipal = context.Principal;
+                            foreach (var entry in principalValidation)
+                            {
+                                currentPrincipal = await entry.OnValidatePrincipal(context.HttpContext, currentPrincipal);
+                                if (currentPrincipal == null)
+                                {
+                                    context.RejectPrincipal();
+                                    break;
+                                }
+                            }
+                            if (currentPrincipal != null)
+                            {
+                                context.ReplacePrincipal(currentPrincipal);
+                            }
                         }
                     };
                 });
@@ -125,7 +131,6 @@ namespace GitAutomation
                     .RequireAuthenticatedUser()
                     .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme)
                     .Build();
-                options.AddPolicy(Auth.Names.DefaultPolicy, bearerOnly);
                 options.DefaultPolicy = bearerOnly;
             });
         }
