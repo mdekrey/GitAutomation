@@ -34,7 +34,7 @@ namespace GitAutomation.Auth
         {
             return Ok(new {
                 Claims = User.Claims.Select(claim => new { Type = claim.Type, Value = claim.Value }),
-                Roles = User.Claims.Where(claim => claim.Type == Names.RoleType).Select(claim => claim.Value),
+                Roles = User.Claims.Where(claim => claim.Type == Constants.RoleType).Select(claim => claim.Value),
             });
         }
     }
