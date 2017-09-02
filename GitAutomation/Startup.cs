@@ -16,6 +16,14 @@ using GitAutomation.BranchSettings;
 using GitAutomation.Swagger;
 using Swashbuckle.SwaggerGen.Generator;
 using GitAutomation.Orchestration;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using Microsoft.AspNetCore.Authentication.OAuth;
+using Newtonsoft.Json.Linq;
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
+using GitAutomation.Plugins;
 
 namespace GitAutomation
 {
@@ -50,22 +58,22 @@ namespace GitAutomation
                 options.SingleApiVersion(new Swashbuckle.Swagger.Model.Info
                 {
                     Version = "v1",
-                    Title = "Woosti API",
-                    Description = "Create your own personal Radio",
+                    Title = "GitAutomation",
+                    Description = "Automate your Git Repository",
                     TermsOfService = "TODO"
                 });
                 options.DescribeAllEnumsAsStrings();
-          //options.OperationFilter<IgnoreCustomBindingOperationFilter>();
-          //options.OperationFilter<FixPathOperationFilter>();
-          options.OperationFilter<OperationIdFilter>();
-          //options.OperationFilter<AddValidationResponseOperationFilter>();
-          //options.CustomSchemaIds(t => t.FriendlyId(true));
-          //options.SchemaFilter<AdditionalValidationFilter>();
-          //options.SchemaFilter<ReferenceEnumFilter>();
-          //options.SchemaFilter<ClassAssemblyFilter>();
-      });
+                //options.OperationFilter<IgnoreCustomBindingOperationFilter>();
+                //options.OperationFilter<FixPathOperationFilter>();
+                options.OperationFilter<OperationIdFilter>();
+                //options.OperationFilter<AddValidationResponseOperationFilter>();
+                //options.CustomSchemaIds(t => t.FriendlyId(true));
+                //options.SchemaFilter<AdditionalValidationFilter>();
+                //options.SchemaFilter<ReferenceEnumFilter>();
+                //options.SchemaFilter<ClassAssemblyFilter>();
+            });
 
-            services.AddGitUtilities(Configuration.GetSection("persistence").Get<PersistenceOptions>(), Configuration.GetSection("git").Get<GitRepositoryOptions>());
+            services.AddGitUtilities(Configuration.GetSection("persistence"), Configuration.GetSection("git"));
             services.Configure<GitRepositoryOptions>(Configuration.GetSection("git"));
             services.Configure<PersistenceOptions>(Configuration.GetSection("persistence"));
             services.Configure<StaticFileOptions>(options =>
@@ -75,6 +83,51 @@ namespace GitAutomation
                         "max-age=0, must-revalidate";
                 }
             );
+
+            var authorizationSection = Configuration.GetSection("authorization");
+            var authorizationOptions = authorizationSection.Get<Plugins.AuthorizationOptions>();
+            var authBuilder = services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie(options =>
+                {
+                    options.Events = new CookieAuthenticationEvents
+                    {
+                        OnSigningIn = async (context) =>
+                        {
+                            await Task.Yield();
+                            var original = context.Principal.Identity as ClaimsIdentity;
+
+                            var id = new ClaimsIdentity(Auth.Names.AuthenticationType, original.NameClaimType, Auth.Names.RoleType);
+                            id.AddClaims(original.Claims.Where(claim => claim.Type != Auth.Names.RoleType));
+                            id.AddClaims(
+                                from role in authorizationOptions?.Roles ?? Enumerable.Empty<KeyValuePair<string, ClaimRule[]>>()
+                                where (from rule in role.Value
+                                       from claim in original.Claims
+                                       where rule.IsMatch(claim)
+                                       select rule).Any()
+                                select new Claim(id.RoleClaimType, role.Key)
+                            );
+                            context.Principal = new ClaimsPrincipal(id);
+                        }
+                    };
+                });
+
+            var authenticationSection = Configuration.GetSection("authentication");
+            var authenticationOptions = authenticationSection.Get<Plugins.AuthenticationOptions>();
+            services.Configure<Plugins.AuthenticationOptions>(authenticationSection);
+            PluginActivator.GetPlugin<IRegisterAuthentication>(
+                typeName: authenticationOptions.Type,
+                errorMessage: $"Unknown git service api registry: {authenticationOptions.Type}. Specify a .Net type.`"
+            ).RegisterAuthentication(services, authBuilder, authenticationSection);
+
+            services.AddAuthorization(options =>
+            {
+                var bearerOnly = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme)
+                    .Build();
+                options.AddPolicy(Auth.Names.DefaultPolicy, bearerOnly);
+                options.DefaultPolicy = bearerOnly;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -85,6 +138,15 @@ namespace GitAutomation
 
             var repositoryStateRunner = app.ApplicationServices.GetRequiredService<IRepositoryStateDriver>();
 
+            if (env.IsDevelopment())
+            {
+                var repositoryState = app.ApplicationServices.GetRequiredService<IRepositoryState>();
+                repositoryState.DeleteRepository();
+
+                app.UseDeveloperExceptionPage();
+            }
+            app.UseAuthentication();
+            
             app.UseDefaultFiles(new DefaultFilesOptions
             {
                 DefaultFileNames =
@@ -93,13 +155,6 @@ namespace GitAutomation
                 }
             });
 
-            if (env.IsDevelopment())
-            {
-                var repositoryState = app.ApplicationServices.GetRequiredService<IRepositoryState>();
-                repositoryState.DeleteRepository();
-
-                app.UseDeveloperExceptionPage();
-            }
             repositoryStateRunner.Start();
             app.UseStaticFiles();
             app.UseMvc();

@@ -1,4 +1,5 @@
-﻿using GitAutomation.Repository;
+﻿using GitAutomation.GitService;
+using GitAutomation.Repository;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using System;
@@ -12,7 +13,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace GitAutomation.GitService
+namespace GitAutomation.GitHub
 {
     class GitHubServiceApi : IGitServiceApi
     {

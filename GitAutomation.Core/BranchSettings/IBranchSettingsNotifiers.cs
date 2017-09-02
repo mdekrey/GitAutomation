@@ -3,7 +3,7 @@ using System.Reactive;
 
 namespace GitAutomation.BranchSettings
 {
-    interface IBranchSettingsNotifiers
+    public interface IBranchSettingsNotifiers
     {
         IObservable<Unit> GetAnyNotification();
         IObservable<Unit> GetDownstreamBranchesChangedNotifier(string upstreamBranch);

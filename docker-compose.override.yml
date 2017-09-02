@@ -4,3 +4,10 @@ services:
   gitautomation:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      
+  git-server:
+    image: testing-git-server
+    ports:
+      - "8082:80"
+
+# TODO - define networks to prevent git-server from accessing gitautomation-sql

@@ -2,6 +2,17 @@ import { Observable } from "rxjs";
 import { OutputMessage } from "./output-message";
 import { BasicBranch } from "./basic-branch";
 import { BranchDetails } from "./branch-details";
+import { ClaimDetails } from "./claim-details";
+
+export const currentClaims = () =>
+  Observable.ajax("/api/authentication/claims").map(
+    response => response.response as ClaimDetails
+  );
+
+export const signOut = () =>
+  Observable.ajax("/api/authentication/sign-out").map(
+    response => response.response as void
+  );
 
 export const actionQueue = () =>
   Observable.ajax("/api/management/queue").map(
