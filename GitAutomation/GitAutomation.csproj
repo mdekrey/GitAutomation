@@ -35,8 +35,8 @@
     <DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools" Version="1.0.1" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\GitAutomation.GitHub\GitAutomation.GitHub.csproj" />
     <ProjectReference Include="..\GitAutomation.Core\GitAutomation.Core.csproj" />
+    <ProjectReference Include="..\GitAutomation.GitHub\GitAutomation.GitHub.csproj" />
     <ProjectReference Include="..\GitAutomation.SqlServer\GitAutomation.SqlServer.csproj" />
   </ItemGroup>
 
