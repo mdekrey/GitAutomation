@@ -22,5 +22,18 @@
       "tokenEndpoint": "https://github.com/login/oauth/access_token",
       "userInformationEndpoint": "https://api.github.com/user"
     }
+  },
+  "authorization": {
+    "roles": {
+      "administrator": [
+        {
+          "type": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+          "value": "mdekrey"
+        }
+      ],
+      "read": [
+        { "all": "true" }
+      ]
+    }
   }
 }

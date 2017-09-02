@@ -84,6 +84,8 @@ namespace GitAutomation
                 }
             );
 
+            var authorizationSection = Configuration.GetSection("authorization");
+            var authorizationOptions = authorizationSection.Get<Plugins.AuthorizationOptions>();
             var authBuilder = services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie(options =>
                 {
@@ -96,7 +98,14 @@ namespace GitAutomation
 
                             var id = new ClaimsIdentity(Auth.Names.AuthenticationType, original.NameClaimType, Auth.Names.RoleType);
                             id.AddClaims(original.Claims.Where(claim => claim.Type != Auth.Names.RoleType));
-                            id.AddClaim(new Claim(id.RoleClaimType, "what"));
+                            id.AddClaims(
+                                from role in authorizationOptions?.Roles ?? Enumerable.Empty<KeyValuePair<string, ClaimRule[]>>()
+                                where (from rule in role.Value
+                                       from claim in original.Claims
+                                       where rule.IsMatch(claim)
+                                       select rule).Any()
+                                select new Claim(id.RoleClaimType, role.Key)
+                            );
                             context.Principal = new ClaimsPrincipal(id);
                         }
                     };
