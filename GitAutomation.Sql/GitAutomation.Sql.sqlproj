@@ -64,6 +64,8 @@
   <ItemGroup>
     <Build Include="DownstreamBranch.sql" />
     <Build Include="UpstreamBranch.sql" />
+    <Build Include="User.sql" />
+    <Build Include="UserRole.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".dockerignore" />
@@ -72,6 +74,9 @@
     <None Include="build-scripts\ci-entry.sh" />
     <None Include="runtime-scripts\entrypoint.sh" />
     <None Include="shared-scripts\wait-for-sql.sh" />
+  </ItemGroup>
+  <ItemGroup>
+    <RefactorLog Include="GitAutomation.Sql.refactorlog" />
   </ItemGroup>
   <PropertyGroup>
     <PostBuildEvent>cd "$(ProjectDir)"
