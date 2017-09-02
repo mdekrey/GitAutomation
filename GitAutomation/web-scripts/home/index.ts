@@ -4,7 +4,13 @@ import { Selection } from "d3-selection";
 import { rxData, rxEvent, fnSelect } from "../utils/presentation/d3-binding";
 
 import { RoutingComponent } from "../utils/routing-component";
-import { getLog, allBranches, fetch, actionQueue } from "../api/basics";
+import {
+  getLog,
+  allBranches,
+  fetch,
+  actionQueue,
+  signOut
+} from "../api/basics";
 import { logPresentation } from "../logs/log.presentation";
 import { BasicBranch } from "../api/basic-branch";
 
@@ -14,6 +20,8 @@ export const homepage = (
   container
     .do(elem =>
       elem.html(`
+  <a data-locator="log-out">Log Out</a>
+
   <h1>Action Queue</h1>
   <a data-locator="action-queue-refresh">Refresh</a>
   <ul data-locator="action-queue">
@@ -37,6 +45,18 @@ export const homepage = (
     .let(body =>
       Observable.create(() => {
         const subscription = new Subscription();
+
+        // log out
+        subscription.add(
+          rxEvent({
+            target: body.map(fnSelect('[data-locator="log-out"]')),
+            eventName: "click"
+          })
+            .switchMap(signOut)
+            .subscribe(() => {
+              window.location.href = "/";
+            })
+        );
 
         // fetch from remote
         subscription.add(

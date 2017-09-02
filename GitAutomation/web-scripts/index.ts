@@ -44,12 +44,19 @@ buildCascadingStrategy(windowHashStrategy)
 buildCascadingStrategy(windowHashStrategy)
   .let(
     route<RoutingComponent>({
-      login: RouteConcrete(() => Observable.empty()),
-      [wildcard]: RouteConcrete(() => claims)
+      login: RouteConcrete(() =>
+        claims
+          .filter<ClaimDetails>(claims => claims.roles.length !== 0)
+          .map(() => "/")
+      ),
+      [wildcard]: RouteConcrete(() =>
+        claims
+          .filter<ClaimDetails>(claims => claims.roles.length === 0)
+          .map(() => "/login")
+      )
     })
   )
   .let(renderRoute)
-  .filter<ClaimDetails>(claims => claims.roles.length === 0)
-  .subscribe(() =>
-    windowHashStrategy.navigate({ url: "/login", replaceCurentHistory: true })
+  .subscribe((url: string) =>
+    windowHashStrategy.navigate({ url, replaceCurentHistory: true })
   );

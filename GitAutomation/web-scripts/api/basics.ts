@@ -9,6 +9,11 @@ export const currentClaims = () =>
     response => response.response as ClaimDetails
   );
 
+export const signOut = () =>
+  Observable.ajax("/api/authentication/sign-out").map(
+    response => response.response as void
+  );
+
 export const actionQueue = () =>
   Observable.ajax("/api/management/queue").map(
     response =>

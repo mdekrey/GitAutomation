@@ -33,7 +33,7 @@ export const login = (
       Observable.create(() => {
         const subscription = new Subscription();
 
-        // fetch from remote
+        // begin the sign-in process
         subscription.add(
           rxEvent({
             target: body.map(fnSelect('[data-locator="log-in"]')),
@@ -43,7 +43,7 @@ export const login = (
           })
         );
 
-        // display actions
+        // display claims
         subscription.add(
           rxData(body, claims.map(claim => claim.claims))
             .bind<HTMLLIElement>({

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System;
@@ -20,6 +21,12 @@ namespace GitAutomation.Auth
             {
                 RedirectUri = "/"
             }, options.Value.Scheme);
+        }
+
+        [HttpGet("sign-out")]
+        public IActionResult SignOut()
+        {
+            return this.SignOut(CookieAuthenticationDefaults.AuthenticationScheme);
         }
 
         [HttpGet("claims")]
