@@ -12,6 +12,7 @@ import { RoutingComponent, renderRoute } from "./utils/routing-component";
 import { homepage } from "./home/index";
 import { manage } from "./manage-branch/index";
 import { newBranch } from "./new-branch/index";
+import "./style/global";
 
 const body = Observable.of(d3element(document.body));
 
