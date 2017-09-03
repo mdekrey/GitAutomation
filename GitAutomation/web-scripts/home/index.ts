@@ -4,8 +4,15 @@ import { Selection } from "d3-selection";
 import { rxData, rxEvent, fnSelect } from "../utils/presentation/d3-binding";
 
 import { RoutingComponent } from "../utils/routing-component";
-import { getLog, allBranches, fetch, actionQueue } from "../api/basics";
+import {
+  getLog,
+  allBranches,
+  fetch,
+  actionQueue,
+  signOut
+} from "../api/basics";
 import { logPresentation } from "../logs/log.presentation";
+import { BasicBranch } from "../api/basic-branch";
 
 export const homepage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -13,6 +20,8 @@ export const homepage = (
   container
     .do(elem =>
       elem.html(`
+  <a data-locator="log-out">Log Out</a>
+
   <h1>Action Queue</h1>
   <a data-locator="action-queue-refresh">Refresh</a>
   <ul data-locator="action-queue">
@@ -21,6 +30,7 @@ export const homepage = (
   <h1>Remote Branches</h1>
   <a data-locator="remote-branches-refresh">Refresh</a>
   <a data-locator="fetch-from-remote">Fetch</a>
+  <a data-locator="new-branch">New Branch</a>
   <ul data-locator="remote-branches">
   </ul>
 
@@ -35,6 +45,18 @@ export const homepage = (
     .let(body =>
       Observable.create(() => {
         const subscription = new Subscription();
+
+        // log out
+        subscription.add(
+          rxEvent({
+            target: body.map(fnSelect('[data-locator="log-out"]')),
+            eventName: "click"
+          })
+            .switchMap(signOut)
+            .subscribe(() => {
+              window.location.href = "/";
+            })
+        );
 
         // fetch from remote
         subscription.add(
@@ -76,7 +98,7 @@ export const homepage = (
 
         // display branches
         subscription.add(
-          rxData<string, HTMLUListElement>(
+          rxData<BasicBranch, HTMLUListElement>(
             body.map(fnSelect(`[data-locator="remote-branches"]`)),
             rxEvent({
               target: body.map(
@@ -96,7 +118,7 @@ export const homepage = (
 `),
               selector: "li",
               onEach: selection => {
-                selection.select(`span`).text(data => data);
+                selection.select(`span`).text(data => data.branchName);
                 subscription.add(
                   rxEvent({
                     target: Observable.of(
@@ -105,7 +127,7 @@ export const homepage = (
                     eventName: "click"
                   }).subscribe(event =>
                     state.navigate({
-                      url: "/manage/" + event.datum,
+                      url: "/manage/" + event.datum.branchName,
                       replaceCurentHistory: false
                     })
                   )
@@ -128,6 +150,15 @@ export const homepage = (
           )
             .bind(logPresentation)
             .subscribe()
+        );
+
+        subscription.add(
+          rxEvent({
+            target: body.map(fnSelect('[data-locator="new-branch"]')),
+            eventName: "click"
+          }).subscribe(() =>
+            state.navigate({ url: "/new-branch", replaceCurentHistory: false })
+          )
         );
 
         return subscription;

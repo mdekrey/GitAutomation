@@ -1,36 +1,45 @@
-﻿using GitAutomation.SqlServer;
+﻿using GitAutomation.BranchSettings;
+using GitAutomation.GitService;
+using GitAutomation.Orchestration;
+using GitAutomation.Plugins;
+using GitAutomation.Repository;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Net.Http;
 using System.Text;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddGitUtilities(this IServiceCollection services, GitAutomation.BranchSettings.PersistenceOptions persistenceOptions)
+        public static IServiceCollection AddGitUtilities(this IServiceCollection services, IConfiguration persistenceConfiguration, IConfiguration repositoryConfiguration)
         {
             services.AddSingleton<GitAutomation.Processes.IReactiveProcessFactory, GitAutomation.Processes.ReactiveProcessFactory>();
-            services.AddSingleton<GitAutomation.Repository.IRepositoryState, GitAutomation.Repository.RepositoryState>();
-            services.AddSingleton<GitAutomation.Repository.GitCli>();
+            services.AddSingleton<IRepositoryOrchestration, RepositoryOrchestration>();
+            services.AddSingleton<IOrchestrationActions, OrchestrationActions>();
+            services.AddSingleton<IRepositoryStateDriver, RepositoryStateDriver>();
+            services.AddSingleton<IRepositoryState, RepositoryState>();
+            services.AddSingleton<GitCli>();
+            services.AddSingleton<Func<HttpClient>>(() => new HttpClient());
 
             services.AddSingleton<GitAutomation.Work.IUnitOfWorkFactory, GitAutomation.Work.UnitOfWorkFactory>();
 
-            // TODO - should have some sort of registry for persistence types
-            services.AddSingleton<GitAutomation.BranchSettings.IBranchSettingsNotifiers, GitAutomation.BranchSettings.BranchSettingsNotifiers>();
-            if (persistenceOptions.Type == "SqlServer")
-            {
-                services.AddSingleton<GitAutomation.BranchSettings.IBranchSettings, GitAutomation.BranchSettings.SqlBranchSettings>();
-                services.AddScoped<ConnectionManagement>(serviceProvider =>
-                {
-                    var result = new ConnectionManagement(persistenceOptions.Connectionstring);
-                    return result;
-                });
-            }
-            else
-            {
-                throw new NotSupportedException($"Unknown persistence type: {persistenceOptions.Type}. Supported options: SqlServer");
-            }
+            services.AddSingleton<IBranchSettingsNotifiers, BranchSettingsNotifiers>();
+
+            var persistenceOptions = persistenceConfiguration.Get<PersistenceOptions>();
+            PluginActivator.GetPlugin<IRegisterBranchSettings>(
+                typeName: persistenceOptions.Type,
+                errorMessage: $"Unknown persistence registry: {persistenceOptions.Type}. Specify a .Net type."
+            ).RegisterBranchSettings(services, persistenceConfiguration);
+            
+            var repositoryOptions = repositoryConfiguration.Get<GitRepositoryOptions>();
+            PluginActivator.GetPlugin<IRegisterGitServiceApi>(
+                typeName: repositoryOptions.ApiType,
+                errorMessage: $"Unknown git service api registry: {repositoryOptions.ApiType}. Specify a .Net type, such as `{typeof(RegisterMemory).FullName}`"
+            ).RegisterGitServiceApi(services, repositoryConfiguration);
+
             return services;
         }
     }

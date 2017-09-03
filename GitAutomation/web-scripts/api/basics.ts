@@ -1,5 +1,18 @@
 import { Observable } from "rxjs";
 import { OutputMessage } from "./output-message";
+import { BasicBranch } from "./basic-branch";
+import { BranchDetails } from "./branch-details";
+import { ClaimDetails } from "./claim-details";
+
+export const currentClaims = () =>
+  Observable.ajax("/api/authentication/claims").map(
+    response => response.response as ClaimDetails
+  );
+
+export const signOut = () =>
+  Observable.ajax("/api/authentication/sign-out").map(
+    response => response.response as void
+  );
 
 export const actionQueue = () =>
   Observable.ajax("/api/management/queue").map(
@@ -9,21 +22,17 @@ export const actionQueue = () =>
 
 export const allBranches = () =>
   Observable.ajax("/api/management/all-branches").map(
-    response => response.response as string[]
+    response => response.response as BasicBranch[]
   );
 
 export const branchDetails = (branchName: string) =>
   Observable.ajax("/api/management/details/" + branchName).map(
-    response =>
-      response.response as {
-        recreateFromUpstream: boolean;
-        isServiceLine: boolean;
-        branchName: string;
-        directDownstreamBranches: string[];
-        downstreamBranches: string[];
-        directUpstreamBranches: string[];
-        upstreamBranches: string[];
-      }
+    response => response.response as BranchDetails
+  );
+
+export const detectUpstream = (branchName: string) =>
+  Observable.ajax("/api/management/detect-upstream/" + branchName).map(
+    response => response.response as string[]
   );
 
 export const getLog = () =>
@@ -40,7 +49,7 @@ export const updateBranch = (
   branchName: string,
   body: {
     recreateFromUpstream: boolean;
-    isServiceLine: boolean;
+    branchType: string;
     addUpstream: string[];
     addDownstream: string[];
     removeUpstream: string[];

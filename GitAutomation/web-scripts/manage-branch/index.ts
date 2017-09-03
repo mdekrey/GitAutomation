@@ -11,8 +11,11 @@ import {
 import { runBranchData } from "./data";
 import { buildBranchCheckListing } from "./branch-check-listing";
 import { bindSaveButton } from "./bind-save-button";
-import { newBranch } from "./new-branch-checkbox";
-import { promoteServiceLine, deleteBranch } from "../api/basics";
+import {
+  promoteServiceLine,
+  deleteBranch,
+  detectUpstream
+} from "../api/basics";
 
 export const manage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -28,12 +31,20 @@ export const manage = (
       Recreate from Upstream
   </label>
   <label>
-      <input type="checkbox" data-locator="is-service-line" />
-      Is Service Line?
+      Branch Type
+      <select data-locator="branch-type">
+        <option value="Feature">Feature</option>
+        <option value="ReleaseCandidate">Release Candidate</option>
+        <option value="ServiceLine">Service Line</option>
+        <option value="Infrastructure">Infrastructure</option>
+        <option value="Integration">Integration</option>
+        <option value="Hotfix">Hotfix</option>
+      </select>
   </label>
   <h3>Downstream Branches</h3>
   <ul data-locator="downstream-branches"></ul>
   <h3>Upstream Branches</h3>
+  <a data-locator="detect-upstream">Detect Upstream Branches</a>
   <ul data-locator="upstream-branches"></ul>
   <button type="button" data-locator="reset">Reset</button>
   <button type="button" data-locator="home">Cancel</button>
@@ -50,9 +61,9 @@ export const manage = (
   </label>
   <button type="button" data-locator="promote-service-line">Release to Service Line</button>
 
-    <h3>Delete Branch</h3>
-    <p>This action cannot be undone.</p>
-    <button type="button" data-locator="delete-branch">Delete</button>
+  <h3>Delete Branch</h3>
+  <p>This action cannot be undone.</p>
+  <button type="button" data-locator="delete-branch">Delete</button>
 `)
     )
     .publishReplay(1)
@@ -129,12 +140,12 @@ export const manage = (
 
         subscription.add(
           container
-            .map(e => e.select(`[data-locator="is-service-line"]`))
+            .map(e => e.select(`[data-locator="branch-type"]`))
             .switchMap(e =>
-              branchData.state.map(d => d.isServiceLine).map(d => e.datum(d))
+              branchData.state.map(d => d.branchType).map(d => e.datum(d))
             )
             .subscribe(target => {
-              target.property("checked", value => value);
+              target.property("value", value => value);
             })
         );
 
@@ -154,12 +165,6 @@ export const manage = (
             .subscribe()
         );
 
-        subscription.add(
-          newBranch(
-            container.map(fnSelect(`[data-locator="downstream-branches"]`))
-          ).subscribe()
-        );
-
         // display upstream branches
         subscription.add(
           rxData(
@@ -174,6 +179,28 @@ export const manage = (
               )
             )
             .subscribe()
+        );
+
+        subscription.add(
+          rxEvent({
+            target: container.map(fnSelect(`[data-locator="detect-upstream"]`)),
+            eventName: "click"
+          })
+            .withLatestFrom(
+              container.map(fnSelect(`[data-locator="upstream-branches"]`)),
+              (_, elem) => elem
+            )
+            .subscribe(elements => {
+              detectUpstream(branchName).subscribe(branchNames =>
+                branchNames.forEach(upstreamBranchName =>
+                  elements
+                    .select(
+                      `[data-locator="check"][data-branch="${upstreamBranchName}"]`
+                    )
+                    .property("checked", true)
+                )
+              );
+            })
         );
 
         subscription.add(

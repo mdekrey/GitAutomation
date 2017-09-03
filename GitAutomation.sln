@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.16
+VisualStudioVersion = 15.0.26730.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation", "GitAutomation\GitAutomation.csproj", "{8759E081-91A2-4136-9D98-516DF1D7D385}"
 EndProject
@@ -25,6 +25,12 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Core", "GitAutomation.Core\GitAutomation.Core.csproj", "{5020BA49-2C19-4BE1-B734-6961D2DC61BE}"
 EndProject
 Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "GitAutomation.Sql", "GitAutomation.Sql\GitAutomation.Sql.sqlproj", "{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Core.Tests", "GitAutomation.Core.Tests\GitAutomation.Core.Tests.csproj", "{D3F761A1-0008-4A0C-9656-D4E17971B3F4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitAutomation.SqlServer", "GitAutomation.SqlServer\GitAutomation.SqlServer.csproj", "{37C446EC-43BE-4EFB-B192-5598E4E289FB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.GitHub", "GitAutomation.GitHub\GitAutomation.GitHub.csproj", "{6BC8F9AD-B2E3-46F9-8E07-8998D5CA1CA0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -50,8 +56,23 @@ Global
 		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{D3F761A1-0008-4A0C-9656-D4E17971B3F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3F761A1-0008-4A0C-9656-D4E17971B3F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3F761A1-0008-4A0C-9656-D4E17971B3F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3F761A1-0008-4A0C-9656-D4E17971B3F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{37C446EC-43BE-4EFB-B192-5598E4E289FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37C446EC-43BE-4EFB-B192-5598E4E289FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37C446EC-43BE-4EFB-B192-5598E4E289FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37C446EC-43BE-4EFB-B192-5598E4E289FB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6BC8F9AD-B2E3-46F9-8E07-8998D5CA1CA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6BC8F9AD-B2E3-46F9-8E07-8998D5CA1CA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6BC8F9AD-B2E3-46F9-8E07-8998D5CA1CA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6BC8F9AD-B2E3-46F9-8E07-8998D5CA1CA0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E0585210-A58F-49F8-AD50-BCD4EE1DD1E0}
 	EndGlobalSection
 EndGlobal

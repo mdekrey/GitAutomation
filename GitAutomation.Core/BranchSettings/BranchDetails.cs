@@ -5,16 +5,11 @@ using System.Text;
 
 namespace GitAutomation.BranchSettings
 {
-    public class BranchDetails
+    public class BranchDetails : BranchBasicDetails
     {
-        public string BranchName { get; set; }
-
-        public bool RecreateFromUpstream { get; set; }
-        public bool IsServiceLine { get; set; }
-
-        public ImmutableList<string> DirectDownstreamBranches { get; set; }
-        public ImmutableList<string> DownstreamBranches { get; set; }
-        public ImmutableList<string> DirectUpstreamBranches { get; set; }
-        public ImmutableList<string> UpstreamBranches { get; set; }
+        public ImmutableList<BranchBasicDetails> DirectDownstreamBranches { get; set; }
+        public ImmutableList<BranchBasicDetails> DownstreamBranches { get; set; }
+        public ImmutableList<BranchBasicDetails> DirectUpstreamBranches { get; set; }
+        public ImmutableList<BranchBasicDetails> UpstreamBranches { get; set; }
     }
 }

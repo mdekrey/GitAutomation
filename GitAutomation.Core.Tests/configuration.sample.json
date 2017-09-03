@@ -1,0 +1,5 @@
+﻿{
+  "sqlServer": {
+    "connectionString": "Server=localhost,31433;Database=gitautomation;User Id=sa;Password=weakPASSw0rd;"
+  }
+}

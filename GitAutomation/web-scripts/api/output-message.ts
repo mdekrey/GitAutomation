@@ -1,8 +1,8 @@
 export enum OutputMessageChannel {
-  StartInfo = 0,
-  Out = 1,
-  Error = 2,
-  ExitCode = 3
+  StartInfo = "StartInfo",
+  Out = "Out",
+  Error = "Error",
+  ExitCode = "ExitCode"
 }
 
 export interface OutputMessage {

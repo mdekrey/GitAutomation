@@ -1,4 +1,4 @@
-FROM microsoft/aspnetcore:1.1
+FROM microsoft/aspnetcore:2.0
 RUN apt-get update && apt-get install -y \
   git
 ARG source
