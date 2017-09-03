@@ -9,6 +9,8 @@ services:
     secrets:
       - gitcredentials
       - configuration.json
+    ports: 
+      - "80"
 #    networks:
 #      - backend
   gitautomationsql:

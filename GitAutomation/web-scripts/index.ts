@@ -1,52 +1,35 @@
 import { Observable } from "rxjs";
-import { rxData, rxEvent, d3element } from "./utils/presentation/d3-binding";
-import { getLog, remoteBranches, fetch } from "./api/basics";
+import { d3element } from "./utils/presentation/d3-binding";
+import {
+  buildCascadingStrategy,
+  route,
+  RouteConcrete,
+  RouteAlias,
+  wildcard
+} from "./routing";
+import { windowHashStrategy } from "./routing/strategies/window-hash";
+import { RoutingComponent, renderRoute } from "./utils/routing-component";
+import { homepage } from "./home/index";
+import { manage } from "./manage-branch/index";
 
-const domChanged = Observable.of(null);
+const body = Observable.of(d3element(document.body));
 
-function watchElements<T extends Element>(query: string) {
-  return domChanged
-    .map(() => document.querySelector(query) as T | null)
-    .filter(Boolean)
-    .distinctUntilChanged()
-    .map(d3element);
-}
-
-fetch(
-  rxEvent({
-    target: watchElements('a[data-locator="fetch-from-remote"]'),
-    eventName: "click"
-  })
-).subscribe();
-
-rxData<string, HTMLUListElement>(
-  watchElements<HTMLUListElement>(`[data-locator="remote-branches"]`),
-  remoteBranches(
-    rxEvent({
-      target: watchElements('[data-locator="remote-branches-refresh"]'),
-      eventName: "click"
-    }).startWith(null)
+buildCascadingStrategy(windowHashStrategy)
+  .let(
+    route<RoutingComponent>({
+      "": RouteConcrete(homepage(body)),
+      manage: RouteConcrete(manage(body)),
+      admin: RouteAlias("manage"),
+      [wildcard]: RouteConcrete(() => Observable.empty())
+    })
   )
-).bind({
-  element: "li",
-  selector: "li",
-  onEach: selection => {
-    selection.text(data => data);
-  }
-});
-
-rxData<{}, HTMLUListElement>(
-  watchElements<HTMLUListElement>(`[data-locator="status"]`),
-  getLog(
-    rxEvent({
-      target: watchElements('[data-locator="status-refresh"]'),
-      eventName: "click"
-    }).startWith(null)
-  )
-).bind({
-  element: "li",
-  selector: "li",
-  onEach: selection => {
-    selection.text(data => JSON.stringify(data));
-  }
-});
+  .let(renderRoute)
+  .subscribe({
+    next: _ => {
+      // (window as any).currentRouteState = _;
+      console.log(_);
+    },
+    error: ex => {
+      console.error(ex);
+    }
+  });

@@ -1,5 +1,12 @@
-import { Observable, Subscription, Observer } from "rxjs";
-import { select as d3select, Selection, BaseType } from "d3-selection";
+import { Observable, Observer, Subject } from "rxjs";
+import {
+  event as d3event,
+  mouse as d3mouse,
+  select as d3select,
+  Selection,
+  BaseType,
+  EnterElement
+} from "d3-selection";
 
 export function d3element<GElement extends BaseType>(element: GElement) {
   return d3select(element);
@@ -12,7 +19,9 @@ export interface IBindBaseProps<
   PDatum
 > {
   /** The element to be created per datum */
-  element: string;
+  onCreate: (
+    target: Selection<EnterElement, NewDatum, PElement, PDatum>
+  ) => Selection<GElement, NewDatum, PElement, PDatum>;
   /** Sets up the newly created child elements */
   onEnter?: (
     target: Selection<GElement, NewDatum, PElement, PDatum>,
@@ -41,12 +50,12 @@ export interface IBindProps<
 
 export function bind<GElement extends BaseType, NewDatum>({
   target,
-  element,
+  onCreate,
   onEnter,
   onExit = target => target.remove(),
   onEach
 }: IBindProps<GElement, NewDatum, any, any>) {
-  const newElems = target.enter().append<GElement>(element);
+  const newElems = onCreate(target.enter());
   if (onEnter) {
     onEnter(newElems, target);
   }
@@ -63,14 +72,14 @@ export interface IRxBindProps<
   PDatum
 > extends IBindBaseProps<GElement, NewDatum, PElement, PDatum> {
   /** A selector to recognize the target elements */
-  selector?: string;
+  selector: string;
 }
 
 export interface BindResult<TDatum, PElement extends BaseType> {
   /** Binds to the subscription. The type corresponds to the created element. */
   bind<GElement extends BaseType>(
     bindParams: IRxBindProps<GElement, TDatum, PElement, {}>
-  ): Subscription;
+  ): Observable<never>;
 }
 
 /**
@@ -88,24 +97,30 @@ export function rxData<TDatum, PElement extends BaseType>(
   return {
     bind: <GElement extends BaseType>({
       selector,
-      element,
       ...actions
     }: IRxBindProps<GElement, TDatum, PElement, {}>) => {
-      return target
-        .switchMap(svgSelection =>
-          data.map(data =>
-            svgSelection
-              .selectAll<GElement, {}>(selector || element)
-              .data(data, key)
+      return Observable.create((observer: Observer<never>) => {
+        var onUnsubscribing = new Subject<TDatum[]>();
+        var subscription = target
+          .switchMap(svgSelection =>
+            data
+              .merge(onUnsubscribing)
+              .map(data =>
+                svgSelection.selectAll<GElement, {}>(selector).data(data, key)
+              )
           )
-        )
-        .subscribe(target =>
-          bind({
-            target,
-            element,
-            ...actions
-          })
-        );
+          .subscribe(target =>
+            bind({
+              target,
+              ...actions
+            })
+          );
+
+        return () => {
+          onUnsubscribing.next([]);
+          subscription.unsubscribe();
+        };
+      }) as Observable<never>;
     }
   };
 }
@@ -113,21 +128,16 @@ export function rxData<TDatum, PElement extends BaseType>(
 /**
  * Binds d3 to Rx Observables.
  *
- * @param target The element to contain the bound data
  * @param data The data to bind to the elements
  */
-export function rxDatum<
-  GElement extends BaseType,
-  TDatum,
-  PElement extends BaseType,
-  TOldDatum
->(
-  target: Observable<Selection<GElement, any, PElement, TOldDatum>>,
-  data: Observable<TDatum>
-): Observable<Selection<GElement, TDatum, PElement, TOldDatum>> {
-  return target.switchMap(svgSelection =>
-    data.map(data => svgSelection.datum(data))
-  );
+export function rxDatum<TDatum>(data: Observable<TDatum>) {
+  return <GElement extends BaseType, PElement extends BaseType, TOldDatum>(
+    /** The element to contain the bound data */
+    target: Observable<Selection<GElement, any, PElement, TOldDatum>>
+  ): Observable<Selection<GElement, TDatum, PElement, TOldDatum>> =>
+    target.switchMap(svgSelection =>
+      data.map(data => svgSelection.datum(data))
+    );
 }
 
 export interface IEventOccurred<GElement extends BaseType, TDatum> {
@@ -135,6 +145,8 @@ export interface IEventOccurred<GElement extends BaseType, TDatum> {
   datum: TDatum;
   index: number;
   groups: GElement[] | ArrayLike<GElement>;
+  event: any;
+  mouse: [number, number];
 }
 
 export function rxEvent<GElement extends BaseType, TDatum>({
@@ -146,17 +158,35 @@ export function rxEvent<GElement extends BaseType, TDatum>({
   eventName: string;
   capture?: boolean;
 }) {
-  return Observable.create(
-    (observer: Observer<IEventOccurred<GElement, TDatum>>) => {
-      return target.subscribe(element => {
-        element.on(
-          eventName,
-          function(datum, index, groups) {
-            observer.next({ target: this, datum, index, groups });
-          },
-          capture
-        );
-      });
-    }
-  ) as Observable<IEventOccurred<GElement, TDatum>>;
+  return target.switchMap(
+    element =>
+      Observable.create(
+        (observer: Observer<IEventOccurred<GElement, TDatum>>) => {
+          element.on(
+            eventName,
+            function(datum, index, groups) {
+              observer.next({
+                target: this,
+                datum,
+                index,
+                groups,
+                event: d3event,
+                mouse: d3mouse(this as any)
+              });
+            },
+            capture
+          );
+
+          return () => {
+            element.on(eventName, null);
+          };
+        }
+      ) as Observable<IEventOccurred<GElement, TDatum>>
+  );
+}
+
+export function fnSelect<T extends BaseType>(query: string) {
+  return <TDatum, PElement extends BaseType, PDatum>(
+    container: Selection<BaseType, TDatum, PElement, PDatum>
+  ) => container.select<T>(query);
 }

@@ -9,6 +9,7 @@ using System.Reactive.Disposables;
 using System.Reactive;
 using System.Collections.Immutable;
 using GitAutomation.Repository.Actions;
+using GitAutomation.BranchSettings;
 
 namespace GitAutomation.Repository
 {
@@ -25,6 +26,8 @@ namespace GitAutomation.Repository
             public IRepositoryAction Target;
         }
 
+        const int logLength = 300;
+
         private readonly IObservable<ImmutableList<IRepositoryAction>> repositoryActions;
         private readonly IObservable<OutputMessage> repositoryActionProcessor;
         private readonly IObservable<ImmutableList<OutputMessage>> repositoryActionProcessorLog;
@@ -34,12 +37,14 @@ namespace GitAutomation.Repository
 
         private readonly IObservable<Unit> allUpdates;
         private readonly IObservable<ImmutableList<GitCli.GitRef>> remoteBranches;
+        private readonly IBranchSettings branchSettings;
 
         public event EventHandler Updated;
 
-        public RepositoryState(IOptions<GitRepositoryOptions> options, IServiceProvider serviceProvider)
+        public RepositoryState(IBranchSettings branchSettings, IOptions<GitRepositoryOptions> options, IServiceProvider serviceProvider)
         {
             this.checkoutPath = options.Value.CheckoutPath;
+            this.branchSettings = branchSettings;
 
             var queueAlterations = new Subject<QueueAlteration>();
             this.queueAlterations = queueAlterations;
@@ -65,7 +70,11 @@ namespace GitAutomation.Repository
             this.repositoryActionProcessor = repositoryActions.Select(action => action.FirstOrDefault()).DistinctUntilChanged()
                 .Select(action => action == null
                     ? Observable.Empty<OutputMessage>()
-                    : action.PerformAction(serviceProvider).Finally(() =>
+                    : action.PerformAction(serviceProvider).Catch<OutputMessage, Exception>(ex =>
+                    {
+                        // TODO - better logging
+                        return Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"Action {action.ActionType} encountered an exception: {ex.Message}" });
+                    }).Finally(() =>
                     {
                         this.queueAlterations.OnNext(new QueueAlteration { Kind = QueueAlterationKind.Remove, Target = action });
                     }))
@@ -76,8 +85,8 @@ namespace GitAutomation.Repository
                     ImmutableList<OutputMessage>.Empty,
                     (list, next) =>
                         (
-                            list.Count >= 100
-                                ? list.RemoveRange(0, list.Count - 99)
+                            list.Count >= logLength
+                                ? list.RemoveRange(0, list.Count - (logLength - 1))
                                 : list
                         ).Add(next)
                 ).Replay(1).ConnectFirst();
@@ -97,9 +106,9 @@ namespace GitAutomation.Repository
 
         #region Reset
 
-        public IObservable<OutputMessage> Reset()
+        public IObservable<OutputMessage> DeleteRepository()
         {
-            return EnqueueAction(new ResetAction());
+            return EnqueueAction(new ClearAction());
         }
         
         #endregion
@@ -139,11 +148,36 @@ namespace GitAutomation.Repository
                 .Select(list => list.Select(branch => branch.Name).ToArray());
         }
 
+        public IObservable<OutputMessage> DeleteBranch(string branchName)
+        {
+            return EnqueueAction(new DeleteBranchAction(branchName));
+        }
+
+        public IObservable<OutputMessage> CheckDownstreamMerges(string downstreamBranch)
+        {
+            return EnqueueAction(new MergeDownstreamAction(downstreamBranch: downstreamBranch));
+        }
+
+        public IObservable<OutputMessage> CheckAllDownstreamMerges()
+        {
+            return RemoteBranches().Take(1).SelectMany(allBranches => allBranches.ToObservable())
+                        .SelectMany(upstream => branchSettings.GetDownstreamBranches(upstream).Take(1).SelectMany(branches => branches.ToObservable().Select(downstream => new { upstream, downstream })))
+                        .ToList()
+                        .SelectMany(all => all.Select(each => each.downstream).Distinct().ToObservable())
+                        .SelectMany(upstreamBranch => CheckDownstreamMerges(upstreamBranch));
+        }
+
+        public IObservable<OutputMessage> ConsolidateServiceLine(string releaseCandidateBranch, string serviceLineBranch, string tagName)
+        {
+            return EnqueueAction(new ConsolidateServiceLineAction(releaseCandidateBranch, serviceLineBranch, tagName));
+        }
+
+
         public IObservable<OutputMessage> ProcessActions()
         {
             return this.repositoryActionProcessor;
         }
         public IObservable<ImmutableList<OutputMessage>> ProcessActionsLog => this.repositoryActionProcessorLog;
-
+        public IObservable<ImmutableList<IRepositoryAction>> ActionQueue => this.repositoryActions;
     }
 }

@@ -62,8 +62,8 @@
     <Folder Include="shared-scripts" />
   </ItemGroup>
   <ItemGroup>
-    <Build Include="TargetBranch.sql" />
-    <Build Include="BaseBranch.sql" />
+    <Build Include="DownstreamBranch.sql" />
+    <Build Include="UpstreamBranch.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".dockerignore" />

@@ -32,7 +32,7 @@ namespace GitAutomation.Processes
             var process = new Process() { StartInfo = resultInfo };
             process.EnableRaisingEvents = true;
 
-            ProcessExited = Observable.Create<Unit>(observer =>
+            var processExited = Observable.Create<Unit>(observer =>
             {
                 process.Exited += delegate
                 {
@@ -73,8 +73,7 @@ namespace GitAutomation.Processes
                     ).TakeWhile(msg => msg.Message != null)
                 )
                 // ProcessExited must be subscribed to or it'll never run.
-                .TakeUntil(this.ProcessExited)
-                .Concat(this.ProcessExited.Select(_ => default(OutputMessage)))
+                .Merge(processExited.Select(_ => default(OutputMessage)))
                 .Concat(
                     Observable.Create<OutputMessage>(observer =>
                     {
@@ -88,8 +87,6 @@ namespace GitAutomation.Processes
                 .StartWith(new OutputMessage { Channel = OutputChannel.StartInfo, Message = process.StartInfo.FileName + " " + process.StartInfo.Arguments })
                 .Publish().RefCount();
         }
-
-        public IObservable<Unit> ProcessExited { get; }
 
         public IObservable<OutputMessage> Output { get; }
     }

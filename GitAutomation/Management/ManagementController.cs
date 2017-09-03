@@ -6,6 +6,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Reactive.Linq;
+using GitAutomation.BranchSettings;
+using System.Collections.Immutable;
+using GitAutomation.Work;
 
 namespace GitAutomation.Management
 {
@@ -13,23 +16,100 @@ namespace GitAutomation.Management
     public class ManagementController : Controller
     {
         private readonly IRepositoryState repositoryState;
+        private readonly IBranchSettings branchSettings;
+        private readonly IUnitOfWorkFactory unitOfWorkFactory;
 
-        public ManagementController(IRepositoryState repositoryState)
+        public ManagementController(IRepositoryState repositoryState, IBranchSettings branchSettings, IUnitOfWorkFactory unitOfWorkFactory)
         {
             this.repositoryState = repositoryState;
+            this.branchSettings = branchSettings;
+            this.unitOfWorkFactory = unitOfWorkFactory;
         }
-
-        [HttpGet("remote-branches")]
-        public async Task<IActionResult> RemoteBranches()
-        {
-            return Ok(await repositoryState.RemoteBranches().FirstAsync());
-        }
-
 
         [HttpGet("log")]
-        public async Task<IActionResult> Log()
+        public async Task<ImmutableList<Processes.OutputMessage>> Log()
         {
-            return Ok(await repositoryState.ProcessActionsLog.FirstAsync());
+            return await repositoryState.ProcessActionsLog.FirstAsync();
+        }
+
+        [HttpGet("queue")]
+        public async Task<IEnumerable<Object>> Queue()
+        {
+            return (await repositoryState.ActionQueue.FirstAsync()).Select(action => new { ActionType = action.ActionType, Parameters = action.Parameters });
+        }
+        
+        [HttpGet("all-branches")]
+        public async Task<ImmutableList<string>> AllBranches()
+        {
+            return await (
+                branchSettings.GetConfiguredBranches()
+                .WithLatestFrom(
+                    repositoryState.RemoteBranches(), 
+                    (first, second) => first.Concat(second).Distinct().OrderBy(a => a).ToImmutableList()
+                )
+            ).FirstAsync();
+        }
+
+        [HttpDelete("branch/{*branchName}")]
+        public async Task DeleteBranch(string branchName)
+        {
+            repositoryState.DeleteBranch(branchName);
+        }
+
+        [HttpGet("details/{*branchName}")]
+        public async Task<BranchDetails> GetDetails(string branchName)
+        {
+            return await branchSettings.GetBranchDetails(branchName).FirstAsync();
+        }
+
+        [HttpPut("branch/propagation/{*branchName}")]
+        public async Task UpdateBranch(string branchName, [FromBody] UpdateBranchRequestBody requestBody)
+        {
+            using (var unitOfWork = unitOfWorkFactory.CreateUnitOfWork())
+            {
+                foreach (var addedUpstream in requestBody.AddUpstream)
+                {
+                    branchSettings.AddBranchPropagation(addedUpstream, branchName, unitOfWork);
+                }
+                foreach (var addedDownstream in requestBody.AddDownstream)
+                {
+                    branchSettings.AddBranchPropagation(branchName, addedDownstream, unitOfWork);
+                }
+                foreach (var removeUpstream in requestBody.RemoveUpstream)
+                {
+                    branchSettings.RemoveBranchPropagation(removeUpstream, branchName, unitOfWork);
+                }
+                foreach (var removeDownstream in requestBody.RemoveDownstream)
+                {
+                    branchSettings.RemoveBranchPropagation(branchName, removeDownstream, unitOfWork);
+                }
+                branchSettings.UpdateBranchSetting(branchName, requestBody.RecreateFromUpstream, requestBody.IsServiceLine, unitOfWork);
+
+                await unitOfWork.CommitAsync();
+            }
+        }
+
+        [HttpPut("branch/promote")]
+        public void PromoteServiceLine([FromBody] PromoteServiceLineBody requestBody)
+        {
+            repositoryState.ConsolidateServiceLine(requestBody.ReleaseCandidate, requestBody.ServiceLine, requestBody.TagName);
+        }
+
+        public class UpdateBranchRequestBody
+        {
+            public bool RecreateFromUpstream { get; set; }
+            public bool IsServiceLine { get; set; }
+            public string[] AddUpstream { get; set; }
+            public string[] AddDownstream { get; set; }
+            public string[] RemoveUpstream { get; set; }
+            public string[] RemoveDownstream { get; set; }
+        }
+
+        public class PromoteServiceLineBody
+        {
+            public string ServiceLine { get; set; }
+            public string ReleaseCandidate { get; set; }
+            public string TagName { get; set; }
         }
     }
 }

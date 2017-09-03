@@ -39,7 +39,14 @@ namespace GitAutomation.Repository
         {
             return reactiveProcessFactory.BuildProcess(new System.Diagnostics.ProcessStartInfo(
                 "git",
-                string.Join(" ", args.Select(arg => arg.Contains("\"") ? $"\"{arg.Replace(@"\", @"\\").Replace("\"", "\\\"")}\"" : arg))
+                string.Join(
+                    " ",
+                    args.Select(arg =>
+                        arg.Contains("\"") || arg.Contains(" ")
+                            ? $"\"{arg.Replace(@"\", @"\\").Replace("\"", "\\\"")}\""
+                            : arg
+                    )
+                )
             )
             {
                 WorkingDirectory = checkoutPath
@@ -52,6 +59,11 @@ namespace GitAutomation.Repository
             return RunGit("clone", repository, checkoutPath);
         }
 
+        public IReactiveProcess Config(string configKey, string configValue)
+        {
+            return RunGit("config", configKey, configValue);
+        }
+
         public IReactiveProcess Fetch()
         {
             return RunGit("fetch", "--prune");
@@ -62,6 +74,81 @@ namespace GitAutomation.Repository
             return RunGit("ls-remote", "--heads", "origin");
         }
 
+        public IReactiveProcess Reset()
+        {
+            return RunGit("reset", "--hard");
+        }
+
+        public IReactiveProcess Clean()
+        {
+            return RunGit("clean", "-fx");
+        }
+
+        /// <summary>
+        /// Yields commitish of common ancestor
+        /// </summary>
+        public IReactiveProcess MergeBase(string branchA, string branchB)
+        {
+            return RunGit("merge-base", RemoteBranch(branchA), RemoteBranch(branchB));
+        }
+
+        public IReactiveProcess AnnotatedTag(string tagName, string message)
+        {
+            return RunGit("tag", "-a", tagName, "-m", message);
+        }
+
+        /// <summary>
+        /// Yields commitish of branch
+        /// </summary>
+        public IReactiveProcess ShowRef(string branchName)
+        {
+            return RunGit("show-ref", RemoteBranch(branchName), "--hash");
+        }
+
+        public IReactiveProcess DeleteRemote(string branchName)
+        {
+            return RunGit("push", "origin", "--delete", branchName);
+        }
+
+        public IReactiveProcess CheckoutRemote(string branchName)
+        {
+            return RunGit("checkout", "-B", branchName, "--track", RemoteBranch(branchName));
+        }
+
+        public IReactiveProcess CheckoutNew(string branchName)
+        {
+            return RunGit("checkout", "-B", branchName);
+        }
+
+        public IReactiveProcess MergeRemote(string branchName, string message = null)
+        {
+            if (message == null)
+            {
+                return RunGit("merge", RemoteBranch(branchName));
+            }
+            else
+            {
+                return RunGit("merge", RemoteBranch(branchName), "-m", message);
+            }
+        }
+
+        public IReactiveProcess MergeFastForward(string branchName)
+        {
+            return RunGit("merge", RemoteBranch(branchName), "--ff-only");
+        }
+
+        public IReactiveProcess Push(string branchName, string remoteBranchName = null)
+        {
+            if (remoteBranchName == null)
+            {
+                return RunGit("push", "origin", branchName);
+            }
+            else
+            {
+                return RunGit("push", "origin", $"{branchName}:{remoteBranchName}");
+            }
+        }
+        
         public static IObservable<ImmutableList<GitRef>> BranchListingToRefs(IObservable<OutputMessage> refListing)
         {
 
@@ -75,5 +162,7 @@ namespace GitAutomation.Repository
             )
                 .Aggregate(ImmutableList<GitRef>.Empty, (list, next) => list.Add(next));
         }
+
+        private string RemoteBranch(string branchName) => $"origin/{branchName}";
     }
 }

@@ -1,7 +1,9 @@
 ﻿{
   "git": {
     "repository": "https://mdekrey@github.com/mdekrey/git-branching",
-    "apiType": "GitHub"
+    "apiType": "GitHub",
+    "userEmail": "git.automation@example.com",
+    "userName": "Git Automation"
   },
   "persistence": {
     "type": "SqlServer",
