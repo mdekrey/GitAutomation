@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace GitAutomation.Auth
 {
     public interface IManageUserPermissions
     {
-        ImmutableList<System.Linq.IGrouping<string, string>> GetUsersAndRoles();
+        Task<ImmutableDictionary<string, ImmutableList<string>>> GetUsersAndRoles();
 
         void RecordUser(string username, Work.IUnitOfWork work);
         void AddUserRole(string username, string role, Work.IUnitOfWork work);

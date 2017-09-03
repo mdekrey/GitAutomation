@@ -555,7 +555,7 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             PrepareSqlUnitOfWork(work);
             work.Defer(async sp =>
             {
-                using (var command = Transacted(sp, UpdateBranchSettingCommand, new Dictionary<string, object> {
+                using (var command = GetConnectionManagement(sp).Transacted(UpdateBranchSettingCommand, new Dictionary<string, object> {
                     { "@BranchName", branchName },
                     { "@RecreateFromUpstream", recreateFromUpstream ? 1 : 0 },
                     { "@BranchType", branchType.ToString("g") },
@@ -572,7 +572,7 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             PrepareSqlUnitOfWork(work);
             work.Defer(async sp =>
             {
-                using (var command = Transacted(sp, AddBranchPropagationCommand, new Dictionary<string, object> {
+                using (var command = GetConnectionManagement(sp).Transacted(AddBranchPropagationCommand, new Dictionary<string, object> {
                     { "@UpstreamBranch", upstreamBranch },
                     { "@DownstreamBranch", downstreamBranch },
                 }))
@@ -588,7 +588,7 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             PrepareSqlUnitOfWork(work);
             work.Defer(async sp =>
             {
-                using (var command = Transacted(sp, RemoveBranchPropagationCommand, new Dictionary<string, object> {
+                using (var command = GetConnectionManagement(sp).Transacted(RemoveBranchPropagationCommand, new Dictionary<string, object> {
                     { "@UpstreamBranch", upstreamBranch },
                     { "@DownstreamBranch", downstreamBranch },
                 }))
@@ -604,7 +604,7 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             PrepareSqlUnitOfWork(work);
             work.Defer(async sp =>
             {
-                using (var command = Transacted(sp, ConsolidateServiceLineCommand, new Dictionary<string, object> {
+                using (var command = GetConnectionManagement(sp).Transacted(ConsolidateServiceLineCommand, new Dictionary<string, object> {
                     { "@BranchName", releaseCandidateBranch },
                     { "@ServiceLineBranchName", serviceLineBranch },
                 }))
@@ -619,7 +619,7 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             PrepareSqlUnitOfWork(work);
             work.Defer(async sp =>
             {
-                using (var command = Transacted(sp, DeleteBranchSettingsCommand, new Dictionary<string, object> {
+                using (var command = GetConnectionManagement(sp).Transacted(DeleteBranchSettingsCommand, new Dictionary<string, object> {
                     { "@BranchName", deletingBranch },
                 }))
                 {
@@ -640,25 +640,13 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             work.PrepareAndFinalize<ConnectionManagement>();
         }
 
-        private DbCommand Transacted(IServiceProvider sp, CommandBuilder commandBuilder, Dictionary<string, object> parameters)
-        {
-            return commandBuilder.BuildFrom(GetSqlConnection(sp), parameters, GetSqlTransaction(sp));
-        }
-
-        private DbConnection GetSqlConnection(IServiceProvider scope)
-        {
-            return scope.GetRequiredService<ConnectionManagement>().Connection;
-        }
-
-        private DbTransaction GetSqlTransaction(IServiceProvider scope)
-        {
-            return scope.GetRequiredService<ConnectionManagement>().Transaction;
-        }
-
+        private ConnectionManagement GetConnectionManagement(IServiceProvider scope) =>
+            scope.GetRequiredService<ConnectionManagement>();
+        
         private async Task<T> WithConnection<T>(Func<DbConnection, Task<T>> target)
         {
             using (var scope = serviceProvider.CreateScope())
-            using (var connection = GetSqlConnection(scope.ServiceProvider))
+            using (var connection = GetConnectionManagement(scope.ServiceProvider).Connection)
             {
                 await connection.OpenAsync();
                 return await target(connection);
