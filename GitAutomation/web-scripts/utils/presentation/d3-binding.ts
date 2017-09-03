@@ -62,7 +62,9 @@ export function bind<GElement extends BaseType, NewDatum>({
   if (onExit) {
     onExit(target.exit<NewDatum>());
   }
-  onEach(newElems.merge(target));
+  const result = newElems.merge(target);
+  onEach(result);
+  return result;
 }
 
 export interface IRxBindProps<
@@ -79,7 +81,7 @@ export interface BindResult<TDatum, PElement extends BaseType> {
   /** Binds to the subscription. The type corresponds to the created element. */
   bind<GElement extends BaseType>(
     bindParams: IRxBindProps<GElement, TDatum, PElement, {}>
-  ): Observable<never>;
+  ): Observable<Selection<GElement, TDatum, PElement, any>>;
 }
 
 /**
@@ -99,28 +101,31 @@ export function rxData<TDatum, PElement extends BaseType>(
       selector,
       ...actions
     }: IRxBindProps<GElement, TDatum, PElement, {}>) => {
-      return Observable.create((observer: Observer<never>) => {
-        var onUnsubscribing = new Subject<TDatum[]>();
-        var subscription = target
-          .switchMap(svgSelection =>
-            data
-              .merge(onUnsubscribing)
-              .map(data =>
-                svgSelection.selectAll<GElement, {}>(selector).data(data, key)
-              )
-          )
-          .subscribe(target =>
-            bind({
-              target,
-              ...actions
-            })
-          );
+      return Observable.create(
+        (observer: Observer<Selection<GElement, TDatum, PElement, any>>) => {
+          var onUnsubscribing = new Subject<TDatum[]>();
+          var subscription = target
+            .switchMap(svgSelection =>
+              data
+                .merge(onUnsubscribing)
+                .map(data =>
+                  svgSelection.selectAll<GElement, {}>(selector).data(data, key)
+                )
+            )
+            .map(target =>
+              bind({
+                target,
+                ...actions
+              })
+            )
+            .subscribe(observer);
 
-        return () => {
-          onUnsubscribing.next([]);
-          subscription.unsubscribe();
-        };
-      }) as Observable<never>;
+          return () => {
+            onUnsubscribing.next([]);
+            subscription.unsubscribe();
+          };
+        }
+      ) as Observable<Selection<GElement, TDatum, PElement, any>>;
     }
   };
 }

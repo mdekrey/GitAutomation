@@ -4,7 +4,6 @@ import {
   buildCascadingStrategy,
   route,
   RouteConcrete,
-  RouteAlias,
   wildcard
 } from "./routing";
 import { windowHashStrategy } from "./routing/strategies/window-hash";
@@ -16,6 +15,7 @@ import { currentClaims } from "./api/basics";
 import { ClaimDetails } from "./api/claim-details";
 import { login } from "./login/index";
 import "./style/global";
+import { admin } from "./admin/index";
 
 const body = Observable.of(d3element(document.body));
 
@@ -28,7 +28,7 @@ buildCascadingStrategy(windowHashStrategy)
       "": RouteConcrete(homepage(body)),
       manage: RouteConcrete(manage(body)),
       "new-branch": RouteConcrete(newBranch(body)),
-      admin: RouteAlias("manage"),
+      admin: RouteConcrete(admin(body)),
       login: RouteConcrete(login(body, claims)),
       [wildcard]: RouteConcrete(() =>
         body.do(elem => elem.html(`Four-oh-four`))

@@ -18,7 +18,6 @@ namespace GitAutomation.Auth
         [HttpGet("sign-in")]
         public IActionResult SignIn()
         {
-            // TODO
             return this.Challenge(new AuthenticationProperties
             {
                 RedirectUri = "/"
