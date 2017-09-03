@@ -84,52 +84,11 @@ namespace GitAutomation
                         "max-age=0, must-revalidate";
                 }
             );
-
-            var authorizationSection = Configuration.GetSection("authorization");
-            var authorizationOptions = authorizationSection.Get<Auth.AuthorizationOptions>();
-            foreach (var plugin in authorizationOptions.Types.Select(PluginActivator.GetPluginOrNull<Auth.IRegisterPrincipalValidation>))
-            {
-                plugin?.RegisterPrincipalValidation(services, authorizationSection);
-            }
-
-            var authBuilder = services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie(options =>
-                {
-                    options.Events = new CookieAuthenticationEvents
-                    {
-                        OnValidatePrincipal = async (context) =>
-                        {
-                            var principalValidation = context.HttpContext.RequestServices.GetServices<Auth.IPrincipalValidation>();
-                            var currentPrincipal = context.Principal;
-                            foreach (var entry in principalValidation)
-                            {
-                                currentPrincipal = await entry.OnValidatePrincipal(context.HttpContext, currentPrincipal);
-                                if (currentPrincipal == null)
-                                {
-                                    context.RejectPrincipal();
-                                    break;
-                                }
-                            }
-                            if (currentPrincipal != null)
-                            {
-                                context.ReplacePrincipal(currentPrincipal);
-                            }
-                        }
-                    };
-                });
-
-            var authenticationSection = Configuration.GetSection("authentication");
-            var authenticationOptions = authenticationSection.Get<Plugins.AuthenticationOptions>();
-            services.Configure<Plugins.AuthenticationOptions>(authenticationSection);
-            PluginActivator.GetPlugin<IRegisterAuthentication>(
-                typeName: authenticationOptions.Type,
-                errorMessage: $"Unknown git service api registry: {authenticationOptions.Type}. Specify a .Net type.`"
-            ).RegisterAuthentication(services, authBuilder, authenticationSection);
-
-            services.AddAuthorization(options =>
-            {
-                options.AddGitAutomationPolicies();
-            });
+            
+            services.AddAutomationAuth(
+                authenticationSection: Configuration.GetSection("authentication"),
+                authorizationSection: Configuration.GetSection("authorization")
+            );
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

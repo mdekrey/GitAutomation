@@ -20,7 +20,7 @@
     }
   },
   "authorization": {
-    "types": [ "GitAutomation.Auth.RegisterRolesFromConfiguration" ],
+    "types": [ "GitAutomation.Auth.RegisterRolesFromConfiguration, GitAutomation.Auth" ],
     "roles": {
       "administrator": [
         {
