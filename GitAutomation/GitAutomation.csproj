@@ -22,7 +22,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.1.1" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OAuth" Version="2.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.0.0" />
@@ -35,6 +34,7 @@
     <DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools" Version="1.0.1" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\GitAutomation.Auth\GitAutomation.Auth.csproj" />
     <ProjectReference Include="..\GitAutomation.Core\GitAutomation.Core.csproj" />
     <ProjectReference Include="..\GitAutomation.GitHub\GitAutomation.GitHub.csproj" />
     <ProjectReference Include="..\GitAutomation.SqlServer\GitAutomation.SqlServer.csproj" />

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace GitAutomation.Plugins
+namespace GitAutomation.Auth
 {
     public class AuthenticationOptions
     {

@@ -24,6 +24,7 @@ using Newtonsoft.Json.Linq;
 using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 using GitAutomation.Plugins;
+using Microsoft.AspNetCore.Authorization;
 
 namespace GitAutomation
 {
@@ -83,51 +84,11 @@ namespace GitAutomation
                         "max-age=0, must-revalidate";
                 }
             );
-
-            var authorizationSection = Configuration.GetSection("authorization");
-            var authorizationOptions = authorizationSection.Get<Plugins.AuthorizationOptions>();
-            var authBuilder = services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie(options =>
-                {
-                    options.Events = new CookieAuthenticationEvents
-                    {
-                        OnSigningIn = async (context) =>
-                        {
-                            await Task.Yield();
-                            var original = context.Principal.Identity as ClaimsIdentity;
-
-                            var id = new ClaimsIdentity(Auth.Names.AuthenticationType, original.NameClaimType, Auth.Names.RoleType);
-                            id.AddClaims(original.Claims.Where(claim => claim.Type != Auth.Names.RoleType));
-                            id.AddClaims(
-                                from role in authorizationOptions?.Roles ?? Enumerable.Empty<KeyValuePair<string, ClaimRule[]>>()
-                                where (from rule in role.Value
-                                       from claim in original.Claims
-                                       where rule.IsMatch(claim)
-                                       select rule).Any()
-                                select new Claim(id.RoleClaimType, role.Key)
-                            );
-                            context.Principal = new ClaimsPrincipal(id);
-                        }
-                    };
-                });
-
-            var authenticationSection = Configuration.GetSection("authentication");
-            var authenticationOptions = authenticationSection.Get<Plugins.AuthenticationOptions>();
-            services.Configure<Plugins.AuthenticationOptions>(authenticationSection);
-            PluginActivator.GetPlugin<IRegisterAuthentication>(
-                typeName: authenticationOptions.Type,
-                errorMessage: $"Unknown git service api registry: {authenticationOptions.Type}. Specify a .Net type.`"
-            ).RegisterAuthentication(services, authBuilder, authenticationSection);
-
-            services.AddAuthorization(options =>
-            {
-                var bearerOnly = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme)
-                    .Build();
-                options.AddPolicy(Auth.Names.DefaultPolicy, bearerOnly);
-                options.DefaultPolicy = bearerOnly;
-            });
+            
+            services.AddAutomationAuth(
+                authenticationSection: Configuration.GetSection("authentication"),
+                authorizationSection: Configuration.GetSection("authorization")
+            );
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

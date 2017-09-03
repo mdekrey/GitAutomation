@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authentication.OAuth;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using Newtonsoft.Json.Linq;
+using GitAutomation.Auth;
 
 namespace GitAutomation.GitHub
 {
@@ -19,7 +20,7 @@ namespace GitAutomation.GitHub
     {
         public void RegisterAuthentication(IServiceCollection services, AuthenticationBuilder authBuilder, IConfiguration configuration)
         {
-            var authenticationOptions = configuration.Get<Plugins.AuthenticationOptions>();
+            var authenticationOptions = configuration.Get<Auth.AuthenticationOptions>();
             authBuilder
                 .AddOAuth(Auth.Constants.AuthenticationScheme, options =>
                 {

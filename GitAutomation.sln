@@ -28,9 +28,11 @@ Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "GitAutomation.Sql", "GitAut
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Core.Tests", "GitAutomation.Core.Tests\GitAutomation.Core.Tests.csproj", "{D3F761A1-0008-4A0C-9656-D4E17971B3F4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitAutomation.SqlServer", "GitAutomation.SqlServer\GitAutomation.SqlServer.csproj", "{37C446EC-43BE-4EFB-B192-5598E4E289FB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.SqlServer", "GitAutomation.SqlServer\GitAutomation.SqlServer.csproj", "{37C446EC-43BE-4EFB-B192-5598E4E289FB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.GitHub", "GitAutomation.GitHub\GitAutomation.GitHub.csproj", "{6BC8F9AD-B2E3-46F9-8E07-8998D5CA1CA0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitAutomation.Auth", "GitAutomation.Auth\GitAutomation.Auth.csproj", "{C54F4F9D-63D5-4828-AF92-CE4A7C726CD1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -68,6 +70,10 @@ Global
 		{6BC8F9AD-B2E3-46F9-8E07-8998D5CA1CA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6BC8F9AD-B2E3-46F9-8E07-8998D5CA1CA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6BC8F9AD-B2E3-46F9-8E07-8998D5CA1CA0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C54F4F9D-63D5-4828-AF92-CE4A7C726CD1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C54F4F9D-63D5-4828-AF92-CE4A7C726CD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C54F4F9D-63D5-4828-AF92-CE4A7C726CD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C54F4F9D-63D5-4828-AF92-CE4A7C726CD1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

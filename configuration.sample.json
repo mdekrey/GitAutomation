@@ -7,7 +7,7 @@
     "userName": "Git Automation"
   },
   "persistence": {
-    "type": "SqlServer",
+    "type": "GitAutomation.SqlServer.RegisterSqlServer, GitAutomation.SqlServer",
     "sqlServer": {
       "connectionString": "Server=gitautomation-sql;Database=gitautomation;User Id=sa;Password=THE_SA_PASSWORD;"
     }
@@ -20,6 +20,10 @@
     }
   },
   "authorization": {
+    "types": [
+      "GitAutomation.Auth.RegisterRolesFromConfiguration, GitAutomation.Auth",
+      "GitAutomation.SqlServer.RegisterSqlServer, GitAutomation.SqlServer"
+    ],
     "roles": {
       "administrator": [
         {

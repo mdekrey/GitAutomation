@@ -21,6 +21,7 @@ export const homepage = (
     .do(elem =>
       elem.html(`
   <a data-locator="log-out">Log Out</a>
+  <a data-locator="admin">Admin</a>
 
   <h1>Action Queue</h1>
   <a data-locator="action-queue-refresh">Refresh</a>
@@ -158,6 +159,15 @@ export const homepage = (
             eventName: "click"
           }).subscribe(() =>
             state.navigate({ url: "/new-branch", replaceCurentHistory: false })
+          )
+        );
+
+        subscription.add(
+          rxEvent({
+            target: body.map(fnSelect('[data-locator="admin"]')),
+            eventName: "click"
+          }).subscribe(() =>
+            state.navigate({ url: "/admin", replaceCurentHistory: false })
           )
         );
 

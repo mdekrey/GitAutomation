@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using System.Text;
 
-namespace GitAutomation.Plugins
+namespace GitAutomation.Auth
 {
-    public class AuthorizationOptions
+    public class RolesFromConfigurationOptions
     {
 
         public Dictionary<string, ClaimRule[]> Roles { get; set; } = new Dictionary<string, ClaimRule[]>();

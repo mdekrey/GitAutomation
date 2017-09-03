@@ -64,6 +64,8 @@
   <ItemGroup>
     <Build Include="DownstreamBranch.sql" />
     <Build Include="UpstreamBranch.sql" />
+    <Build Include="User.sql" />
+    <Build Include="UserRole.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".dockerignore" />

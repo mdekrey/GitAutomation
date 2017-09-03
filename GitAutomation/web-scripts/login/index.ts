@@ -18,14 +18,18 @@ export const login = (
   container
     .do(elem =>
       elem.html(`
-  <h1>Log In</h1>
-  <p>You aren't currently logged in, or you've been granted no roles.</p>
-  <a data-locator="log-in">Log In</a>
+  <div data-locator="not-logged-in">
+    <h1>Log In</h1>
+    <p>You aren't currently logged in.</p>
+    <a data-locator="log-in">Log In</a>
+  </div>
 
-  <h1 data-locator="current-claims">Your current claims</h1>
-  <p>If you're seeing this screen, share the below values with your administrator so they can give you access.</p>
-  <ul data-locator="claims">
-  </ul>
+  <div data-locator="current-claims">
+    <h1>Your current claims</h1>
+    <p>If you're seeing this screen, share the below values with your administrator so they can give you access.</p>
+    <ul data-locator="claims">
+    </ul>
+  </div>
 `)
     )
     .publishReplay(1)
@@ -62,10 +66,17 @@ export const login = (
             .subscribe()
         );
 
-        rxDatum(claims.map(claim => Boolean(claim.claims.length)))(
+        const hasClaims = claims.map(claim => Boolean(claim.claims.length));
+        rxDatum(hasClaims)(
           body.map(fnSelect('[data-locator="current-claims"]'))
         ).subscribe(target => {
           target.style("display", hasClaims => (hasClaims ? null : "none"));
+        });
+
+        rxDatum(hasClaims)(
+          body.map(fnSelect('[data-locator="not-logged-in"]'))
+        ).subscribe(target => {
+          target.style("display", hasClaims => (hasClaims ? "none" : null));
         });
 
         return subscription;

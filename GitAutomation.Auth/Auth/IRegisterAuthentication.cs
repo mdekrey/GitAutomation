@@ -5,7 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authentication;
 
-namespace GitAutomation.Plugins
+namespace GitAutomation.Auth
 {
     public interface IRegisterAuthentication
     {

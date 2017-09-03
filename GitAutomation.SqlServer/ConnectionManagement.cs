@@ -6,6 +6,7 @@ using System.Data.Common;
 using System.Data.SqlClient;
 using System.Text;
 using System.Threading.Tasks;
+using DeKreyConsulting.AdoTestability;
 
 namespace GitAutomation.SqlServer
 {
@@ -42,6 +43,11 @@ namespace GitAutomation.SqlServer
             transaction.Rollback();
             transaction.Dispose();
             return Task.CompletedTask;
+        }
+
+        internal DbCommand Transacted(CommandBuilder commandBuilder, Dictionary<string, object> parameters)
+        {
+            return commandBuilder.BuildFrom(Connection, parameters, Transaction);
         }
     }
 }
