@@ -31,21 +31,21 @@ namespace GitAutomation.Management
             this.orchestration = orchestration;
         }
 
-        [Authorize(Roles = "administrator, read")]
+        [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("log")]
         public async Task<ImmutableList<Processes.OutputMessage>> Log()
         {
             return await orchestration.ProcessActionsLog.FirstAsync();
         }
 
-        [Authorize(Roles = "administrator, read")]
+        [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("queue")]
         public async Task<IEnumerable<Object>> Queue()
         {
             return (await orchestration.ActionQueue.FirstAsync()).Select(action => new { ActionType = action.ActionType, Parameters = action.Parameters });
         }
         
-        [Authorize(Roles = "administrator, read")]
+        [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("all-branches")]
         public async Task<ImmutableList<BranchBasicDetails>> AllBranches()
         {
@@ -66,21 +66,21 @@ namespace GitAutomation.Management
             ).FirstAsync();
         }
 
-        [Authorize(Roles = "administrator, delete")]
+        [Authorize(Auth.PolicyNames.Delete)]
         [HttpDelete("branch/{*branchName}")]
         public void DeleteBranch(string branchName)
         {
             repositoryState.DeleteBranch(branchName);
         }
 
-        [Authorize(Roles = "administrator, read")]
+        [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("details/{*branchName}")]
         public async Task<BranchDetails> GetDetails(string branchName)
         {
             return await branchSettings.GetBranchDetails(branchName).FirstAsync();
         }
 
-        [Authorize(Roles = "administrator, update")]
+        [Authorize(Auth.PolicyNames.Update)]
         [HttpPut("branch/propagation/{*branchName}")]
         public async Task UpdateBranch(string branchName, [FromBody] UpdateBranchRequestBody requestBody)
         {
@@ -108,14 +108,14 @@ namespace GitAutomation.Management
             }
         }
 
-        [Authorize(Roles = "administrator, approve")]
+        [Authorize(Auth.PolicyNames.Approve)]
         [HttpPut("branch/promote")]
         public void PromoteServiceLine([FromBody] PromoteServiceLineBody requestBody, [FromServices] IOrchestrationActions orchestrationActions)
         {
             orchestrationActions.ConsolidateServiceLine(requestBody.ReleaseCandidate, requestBody.ServiceLine, requestBody.TagName);
         }
 
-        [Authorize(Roles = "administrator, read")]
+        [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("detect-upstream/{*branchName}")]
         public async Task<IEnumerable<string>> DetectUpstream(string branchName)
         {

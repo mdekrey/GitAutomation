@@ -24,6 +24,7 @@ using Newtonsoft.Json.Linq;
 using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 using GitAutomation.Plugins;
+using Microsoft.AspNetCore.Authorization;
 
 namespace GitAutomation
 {
@@ -127,11 +128,7 @@ namespace GitAutomation
 
             services.AddAuthorization(options =>
             {
-                var bearerOnly = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme)
-                    .Build();
-                options.DefaultPolicy = bearerOnly;
+                options.AddGitAutomationPolicies();
             });
         }
 

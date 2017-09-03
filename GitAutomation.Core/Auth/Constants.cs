@@ -7,7 +7,7 @@ namespace GitAutomation.Auth
     public static class Constants
     {
         public const string AuthenticationScheme = "CustomAuthenticationScheme";
-        public const string RoleType = "uri:GitAutomation:Role";
+        public const string PermissionType = "uri:GitAutomation:Permission";
         public const string OAuthAuthorizationPolicy = "OAuthPolicy";
         public const string AuthenticationType = "uri:GitAutomation";
     }

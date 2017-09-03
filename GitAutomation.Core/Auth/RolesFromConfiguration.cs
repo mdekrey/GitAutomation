@@ -22,8 +22,8 @@ namespace GitAutomation.Auth
         {
             var original = currentPrincipal.Identity as ClaimsIdentity;
 
-            var id = new ClaimsIdentity(Auth.Constants.AuthenticationType, original.NameClaimType, Auth.Constants.RoleType);
-            id.AddClaims(original.Claims.Where(claim => claim.Type != Auth.Constants.RoleType));
+            var id = new ClaimsIdentity(Auth.Constants.AuthenticationType, original.NameClaimType, Auth.Constants.PermissionType);
+            id.AddClaims(original.Claims.Where(claim => claim.Type != Auth.Constants.PermissionType));
             id.AddClaims(
                 from role in roles
                 where (from rule in role.Value
