@@ -23,7 +23,7 @@ namespace GitAutomation.Orchestration.Actions
         private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
         private readonly string deletingBranch;
 
-        public string ActionType => "ConsolidateServiceLine";
+        public string ActionType => "DeleteBranch";
 
         public DeleteBranchAction(string deletingBranch)
         {
