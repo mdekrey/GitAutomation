@@ -254,16 +254,18 @@ export function branchHierarchy({
           selector: `g`,
           onCreate: target => target.append<SVGGElement>("g"),
           onEnter: target => {
+            target.style("opacity", 0);
             const rect = target
               .append("rect")
               .attr("data-locator", "background")
               .attr("rx", 3)
               .attr("ry", 3)
-              .attr("fill", "transparent");
+              .attr("stroke", node => node.branchColor)
+              .attr("fill", "white");
             const text = target
               .append<SVGTextElement>("text")
               .attr("data-locator", "foreground")
-              .attr("fill", "transparent")
+              .attr("fill", node => node.branchColor)
               .attr("stroke-width", 0)
               .attr("dy", -6)
               .attr("dx", 3)
@@ -279,24 +281,16 @@ export function branchHierarchy({
           onEach: target => {
             target.attr("transform", node => `translate(${node.x}, ${node.y})`);
             target
-              .select(`text[data-locator="foreground"]`)
-              .attr(
-                "fill",
-                node => (node.showLabel ? node.branchColor : "transparent")
-              );
+              .transition()
+              .style("opacity", node => (node.showLabel ? 0.95 : 0));
             target
               .select<SVGRectElement>(`rect[data-locator="background"]`)
-              .attr("fill", node => (node.showLabel ? "white" : "transparent"))
               .attr("width", function() {
                 return (
                   this.parentElement!.querySelector("text")!.getClientRects()[0]
                     .width + 6
                 );
-              })
-              .attr(
-                "stroke",
-                node => (node.showLabel ? node.branchColor : "transparent")
-              );
+              });
           }
         })
         .subscribe()
