@@ -66,6 +66,35 @@ namespace GitAutomation.Management
             ).FirstAsync();
         }
 
+        [Authorize(Auth.PolicyNames.Read)]
+        [HttpGet("all-branches/hierarchy")]
+        public async Task<ImmutableList<BranchHierarchyDetails>> AllBranchesHierarchy()
+        {
+            return await (
+                branchSettings.GetConfiguredBranches()
+                    .Take(1)
+                    .SelectMany(allBranches => 
+                        allBranches.ToObservable().SelectMany(async branch => new BranchHierarchyDetails(branch)
+                        {
+                            DownstreamBranches = (await branchSettings.GetDownstreamBranches(branch.BranchName).FirstOrDefaultAsync()).Select(b => b.BranchName).ToImmutableList()
+                        }).ToArray()
+                    )
+                    .Select(branches => branches.ToImmutableList())
+                .WithLatestFrom(
+                    repositoryState.RemoteBranches(),
+                    (first, second) =>
+                        first
+                            .Concat(
+                                from branchName in second
+                                where !first.Any(b => b.BranchName == branchName)
+                                select new BranchHierarchyDetails { BranchName = branchName }
+                            )
+                            .OrderBy(a => a.BranchName)
+                            .ToImmutableList()
+                )
+            ).FirstAsync();
+        }
+
         [Authorize(Auth.PolicyNames.Delete)]
         [HttpDelete("branch/{*branchName}")]
         public void DeleteBranch(string branchName)
@@ -137,6 +166,21 @@ namespace GitAutomation.Management
             public string ServiceLine { get; set; }
             public string ReleaseCandidate { get; set; }
             public string TagName { get; set; }
+        }
+
+        public class BranchHierarchyDetails : BranchBasicDetails
+        {
+            public BranchHierarchyDetails()
+            {
+            }
+            public BranchHierarchyDetails(BranchBasicDetails original)
+            {
+                this.BranchName = original.BranchName;
+                this.BranchType = original.BranchType;
+                this.RecreateFromUpstream = original.RecreateFromUpstream;
+            }
+
+            public ImmutableList<string> DownstreamBranches { get; set; } = ImmutableList<string>.Empty;
         }
     }
 }
