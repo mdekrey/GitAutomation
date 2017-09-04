@@ -55,7 +55,8 @@ export const homepage = (
           branchHierarchy({
             target: body.map(
               fnSelect<SVGSVGElement>(`svg[data-locator="hierarchy-container"]`)
-            )
+            ),
+            state
           }).subscribe()
         );
 

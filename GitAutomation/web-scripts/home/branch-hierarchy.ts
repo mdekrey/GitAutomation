@@ -24,12 +24,13 @@ import { allBranchesHierarchy } from "../api/basics";
 import { BranchHierarchy } from "../api/branch-hierarchy";
 import { branchTypeColors } from "../style/branch-colors";
 import { BranchType } from "../api/basic-branch";
+import { ICascadingRoutingStrategy } from "../routing/index";
 
 interface NodeDatum extends BranchHierarchy, SimulationNodeDatum {
   showLabel?: boolean;
 }
 
-const branchTypeX: Record<BranchType, number> = {
+const branchTypeInitialX: Record<BranchType, number> = {
   ServiceLine: 0,
   Hotfix: -40,
   Infrastructure: 40,
@@ -39,9 +40,11 @@ const branchTypeX: Record<BranchType, number> = {
 };
 
 export function branchHierarchy({
-  target
+  target,
+  state
 }: {
   target: Observable<Selection<SVGSVGElement, any, any, any>>;
+  state: ICascadingRoutingStrategy<any>;
 }) {
   return Observable.create(() => {
     const subscription = new Subscription();
@@ -64,7 +67,7 @@ export function branchHierarchy({
       .map(allBranches => {
         const nodes = allBranches.map((branch, index): NodeDatum => ({
           ...branch,
-          x: branchTypeX[branch.branchType],
+          x: branchTypeInitialX[branch.branchType],
           y: index * 5
         }));
 
@@ -79,7 +82,7 @@ export function branchHierarchy({
 
         return { nodes, links };
       })
-      .publish()
+      .publishReplay(1)
       .refCount();
 
     const linkForce = forceLink<NodeDatum, SimulationLinkDatum<NodeDatum>>([])
@@ -91,7 +94,7 @@ export function branchHierarchy({
         "charge",
         forceManyBody()
           .distanceMax(80)
-          .strength(-60)
+          .strength(-100)
       )
       .force("collide", forceCollide(10))
       .force("center", forceCenter())
@@ -140,21 +143,33 @@ export function branchHierarchy({
         );
 
         let currentHover: NodeDatum | undefined = undefined;
-        hitbox.on("pointermove", function({ width, height }) {
-          const x = d3mouse(this)[0] - width / 2,
-            y = d3mouse(this)[1] - height / 2;
-          const newHover = simulation.find(x, y, 10);
-          if (currentHover !== newHover) {
-            if (currentHover) {
-              currentHover.showLabel = false;
+        hitbox
+          .on("pointermove", function({ width, height }) {
+            const x = d3mouse(this)[0] - width / 2,
+              y = d3mouse(this)[1] - height / 2;
+            const newHover = simulation.find(x, y, 10);
+            if (currentHover !== newHover) {
+              if (currentHover) {
+                currentHover.showLabel = false;
+              }
+              currentHover = newHover;
+              if (currentHover) {
+                currentHover.showLabel = true;
+              }
+              updateDraw.next(null);
             }
-            currentHover = newHover;
-            if (currentHover) {
-              currentHover.showLabel = true;
+          })
+          .on("click", function({ width, height }) {
+            const x = d3mouse(this)[0] - width / 2,
+              y = d3mouse(this)[1] - height / 2;
+            const clicked = simulation.find(x, y, 10);
+            if (clicked) {
+              state.navigate({
+                url: "/manage/" + clicked.branchName,
+                replaceCurentHistory: false
+              });
             }
-            updateDraw.next(null);
-          }
-        });
+          });
       })
     );
 
