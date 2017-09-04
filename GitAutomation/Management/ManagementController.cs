@@ -119,7 +119,26 @@ namespace GitAutomation.Management
         [HttpGet("detect-upstream/{*branchName}")]
         public async Task<IEnumerable<string>> DetectUpstream(string branchName)
         {
-            return await repositoryState.DetectUpstream(branchName);
+            var allUpstream = await repositoryState.DetectUpstream(branchName);
+            var configured = await branchSettings.GetConfiguredBranches().FirstAsync();
+
+            for (var i = 0; i < allUpstream.Count - 1; i++)
+            {
+                var upstream = allUpstream[i];
+                var isConfigured = configured.Any(branch => branch.BranchName == upstream);
+                var furtherUpstream = await branchSettings.GetAllUpstreamBranches(upstream).FirstOrDefaultAsync();
+                allUpstream = allUpstream.Except(furtherUpstream.Select(b => b.BranchName)).ToImmutableList();
+            }
+
+            // TODO - this could be smarter
+            for (var i = 0; i < allUpstream.Count - 1; i++)
+            {
+                var upstream = allUpstream[i];
+                var furtherUpstream = await repositoryState.DetectUpstream(upstream);
+                allUpstream = allUpstream.Except(furtherUpstream).ToImmutableList();
+            }
+
+            return allUpstream;
         }
 
         public class UpdateBranchRequestBody
