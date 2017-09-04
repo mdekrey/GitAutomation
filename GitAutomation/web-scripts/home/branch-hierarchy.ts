@@ -24,8 +24,10 @@ import { allBranchesHierarchy } from "../api/basics";
 import { BranchHierarchy } from "../api/branch-hierarchy";
 import { branchTypeColors } from "../style/branch-colors";
 import { ICascadingRoutingStrategy } from "../routing/index";
+import { BranchType } from "../api/basic-branch";
 
 interface NodeDatum extends BranchHierarchy, SimulationNodeDatum {
+  branchColor: string;
   showLabel?: boolean;
 }
 
@@ -39,6 +41,15 @@ export function branchHierarchy({
   return Observable.create(() => {
     const subscription = new Subscription();
     const updateDraw = new Subject<null>();
+
+    const branchCounter: Partial<Record<BranchType, number>> = {};
+
+    function getBranchColor(branchType: BranchType) {
+      const counter = branchCounter[branchType] || 0;
+      branchCounter[branchType] =
+        (counter + 1) % branchTypeColors[branchType].length;
+      return branchTypeColors[branchType][counter].toString();
+    }
 
     subscription.add(
       target.distinctUntilChanged().subscribe(svg =>
@@ -56,9 +67,8 @@ export function branchHierarchy({
     const data = allBranchesHierarchy()
       .map(allBranches => {
         const nodes = allBranches.map((branch, index): NodeDatum => ({
-          ...branch
-          // x: branchTypeInitialX[branch.branchType],
-          // y: index * 5
+          ...branch,
+          branchColor: getBranchColor(branch.branchType)
         }));
 
         const links = flatten<SimulationLinkDatum<NodeDatum>>(
@@ -220,9 +230,7 @@ export function branchHierarchy({
             target
               .transition()
               .attr("r", 5)
-              .attr("fill", node =>
-                branchTypeColors[node.branchType][0].toString()
-              );
+              .attr("fill", node => node.branchColor);
           },
           onExit: target =>
             target
@@ -274,10 +282,7 @@ export function branchHierarchy({
               .select(`text[data-locator="foreground"]`)
               .attr(
                 "fill",
-                node =>
-                  node.showLabel
-                    ? branchTypeColors[node.branchType][0].toString()
-                    : "transparent"
+                node => (node.showLabel ? node.branchColor : "transparent")
               );
             target
               .select<SVGRectElement>(`rect[data-locator="background"]`)
@@ -290,10 +295,7 @@ export function branchHierarchy({
               })
               .attr(
                 "stroke",
-                node =>
-                  node.showLabel
-                    ? branchTypeColors[node.branchType][0].toString()
-                    : "transparent"
+                node => (node.showLabel ? node.branchColor : "transparent")
               );
           }
         })
