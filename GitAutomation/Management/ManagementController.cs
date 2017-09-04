@@ -71,7 +71,7 @@ namespace GitAutomation.Management
         public async Task<ImmutableList<BranchHierarchyDetails>> AllBranchesHierarchy()
         {
             return await (
-                branchSettings.GetConfiguredBranches()
+                branchSettings.GetAllDownstreamBranches()
                     .Take(1)
                     .SelectMany(allBranches => 
                         allBranches.ToObservable().SelectMany(async branch => new BranchHierarchyDetails(branch)
@@ -173,14 +173,16 @@ namespace GitAutomation.Management
             public BranchHierarchyDetails()
             {
             }
-            public BranchHierarchyDetails(BranchBasicDetails original)
+            public BranchHierarchyDetails(BranchDepthDetails original)
             {
                 this.BranchName = original.BranchName;
                 this.BranchType = original.BranchType;
                 this.RecreateFromUpstream = original.RecreateFromUpstream;
+                this.HierarchyDepth = original.Ordinal;
             }
 
             public ImmutableList<string> DownstreamBranches { get; set; } = ImmutableList<string>.Empty;
+            public int HierarchyDepth { get; set; }
         }
     }
 }

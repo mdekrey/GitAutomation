@@ -6,6 +6,7 @@ import {
   forceSimulation,
   forceManyBody,
   forceCenter,
+  forceX,
   forceY,
   SimulationNodeDatum,
   SimulationLinkDatum
@@ -23,21 +24,11 @@ import {
 import { allBranchesHierarchy } from "../api/basics";
 import { BranchHierarchy } from "../api/branch-hierarchy";
 import { branchTypeColors } from "../style/branch-colors";
-import { BranchType } from "../api/basic-branch";
 import { ICascadingRoutingStrategy } from "../routing/index";
 
 interface NodeDatum extends BranchHierarchy, SimulationNodeDatum {
   showLabel?: boolean;
 }
-
-const branchTypeInitialX: Record<BranchType, number> = {
-  ServiceLine: 0,
-  Hotfix: -40,
-  Infrastructure: 40,
-  Feature: 80,
-  Integration: 120,
-  ReleaseCandidate: 160
-};
 
 export function branchHierarchy({
   target,
@@ -66,9 +57,9 @@ export function branchHierarchy({
     const data = allBranchesHierarchy()
       .map(allBranches => {
         const nodes = allBranches.map((branch, index): NodeDatum => ({
-          ...branch,
-          x: branchTypeInitialX[branch.branchType],
-          y: index * 5
+          ...branch
+          // x: branchTypeInitialX[branch.branchType],
+          // y: index * 5
         }));
 
         const links = flatten<SimulationLinkDatum<NodeDatum>>(
@@ -88,6 +79,15 @@ export function branchHierarchy({
     const linkForce = forceLink<NodeDatum, SimulationLinkDatum<NodeDatum>>([])
       .distance(40)
       .strength(1);
+    let hierarchyForceOffset = 0;
+    subscription.add(
+      data
+        .map(({ nodes }) => nodes.map(node => node.hierarchyDepth))
+        .map(hierarchyDepths =>
+          hierarchyDepths.reduce((prev, next) => Math.max(prev, next), 0)
+        )
+        .subscribe(maxDepth => (hierarchyForceOffset = -maxDepth / 2))
+    );
     const simulation = forceSimulation<NodeDatum>([])
       .force("link", linkForce)
       .force(
@@ -98,6 +98,12 @@ export function branchHierarchy({
       )
       .force("collide", forceCollide(10))
       .force("center", forceCenter())
+      .force(
+        "x",
+        forceX<NodeDatum>(
+          branch => (branch.hierarchyDepth + hierarchyForceOffset) * 30
+        ).strength(5)
+      )
       .force("y", forceY().strength(0.1));
 
     subscription.add(
