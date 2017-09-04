@@ -1,5 +1,5 @@
-import { Observable, Subscription } from "rxjs";
-import { Selection, event as d3event } from "d3-selection";
+import { Observable, Subject, Subscription } from "rxjs";
+import { Selection, event as d3event, mouse as d3mouse } from "d3-selection";
 import {
   forceCollide,
   forceLink,
@@ -22,10 +22,14 @@ import {
 
 import { allBranchesHierarchy } from "../api/basics";
 import { BranchHierarchy } from "../api/branch-hierarchy";
+import { branchTypeColors } from "../style/branch-colors";
+import { BranchType } from "../api/basic-branch";
 
-interface NodeDatum extends BranchHierarchy, SimulationNodeDatum {}
+interface NodeDatum extends BranchHierarchy, SimulationNodeDatum {
+  showLabel?: boolean;
+}
 
-const branchTypeX = {
+const branchTypeX: Record<BranchType, number> = {
   ServiceLine: 0,
   Hotfix: -40,
   Infrastructure: 40,
@@ -41,6 +45,7 @@ export function branchHierarchy({
 }) {
   return Observable.create(() => {
     const subscription = new Subscription();
+    const updateDraw = new Subject<null>();
 
     subscription.add(
       target.distinctUntilChanged().subscribe(svg =>
@@ -48,6 +53,7 @@ export function branchHierarchy({
         <g data-locator="viewport">
           <g data-locator="links"/>
           <g data-locator="nodes"/>
+          <g data-locator="labels"/>
         </g>
         <rect data-locator="hitbox" fill="transparent" />
       `)
@@ -61,7 +67,6 @@ export function branchHierarchy({
           x: branchTypeX[branch.branchType],
           y: index * 5
         }));
-        console.log(JSON.stringify(nodes));
 
         const links = flatten<SimulationLinkDatum<NodeDatum>>(
           allBranches.map((branch, source) =>
@@ -118,37 +123,49 @@ export function branchHierarchy({
                 d3event.y - height / 2
               ) as SubjectPosition;
             })
-            .on("start", dragstarted)
-            .on("drag", dragged)
-            .on("end", dragended)
+            .on("start", function() {
+              if (!d3event.active) simulation.alphaTarget(0.3).restart();
+              d3event.subject.fx = d3event.subject.x;
+              d3event.subject.fy = d3event.subject.y;
+            })
+            .on("drag", function() {
+              d3event.subject.fx = d3event.x;
+              d3event.subject.fy = d3event.y;
+            })
+            .on("end", function() {
+              if (!d3event.active) simulation.alphaTarget(0);
+              d3event.subject.fx = null;
+              d3event.subject.fy = null;
+            })
         );
 
-        function dragstarted() {
-          if (!d3event.active) simulation.alphaTarget(0.3).restart();
-          d3event.subject.fx = d3event.subject.x;
-          d3event.subject.fy = d3event.subject.y;
-        }
-
-        function dragged() {
-          d3event.subject.fx = d3event.x;
-          d3event.subject.fy = d3event.y;
-        }
-
-        function dragended() {
-          if (!d3event.active) simulation.alphaTarget(0);
-          d3event.subject.fx = null;
-          d3event.subject.fy = null;
-        }
+        let currentHover: NodeDatum | undefined = undefined;
+        hitbox.on("pointermove", function({ width, height }) {
+          const x = d3mouse(this)[0] - width / 2,
+            y = d3mouse(this)[1] - height / 2;
+          const newHover = simulation.find(x, y, 10);
+          if (currentHover !== newHover) {
+            if (currentHover) {
+              currentHover.showLabel = false;
+            }
+            currentHover = newHover;
+            if (currentHover) {
+              currentHover.showLabel = true;
+            }
+            updateDraw.next(null);
+          }
+        });
       })
     );
 
-    const tick = rxEvent(
+    const redraw = rxEvent(
       {
         target: Observable.of(simulation as any),
         eventName: "tick"
       },
       () => null
     )
+      .merge(updateDraw)
       .withLatestFrom(data, (_, d) => d)
       .publish()
       .refCount();
@@ -167,22 +184,91 @@ export function branchHierarchy({
     subscription.add(
       rxData(
         target.map(fnSelect(`[data-locator="nodes"]`)),
-        tick.map(d => d.nodes),
+        redraw.map(d => d.nodes),
         node => node.branchName
       )
         .bind({
           selector: `circle`,
           onCreate: target => target.append<SVGCircleElement>("circle"),
-          onEnter: target => target.transition().attr("r", 5),
+          onEnter: target => {
+            target
+              .transition()
+              .attr("r", 5)
+              .attr("fill", node =>
+                branchTypeColors[node.branchType][0].toString()
+              );
+          },
           onExit: target =>
             target
               .transition()
               .attr("r", 0)
               .remove(),
           onEach: target => {
+            target.attr("transform", node => `translate(${node.x}, ${node.y})`);
+          }
+        })
+        .subscribe()
+    );
+
+    subscription.add(
+      rxData(
+        target.map(fnSelect(`[data-locator="labels"]`)),
+        redraw.map(d => d.nodes),
+        node => node.branchName
+      )
+        .bind({
+          selector: `g`,
+          onCreate: target => target.append<SVGGElement>("g"),
+          onEnter: target => {
+            const rect = target
+              .append("rect")
+              .attr("data-locator", "background")
+              .attr("rx", 2)
+              .attr("ry", 2)
+              .attr("fill", "transparent");
+            const text = target
+              .append<SVGTextElement>("text")
+              .attr("data-locator", "foreground")
+              .attr("fill", "transparent")
+              .attr("stroke-width", 0)
+              .attr("dy", -7)
+              .attr("dx", 3)
+              .text(node => node.branchName);
+            const textNode = text.node();
+            if (textNode) {
+              const textSize = textNode.getClientRects()[0];
+              rect
+                .attr("y", -textSize.height - 6)
+                .attr("height", textSize.height + 6);
+            }
+          },
+          onEach: target => {
+            target.attr("transform", node => `translate(${node.x}, ${node.y})`);
             target
-              .attr("cx", node => node.x || null)
-              .attr("cy", node => node.y || null);
+              .select(`text[data-locator="foreground"]`)
+              .attr(
+                "fill",
+                node =>
+                  node.showLabel
+                    ? branchTypeColors[node.branchType][0].toString()
+                    : "transparent"
+              );
+            target
+              .select<SVGRectElement>(`rect[data-locator="background"]`)
+              .attr("fill", node => (node.showLabel ? "white" : "transparent"))
+              .attr("width", function() {
+                return (
+                  this.parentElement!.querySelector("text")!.getClientRects()[0]
+                    .width + 6
+                );
+              })
+              .attr(
+                "stroke",
+                node =>
+                  node.showLabel
+                    ? branchTypeColors[node.branchType][0].toString()
+                    : "transparent"
+              );
           }
         })
         .subscribe()
@@ -191,7 +277,7 @@ export function branchHierarchy({
     subscription.add(
       rxData(
         target.map(fnSelect(`[data-locator="links"]`)),
-        tick.map(d => d.links),
+        redraw.map(d => d.links),
         links =>
           (links.source as NodeDatum).branchName +
           " to " +
