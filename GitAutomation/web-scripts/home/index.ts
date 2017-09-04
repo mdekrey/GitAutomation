@@ -13,6 +13,7 @@ import {
 } from "../api/basics";
 import { logPresentation } from "../logs/log.presentation";
 import { BasicBranch } from "../api/basic-branch";
+import { branchHierarchy } from "./branch-hierarchy";
 
 export const homepage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -27,6 +28,9 @@ export const homepage = (
   <a data-locator="action-queue-refresh">Refresh</a>
   <ul data-locator="action-queue">
   </ul>
+
+  <h1>Branches</h1>
+  <svg data-locator="hierarchy-container" width="800" height="200"></svg>
 
   <h1>Remote Branches</h1>
   <a data-locator="remote-branches-refresh">Refresh</a>
@@ -46,6 +50,14 @@ export const homepage = (
     .let(body =>
       Observable.create(() => {
         const subscription = new Subscription();
+
+        subscription.add(
+          branchHierarchy({
+            target: body.map(
+              fnSelect<SVGSVGElement>(`svg[data-locator="hierarchy-container"]`)
+            )
+          }).subscribe()
+        );
 
         // log out
         subscription.add(
