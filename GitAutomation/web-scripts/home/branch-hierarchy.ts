@@ -91,7 +91,7 @@ export function branchHierarchy({
         "charge",
         forceManyBody()
           .distanceMax(80)
-          .strength(-30)
+          .strength(-60)
       )
       .force("collide", forceCollide(10))
       .force("center", forceCenter())
@@ -223,15 +223,15 @@ export function branchHierarchy({
             const rect = target
               .append("rect")
               .attr("data-locator", "background")
-              .attr("rx", 2)
-              .attr("ry", 2)
+              .attr("rx", 3)
+              .attr("ry", 3)
               .attr("fill", "transparent");
             const text = target
               .append<SVGTextElement>("text")
               .attr("data-locator", "foreground")
               .attr("fill", "transparent")
               .attr("stroke-width", 0)
-              .attr("dy", -7)
+              .attr("dy", -6)
               .attr("dx", 3)
               .text(node => node.branchName);
             const textNode = text.node();
