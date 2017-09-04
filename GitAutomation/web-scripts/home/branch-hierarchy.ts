@@ -1,7 +1,6 @@
 import { Observable, Subject, Subscription } from "rxjs";
 import { Selection, event as d3event, mouse as d3mouse } from "d3-selection";
 import {
-  forceCollide,
   forceLink,
   forceSimulation,
   forceManyBody,
@@ -73,6 +72,7 @@ export function branchHierarchy({
 
         return { nodes, links };
       })
+      .delay(2000)
       .publishReplay(1)
       .refCount();
 
@@ -96,20 +96,25 @@ export function branchHierarchy({
           .distanceMax(80)
           .strength(-100)
       )
-      .force("collide", forceCollide(10))
       .force("center", forceCenter())
       .force(
         "x",
         forceX<NodeDatum>(
-          branch => (branch.hierarchyDepth + hierarchyForceOffset) * 30
-        ).strength(5)
+          branch => (branch.hierarchyDepth + hierarchyForceOffset) * 40
+        ).strength(1)
       )
-      .force("y", forceY().strength(0.1));
+      .force(
+        "y",
+        forceY<NodeDatum>(
+          branch => (branch.hierarchyDepth + hierarchyForceOffset) * 0
+        ).strength(0.1)
+      );
 
     subscription.add(
       data.subscribe(({ nodes, links }) => {
         simulation.nodes(nodes);
         linkForce.links(links);
+        simulation.alpha(0.3).restart();
       })
     );
 
@@ -305,24 +310,52 @@ export function branchHierarchy({
           (links.target as NodeDatum).branchName
       )
         .bind({
-          selector: `line`,
-          onCreate: target => target.append<SVGLineElement>("line"),
-          onEnter: target =>
+          selector: `g`,
+          onCreate: target => target.append<SVGGElement>("g"),
+          onEnter: target => {
             target
               .attr("stroke", "rgba(0,0,0,0)")
+              .attr("fill", "rgba(0,0,0,0)")
               .transition()
-              .attr("stroke", "rgba(0,0,0,1)"),
+              .attr("stroke", "rgba(0,0,0,1)")
+              .attr("fill", "rgba(0,0,0,1)");
+            target.append(`line`);
+            target.append(`path`).attr("d", "M0,0 l-10,3 l0,-6 l10,3");
+          },
           onExit: target =>
             target
               .transition()
               .attr("stroke", "rgba(0,0,0,0)")
+              .attr("fill", "rgba(0,0,0,0)")
               .remove(),
           onEach: target => {
             target
+              .select(`line`)
               .attr("x1", link => (link.source as NodeDatum).x || null)
               .attr("y1", link => (link.source as NodeDatum).y || null)
               .attr("x2", link => (link.target as NodeDatum).x || null)
               .attr("y2", link => (link.target as NodeDatum).y || null);
+            target.select(`path`).attr("transform", link => {
+              const source = link.source as NodeDatum;
+              const target = link.target as NodeDatum;
+              const sourceX = source.x!,
+                sourceY = source.y!,
+                targetX = target.x!,
+                targetY = target.y!;
+              const angle = Math.atan2(targetY - sourceY, targetX - sourceX);
+              const cos = Math.cos(angle);
+              const sin = Math.sin(angle);
+              const scale = 0.5;
+              const matrix = [
+                cos * scale,
+                sin * scale,
+                -sin * scale,
+                cos * scale,
+                targetX - 3 * cos,
+                targetY - 3 * sin
+              ];
+              return `matrix(${matrix.join(`, `)})`;
+            });
           }
         })
         .subscribe()
