@@ -50,18 +50,22 @@ namespace GitAutomation.Orchestration.Actions
             private readonly IGitServiceApi gitServiceApi;
             private readonly IUnitOfWorkFactory workFactory;
             private readonly IRepositoryOrchestration orchestration;
+            private readonly IIntegrationNamingConvention integrationNamingConvention;
             private readonly string downstreamBranch;
             private readonly IObservable<OutputMessage> process;
             private readonly Subject<IObservable<OutputMessage>> processes;
             private BranchDetails details;
+            private readonly IRepositoryState repository;
 
-            public MergeDownstreamActionProcess(GitCli cli, IBranchSettings settings, IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, string downstreamBranch)
+            public MergeDownstreamActionProcess(GitCli cli, IBranchSettings settings, IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, IIntegrationNamingConvention integrationNamingConvention, IRepositoryState repository, string downstreamBranch)
             {
                 this.cli = cli;
                 this.settings = settings;
                 this.gitServiceApi = gitServiceApi;
                 this.workFactory = workFactory;
                 this.orchestration = orchestration;
+                this.integrationNamingConvention = integrationNamingConvention;
+                this.repository = repository;
                 this.downstreamBranch = downstreamBranch;
                 var disposable = new CompositeDisposable();
                 this.processes = new Subject<IObservable<OutputMessage>>();
@@ -446,7 +450,7 @@ namespace GitAutomation.Orchestration.Actions
                         if (integrationBranch == null)
                         {
                             // TODO - integration branch naming
-                            integrationBranch = $"integrate/{Guid.NewGuid().ToString()}";
+                            integrationBranch = await integrationNamingConvention.GetIntegrationBranchName(this.repository, conflict.BranchA, conflict.BranchB);
                             settings.CreateIntegrationBranch(conflict.BranchA, conflict.BranchB, integrationBranch, work);
                             orchestration.EnqueueAction(new MergeDownstreamAction(integrationBranch)).Subscribe();
                         }

@@ -11,7 +11,10 @@
   "author": "Matt DeKrey",
   "license": "MIT",
   "dependencies": {
+    "@types/d3-drag": "1.1.0",
     "@types/d3-selection": "1.1.0",
+    "@types/d3-force": "1.0.7",
+    "@types/d3-transition": "1.1.0",
     "@types/ramda": "^0.24.7",
     "csx": "^8.2.1",
     "d3": "4.2.3",

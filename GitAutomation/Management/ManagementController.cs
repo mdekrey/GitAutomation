@@ -66,6 +66,35 @@ namespace GitAutomation.Management
             ).FirstAsync();
         }
 
+        [Authorize(Auth.PolicyNames.Read)]
+        [HttpGet("all-branches/hierarchy")]
+        public async Task<ImmutableList<BranchHierarchyDetails>> AllBranchesHierarchy()
+        {
+            return await (
+                branchSettings.GetAllDownstreamBranches()
+                    .Take(1)
+                    .SelectMany(allBranches => 
+                        allBranches.ToObservable().SelectMany(async branch => new BranchHierarchyDetails(branch)
+                        {
+                            DownstreamBranches = (await branchSettings.GetDownstreamBranches(branch.BranchName).FirstOrDefaultAsync()).Select(b => b.BranchName).ToImmutableList()
+                        }).ToArray()
+                    )
+                    .Select(branches => branches.ToImmutableList())
+                .WithLatestFrom(
+                    repositoryState.RemoteBranches(),
+                    (first, second) =>
+                        first
+                            .Concat(
+                                from branchName in second
+                                where !first.Any(b => b.BranchName == branchName)
+                                select new BranchHierarchyDetails { BranchName = branchName }
+                            )
+                            .OrderBy(a => a.BranchName)
+                            .ToImmutableList()
+                )
+            ).FirstAsync();
+        }
+
         [Authorize(Auth.PolicyNames.Delete)]
         [HttpDelete("branch/{*branchName}")]
         public void DeleteBranch(string branchName)
@@ -119,7 +148,26 @@ namespace GitAutomation.Management
         [HttpGet("detect-upstream/{*branchName}")]
         public async Task<IEnumerable<string>> DetectUpstream(string branchName)
         {
-            return await repositoryState.DetectUpstream(branchName);
+            var allUpstream = await repositoryState.DetectUpstream(branchName);
+            var configured = await branchSettings.GetConfiguredBranches().FirstAsync();
+
+            for (var i = 0; i < allUpstream.Count - 1; i++)
+            {
+                var upstream = allUpstream[i];
+                var isConfigured = configured.Any(branch => branch.BranchName == upstream);
+                var furtherUpstream = await branchSettings.GetAllUpstreamBranches(upstream).FirstOrDefaultAsync();
+                allUpstream = allUpstream.Except(furtherUpstream.Select(b => b.BranchName)).ToImmutableList();
+            }
+
+            // TODO - this could be smarter
+            for (var i = 0; i < allUpstream.Count - 1; i++)
+            {
+                var upstream = allUpstream[i];
+                var furtherUpstream = await repositoryState.DetectUpstream(upstream);
+                allUpstream = allUpstream.Except(furtherUpstream).ToImmutableList();
+            }
+
+            return allUpstream;
         }
 
         public class UpdateBranchRequestBody
@@ -137,6 +185,23 @@ namespace GitAutomation.Management
             public string ServiceLine { get; set; }
             public string ReleaseCandidate { get; set; }
             public string TagName { get; set; }
+        }
+
+        public class BranchHierarchyDetails : BranchBasicDetails
+        {
+            public BranchHierarchyDetails()
+            {
+            }
+            public BranchHierarchyDetails(BranchDepthDetails original)
+            {
+                this.BranchName = original.BranchName;
+                this.BranchType = original.BranchType;
+                this.RecreateFromUpstream = original.RecreateFromUpstream;
+                this.HierarchyDepth = original.Ordinal;
+            }
+
+            public ImmutableList<string> DownstreamBranches { get; set; } = ImmutableList<string>.Empty;
+            public int HierarchyDepth { get; set; }
         }
     }
 }

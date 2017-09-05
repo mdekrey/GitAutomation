@@ -154,39 +154,70 @@ export interface IEventOccurred<GElement extends BaseType, TDatum> {
   mouse: [number, number];
 }
 
-export function rxEvent<GElement extends BaseType, TDatum>({
-  target,
-  capture,
-  eventName
-}: {
+export type GetEventFn<T extends BaseType, Datum, Result> = (
+  _this: T,
+  datum: Datum,
+  index: number,
+  groups: T[] | ArrayLike<T>
+) => Result;
+
+function getEvent<GElement extends BaseType, TDatum>(
+  _this: GElement,
+  datum: TDatum,
+  index: number,
+  groups: GElement[] | ArrayLike<GElement>
+): IEventOccurred<GElement, TDatum> {
+  return {
+    target: _this,
+    datum,
+    index,
+    groups,
+    event: d3event,
+    mouse: d3mouse(_this as any)
+  };
+}
+
+export function rxEvent<GElement extends BaseType, TDatum, TResult>(
+  params: {
+    target: Observable<Selection<GElement, TDatum, any, any>>;
+    eventName: string;
+    capture?: boolean;
+  },
+  toResult: GetEventFn<GElement, TDatum, TResult>
+): Observable<TResult>;
+export function rxEvent<GElement extends BaseType, TDatum>(params: {
   target: Observable<Selection<GElement, TDatum, any, any>>;
   eventName: string;
   capture?: boolean;
-}) {
+}): Observable<IEventOccurred<GElement, TDatum>>;
+export function rxEvent<GElement extends BaseType, TDatum>(
+  {
+    target,
+    capture,
+    eventName
+  }: {
+    target: Observable<Selection<GElement, TDatum, any, any>>;
+    eventName: string;
+    capture?: boolean;
+  },
+  toResult?: GetEventFn<GElement, TDatum, any>
+) {
+  const finalToResult = toResult || getEvent;
   return target.switchMap(
     element =>
-      Observable.create(
-        (observer: Observer<IEventOccurred<GElement, TDatum>>) => {
-          element.on(
-            eventName,
-            function(datum, index, groups) {
-              observer.next({
-                target: this,
-                datum,
-                index,
-                groups,
-                event: d3event,
-                mouse: d3mouse(this as any)
-              });
-            },
-            capture
-          );
+      Observable.create((observer: Observer<any>) => {
+        element.on(
+          eventName,
+          function(datum, index, groups) {
+            observer.next(finalToResult(this, datum, index, groups));
+          },
+          capture
+        );
 
-          return () => {
-            element.on(eventName, null);
-          };
-        }
-      ) as Observable<IEventOccurred<GElement, TDatum>>
+        return () => {
+          element.on(eventName, null);
+        };
+      }) as Observable<any>
   );
 }
 

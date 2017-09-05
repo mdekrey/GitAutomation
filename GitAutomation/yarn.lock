@@ -2,9 +2,25 @@
 # yarn lockfile v1
 
 
-"@types/d3-selection@1.1.0":
+"@types/d3-drag@1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@types/d3-drag/-/d3-drag-1.1.0.tgz#9105e35ca58aa0c4783f3ce83082bcb24ccb6960"
+  dependencies:
+    "@types/d3-selection" "*"
+
+"@types/d3-force@1.0.7":
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/@types/d3-force/-/d3-force-1.0.7.tgz#8e3c533697143ebb70275d56840206e8ba789185"
+
+"@types/d3-selection@*", "@types/d3-selection@1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@types/d3-selection/-/d3-selection-1.1.0.tgz#59b88f10d2cff7d9ffd7fe986b3aaef3de048224"
+
+"@types/d3-transition@1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@types/d3-transition/-/d3-transition-1.1.0.tgz#74475d4a8f8a0944a517d5ef861970cc30287e40"
+  dependencies:
+    "@types/d3-selection" "*"
 
 "@types/ramda@^0.24.7":
   version "0.24.7"
