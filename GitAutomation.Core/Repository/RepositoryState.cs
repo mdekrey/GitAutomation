@@ -67,11 +67,14 @@ namespace GitAutomation.Repository
             return Observable.Merge(
                 allUpdates
                     .StartWith(Unit.Default)
-                    .Select(_ =>
+                    .SelectMany(async _ =>
                     {
-                        orchestration.EnqueueAction(new EnsureInitializedAction());
-                        // TODO - because listing remote branches doesn't affect the index, it doesn't need to be an action, but it does need to wait until initialization is ensured.
-                        return orchestration.EnqueueAction(new GetRemoteBranchesAction());
+                        if (!cli.IsGitInitialized)
+                        {
+                            await orchestration.EnqueueAction(new EnsureInitializedAction());
+                        }
+                        // Because listing remote branches doesn't affect the index, it doesn't need to be an action, but it does need to wait until initialization is ensured.
+                        return cli.GetRemoteBranches().Output;
                     })
                     .Select(GitCli.BranchListingToRefs)
             )
