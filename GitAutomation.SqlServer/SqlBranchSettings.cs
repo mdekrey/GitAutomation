@@ -61,7 +61,7 @@ SELECT COALESCE([UpstreamBranch].BranchName, [DownstreamBranch].BranchName) AS [
             commandText: @"
 WITH RecursiveDownstream ( DownstreamBranch, BranchName, Ordinal )
 AS (
-	SELECT DownstreamBranch, BranchName, 1 FROM [UpstreamBranch]
+	SELECT BranchName AS DownstreamBranch, BranchName, 0 FROM [DownstreamBranch]
 UNION ALL
 	SELECT [UpstreamBranch].DownstreamBranch, RecursiveDownstream.BranchName, RecursiveDownstream.Ordinal + 1
 	FROM [UpstreamBranch]
@@ -69,7 +69,8 @@ UNION ALL
 )
 SELECT COALESCE([UpstreamBranch].DownstreamBranch, [DownstreamBranch].BranchName) AS [BranchName],
 		COALESCE([DownstreamBranch].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
-		COALESCE([DownstreamBranch].BranchType, 'Feature') AS [BranchType]
+		COALESCE([DownstreamBranch].BranchType, 'Feature') AS [BranchType],
+        Ordinal
   FROM (SELECT DownstreamBranch, MAX(Ordinal) AS Ordinal
 		  FROM RecursiveDownstream
 		  GROUP BY DownstreamBranch
@@ -379,6 +380,19 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             };
         }
 
+        private static BranchDepthDetails ReadBranchDepthDetails(System.Data.IDataRecord reader)
+        {
+            return new BranchDepthDetails
+            {
+                BranchName = reader["BranchName"] as string,
+                RecreateFromUpstream = Convert.ToInt32(reader["RecreateFromUpstream"]) == 1,
+                BranchType = Enum.TryParse<BranchType>(reader["BranchType"] as string, out var branchType)
+                    ? branchType
+                    : BranchType.Feature,
+                Ordinal = Convert.ToInt32(reader["Ordinal"])
+            };
+        }
+
         public IObservable<ImmutableList<BranchBasicDetails>> GetDownstreamBranches(string branchName)
         {
             return notifiers.GetDownstreamBranchesChangedNotifier(upstreamBranch: branchName).StartWith(Unit.Default)
@@ -404,14 +418,14 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             };
         }
 
-        public IObservable<ImmutableList<BranchBasicDetails>> GetAllDownstreamBranches()
+        public IObservable<ImmutableList<BranchDepthDetails>> GetAllDownstreamBranches()
         {
             // TODO - better notifications
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(GetAllDownstreamBranchesOnce()));
         }
 
-        private Func<DbConnection, Task<ImmutableList<BranchBasicDetails>>> GetAllDownstreamBranchesOnce()
+        private Func<DbConnection, Task<ImmutableList<BranchDepthDetails>>> GetAllDownstreamBranchesOnce()
         {
             return async connection =>
             {
@@ -419,10 +433,10 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
                 {
                     using (var reader = await command.ExecuteReaderAsync())
                     {
-                        var results = new List<BranchBasicDetails>();
+                        var results = new List<BranchDepthDetails>();
                         while (await reader.ReadAsync())
                         {
-                            results.Add(ReadBranchBasicDetails(reader));
+                            results.Add(ReadBranchDepthDetails(reader));
                         }
                         return results.ToImmutableList();
                     }

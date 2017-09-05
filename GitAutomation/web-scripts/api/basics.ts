@@ -4,6 +4,7 @@ import { BasicBranch } from "./basic-branch";
 import { BranchDetails } from "./branch-details";
 import { ClaimDetails } from "./claim-details";
 import { IUpdateUserRequestBody } from "./update-user";
+import { BranchHierarchy } from "./branch-hierarchy";
 
 export const currentClaims = () =>
   Observable.ajax("/api/authentication/claims").map(
@@ -36,6 +37,11 @@ export const actionQueue = () =>
 export const allBranches = () =>
   Observable.ajax("/api/management/all-branches").map(
     response => response.response as BasicBranch[]
+  );
+
+export const allBranchesHierarchy = () =>
+  Observable.ajax("/api/management/all-branches/hierarchy").map(
+    response => response.response as BranchHierarchy[]
   );
 
 export const branchDetails = (branchName: string) =>

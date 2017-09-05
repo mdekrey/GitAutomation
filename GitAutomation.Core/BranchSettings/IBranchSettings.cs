@@ -13,7 +13,7 @@ namespace GitAutomation.BranchSettings
         IObservable<ImmutableList<BranchBasicDetails>> GetConfiguredBranches();
         IObservable<BranchDetails> GetBranchDetails(string branchName);
         IObservable<ImmutableList<BranchBasicDetails>> GetDownstreamBranches(string branchName);
-        IObservable<ImmutableList<BranchBasicDetails>> GetAllDownstreamBranches();
+        IObservable<ImmutableList<BranchDepthDetails>> GetAllDownstreamBranches();
         IObservable<ImmutableList<BranchBasicDetails>> GetAllDownstreamBranches(string branchName);
         IObservable<ImmutableList<BranchBasicDetails>> GetUpstreamBranches(string branchName);
         IObservable<ImmutableList<BranchBasicDetails>> GetAllUpstreamBranches(string branchName);
