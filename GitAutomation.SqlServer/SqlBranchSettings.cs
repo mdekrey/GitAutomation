@@ -62,6 +62,8 @@ SELECT COALESCE([UpstreamBranch].BranchName, [DownstreamBranch].BranchName) AS [
 WITH RecursiveDownstream ( DownstreamBranch, BranchName, Ordinal )
 AS (
 	SELECT BranchName AS DownstreamBranch, BranchName, 0 FROM [DownstreamBranch]
+UNION
+	SELECT BranchName AS DownstreamBranch, BranchName, 0 FROM [UpstreamBranch]
 UNION ALL
 	SELECT [UpstreamBranch].DownstreamBranch, RecursiveDownstream.BranchName, RecursiveDownstream.Ordinal + 1
 	FROM [UpstreamBranch]
