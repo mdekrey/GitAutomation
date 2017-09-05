@@ -40,6 +40,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 errorMessage: $"Unknown git service api registry: {repositoryOptions.ApiType}. Specify a .Net type, such as `{typeof(RegisterMemory).FullName}`"
             ).RegisterGitServiceApi(services, repositoryConfiguration);
 
+            services.AddIntegrationNamingConvention(repositoryOptions);
+
             return services;
         }
     }

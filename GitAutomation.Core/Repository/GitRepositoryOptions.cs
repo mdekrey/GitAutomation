@@ -13,5 +13,7 @@
         public string UserEmail { get; set; }
 
         public string UserName { get; set; }
+
+        public string IntegrationNamingConventionType { get; set; }
     }
 }

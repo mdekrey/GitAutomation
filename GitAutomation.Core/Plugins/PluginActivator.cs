@@ -6,10 +6,16 @@ namespace GitAutomation.Plugins
 {
     public static class PluginActivator
     {
+        public static Type GetPluginTypeOrNull(string typeName)
+        {
+            var pluginType = typeName == null ? null : Type.GetType(typeName);
+            return pluginType;
+        }
+
         public static T GetPluginOrNull<T>(string typeName)
             where T : class
         {
-            var pluginType = Type.GetType(typeName);
+            var pluginType = GetPluginTypeOrNull(typeName);
             if (pluginType == null)
             {
                 return null;
@@ -20,7 +26,7 @@ namespace GitAutomation.Plugins
         public static T GetPlugin<T>(string typeName, string errorMessage)
             where T : class
         {
-            var pluginType = Type.GetType(typeName);
+            var pluginType = GetPluginTypeOrNull(typeName);
             if (pluginType == null)
             {
                 throw new NotSupportedException(errorMessage);
