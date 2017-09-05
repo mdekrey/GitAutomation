@@ -265,7 +265,12 @@ namespace GitAutomation.Orchestration.Actions
                 processes.OnNext(checkout);
                 await checkout;
 
-                var merge = Queueable(cli.MergeRemote(upstreamBranch, message));
+                var timestamps = await (from timestampMessage in cli.GetCommitTimestamps(cli.RemoteBranch(upstreamBranch), cli.RemoteBranch(targetBranch)).Output
+                                        where timestampMessage.Channel == OutputChannel.Out
+                                        select timestampMessage.Message).ToArray();
+                var timestamp = timestamps.Max();
+
+                var merge = Queueable(cli.MergeRemote(upstreamBranch, message, commitDate: timestamp));
                 processes.OnNext(merge);
                 var mergeExitCode = await (from o in merge where o.Channel == OutputChannel.ExitCode select o.ExitCode).FirstAsync();
                 var isSuccessfulMerge = mergeExitCode == 0;
