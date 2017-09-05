@@ -49,8 +49,9 @@ This is a bug, but the repositories have been updated to reflect it.
 
 This uses [.NET Core 2.0.0 SDK](https://github.com/dotnet/core/blob/master/release-notes/download-archives/2.0.0-download.md) to run. ([Permalink to that version.](https://github.com/dotnet/core/blob/5f845efbe93063325bf317dadd81ddce42fd3b63/release-notes/download-archives/2.0.0-download.md))
 
-1. Make sure the files mentioned above are in place.
+1. Make sure the configuration files mentioned above are in place.
 2. `docker-compose -f docker-compose.ci.build.yml up --build`
+3. TODO - we don't build TS as part of the Docker build yet. We use yarn. `cd GitAutomation && yarn && yarn build && cd ..`
 3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml build`
 4. Launch the sln file and build.
 
@@ -62,13 +63,17 @@ To ensure updates to the secrets are seen within the containers, rebuild the doc
 
 # Building via Docker
 
-1. Make sure the files mentioned above are in place.
+1. Make sure the configuration files mentioned above are in place.
 2. `docker-compose -f docker-compose.ci.build.yml up --build`
+3. TODO - we don't build TS as part of the Docker build yet. We use yarn. `cd GitAutomation && yarn && yarn build && cd ..`
 3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml build`
 
 And then to run it...
 
 4. `docker-compose up`
+
+    If you want to use the `git-server` repository, run it with files specified: `docker-compose -f docker-compose.yml -f docker-compose.override.yml up --build`
+
 5. `docker ps` to get the port mapping of the `gitautomation` image.
 
 # To run the tests
