@@ -12,7 +12,7 @@ import {
 } from "d3-force";
 import { drag, SubjectPosition } from "d3-drag";
 import "d3-transition";
-import { flatten } from "ramda";
+import { equals, flatten } from "ramda";
 import {
   rxEvent,
   rxData,
@@ -147,6 +147,7 @@ export function branchHierarchy({
                 d3event.y - height / 2
               ) as SubjectPosition;
             })
+            .clickDistance(2)
             .on("start", function() {
               if (!d3event.active) simulation.alphaTarget(0.3).restart();
               d3event.subject.fx = d3event.subject.x;
@@ -281,9 +282,6 @@ export function branchHierarchy({
           onEach: target => {
             target.attr("transform", node => `translate(${node.x}, ${node.y})`);
             target
-              .transition()
-              .style("opacity", node => (node.showLabel ? 0.95 : 0));
-            target
               .select<SVGRectElement>(`rect[data-locator="background"]`)
               .attr("width", function() {
                 return (
@@ -291,6 +289,34 @@ export function branchHierarchy({
                     .width + 6
                 );
               });
+          }
+        })
+        .subscribe()
+    );
+
+    type Picked = Pick<NodeDatum, "branchName" | "showLabel">;
+    subscription.add(
+      rxData(
+        target.map(fnSelect(`[data-locator="labels"]`)),
+        redraw
+          .map(d => d.nodes)
+          .map(nodes =>
+            nodes.map(({ branchName, showLabel }) => ({
+              branchName,
+              showLabel
+            }))
+          )
+          .distinctUntilChanged<Picked[]>(equals),
+        node => node.branchName
+      )
+        .bind({
+          selector: `g`,
+          onCreate: target => target.append<SVGGElement>("g"),
+
+          onEach: target => {
+            target
+              .transition()
+              .style("opacity", node => (node.showLabel ? 0.95 : 0));
           }
         })
         .subscribe()
