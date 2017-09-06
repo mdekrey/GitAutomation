@@ -23,6 +23,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddSingleton<IRepositoryState, RepositoryState>();
             services.AddSingleton<GitCli>();
             services.AddSingleton<Func<HttpClient>>(() => new HttpClient());
+            services.AddTransient<GitAutomation.Orchestration.Actions.IntegrateBranchesOrchestration>();
 
             services.AddSingleton<GitAutomation.Work.IUnitOfWorkFactory, GitAutomation.Work.UnitOfWorkFactory>();
 
