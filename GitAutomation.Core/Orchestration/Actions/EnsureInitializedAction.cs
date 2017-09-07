@@ -29,7 +29,7 @@ namespace GitAutomation.Orchestration.Actions
 
             if (cli.IsGitInitialized)
             {
-                return Observable.Empty<OutputMessage>();
+                return Observable.Empty<OutputMessage>().Multicast(output).RefCount();
             }
 
             var checkoutPath = gitOptions.CheckoutPath;
@@ -41,7 +41,7 @@ namespace GitAutomation.Orchestration.Actions
 
             return Queueable(cli.Clone())
                 .Concat(Queueable(cli.Config("user.name", gitOptions.UserName)))
-                .Concat(Queueable(cli.Config("user.email", gitOptions.UserEmail)));
+                .Concat(Queueable(cli.Config("user.email", gitOptions.UserEmail))).Multicast(output).RefCount();
         }
 
         private IObservable<OutputMessage> Queueable(IReactiveProcess reactiveProcess) => reactiveProcess.Output.Replay().ConnectFirst();
