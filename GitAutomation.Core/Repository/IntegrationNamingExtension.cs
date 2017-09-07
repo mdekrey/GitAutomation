@@ -15,6 +15,7 @@ namespace GitAutomation.Repository
             var type = Plugins.PluginActivator.GetPluginTypeOrNull(options.IntegrationNamingConventionType);
             services.AddTransient(typeof(IIntegrationNamingConvention), type ?? typeof(StandardIntegrationNamingConvention));
             services.AddTransient<IIntegrationNamingMediator, IntegrationNamingMediator>();
+            services.AddTransient<IBranchIterationNamingConvention, HyphenSuffixIterationNaming>();
         }
     }
 }

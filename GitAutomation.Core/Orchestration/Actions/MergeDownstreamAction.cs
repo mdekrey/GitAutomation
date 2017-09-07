@@ -96,21 +96,27 @@ namespace GitAutomation.Orchestration.Actions
 
                 details = await settings.GetBranchDetails(downstreamBranch).FirstAsync();
 
-                var needsRecreate = await cli.ShowRef(downstreamBranch).FirstOutputMessage() == null;
-                var neededUpstreamMerges = await FindNeededMerges(details.DirectUpstreamBranches.Select(branch => branch.BranchName));
+                // TODO - latest downstreamBranch might not be named the same as the value of downstreamBranch due to 
+                // preserving previous branches. Need to check with repository to determine this.
+
+                var needsCreate = await cli.ShowRef(downstreamBranch).FirstOutputMessage() == null;
+                var neededUpstreamMerges = needsCreate
+                    ? details.DirectUpstreamBranches.Select(branch => branch.BranchName).ToImmutableList()
+                    : await FindNeededMerges(details.DirectUpstreamBranches.Select(branch => branch.BranchName));
 
                 if (neededUpstreamMerges.Any() && details.RecreateFromUpstream)
                 {
                     neededUpstreamMerges = details.DirectUpstreamBranches.Select(branch => branch.BranchName).ToImmutableList();
 
+                    // TODO - do not delete, but find the next new name
                     var deleteRemote = Queueable(cli.DeleteRemote(downstreamBranch));
                     processes.OnNext(deleteRemote);
                     await deleteRemote;
 
-                    needsRecreate = true;
+                    needsCreate = true;
                 }
 
-                if (needsRecreate)
+                if (needsCreate)
                 {
                     processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{downstreamBranch} needs to be created from {string.Join(",", neededUpstreamMerges)}" }));
                     await CreateDownstreamBranch(details.DirectUpstreamBranches.Select(branch => branch.BranchName));
