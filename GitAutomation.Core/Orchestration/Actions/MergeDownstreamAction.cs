@@ -83,7 +83,6 @@ namespace GitAutomation.Orchestration.Actions
 
             private async Task RunProcess()
             {
-                var neededUpstreamMerges = new HashSet<string>();
                 // if these two are different, we need to do the merge
                 // cli.MergeBase(upstreamBranch, downstreamBranch);
                 // cli.ShowRef(upstreamBranch);
@@ -97,10 +96,13 @@ namespace GitAutomation.Orchestration.Actions
 
                 details = await settings.GetBranchDetails(downstreamBranch).FirstAsync();
 
-                var needsRecreate = await FindNeededMerges(details.DirectUpstreamBranches.Select(branch => branch.BranchName), neededUpstreamMerges);
+                var needsRecreate = await cli.ShowRef(downstreamBranch).FirstOutputMessage() == null;
+                var neededUpstreamMerges = await FindNeededMerges(details.DirectUpstreamBranches.Select(branch => branch.BranchName));
 
                 if (neededUpstreamMerges.Any() && details.RecreateFromUpstream)
                 {
+                    neededUpstreamMerges = details.DirectUpstreamBranches.Select(branch => branch.BranchName).ToImmutableList();
+
                     var deleteRemote = Queueable(cli.DeleteRemote(downstreamBranch));
                     processes.OnNext(deleteRemote);
                     await deleteRemote;
@@ -132,30 +134,24 @@ namespace GitAutomation.Orchestration.Actions
             }
 
             /// <returns>True if the entire branch needs to be created</returns>
-            private async Task<bool> FindNeededMerges(IEnumerable<string> allUpstreamBranches, HashSet<string> neededUpstreamMerges)
+            private async Task<ImmutableList<string>> FindNeededMerges(IEnumerable<string> allUpstreamBranches)
             {
-                foreach (var upstreamBranch in await FilterUpstreamReadyForMerge(allUpstreamBranches))
-                {
-                    var mergeBase = Queueable(cli.MergeBase(upstreamBranch, downstreamBranch));
-                    var showRef = Queueable(cli.ShowRef(upstreamBranch));
+                return await (from upstreamBranch in allUpstreamBranches.ToObservable()
+                              from hasOutstandingCommit in HasOutstandingCommits(upstreamBranch)
+                              where hasOutstandingCommit
+                              select upstreamBranch)
+                    .ToArray()
+                    .Select(items => items.ToImmutableList());
+            }
 
-                    processes.OnNext(mergeBase);
-                    var mergeBaseResult = await (from o in mergeBase where o.Channel == OutputChannel.Out select o.Message).FirstOrDefaultAsync();
-                    if (mergeBaseResult == null)
-                    {
-                        return true;
-                    }
-
-                    processes.OnNext(showRef);
-                    var showRefResult = await (from o in showRef where o.Channel == OutputChannel.Out select o.Message).FirstOrDefaultAsync();
-
-                    if (mergeBaseResult != showRefResult)
-                    {
-                        neededUpstreamMerges.Add(upstreamBranch);
-                    }
-                }
-
-                return false;
+            /// <returns>True if the entire branch needs to be created</returns>
+            private IObservable<bool> HasOutstandingCommits(string upstreamBranch)
+            {
+                return Observable.CombineLatest(
+                        cli.MergeBase(upstreamBranch, downstreamBranch).FirstOutputMessage(),
+                        cli.ShowRef(upstreamBranch).FirstOutputMessage(),
+                        (mergeBaseResult, showRefResult) => mergeBaseResult != showRefResult
+                    );
             }
 
             private async Task CreateDownstreamBranch(IEnumerable<string> allUpstreamBranches)
@@ -167,7 +163,7 @@ namespace GitAutomation.Orchestration.Actions
 
                 var checkout = Queueable(cli.CheckoutRemote(initialBranch));
                 processes.OnNext(checkout);
-                var checkoutError = await (from o in checkout where o.Channel == OutputChannel.Error select o.Message).FirstOrDefaultAsync();
+                var checkoutError = await checkout.FirstErrorMessage();
                 await checkout;
                 if (!string.IsNullOrEmpty(checkoutError) && checkoutError.StartsWith("fatal"))
                 {
