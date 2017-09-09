@@ -5,12 +5,12 @@ using System.Threading.Tasks;
 
 namespace GitAutomation.Repository
 {
-    public interface IBranchIterationNamingConvention
+    public interface IBranchIterationMediator
     {
         string GetLatestBranchNameIteration(string branchName, IEnumerable<string> existingNames);
 
         bool IsBranchIteration(string originalName, string candidateName);
 
-        IObservable<string> GetBranchNameIterations(string branchName, IEnumerable<string> existingNames);
+        Task<string> GetNextBranchNameIteration(string branchName, IEnumerable<string> existingNames);
     }
 }
