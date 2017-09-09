@@ -13,6 +13,6 @@ namespace GitAutomation.Repository
         IObservable<OutputMessage> CheckForUpdates();
 
         IObservable<string[]> RemoteBranches();
-        Task<ImmutableList<string>> DetectUpstream(string branchName);
+        IObservable<ImmutableList<string>> DetectUpstream(string branchName);
     }
 }

@@ -1,4 +1,5 @@
-﻿using GitAutomation.BranchSettings;
+﻿using GitAutomation;
+using GitAutomation.BranchSettings;
 using GitAutomation.GitService;
 using GitAutomation.Orchestration;
 using GitAutomation.Plugins;
@@ -16,6 +17,7 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         public static IServiceCollection AddGitUtilities(this IServiceCollection services, IConfiguration persistenceConfiguration, IConfiguration repositoryConfiguration)
         {
+            services.AddSingleton<IRepositoryMediator, RepositoryMediator>();
             services.AddSingleton<GitAutomation.Processes.IReactiveProcessFactory, GitAutomation.Processes.ReactiveProcessFactory>();
             services.AddSingleton<IRepositoryOrchestration, RepositoryOrchestration>();
             services.AddSingleton<IOrchestrationActions, OrchestrationActions>();

@@ -11,6 +11,7 @@ using System.Collections.Immutable;
 using GitAutomation.Work;
 using GitAutomation.Orchestration;
 using Microsoft.AspNetCore.Authorization;
+using System.Reactive.Threading.Tasks;
 
 namespace GitAutomation.Management
 {
@@ -18,13 +19,15 @@ namespace GitAutomation.Management
     [Route("api/[controller]")]
     public class ManagementController : Controller
     {
+        private readonly IRepositoryMediator repository;
         private readonly IRepositoryState repositoryState;
         private readonly IBranchSettings branchSettings;
         private readonly IUnitOfWorkFactory unitOfWorkFactory;
         private readonly IRepositoryOrchestration orchestration;
 
-        public ManagementController(IRepositoryState repositoryState, IBranchSettings branchSettings, IUnitOfWorkFactory unitOfWorkFactory, IRepositoryOrchestration orchestration)
+        public ManagementController(IRepositoryMediator repository, IRepositoryState repositoryState, IBranchSettings branchSettings, IUnitOfWorkFactory unitOfWorkFactory, IRepositoryOrchestration orchestration)
         {
+            this.repository = repository;
             this.repositoryState = repositoryState;
             this.branchSettings = branchSettings;
             this.unitOfWorkFactory = unitOfWorkFactory;
@@ -47,52 +50,16 @@ namespace GitAutomation.Management
         
         [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("all-branches")]
-        public async Task<ImmutableList<BranchBasicDetails>> AllBranches()
+        public Task<ImmutableList<BranchBasicDetails>> AllBranches()
         {
-            return await (
-                branchSettings.GetConfiguredBranches()
-                .WithLatestFrom(
-                    repositoryState.RemoteBranches(), 
-                    (first, second) => 
-                        first
-                            .Concat(
-                                from branchName in second
-                                where !first.Any(b => b.BranchName == branchName)
-                                select new BranchBasicDetails { BranchName = branchName }
-                            )
-                            .OrderBy(a => a.BranchName)
-                            .ToImmutableList()
-                )
-            ).FirstAsync();
+            return repository.AllBranches().FirstAsync().ToTask();
         }
 
         [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("all-branches/hierarchy")]
-        public async Task<ImmutableList<BranchHierarchyDetails>> AllBranchesHierarchy()
+        public Task<ImmutableList<BranchHierarchyDetails>> AllBranchesHierarchy()
         {
-            return await (
-                branchSettings.GetAllDownstreamBranches()
-                    .Take(1)
-                    .SelectMany(allBranches => 
-                        allBranches.ToObservable().SelectMany(async branch => new BranchHierarchyDetails(branch)
-                        {
-                            DownstreamBranches = (await branchSettings.GetDownstreamBranches(branch.BranchName).FirstOrDefaultAsync()).Select(b => b.BranchName).ToImmutableList()
-                        }).ToArray()
-                    )
-                    .Select(branches => branches.ToImmutableList())
-                .WithLatestFrom(
-                    repositoryState.RemoteBranches(),
-                    (first, second) =>
-                        first
-                            .Concat(
-                                from branchName in second
-                                where !first.Any(b => b.BranchName == branchName)
-                                select new BranchHierarchyDetails { BranchName = branchName }
-                            )
-                            .OrderBy(a => a.BranchName)
-                            .ToImmutableList()
-                )
-            ).FirstAsync();
+            return repository.AllBranchesHierarchy().FirstAsync().ToTask();
         }
 
         [Authorize(Auth.PolicyNames.Delete)]
@@ -146,28 +113,9 @@ namespace GitAutomation.Management
 
         [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("detect-upstream/{*branchName}")]
-        public async Task<IEnumerable<string>> DetectUpstream(string branchName)
+        public Task<ImmutableList<string>> DetectUpstream(string branchName)
         {
-            var allUpstream = await repositoryState.DetectUpstream(branchName);
-            var configured = await branchSettings.GetConfiguredBranches().FirstAsync();
-
-            for (var i = 0; i < allUpstream.Count - 1; i++)
-            {
-                var upstream = allUpstream[i];
-                var isConfigured = configured.Any(branch => branch.BranchName == upstream);
-                var furtherUpstream = await branchSettings.GetAllUpstreamBranches(upstream).FirstOrDefaultAsync();
-                allUpstream = allUpstream.Except(furtherUpstream.Select(b => b.BranchName)).ToImmutableList();
-            }
-
-            // TODO - this could be smarter
-            for (var i = 0; i < allUpstream.Count - 1; i++)
-            {
-                var upstream = allUpstream[i];
-                var furtherUpstream = await repositoryState.DetectUpstream(upstream);
-                allUpstream = allUpstream.Except(furtherUpstream).ToImmutableList();
-            }
-
-            return allUpstream;
+            return repository.DetectShallowUpstream(branchName).FirstAsync().ToTask();
         }
 
         public class UpdateBranchRequestBody
@@ -187,21 +135,5 @@ namespace GitAutomation.Management
             public string TagName { get; set; }
         }
 
-        public class BranchHierarchyDetails : BranchBasicDetails
-        {
-            public BranchHierarchyDetails()
-            {
-            }
-            public BranchHierarchyDetails(BranchDepthDetails original)
-            {
-                this.BranchName = original.BranchName;
-                this.BranchType = original.BranchType;
-                this.RecreateFromUpstream = original.RecreateFromUpstream;
-                this.HierarchyDepth = original.Ordinal;
-            }
-
-            public ImmutableList<string> DownstreamBranches { get; set; } = ImmutableList<string>.Empty;
-            public int HierarchyDepth { get; set; }
-        }
     }
 }

@@ -20,7 +20,8 @@ namespace GitAutomation.Repository
 
         public string GetLatestBranchNameIteration(string branchName, IEnumerable<string> existingNames)
         {
-            return this.convention.GetLatestBranchNameIteration(branchName, existingNames);
+            var temp = existingNames.ToArray();
+            return this.convention.GetLatestBranchNameIteration(branchName, temp);
         }
 
         public async Task<string> GetNextBranchNameIteration(string branchName, IEnumerable<string> existingNames)

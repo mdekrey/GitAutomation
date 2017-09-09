@@ -13,6 +13,7 @@ using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Reactive.Threading.Tasks;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -48,21 +49,28 @@ namespace GitAutomation.Orchestration.Actions
             private readonly GitCli cli;
             private readonly IBranchSettings settings;
             private readonly IGitServiceApi gitServiceApi;
-            private readonly string downstreamBranch;
             private readonly IntegrateBranchesOrchestration integrateBranches;
+            private readonly IRepositoryMediator repository;
             private readonly IObservable<OutputMessage> process;
             private readonly Subject<IObservable<OutputMessage>> processes;
-            private BranchDetails details;
+            private readonly Task<BranchDetails> detailsTask;
+            private readonly Task<string> latestBranchName;
 
-            public MergeDownstreamActionProcess(GitCli cli, IBranchSettings settings, IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, IIntegrationNamingMediator integrationNaming, IntegrateBranchesOrchestration integrateBranches, string downstreamBranch)
+            private BranchDetails Details => detailsTask.Result;
+            private string LatestBranchName => latestBranchName.Result;
+
+            public MergeDownstreamActionProcess(GitCli cli, IBranchSettings settings, IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, IRepositoryMediator repository, IntegrateBranchesOrchestration integrateBranches, string downstreamBranch)
             {
                 this.cli = cli;
                 this.settings = settings;
                 this.gitServiceApi = gitServiceApi;
-                this.downstreamBranch = downstreamBranch;
                 this.integrateBranches = integrateBranches;
+                this.repository = repository;
                 var disposable = new CompositeDisposable();
                 this.processes = new Subject<IObservable<OutputMessage>>();
+                this.detailsTask = settings.GetBranchDetails(downstreamBranch).FirstAsync().ToTask();
+                this.latestBranchName = detailsTask.ContinueWith(task => repository.LatestBranchName(task.Result).FirstOrDefaultAsync().ToTask()).Unwrap();
+
                 disposable.Add(processes);
 
                 this.process = Observable.Create<OutputMessage>(async (observer, cancellationToken) =>
@@ -94,40 +102,35 @@ namespace GitAutomation.Orchestration.Actions
                 // if it was successful
                 // cli.Push();
 
-                details = await settings.GetBranchDetails(downstreamBranch).FirstAsync();
-
                 // TODO - latest downstreamBranch might not be named the same as the value of downstreamBranch due to 
                 // preserving previous branches. Need to check with repository to determine this.
+                await detailsTask;
+                await latestBranchName;
 
-                var needsCreate = await cli.ShowRef(downstreamBranch).FirstOutputMessage() == null;
+                var needsCreate = await cli.ShowRef(LatestBranchName).FirstOutputMessage() == null;
                 var neededUpstreamMerges = needsCreate
-                    ? details.DirectUpstreamBranches.Select(branch => branch.BranchName).ToImmutableList()
-                    : await FindNeededMerges(details.DirectUpstreamBranches.Select(branch => branch.BranchName));
+                    ? Details.DirectUpstreamBranches.Select(branch => branch.BranchName).ToImmutableList()
+                    : (await FilterUpstreamReadyForMerge(await FindNeededMerges(Details.DirectUpstreamBranches.Select(branch => branch.BranchName)))).ToImmutableList();
 
-                if (neededUpstreamMerges.Any() && details.RecreateFromUpstream)
+                if (neededUpstreamMerges.Any() && Details.RecreateFromUpstream)
                 {
-                    neededUpstreamMerges = details.DirectUpstreamBranches.Select(branch => branch.BranchName).ToImmutableList();
-
-                    // TODO - do not delete, but find the next new name
-                    var deleteRemote = Queueable(cli.DeleteRemote(downstreamBranch));
-                    processes.OnNext(deleteRemote);
-                    await deleteRemote;
-
+                    neededUpstreamMerges = Details.DirectUpstreamBranches.Select(branch => branch.BranchName).ToImmutableList();
+                    
                     needsCreate = true;
                 }
 
                 if (needsCreate)
                 {
-                    processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{downstreamBranch} needs to be created from {string.Join(",", neededUpstreamMerges)}" }));
-                    await CreateDownstreamBranch(details.DirectUpstreamBranches.Select(branch => branch.BranchName));
+                    processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{Details.BranchName} needs to be created from {string.Join(",", neededUpstreamMerges)}" }));
+                    await CreateDownstreamBranch(Details.DirectUpstreamBranches.Select(branch => branch.BranchName));
                 }
                 else if (neededUpstreamMerges.Any())
                 {
-                    processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{downstreamBranch} needs merges from {string.Join(",", neededUpstreamMerges)}" }));
+                    processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{LatestBranchName} needs merges from {string.Join(",", neededUpstreamMerges)}" }));
 
                     foreach (var upstreamBranch in neededUpstreamMerges)
                     {
-                        await MergeUpstreamBranch(upstreamBranch);
+                        await MergeUpstreamBranch(upstreamBranch, LatestBranchName);
                     }
                 }
 
@@ -154,7 +157,7 @@ namespace GitAutomation.Orchestration.Actions
             private IObservable<bool> HasOutstandingCommits(string upstreamBranch)
             {
                 return Observable.CombineLatest(
-                        cli.MergeBase(upstreamBranch, downstreamBranch).FirstOutputMessage(),
+                        cli.MergeBase(upstreamBranch, LatestBranchName).FirstOutputMessage(),
                         cli.ShowRef(upstreamBranch).FirstOutputMessage(),
                         (mergeBaseResult, showRefResult) => mergeBaseResult != showRefResult
                     );
@@ -162,6 +165,7 @@ namespace GitAutomation.Orchestration.Actions
 
             private async Task CreateDownstreamBranch(IEnumerable<string> allUpstreamBranches)
             {
+                var downstreamBranch = await repository.GetNextCandidateBranch(Details, shouldMutate: true).FirstOrDefaultAsync();
                 var validUpstream = await FilterUpstreamReadyForMerge(allUpstreamBranches);
 
                 // Basic process; should have checks on whether or not to create the branch
@@ -187,7 +191,7 @@ namespace GitAutomation.Orchestration.Actions
 
                 foreach (var upstreamBranch in validUpstream.Skip(1))
                 {
-                    await MergeUpstreamBranch(upstreamBranch);
+                    await MergeUpstreamBranch(upstreamBranch, downstreamBranch);
                 }
             }
 
@@ -196,7 +200,7 @@ namespace GitAutomation.Orchestration.Actions
                 var validUpstream = new List<string>();
                 foreach (var upstream in allUpstreamBranches)
                 {
-                    if (!await gitServiceApi.HasOpenPullRequest(targetBranch: upstream) && !await gitServiceApi.HasOpenPullRequest(targetBranch: downstreamBranch, sourceBranch: upstream))
+                    if (!await gitServiceApi.HasOpenPullRequest(targetBranch: upstream) && !await gitServiceApi.HasOpenPullRequest(targetBranch: LatestBranchName, sourceBranch: upstream))
                     {
                         validUpstream.Add(upstream);
                     }
@@ -212,7 +216,7 @@ namespace GitAutomation.Orchestration.Actions
             /// <summary>
             /// Notice - assumes that downstream is already checked out!
             /// </summary>
-            private async Task MergeUpstreamBranch(string upstreamBranch)
+            private async Task MergeUpstreamBranch(string upstreamBranch, string downstreamBranch)
             {
                 bool isSuccessfulMerge = await DoMerge(upstreamBranch, downstreamBranch, message: $"Auto-merge branch '{upstreamBranch}'");
                 if (isSuccessfulMerge)
@@ -226,11 +230,11 @@ namespace GitAutomation.Orchestration.Actions
                     // conflict!
                     processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} conflicts with {upstreamBranch}" }));
 
-                    var canUseIntegrationBranch = details.BranchType != BranchType.Integration && details.DirectUpstreamBranches.Count != 1;
+                    var canUseIntegrationBranch = Details.BranchType != BranchType.Integration && Details.DirectUpstreamBranches.Count != 1;
                     var createdIntegrationBranch = canUseIntegrationBranch
                         ? await integrateBranches.FindAndCreateIntegrationBranches(
-                                details, 
-                                details.DirectUpstreamBranches.Select(branch => branch.BranchName), 
+                                Details,
+                                Details.DirectUpstreamBranches.Select(branch => branch.BranchName), 
                                 DoMerge
                             )
                             .ContinueWith(result => result.Result.AddedNewIntegrationBranches || result.Result.HadPullRequest)
