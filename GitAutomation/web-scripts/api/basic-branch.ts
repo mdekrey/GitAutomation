@@ -11,4 +11,5 @@ export interface BasicBranch {
   recreateFromUpstream: boolean;
   branchType: BranchType;
   branchName: string;
+  branchNames: string[];
 }

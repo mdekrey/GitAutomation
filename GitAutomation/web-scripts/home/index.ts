@@ -1,7 +1,12 @@
 import { Observable, Subscription } from "rxjs";
 import { Selection } from "d3-selection";
 
-import { rxData, rxEvent, fnSelect } from "../utils/presentation/d3-binding";
+import {
+  bind,
+  rxData,
+  rxEvent,
+  fnSelect
+} from "../utils/presentation/d3-binding";
 
 import { RoutingComponent } from "../utils/routing-component";
 import {
@@ -129,6 +134,7 @@ export const homepage = (
                 li.html(`
   <span></span>
   <a data-locator="manage">Manage</a>
+  <ul data-locator="actual-branches"></ul>
 `),
               selector: "li",
               onEach: selection => {
@@ -148,6 +154,25 @@ export const homepage = (
                 );
               }
             })
+            .let(configuredBranches =>
+              configuredBranches
+                .map(branch =>
+                  branch
+                    .select(`[data-locator="actual-branches"]`)
+                    .selectAll(`li`)
+                    .data(function(basicBranch) {
+                      console.log(basicBranch, this);
+                      return basicBranch.branchNames;
+                    })
+                )
+                .map(target =>
+                  bind({
+                    target,
+                    onCreate: target => target.append("li"),
+                    onEach: target => target.text(data => data)
+                  })
+                )
+            )
             .subscribe()
         );
 
