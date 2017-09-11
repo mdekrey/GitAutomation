@@ -71,9 +71,9 @@ namespace GitAutomation.Management
 
         [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("details/{*branchName}")]
-        public async Task<BranchDetails> GetDetails(string branchName)
+        public Task<BranchDetails> GetDetails(string branchName)
         {
-            return await branchSettings.GetBranchDetails(branchName).FirstAsync();
+            return repository.GetBranchDetails(branchName).FirstAsync().ToTask();
         }
 
         [Authorize(Auth.PolicyNames.Update)]

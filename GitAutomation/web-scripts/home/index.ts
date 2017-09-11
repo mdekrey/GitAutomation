@@ -160,10 +160,7 @@ export const homepage = (
                   branch
                     .select(`[data-locator="actual-branches"]`)
                     .selectAll(`li`)
-                    .data(function(basicBranch) {
-                      console.log(basicBranch, this);
-                      return basicBranch.branchNames;
-                    })
+                    .data(basicBranch => basicBranch.branchNames)
                 )
                 .map(target =>
                   bind({

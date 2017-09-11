@@ -14,5 +14,6 @@ namespace GitAutomation
         IObservable<ImmutableList<string>> DetectShallowUpstream(string branchName);
         IObservable<string> LatestBranchName(BranchDetails details);
         IObservable<string> GetNextCandidateBranch(BranchDetails details, bool shouldMutate);
+        IObservable<BranchDetails> GetBranchDetails(string branchName);
     }
 }

@@ -85,6 +85,19 @@ namespace GitAutomation
                 }).Switch();
         }
 
+        public IObservable<BranchDetails> GetBranchDetails(string branchName)
+        {
+            return branchSettings.GetBranchDetails(branchName)
+                .WithLatestFrom(this.repositoryState.RemoteBranches(),
+                    (branchDetails, remoteBranches) =>
+                    {
+                        return new BranchDetails(branchDetails)
+                        {
+                            BranchNames = remoteBranches.Where(remoteBranch => branchIteration.IsBranchIteration(branchDetails.BranchName, remoteBranch)).ToImmutableList()
+                        };
+                    });
+        }
+
         public IObservable<string> GetNextCandidateBranch(BranchDetails details, bool shouldMutate)
         {
             return (
