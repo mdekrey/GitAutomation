@@ -189,7 +189,7 @@ export const manage = (
             eventName: "click"
           })
             .withLatestFrom(
-              container.map(fnSelect(`[data-locator="upstream-branches"]`)),
+              container.map(fnSelect(`[data-locator="other-branches"]`)),
               (_, elem) => elem
             )
             .subscribe(elements => {
@@ -197,7 +197,7 @@ export const manage = (
                 branchNames.forEach(upstreamBranchName =>
                   elements
                     .select(
-                      `[data-locator="check"][data-branch="${upstreamBranchName}"]`
+                      `[data-locator="upstream-branches"] [data-locator="check"][data-branch="${upstreamBranchName}"]`
                     )
                     .property("checked", true)
                 )
