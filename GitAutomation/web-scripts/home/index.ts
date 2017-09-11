@@ -129,14 +129,17 @@ export const homepage = (
               .switchMap(() => allBranches())
           )
             .bind<HTMLLIElement>({
-              onCreate: target => target.append<HTMLLIElement>("li"),
+              onCreate: target =>
+                target
+                  .append<HTMLLIElement>("li")
+                  .attr("data-locator", "remote-branch"),
               onEnter: li =>
                 li.html(`
   <span></span>
   <a data-locator="manage">Manage</a>
   <ul data-locator="actual-branches"></ul>
 `),
-              selector: "li",
+              selector: `li[data-locator="remote-branch"]`,
               onEach: selection => {
                 selection.select(`span`).text(data => data.branchName);
                 subscription.add(
