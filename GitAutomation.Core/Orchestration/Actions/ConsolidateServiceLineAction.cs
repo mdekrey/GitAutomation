@@ -44,6 +44,7 @@ namespace GitAutomation.Orchestration.Actions
         public IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider)
         {
             var cli = serviceProvider.GetRequiredService<GitCli>();
+            var repository = serviceProvider.GetRequiredService<IRepositoryMediator>();
             var settings = serviceProvider.GetRequiredService<IBranchSettings>();
             var unitOfWorkFactory = serviceProvider.GetRequiredService<IUnitOfWorkFactory>();
 
@@ -59,20 +60,22 @@ namespace GitAutomation.Orchestration.Actions
 
             return Observable.Create<OutputMessage>(async (observer, cancellationToken) =>
             {
+                var details = await repository.GetBranchDetails(releaseCandidateBranch).FirstOrDefaultAsync();
+                var latestBranchName = await repository.LatestBranchName(details).FirstOrDefaultAsync();
                 var disposable = new CompositeDisposable();
                 var processes = new Subject<IObservable<OutputMessage>>();
                 disposable.Add(Observable.Concat(processes).Subscribe(observer));
                 disposable.Add(processes);
 
-                var readyToFinalize = await CreateOrFastForwardServiceLine(cli, processes);
+                var readyToFinalize = await CreateOrFastForwardServiceLine(latestBranchName, cli, processes);
 
                 if (!readyToFinalize)
                 {
-                    processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{serviceLineBranch} unable to be fast-forwarded from {releaseCandidateBranch}; aborting" }));
+                    processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{serviceLineBranch} unable to be fast-forwarded from {latestBranchName}; aborting" }));
                 }
                 else
                 {
-                    var tag = Queueable(cli.AnnotatedTag(tagName, $"Automated release to service line {serviceLineBranch} from {releaseCandidateBranch}"));
+                    var tag = Queueable(cli.AnnotatedTag(tagName, $"Automated release to service line {serviceLineBranch} from {latestBranchName}"));
                     processes.OnNext(tag);
                     await tag;
 
@@ -80,6 +83,7 @@ namespace GitAutomation.Orchestration.Actions
                     processes.OnNext(pushTag);
                     await pushTag;
 
+                    // TODO - this should be a separate step
                     var branchesToRemove = await settings.GetAllUpstreamRemovableBranches(releaseCandidateBranch).FirstAsync();
 
                     var push = Queueable(cli.Push(serviceLineBranch));
@@ -93,7 +97,7 @@ namespace GitAutomation.Orchestration.Actions
                         await unitOfWork.CommitAsync();
                     }
 
-                    foreach (var branch in branchesToRemove.Concat(new[] { releaseCandidateBranch }))
+                    foreach (var branch in branchesToRemove.Concat(details.BranchNames))
                     {
                         var deleteBranch = Queueable(cli.DeleteRemote(branch));
                         processes.OnNext(deleteBranch);
@@ -115,7 +119,7 @@ namespace GitAutomation.Orchestration.Actions
             }).Multicast(output).RefCount();
         }
 
-        private async Task<bool> CreateOrFastForwardServiceLine(GitCli cli, Subject<IObservable<OutputMessage>> processes)
+        private async Task<bool> CreateOrFastForwardServiceLine(string latestBranchName, GitCli cli, Subject<IObservable<OutputMessage>> processes)
         {
             var showRef = Queueable(cli.ShowRef(serviceLineBranch));
             processes.OnNext(showRef);
@@ -123,7 +127,7 @@ namespace GitAutomation.Orchestration.Actions
             if (showRefResult == null)
             {
                 // create service line
-                var checkout = Queueable(cli.CheckoutRemote(releaseCandidateBranch));
+                var checkout = Queueable(cli.CheckoutRemote(latestBranchName));
                 processes.OnNext(checkout);
                 await checkout;
 
@@ -140,9 +144,9 @@ namespace GitAutomation.Orchestration.Actions
                 processes.OnNext(checkout);
                 await checkout;
 
-                var createServiceLine = Queueable(cli.MergeFastForward(releaseCandidateBranch));
+                var createServiceLine = Queueable(cli.MergeFastForward(latestBranchName));
                 processes.OnNext(createServiceLine);
-                var fastForwardResult = await (from o in showRef where o.Channel == OutputChannel.ExitCode select o.ExitCode).FirstOrDefaultAsync();
+                var fastForwardResult = await (from o in createServiceLine where o.Channel == OutputChannel.ExitCode select o.ExitCode).FirstOrDefaultAsync();
 
                 return fastForwardResult == 0;
             }

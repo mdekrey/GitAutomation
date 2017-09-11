@@ -5,6 +5,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       
+  gitautomation-sql:
+    ports:
+      - "21433:1433"
+
   git-server:
     image: testing-git-server
     ports:
