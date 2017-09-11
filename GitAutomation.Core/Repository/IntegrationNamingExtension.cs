@@ -14,17 +14,10 @@ namespace GitAutomation.Repository
         {
             var type = Plugins.PluginActivator.GetPluginTypeOrNull(options.IntegrationNamingConventionType);
             services.AddTransient(typeof(IIntegrationNamingConvention), type ?? typeof(StandardIntegrationNamingConvention));
-        }
+            services.AddTransient<IIntegrationNamingMediator, IntegrationNamingMediator>();
 
-        public static async Task<string> GetIntegrationBranchName(this IIntegrationNamingConvention convention, IRepositoryState repository, string branchA, string branchB)
-        {
-            var candidateNames = convention.GetIngtegrationBranchNameCandidates(branchA, branchB);
-            var remoteBranches = repository.RemoteBranches().Take(1);
-            return await candidateNames.CombineLatest(remoteBranches, (name, branches) => new { name, branches })
-                .Where(target => !target.branches.Contains(target.name))
-                .Select(target => target.name)
-                .FirstOrDefaultAsync()
-                ?? $"integrate/{Guid.NewGuid().ToString()}";
+            services.AddTransient<IBranchIterationNamingConvention, HyphenSuffixIterationNaming>();
+            services.AddTransient<IBranchIterationMediator, BranchIterationMediator>();
         }
     }
 }

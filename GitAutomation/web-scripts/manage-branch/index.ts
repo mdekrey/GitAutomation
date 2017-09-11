@@ -41,14 +41,24 @@ export const manage = (
         <option value="Hotfix">Hotfix</option>
       </select>
   </label>
-  <h3>Downstream Branches</h3>
-  <ul data-locator="downstream-branches"></ul>
-  <h3>Upstream Branches</h3>
-  <a data-locator="detect-upstream">Detect Upstream Branches</a>
-  <ul data-locator="upstream-branches"></ul>
+  <h3>Other Branches</h3>
+
+  <table>
+      <thead>
+        <tr>
+          <td></td>
+          <th>Downstream</th>
+          <th>Upstream<br/><a data-locator="detect-upstream">Detect Upstream Branches</a></th>
+        </tr>
+      </thead>
+      <tbody data-locator="other-branches">
+      </tbody>
+  </table>
   <button type="button" data-locator="reset">Reset</button>
   <button type="button" data-locator="home">Cancel</button>
   <button type="button" data-locator="save">Save</button>
+  <h3>Actual Branches</h3>
+  <ul data-locator="grouped-branches"></ul>
 
   <h3>Release to Service Line</h3>
   <label>
@@ -152,32 +162,24 @@ export const manage = (
         // display downstream branches
         subscription.add(
           rxData(
-            container.map(fnSelect(`[data-locator="downstream-branches"]`)),
+            container.map(fnSelect(`[data-locator="other-branches"]`)),
             branchList,
             data => data.branch
           )
-            .bind<HTMLLIElement>(
-              buildBranchCheckListing(
-                b => b.isDownstream,
-                b => !b.isDownstreamAllowed && !b.isDownstream
-              )
-            )
+            .bind(buildBranchCheckListing())
             .subscribe()
         );
 
-        // display upstream branches
         subscription.add(
           rxData(
-            container.map(fnSelect(`[data-locator="upstream-branches"]`)),
-            branchList,
-            data => data.branch
+            container.map(fnSelect(`[data-locator="grouped-branches"]`)),
+            branchData.state.map(branch => branch.branchNames)
           )
-            .bind<HTMLLIElement>(
-              buildBranchCheckListing(
-                b => b.isUpstream,
-                b => !b.isUpstreamAllowed && !b.isUpstream
-              )
-            )
+            .bind({
+              selector: "li",
+              onCreate: selection => selection.append<HTMLLIElement>("li"),
+              onEach: selection => selection.text(data => data)
+            })
             .subscribe()
         );
 
@@ -187,7 +189,7 @@ export const manage = (
             eventName: "click"
           })
             .withLatestFrom(
-              container.map(fnSelect(`[data-locator="upstream-branches"]`)),
+              container.map(fnSelect(`[data-locator="other-branches"]`)),
               (_, elem) => elem
             )
             .subscribe(elements => {
@@ -195,7 +197,7 @@ export const manage = (
                 branchNames.forEach(upstreamBranchName =>
                   elements
                     .select(
-                      `[data-locator="check"][data-branch="${upstreamBranchName}"]`
+                      `[data-locator="upstream-branches"] [data-locator="check"][data-branch="${upstreamBranchName}"]`
                     )
                     .property("checked", true)
                 )

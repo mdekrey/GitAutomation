@@ -7,6 +7,7 @@ export interface IManageBranch {
   recreateFromUpstream: boolean;
   branchType: string;
   branches: IBranchData[];
+  branchNames: string[];
 }
 
 export interface IBranchData {
@@ -44,7 +45,8 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
         })),
         branchType: branchDetails.branchType,
         recreateFromUpstream: branchDetails.recreateFromUpstream,
-        conflictResolutionMode: branchDetails.conflictResolutionMode
+        conflictResolutionMode: branchDetails.conflictResolutionMode,
+        branchNames: branchDetails.branchNames
       };
     })
     .map(
@@ -52,12 +54,14 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
         branches,
         recreateFromUpstream,
         branchType,
-        conflictResolutionMode
+        conflictResolutionMode,
+        branchNames
       }): IManageBranch => ({
         branches,
         recreateFromUpstream,
         branchType,
-        isLoading: false
+        isLoading: false,
+        branchNames
       })
     );
 
@@ -65,7 +69,8 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
     isLoading: true,
     recreateFromUpstream: false,
     branchType: "Feature",
-    branches: []
+    branches: [],
+    branchNames: []
   })
     .concat(reload.startWith(null).switchMap(() => initializeBranchData))
     .publishReplay(1)

@@ -37,7 +37,12 @@ namespace GitAutomation.Repository
 
         private IReactiveProcess RunGit(params string[] args)
         {
-            return reactiveProcessFactory.BuildProcess(new System.Diagnostics.ProcessStartInfo(
+            return RunGit(args, null);
+        }
+        
+        private IReactiveProcess RunGit(IEnumerable<string> args, Action<System.Diagnostics.ProcessStartInfo> setup)
+        {
+            var startInfo = new System.Diagnostics.ProcessStartInfo(
                 "git",
                 string.Join(
                     " ",
@@ -49,8 +54,10 @@ namespace GitAutomation.Repository
                 )
             )
             {
-                WorkingDirectory = checkoutPath
-            });
+                WorkingDirectory = checkoutPath,
+            };
+            setup?.Invoke(startInfo);
+            return reactiveProcessFactory.BuildProcess(startInfo);
         }
 
         public IReactiveProcess Clone()
@@ -120,16 +127,27 @@ namespace GitAutomation.Repository
             return RunGit("checkout", "-B", branchName);
         }
 
-        public IReactiveProcess MergeRemote(string branchName, string message = null)
+        public IReactiveProcess MergeRemote(string branchName, string message = null, string commitDate = null)
         {
-            if (message == null)
+            var parameters = new List<string>
             {
-                return RunGit("merge", RemoteBranch(branchName));
-            }
-            else
+                "merge", RemoteBranch(branchName)
+            };
+            if (message != null)
             {
-                return RunGit("merge", RemoteBranch(branchName), "-m", message);
+                parameters.AddRange(new[]
+                {
+                    "-m", message
+                });
             }
+            return RunGit(parameters, startInfo =>
+            {
+                if (commitDate != null)
+                {
+                    startInfo.EnvironmentVariables.Add("GIT_COMMITTER_DATE", commitDate);
+                    startInfo.EnvironmentVariables.Add("GIT_AUTHOR_DATE", commitDate);
+                }
+            });
         }
 
         public IReactiveProcess MergeFastForward(string branchName)
@@ -148,7 +166,12 @@ namespace GitAutomation.Repository
                 return RunGit("push", "origin", $"{branchName}:{remoteBranchName}");
             }
         }
-        
+
+        public IReactiveProcess GetCommitTimestamps(params string[] commitishes)
+        {
+            return RunGit(new string[] { "show", "--format=%cI", "-s" }.Concat(commitishes).ToArray());
+        }
+
         public static IObservable<ImmutableList<GitRef>> BranchListingToRefs(IObservable<OutputMessage> refListing)
         {
 
@@ -163,6 +186,7 @@ namespace GitAutomation.Repository
                 .Aggregate(ImmutableList<GitRef>.Empty, (list, next) => list.Add(next));
         }
 
-        private string RemoteBranch(string branchName) => $"origin/{branchName}";
+        public string RemoteBranch(string branchName) => $"origin/{branchName}";
+
     }
 }

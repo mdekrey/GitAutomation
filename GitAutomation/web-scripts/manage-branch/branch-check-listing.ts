@@ -1,29 +1,54 @@
 import { IRxBindProps } from "../utils/presentation/d3-binding";
 import { IBranchData } from "./data";
 
-export type BranchPredicate = (data: IBranchData) => boolean;
+type BranchPredicate = (data: IBranchData) => boolean;
+interface BranchTypeRules {
+  checked: BranchPredicate;
+  disabled: BranchPredicate;
+}
 
-export const buildBranchCheckListing = (
-  checked: BranchPredicate,
-  disabled: BranchPredicate
-): IRxBindProps<HTMLLIElement, IBranchData, any, any> => ({
+const downstreamRules: BranchTypeRules = {
+  checked: b => b.isDownstream,
+  disabled: b => !b.isDownstreamAllowed && !b.isDownstream
+};
+
+const upstreamRules: BranchTypeRules = {
+  checked: b => b.isUpstream,
+  disabled: b => !b.isUpstreamAllowed && !b.isUpstream
+};
+
+export const buildBranchCheckListing = (): IRxBindProps<
+  HTMLTableRowElement,
+  IBranchData,
+  any,
+  any
+> => ({
   onCreate: target =>
-    target.append<HTMLLIElement>("li").attr("data-static-branch", ""),
-  selector: "li[data-static-branch]",
-  onEnter: li => {
-    li.html(`
-      <label>
+    target.append<HTMLTableRowElement>("tr").attr("data-static-branch", ""),
+  selector: "tr[data-static-branch]",
+  onEnter: tr => {
+    tr.html(`
+      <td data-locator="branch" />
+      <td data-locator="downstream-branches">
         <input type="checkbox" data-locator="check"/>
-        <span data-locator="branch"></span>
-      </label>
+      </td>
+      <td data-locator="upstream-branches">
+        <input type="checkbox" data-locator="check"/>
+      </td>
     `);
   },
   onEach: selection => {
     selection.select(`[data-locator="branch"]`).text(data => data.branch);
     selection
-      .select(`[data-locator="check"]`)
+      .select(`[data-locator="downstream-branches"] [data-locator="check"]`)
       .attr("data-branch", data => data.branch)
-      .property("checked", checked)
-      .property("disabled", disabled);
+      .property("checked", downstreamRules.checked)
+      .property("disabled", downstreamRules.disabled);
+
+    selection
+      .select(`[data-locator="upstream-branches"] [data-locator="check"]`)
+      .attr("data-branch", data => data.branch)
+      .property("checked", upstreamRules.checked)
+      .property("disabled", upstreamRules.disabled);
   }
 });
