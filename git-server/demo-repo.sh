@@ -63,9 +63,6 @@ git commit -m "Enhanced Content"
 git checkout feature/garbage-content
 git checkout -B feature/all-garbage
 git merge conflicting-readme
-echo "\nMore conflicts" >> additional.md
-git add .
-git commit -m "All Garbage Content"
 
 git checkout initial
 git checkout -B future-feature
