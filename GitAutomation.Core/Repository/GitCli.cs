@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 
 namespace GitAutomation.Repository
 {
+    // TODO - extract public interface for unit tests
     class GitCli
     {
         private static readonly Regex remoteBranches = new Regex(@"^(?<commit>\S+)\s+refs/heads/(?<branch>.+)");
