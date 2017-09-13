@@ -1,6 +1,7 @@
 ﻿using GitAutomation.Processes;
 using GitAutomation.Repository;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -16,8 +17,9 @@ namespace GitAutomation.Orchestration.Actions
         
         public abstract string ActionType { get; }
 
-        public virtual ImmutableDictionary<string, string> Parameters =>
-            ImmutableDictionary<string, string>.Empty;
+        public virtual JToken Parameters => JToken.FromObject(
+            ImmutableDictionary<string, string>.Empty
+        );
 
         public IObservable<OutputMessage> DeferredOutput => output;
 

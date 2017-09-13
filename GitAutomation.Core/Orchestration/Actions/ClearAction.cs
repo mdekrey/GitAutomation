@@ -2,6 +2,7 @@
 using GitAutomation.Repository;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -18,8 +19,9 @@ namespace GitAutomation.Orchestration.Actions
 
         public string ActionType => "Clear";
 
-        public ImmutableDictionary<string, string> Parameters =>
-            ImmutableDictionary<string, string>.Empty;
+        public JToken Parameters => JToken.FromObject(
+            ImmutableDictionary<string, string>.Empty
+        );
 
         public IObservable<OutputMessage> DeferredOutput => output;
 

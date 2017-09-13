@@ -9,6 +9,7 @@ using System.Reactive.Linq;
 using Microsoft.Extensions.Options;
 using System.IO;
 using GitAutomation.Repository;
+using Newtonsoft.Json.Linq;
 
 namespace GitAutomation.Orchestration.Actions
 {
@@ -18,7 +19,7 @@ namespace GitAutomation.Orchestration.Actions
 
         private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
 
-        public ImmutableDictionary<string, string> Parameters => ImmutableDictionary<string, string>.Empty;
+        public JToken Parameters => JToken.FromObject(ImmutableDictionary<string, string>.Empty);
 
         public IObservable<OutputMessage> DeferredOutput => output;
 

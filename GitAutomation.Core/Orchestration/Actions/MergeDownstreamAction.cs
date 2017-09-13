@@ -5,6 +5,7 @@ using GitAutomation.Repository;
 using GitAutomation.Work;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -32,10 +33,10 @@ namespace GitAutomation.Orchestration.Actions
             this.downstreamBranch = downstreamBranch;
         }
 
-        public ImmutableDictionary<string, string> Parameters => new Dictionary<string, string>
+        public JToken Parameters => JToken.FromObject(new Dictionary<string, string>
             {
                 { "downstreamBranch", downstreamBranch },
-            }.ToImmutableDictionary();
+            }.ToImmutableDictionary());
 
         public IObservable<OutputMessage> DeferredOutput => output;
 
