@@ -23,10 +23,9 @@ namespace GitAutomation.BranchSettings
         void UpdateBranchSetting(string branchName, bool recreateFromUpstream, BranchType branchType, Work.IUnitOfWork work);
         void AddBranchPropagation(string upstreamBranch, string downstreamBranch, Work.IUnitOfWork work);
         void RemoveBranchPropagation(string upstreamBranch, string downstreamBranch, Work.IUnitOfWork work);
-        void ConsolidateServiceLine(string releaseCandidateBranch, string serviceLineBranch, Work.IUnitOfWork work);
+        void ConsolidateBranches(IEnumerable<string> branchesToRemove, string targetBranch, IUnitOfWork unitOfWork);
         void DeleteBranchSettings(string deletingBranch, IUnitOfWork unitOfWork);
 
         void CreateIntegrationBranch(string branchA, string branchB, string integrationBranchName, IUnitOfWork unitOfWork);
-
     }
 }

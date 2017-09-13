@@ -66,8 +66,8 @@ namespace GitAutomation.BranchSettings
             SqlBranchSettings.DeleteBranchSettingsCommand.ExplainMultipleResult(database.BuildSqlConnection());
 
         [TestMethod]
-        public void HaveAValidConsolidateServiceLineCommand() =>
-            SqlBranchSettings.ConsolidateServiceLineCommand.ExplainMultipleResult(database.BuildSqlConnection());
+        public void HaveAValidConsolidateBranchCommand() =>
+            SqlBranchSettings.ConsolidateBranchCommand.ExplainMultipleResult(database.BuildSqlConnection());
 
         [TestMethod]
         public void HaveAValidGetIntegrationBranchCommand() =>

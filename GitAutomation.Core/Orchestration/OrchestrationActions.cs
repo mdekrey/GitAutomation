@@ -20,9 +20,9 @@ namespace GitAutomation.Orchestration
             return orchestration.EnqueueAction(new MergeDownstreamAction(downstreamBranch: downstreamBranch));
         }
 
-        public IObservable<OutputMessage> ConsolidateServiceLine(string releaseCandidateBranch, string serviceLineBranch, string tagName)
+        public IObservable<OutputMessage> ReleaseToServiceLine(string releaseCandidateBranch, string serviceLineBranch, string tagName)
         {
-            return orchestration.EnqueueAction(new ConsolidateServiceLineAction(releaseCandidateBranch, serviceLineBranch, tagName));
+            return orchestration.EnqueueAction(new ReleaseToServiceLineAction(releaseCandidateBranch, serviceLineBranch, tagName));
         }
 
     }

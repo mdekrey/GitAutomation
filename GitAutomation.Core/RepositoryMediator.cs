@@ -6,6 +6,7 @@ using GitAutomation.BranchSettings;
 using GitAutomation.Repository;
 using System.Reactive.Linq;
 using System.Linq;
+using GitAutomation.Work;
 
 namespace GitAutomation
 {
@@ -56,6 +57,11 @@ namespace GitAutomation
                             .ToImmutableList()
                 )
             ).FirstAsync();
+        }
+
+        public void ConsolidateBranches(IEnumerable<string> branchesToRemove, string targetBranch, IUnitOfWork unitOfWork)
+        {
+            this.branchSettings.ConsolidateBranches(branchesToRemove, targetBranch, unitOfWork);
         }
 
         public IObservable<ImmutableList<string>> DetectShallowUpstream(string branchName)
@@ -111,7 +117,7 @@ namespace GitAutomation
             ).Switch();
         }
 
-        public IObservable<string> LatestBranchName(BranchDetails details)
+        public IObservable<string> LatestBranchName(BranchBasicDetails details)
         {
             return (
                 from remoteBranches in this.repositoryState.RemoteBranches()

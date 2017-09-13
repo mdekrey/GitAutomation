@@ -6,6 +6,6 @@ namespace GitAutomation.Orchestration
     public interface IOrchestrationActions
     {
         IObservable<OutputMessage> CheckDownstreamMerges(string downstreamBranch);
-        IObservable<OutputMessage> ConsolidateServiceLine(string releaseCandidateBranch, string serviceLineBranch, string tagName);
+        IObservable<OutputMessage> ReleaseToServiceLine(string releaseCandidateBranch, string serviceLineBranch, string tagName);
     }
 }

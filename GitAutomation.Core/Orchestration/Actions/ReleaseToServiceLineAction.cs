@@ -18,16 +18,16 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 namespace GitAutomation.Orchestration.Actions
 {
-    class ConsolidateServiceLineAction : IRepositoryAction
+    class ReleaseToServiceLineAction : IRepositoryAction
     {
         private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
         private readonly string releaseCandidateBranch;
         private readonly string serviceLineBranch;
         private readonly string tagName;
 
-        public string ActionType => "ConsolidateServiceLine";
+        public string ActionType => "ReleaseToServiceLine";
 
-        public ConsolidateServiceLineAction(string releaseCandidateBranch, string serviceLineBranch, string tagName)
+        public ReleaseToServiceLineAction(string releaseCandidateBranch, string serviceLineBranch, string tagName)
         {
             this.releaseCandidateBranch = releaseCandidateBranch;
             this.serviceLineBranch = serviceLineBranch;
@@ -56,8 +56,6 @@ namespace GitAutomation.Orchestration.Actions
             // if it passes:
             //   collect upstream branches
             //   push service line
-            //   run consolidate service line SQL
-            //   delete old upstream branches and release candidate
 
             return Observable.Create<OutputMessage>(async (observer, cancellationToken) =>
             {
@@ -83,33 +81,11 @@ namespace GitAutomation.Orchestration.Actions
                     var pushTag = Queueable(cli.Push(tagName));
                     processes.OnNext(pushTag);
                     await pushTag;
-
-                    // TODO - this should be a separate step
-                    var branchesToRemove = await settings.GetAllUpstreamRemovableBranches(releaseCandidateBranch).FirstAsync();
-
+                    
                     var push = Queueable(cli.Push(serviceLineBranch));
                     processes.OnNext(push);
                     await push;
-
-                    using (var unitOfWork = unitOfWorkFactory.CreateUnitOfWork())
-                    {
-                        settings.ConsolidateServiceLine(releaseCandidateBranch, serviceLineBranch, unitOfWork);
-
-                        await unitOfWork.CommitAsync();
-                    }
-
-                    foreach (var branch in branchesToRemove.Concat(details.BranchNames))
-                    {
-                        var deleteBranch = Queueable(cli.DeleteRemote(branch));
-                        processes.OnNext(deleteBranch);
-                        await deleteBranch;
-                    }
-
                 }
-
-                var fetch = Queueable(cli.Fetch());
-                processes.OnNext(fetch);
-                await fetch;
 
                 processes.OnCompleted();
 

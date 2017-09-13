@@ -108,7 +108,7 @@ namespace GitAutomation.Management
         [HttpPut("branch/promote")]
         public void PromoteServiceLine([FromBody] PromoteServiceLineBody requestBody, [FromServices] IOrchestrationActions orchestrationActions)
         {
-            orchestrationActions.ConsolidateServiceLine(requestBody.ReleaseCandidate, requestBody.ServiceLine, requestBody.TagName);
+            orchestrationActions.ReleaseToServiceLine(requestBody.ReleaseCandidate, requestBody.ServiceLine, requestBody.TagName);
         }
 
         [Authorize(Auth.PolicyNames.Read)]

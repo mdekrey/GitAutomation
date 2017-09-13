@@ -224,54 +224,37 @@ WHERE  [BranchName]=@BranchName
             {
                 { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
             });
-
-        public static readonly CommandBuilder ConsolidateServiceLineCommand = new CommandBuilder(
+        
+        public static readonly CommandBuilder ConsolidateBranchCommand = new CommandBuilder(
             commandText: @"
-DECLARE @OldDownstream TABLE (DownstreamBranch VARCHAR(256) INDEX IX1 CLUSTERED);
-DECLARE @RemainingDownstream TABLE (DownstreamBranch VARCHAR(256) INDEX IX1 CLUSTERED);
+DECLARE @ChangedDownstream TABLE (DownstreamBranch VARCHAR(256) INDEX IX1 CLUSTERED);
 
-WITH RecursiveDownstream ( DownstreamBranch, BranchName )
-AS (
-	SELECT DownstreamBranch, BranchName FROM [UpstreamBranch] WHERE DownstreamBranch=@BranchName
-UNION ALL
-	SELECT RecursiveDownstream.DownstreamBranch, [UpstreamBranch].BranchName
-	FROM [UpstreamBranch]
-	INNER JOIN RecursiveDownstream ON [UpstreamBranch].DownstreamBranch = RecursiveDownstream.BranchName
-)
-INSERT INTO @OldDownstream
-SELECT RecursiveDownstream.BranchName FROM RecursiveDownstream
-LEFT JOIN DownstreamBranch ON RecursiveDownstream.BranchName=DownstreamBranch.BranchName
-WHERE COALESCE(DownstreamBranch.BranchType, 'Feature') != 'ServiceLine'
-GROUP BY RecursiveDownstream.BranchName
-
-INSERT INTO @RemainingDownstream (DownstreamBranch)
+INSERT INTO @ChangedDownstream (DownstreamBranch)
 SELECT UpstreamBranch.DownstreamBranch
 FROM UpstreamBranch
-INNER JOIN @OldDownstream as ShouldMatch ON UpstreamBranch.BranchName=ShouldMatch.DownstreamBranch
-LEFT JOIN @OldDownstream as DoNotMatch ON UpstreamBranch.DownstreamBranch=DoNotMatch.DownstreamBranch
-WHERE DoNotMatch.DownstreamBranch IS NULL AND UpstreamBranch.DownstreamBranch != @BranchName
+WHERE UpstreamBranch.BranchName = @BranchName
 GROUP BY UpstreamBranch.DownstreamBranch;
 
 MERGE INTO [DownstreamBranch] AS Downstream
-USING (SELECT @ServiceLineBranchName AS BranchName) AS NewDownstream
+USING (SELECT @ReplacementBranchName AS BranchName) AS NewDownstream
 ON Downstream.BranchName = NewDownstream.BranchName
 WHEN NOT MATCHED THEN INSERT (BranchName, RecreateFromUpstream, BranchType) VALUES (NewDownstream.BranchName, 0, 'ServiceLine');
 
 DELETE FROM [UpstreamBranch]
-WHERE BranchName IN (SELECT DownstreamBranch FROM @OldDownstream) OR DownstreamBranch IN (SELECT DownstreamBranch FROM @OldDownstream);
+WHERE BranchName = @BranchName;
 
 DELETE FROM [DownstreamBranch]
-WHERE BranchName IN (SELECT DownstreamBranch FROM @OldDownstream) OR (BranchName = @BranchName AND BranchType != 'ServiceLine');
+WHERE BranchName = @BranchName;
 
 MERGE INTO [UpstreamBranch] AS T
-USING @RemainingDownstream AS NewDownstream
-ON T.DownstreamBranch = NewDownstream.DownstreamBranch AND T.BranchName=@ServiceLineBranchName
-WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ServiceLineBranchName, NewDownstream.DownstreamBranch);
+USING @ChangedDownstream AS NewDownstream
+ON T.DownstreamBranch = NewDownstream.DownstreamBranch AND T.BranchName=@ReplacementBranchName
+WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ReplacementBranchName, NewDownstream.DownstreamBranch);
 
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
-                { "@ServiceLineBranchName", p => p.DbType = System.Data.DbType.AnsiString },
+                { "@ReplacementBranchName", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
         public static readonly CommandBuilder GetIntegrationBranchCommand = new CommandBuilder(
@@ -615,17 +598,21 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             // TODO - onCommit, notify changes
         }
 
-        public void ConsolidateServiceLine(string releaseCandidateBranch, string serviceLineBranch, Work.IUnitOfWork work)
+        public void ConsolidateBranches(IEnumerable<string> branchesToRemove, string targetBranch, IUnitOfWork work)
         {
             PrepareSqlUnitOfWork(work);
             work.Defer(async sp =>
             {
-                using (var command = GetConnectionManagement(sp).Transacted(ConsolidateServiceLineCommand, new Dictionary<string, object> {
-                    { "@BranchName", releaseCandidateBranch },
-                    { "@ServiceLineBranchName", serviceLineBranch },
+                using (var command = GetConnectionManagement(sp).Transacted(ConsolidateBranchCommand, new Dictionary<string, object> {
+                    { "@BranchName", null },
+                    { "@ReplacementBranchName", targetBranch },
                 }))
                 {
-                    await command.ExecuteNonQueryAsync();
+                    foreach (var branch in branchesToRemove)
+                    {
+                        command.Parameters["@BranchName"].Value = branch;
+                        await command.ExecuteNonQueryAsync();
+                    }
                 }
             });
         }
