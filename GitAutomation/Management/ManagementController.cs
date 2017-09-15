@@ -111,6 +111,13 @@ namespace GitAutomation.Management
             orchestrationActions.ReleaseToServiceLine(requestBody.ReleaseCandidate, requestBody.ServiceLine, requestBody.TagName);
         }
 
+        [Authorize(Auth.PolicyNames.Approve)]
+        [HttpPut("branch/consolidate/{*branchName}")]
+        public void ConsolidateMerged([FromBody] IEnumerable<string> originalBranches, string branchName, [FromServices] IOrchestrationActions orchestrationActions)
+        {
+            orchestrationActions.ConsolidateMerged(originalBranches, branchName);
+        }
+
         [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("detect-upstream/{*branchName}")]
         public Task<ImmutableList<string>> DetectUpstream(string branchName)

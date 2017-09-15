@@ -26,7 +26,7 @@ namespace GitAutomation.Orchestration.Actions
 
         public string ActionType => "ConsolidateMerged";
 
-        public ConsolidateMergedAction(string[] originalBranches, string newBaseBranch)
+        public ConsolidateMergedAction(IEnumerable<string> originalBranches, string newBaseBranch)
         {
             this.originalBranches = originalBranches.ToImmutableHashSet();
             this.newBaseBranch = newBaseBranch;

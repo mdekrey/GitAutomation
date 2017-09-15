@@ -11,6 +11,7 @@ namespace GitAutomation.BranchSettings
     public interface IBranchSettings
     {
         IObservable<ImmutableList<BranchBasicDetails>> GetConfiguredBranches();
+        IObservable<BranchBasicDetails> GetBranchBasicDetails(string branchName);
         IObservable<BranchDetails> GetBranchDetails(string branchName);
         IObservable<ImmutableList<BranchBasicDetails>> GetDownstreamBranches(string branchName);
         IObservable<ImmutableList<BranchDepthDetails>> GetAllDownstreamBranches();

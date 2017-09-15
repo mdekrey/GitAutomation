@@ -93,15 +93,23 @@ namespace GitAutomation
 
         public IObservable<BranchDetails> GetBranchDetails(string branchName)
         {
-            return branchSettings.GetBranchDetails(branchName)
-                .WithLatestFrom(this.repositoryState.RemoteBranches(),
-                    (branchDetails, remoteBranches) =>
+            return this.repositoryState.RemoteBranches()
+                .Select(remoteBranches =>
                     {
-                        return new BranchDetails(branchDetails)
-                        {
-                            BranchNames = remoteBranches.Where(remoteBranch => branchIteration.IsBranchIteration(branchDetails.BranchName, remoteBranch)).ToImmutableList()
-                        };
-                    });
+                        return branchSettings.GetConfiguredBranches()
+                            .Select(branches => branches.FirstOrDefault(branch => branchIteration.IsBranchIteration(branch.BranchName, branchName)))
+                            .Select(branchBasicDetails => branchSettings.GetBranchDetails(branchBasicDetails?.BranchName ?? branchName))
+                            .Switch()
+                            .Select(branchDetails => ToBranchDetails(branchDetails, remoteBranches));
+                    }).Switch();
+        }
+
+        private BranchDetails ToBranchDetails(BranchDetails branchDetails, string[] remoteBranches)
+        {
+            return new BranchDetails(branchDetails)
+            {
+                BranchNames = remoteBranches.Where(remoteBranch => branchIteration.IsBranchIteration(branchDetails.BranchName, remoteBranch)).ToImmutableList()
+            };
         }
 
         public IObservable<string> GetNextCandidateBranch(BranchDetails details, bool shouldMutate)

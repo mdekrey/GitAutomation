@@ -310,6 +310,13 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             }
         }
 
+        public IObservable<BranchBasicDetails> GetBranchBasicDetails(string branchName)
+        {
+            // TODO - better notification
+            return notifiers.GetAnyNotification().StartWith(Unit.Default)
+                .SelectMany(_ => WithConnection(GetBranchDetailOnce(branchName)));
+        }
+
         public IObservable<BranchDetails> GetBranchDetails(string branchName)
         {
             // TODO - better notification
