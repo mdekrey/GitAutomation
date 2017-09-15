@@ -92,11 +92,10 @@ namespace GitAutomation.Orchestration.Actions
                     await unitOfWork.CommitAsync();
                 }
 
-                await from branch in consolidatingBranches.ToObservable()
-                          // TODO - following line should be a `from` to get all actual branch names
-                      let actualBranch = branch.latestBranchName
+                await (from branch in branchesToRemove.ToObservable()
+                      from actualBranch in branch.BranchNames
                       from entry in AppendProcess(Queueable(cli.DeleteRemote(actualBranch)))
-                      select entry;
+                      select entry).StartWith(new OutputMessage());
             }
 
             private IObservable<(BranchBasicDetails branch, string latestBranchName)> GetLatestBranchTuple(BranchBasicDetails branch)

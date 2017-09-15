@@ -25,6 +25,7 @@ namespace GitAutomation
 
         public IObservable<ImmutableList<BranchBasicDetails>> AllBranches()
         {
+            // TODO - group by iteration
             return (
                 branchSettings.GetConfiguredBranches()
                 .CombineLatest(
@@ -160,7 +161,12 @@ namespace GitAutomation
                 }
             }
             return configuredBranches.Values
-                .Concat(nonconfiguredBranches.Select(factory));
+                .Concat(nonconfiguredBranches.Select(branch =>
+                {
+                    var result = factory(branch);
+                    result.BranchNames = Enumerable.Repeat(branch, 1).ToImmutableList();
+                    return result;
+                }));
         }
     }
 }

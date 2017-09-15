@@ -92,6 +92,23 @@ export const promoteServiceLine = (body: {
     })
     .map(response => response.response as null);
 
+export const consolidateMerged = ({
+  targetBranch,
+  originalBranches
+}: {
+  targetBranch: string;
+  originalBranches: string[];
+}) =>
+  Observable.ajax
+    .put(
+      "/api/management/branch/consolidate/" + targetBranch,
+      originalBranches,
+      {
+        "Content-Type": "application/json"
+      }
+    )
+    .map(response => response.response as null);
+
 export const deleteBranch = (branchName: string) =>
   Observable.ajax
     .delete("/api/management/branch/" + branchName)
