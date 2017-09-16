@@ -64,7 +64,7 @@ namespace GitAutomation
                 .CombineLatest(branchSettings.GetConfiguredBranches(), async (allUpstream, configured) =>
                 {
 
-                    for (var i = 0; i < allUpstream.Count - 1; i++)
+                    for (var i = 0; i < allUpstream.Count; i++)
                     {
                         var upstream = allUpstream[i];
                         var isConfigured = configured.Any(branch => branch.BranchName == upstream);
@@ -73,11 +73,15 @@ namespace GitAutomation
                     }
 
                     // TODO - this could be much smarter
-                    for (var i = 0; i < allUpstream.Count - 1; i++)
+                    for (var i = 0; i < allUpstream.Count; i++)
                     {
                         var upstream = allUpstream[i];
                         var furtherUpstream = await repositoryState.DetectUpstream(upstream).FirstOrDefaultAsync();
-                        allUpstream = allUpstream.Except(furtherUpstream).ToImmutableList();
+                        if (allUpstream.Intersect(furtherUpstream).Any())
+                        {
+                            allUpstream = allUpstream.Except(furtherUpstream).ToImmutableList();
+                            i = -1;
+                        }
                     }
 
                     return allUpstream;
