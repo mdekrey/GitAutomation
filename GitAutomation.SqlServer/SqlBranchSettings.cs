@@ -227,30 +227,24 @@ WHERE  [BranchName]=@BranchName
         
         public static readonly CommandBuilder ConsolidateBranchCommand = new CommandBuilder(
             commandText: @"
-DECLARE @ChangedDownstream TABLE (DownstreamBranch VARCHAR(256) INDEX IX1 CLUSTERED);
-
-INSERT INTO @ChangedDownstream (DownstreamBranch)
-SELECT UpstreamBranch.DownstreamBranch
-FROM UpstreamBranch
-WHERE UpstreamBranch.BranchName = @BranchName
-GROUP BY UpstreamBranch.DownstreamBranch;
-
 MERGE INTO [DownstreamBranch] AS Downstream
 USING (SELECT @ReplacementBranchName AS BranchName) AS NewDownstream
 ON Downstream.BranchName = NewDownstream.BranchName
 WHEN NOT MATCHED THEN INSERT (BranchName, RecreateFromUpstream, BranchType) VALUES (NewDownstream.BranchName, 0, 'ServiceLine');
 
-DELETE FROM [UpstreamBranch]
-WHERE BranchName = @BranchName;
-
-DELETE FROM [DownstreamBranch]
-WHERE BranchName = @BranchName;
-
 MERGE INTO [UpstreamBranch] AS T
-USING @ChangedDownstream AS NewDownstream
+USING (SELECT UpstreamBranch.DownstreamBranch
+		FROM UpstreamBranch
+		WHERE UpstreamBranch.BranchName = @BranchName
+		GROUP BY UpstreamBranch.DownstreamBranch) AS NewDownstream
 ON T.DownstreamBranch = NewDownstream.DownstreamBranch AND T.BranchName=@ReplacementBranchName
 WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ReplacementBranchName, NewDownstream.DownstreamBranch);
 
+DELETE FROM [UpstreamBranch]
+WHERE BranchName = @BranchName OR DownstreamBranch=@BranchName;
+
+DELETE FROM [DownstreamBranch]
+WHERE BranchName = @BranchName;
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },

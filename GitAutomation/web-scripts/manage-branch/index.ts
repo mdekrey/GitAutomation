@@ -241,7 +241,7 @@ export const manage = (
             branchList.map(branches =>
               [branchName].concat(
                 branches
-                  .filter(branch => branch.isUpstream)
+                  .filter(branch => branch.isSomewhereUpstream)
                   .map(branch => branch.branch)
               )
             ),

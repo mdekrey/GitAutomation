@@ -14,6 +14,7 @@ export interface IBranchData {
   branch: string;
   isDownstream: boolean;
   isUpstream: boolean;
+  isSomewhereUpstream: boolean;
   isDownstreamAllowed: boolean;
   isUpstreamAllowed: boolean;
 }
@@ -41,6 +42,11 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
           isDownstream: directDownstreamBranches.indexOf(branchName) >= 0,
           isDownstreamAllowed: upstreamBranches.indexOf(branchName) == -1,
           isUpstream: directUpstreamBranches.indexOf(branchName) >= 0,
+          isSomewhereUpstream: Boolean(
+            branchDetails.upstreamBranches.find(
+              branch => branch.branchName === branchName
+            )
+          ),
           isUpstreamAllowed: downstreamBranches.indexOf(branchName) == -1
         })),
         branchType: branchDetails.branchType,
