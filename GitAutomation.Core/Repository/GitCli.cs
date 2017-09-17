@@ -99,6 +99,12 @@ namespace GitAutomation.Repository
             return RunGit("merge-base", RemoteBranch(branchA), RemoteBranch(branchB));
         }
 
+
+        public IReactiveProcess MergeBaseCommits(string branchA, string branchB)
+        {
+            return RunGit("merge-base", branchA, branchB);
+        }
+
         public IReactiveProcess AnnotatedTag(string tagName, string message)
         {
             return RunGit("tag", "-a", tagName, "-m", message);
