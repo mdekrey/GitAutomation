@@ -20,7 +20,7 @@ namespace GitAutomation.Repository
         private readonly string checkoutPath;
 
         private readonly IObservable<Unit> allUpdates;
-        private readonly IObservable<ImmutableList<GitCli.GitRef>> remoteBranches;
+        private readonly IObservable<ImmutableList<GitRef>> remoteBranches;
         private readonly IRepositoryOrchestration orchestration;
         private readonly GitCli cli;
         private readonly IObservable<ImmutableDictionary<Tuple<string, string>, LazyObservable<string>>> mergeBases;
@@ -65,7 +65,7 @@ namespace GitAutomation.Repository
 
         #endregion
 
-        private IObservable<ImmutableList<GitCli.GitRef>> BuildRemoteBranches()
+        private IObservable<ImmutableList<GitRef>> BuildRemoteBranches()
         {
             return Observable.Merge(
                 allUpdates
@@ -121,7 +121,7 @@ namespace GitAutomation.Repository
                 .Select(list => list.Select(branch => branch.Name).ToArray());
         }
 
-        private Tuple<string, string> ToCommits(Tuple<GitCli.GitRef, GitCli.GitRef> pair)
+        private Tuple<string, string> ToCommits(Tuple<GitRef, GitRef> pair)
         {
             var list = new[] { pair.Item1.Commit, pair.Item2.Commit }.OrderBy(commit => commit).ToArray();
             return Tuple.Create(list[0], list[1]);

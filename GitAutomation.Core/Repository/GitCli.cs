@@ -14,11 +14,6 @@ namespace GitAutomation.Repository
     class GitCli
     {
         private static readonly Regex remoteBranches = new Regex(@"^(?<commit>\S+)\s+refs/heads/(?<branch>.+)");
-        public struct GitRef
-        {
-            public string Commit;
-            public string Name;
-        }
 
         private readonly IReactiveProcessFactory reactiveProcessFactory;
         private readonly string checkoutPath;
