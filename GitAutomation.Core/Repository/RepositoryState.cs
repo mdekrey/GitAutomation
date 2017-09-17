@@ -121,6 +121,11 @@ namespace GitAutomation.Repository
                 .Select(list => list.Select(branch => branch.Name).ToArray());
         }
 
+        public IObservable<ImmutableList<GitRef>> RemoteBranchesWithRefs()
+        {
+            return remoteBranches;
+        }
+
         private Tuple<string, string> ToCommits(Tuple<GitRef, GitRef> pair)
         {
             var list = new[] { pair.Item1.Commit, pair.Item2.Commit }.OrderBy(commit => commit).ToArray();
