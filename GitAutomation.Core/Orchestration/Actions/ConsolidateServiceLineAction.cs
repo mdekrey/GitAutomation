@@ -67,7 +67,7 @@ namespace GitAutomation.Orchestration.Actions
                 disposable.Add(Observable.Concat(processes).Subscribe(observer));
                 disposable.Add(processes);
 
-                var readyToFinalize = await CreateOrFastForwardServiceLine(latestBranchName, cli, processes);
+                var readyToFinalize = await CreateOrFastForwardServiceLine(latestBranchName, repository, cli, processes);
 
                 if (!readyToFinalize)
                 {
@@ -119,11 +119,9 @@ namespace GitAutomation.Orchestration.Actions
             }).Multicast(output).RefCount();
         }
 
-        private async Task<bool> CreateOrFastForwardServiceLine(string latestBranchName, GitCli cli, Subject<IObservable<OutputMessage>> processes)
+        private async Task<bool> CreateOrFastForwardServiceLine(string latestBranchName, IRepositoryMediator repository, GitCli cli, Subject<IObservable<OutputMessage>> processes)
         {
-            var showRef = Queueable(cli.ShowRef(serviceLineBranch));
-            processes.OnNext(showRef);
-            var showRefResult = await (from o in showRef where o.Channel == OutputChannel.Out select o.Message).FirstOrDefaultAsync();
+            var showRefResult = await repository.GetBranchRef(serviceLineBranch).Take(1);
             if (showRefResult == null)
             {
                 // create service line

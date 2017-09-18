@@ -128,6 +128,22 @@ namespace GitAutomation
             );
         }
 
+        public IObservable<ImmutableList<GitRef>> GetAllBranchRefs() =>
+            repositoryState.RemoteBranchesWithRefs();
+
+        public IObservable<string> GetBranchRef(string branchName) =>
+            repositoryState.RemoteBranchesWithRefs()
+                .Select(gitref => gitref.Exists(gr => gr.Name == branchName) ? gitref.Find(gr => gr.Name == branchName).Commit : null);
+
+        public IObservable<bool> HasOutstandingCommits(string upstreamBranch, string downstreamBranch)
+        {
+            return Observable.CombineLatest(
+                repositoryState.MergeBaseBetween(upstreamBranch, downstreamBranch),
+                GetBranchRef(upstreamBranch),
+                (mergeBaseResult, showRefResult) => mergeBaseResult != showRefResult
+            );
+        }
+
         private IEnumerable<T> GroupBranches<T>(ImmutableList<T> settings, string[] actualBranches, Func<string, T> factory)
             where T : BranchBasicDetails
         {
