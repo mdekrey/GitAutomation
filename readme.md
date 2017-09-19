@@ -47,7 +47,6 @@ This uses [.NET Core 2.0.0 SDK](https://github.com/dotnet/core/blob/master/relea
 
 1. Make sure the configuration files mentioned above are in place.
 2. `docker-compose -f docker-compose.ci.build.yml up --build`
-3. TODO - we don't build TS as part of the Docker build yet. We use yarn. `cd GitAutomation && yarn && yarn build && cd ..`
 3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml build`
 4. Launch the sln file and build.
 
@@ -61,7 +60,6 @@ To ensure updates to the secrets are seen within the containers, rebuild the doc
 
 1. Make sure the configuration files mentioned above are in place.
 2. `docker-compose -f docker-compose.ci.build.yml up --build`
-3. TODO - we don't build TS as part of the Docker build yet. We use yarn. `cd GitAutomation && yarn && yarn build && cd ..`
 3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml build`
 
 And then to run it...
