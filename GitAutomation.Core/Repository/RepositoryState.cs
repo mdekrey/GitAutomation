@@ -20,9 +20,10 @@ namespace GitAutomation.Repository
         private readonly string checkoutPath;
 
         private readonly IObservable<Unit> allUpdates;
-        private readonly IObservable<ImmutableList<GitCli.GitRef>> remoteBranches;
+        private readonly IObservable<ImmutableList<GitRef>> remoteBranches;
         private readonly IRepositoryOrchestration orchestration;
         private readonly GitCli cli;
+        private readonly IObservable<ImmutableDictionary<Tuple<string, string>, LazyObservable<string>>> mergeBases;
 
         public event EventHandler Updated;
 
@@ -37,6 +38,8 @@ namespace GitAutomation.Repository
                 handler => this.Updated -= handler
             ).Select(_ => Unit.Default);
             this.remoteBranches = BuildRemoteBranches();
+
+            this.mergeBases = BuildMergeBases();
         }
 
         #region Reset
@@ -62,7 +65,7 @@ namespace GitAutomation.Repository
 
         #endregion
 
-        private IObservable<ImmutableList<GitCli.GitRef>> BuildRemoteBranches()
+        private IObservable<ImmutableList<GitRef>> BuildRemoteBranches()
         {
             return Observable.Merge(
                 allUpdates
@@ -81,10 +84,67 @@ namespace GitAutomation.Repository
                 .Replay(1).ConnectFirst();
         }
 
+        private IObservable<ImmutableDictionary<Tuple<string, string>, LazyObservable<string>>> BuildMergeBases()
+        {
+            var branchPairs = remoteBranches.Select(branches =>
+                from branch1 in branches
+                from branch2 in branches.Where(branch => branch.Name.CompareTo(branch1.Name) > 0)
+                select (branch1, branch2).ToTuple());
+            var mergeBases = branchPairs
+                .Select(pairs => pairs.Select(ToCommits).Distinct().ToImmutableHashSet())
+                .Scan(ImmutableDictionary<Tuple<string, string>, LazyObservable<string>>.Empty,
+                (old, commitPairs) =>
+                {
+                    foreach (var removing in old.Where(kvp => !commitPairs.Contains(kvp.Key)))
+                    {
+                        removing.Value.Dispose();
+                    }
+
+                    return old.Where(kvp => commitPairs.Contains(kvp.Key))
+                        .Concat(from pair in commitPairs
+                                where !old.ContainsKey(pair)
+                                select new System.Collections.Generic.KeyValuePair<Tuple<string, string>, LazyObservable<string>>(
+                                    pair, 
+                                    new LazyObservable<string>(GetMergeBase(pair).Replay(1))
+                                )
+                            )
+                        .ToImmutableDictionary();
+                });
+            return mergeBases.Zip(branchPairs, (commits, branches) =>
+                    branches.ToImmutableDictionary(pair => Tuple.Create(pair.Item1.Name, pair.Item2.Name), pair => commits[ToCommits(pair)])
+                ).Replay(1).ConnectFirst();
+        }
+
         public IObservable<string[]> RemoteBranches()
         {
             return remoteBranches
                 .Select(list => list.Select(branch => branch.Name).ToArray());
+        }
+
+        public IObservable<ImmutableList<GitRef>> RemoteBranchesWithRefs()
+        {
+            return remoteBranches;
+        }
+
+        private Tuple<string, string> ToCommits(Tuple<GitRef, GitRef> pair)
+        {
+            var list = new[] { pair.Item1.Commit, pair.Item2.Commit }.OrderBy(commit => commit).ToArray();
+            return Tuple.Create(list[0], list[1]);
+        }
+
+        public IObservable<string> MergeBaseBetween(string branchName1, string branchName2)
+        {
+            var key = branchName1.CompareTo(branchName2) < 0
+                ? Tuple.Create(branchName1, branchName2)
+                : Tuple.Create(branchName2, branchName1);
+            return this.mergeBases.SelectMany(bases => bases.ContainsKey(key)
+                ? bases[key]
+                : Observable.Return<string>(null));
+        }
+
+        private IObservable<string> GetMergeBase(Tuple<string, string> commitPair)
+        {
+            return cli.MergeBaseCommits(commitPair.Item1, commitPair.Item2).GetFirstOutput();
         }
 
         public IObservable<OutputMessage> DeleteBranch(string branchName)
@@ -94,34 +154,24 @@ namespace GitAutomation.Repository
 
         public IObservable<ImmutableList<string>> DetectUpstream(string branchName)
         {
-            var remotesObservable = RemoteBranches();
-            Func<IReactiveProcess, IObservable<string>> getFirstOutput = target => 
-                (from o in target.Output
-                 where o.Channel == OutputChannel.Out
-                 select o.Message).FirstOrDefaultAsync();
-
-            return remotesObservable
-                .Select(async remotes =>
+            return remoteBranches
+                .Select(remotes =>
                 {
-                    // TODO - this can be better
-                    var allBranches = (from remote in remotes
-                                       select new
-                                       {
-                                           branchName = remote,
-                                           mergeBase = getFirstOutput(cli.MergeBase(remote, branchName)).ToTask(),
-                                           commitish = getFirstOutput(cli.ShowRef(remote)).ToTask(),
-                                       }).ToArray();
-                    var currentCommitish = await getFirstOutput(cli.ShowRef(branchName));
-
-                    await Task.WhenAll(from branch in allBranches
-                                       from task in new[] { branch.mergeBase, branch.commitish }
-                                       select task);
-
-                    return (from branch in allBranches
-                            where branch.commitish.Result == branch.mergeBase.Result
-                            where branch.commitish.Result != currentCommitish
-                            select branch.branchName).ToImmutableList();
-                }).Switch();
+                    var currentCommitish = remotes.FirstOrDefault(gitref => gitref.Name == branchName).Commit;
+                    
+                    return (from remote in remotes.ToObservable()
+                            where remote.Name != branchName
+                            from mergeBase in MergeBaseBetween(remote.Name, branchName).Take(1)
+                            select new
+                            {
+                                branchName = remote.Name,
+                                mergeBase,
+                                commitish = remote.Commit,
+                            } into branch
+                            where branch.commitish == branch.mergeBase
+                            where branch.commitish != currentCommitish
+                            select branch.branchName).ToArray();
+                }).Switch().Select(items => items.ToImmutableList());
         }
 
 

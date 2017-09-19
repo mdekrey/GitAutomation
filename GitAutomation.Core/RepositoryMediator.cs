@@ -71,7 +71,7 @@ namespace GitAutomation
                 .CombineLatest(branchSettings.GetConfiguredBranches(), async (allUpstream, configured) =>
                 {
 
-                    for (var i = 0; i < allUpstream.Count - 1; i++)
+                    for (var i = 0; i < allUpstream.Count; i++)
                     {
                         var upstream = allUpstream[i];
                         var isConfigured = configured.Any(branch => branch.BranchName == upstream);
@@ -80,11 +80,15 @@ namespace GitAutomation
                     }
 
                     // TODO - this could be much smarter
-                    for (var i = 0; i < allUpstream.Count - 1; i++)
+                    for (var i = 0; i < allUpstream.Count; i++)
                     {
                         var upstream = allUpstream[i];
                         var furtherUpstream = await repositoryState.DetectUpstream(upstream).FirstOrDefaultAsync();
-                        allUpstream = allUpstream.Except(furtherUpstream).ToImmutableList();
+                        if (allUpstream.Intersect(furtherUpstream).Any())
+                        {
+                            allUpstream = allUpstream.Except(furtherUpstream).ToImmutableList();
+                            i = -1;
+                        }
                     }
 
                     return allUpstream;
@@ -136,6 +140,22 @@ namespace GitAutomation
                     where this.branchIteration.IsBranchIteration(details.BranchName, remoteBranch)
                     select remoteBranch
                 )
+            );
+        }
+
+        public IObservable<ImmutableList<GitRef>> GetAllBranchRefs() =>
+            repositoryState.RemoteBranchesWithRefs();
+
+        public IObservable<string> GetBranchRef(string branchName) =>
+            repositoryState.RemoteBranchesWithRefs()
+                .Select(gitref => gitref.Exists(gr => gr.Name == branchName) ? gitref.Find(gr => gr.Name == branchName).Commit : null);
+
+        public IObservable<bool> HasOutstandingCommits(string upstreamBranch, string downstreamBranch)
+        {
+            return Observable.CombineLatest(
+                repositoryState.MergeBaseBetween(upstreamBranch, downstreamBranch),
+                GetBranchRef(upstreamBranch),
+                (mergeBaseResult, showRefResult) => mergeBaseResult != showRefResult
             );
         }
 

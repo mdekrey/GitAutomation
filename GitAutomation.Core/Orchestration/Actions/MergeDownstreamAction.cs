@@ -87,7 +87,7 @@ namespace GitAutomation.Orchestration.Actions
                 await detailsTask;
                 await latestBranchName;
 
-                var needsCreate = await cli.ShowRef(LatestBranchName).FirstOutputMessage() == null;
+                var needsCreate = await repository.GetBranchRef(LatestBranchName).Take(1) == null;
                 var neededUpstreamMerges = needsCreate
                     ? Details.DirectUpstreamBranches.Select(branch => branch.BranchName).ToImmutableList()
                     : (await FilterUpstreamReadyForMerge(await FindNeededMerges(Details.DirectUpstreamBranches.Select(branch => branch.BranchName)))).ToImmutableList();
@@ -127,7 +127,7 @@ namespace GitAutomation.Orchestration.Actions
             
             private IObservable<bool> HasOutstandingCommits(string upstreamBranch)
             {
-                return cli.HasOutstandingCommits(upstreamBranch: upstreamBranch, downstreamBranch: LatestBranchName);
+                return repository.HasOutstandingCommits(upstreamBranch: upstreamBranch, downstreamBranch: LatestBranchName).Take(1);
             }
 
             private async Task CreateDownstreamBranch(IEnumerable<string> allUpstreamBranches)
