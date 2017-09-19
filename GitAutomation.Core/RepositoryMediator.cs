@@ -6,6 +6,7 @@ using GitAutomation.BranchSettings;
 using GitAutomation.Repository;
 using System.Reactive.Linq;
 using System.Linq;
+using GitAutomation.Work;
 
 namespace GitAutomation
 {
@@ -24,6 +25,7 @@ namespace GitAutomation
 
         public IObservable<ImmutableList<BranchBasicDetails>> AllBranches()
         {
+            // TODO - group by iteration
             return (
                 branchSettings.GetConfiguredBranches()
                 .CombineLatest(
@@ -56,6 +58,11 @@ namespace GitAutomation
                             .ToImmutableList()
                 )
             ).FirstAsync();
+        }
+
+        public void ConsolidateBranches(IEnumerable<string> branchesToRemove, string targetBranch, IUnitOfWork unitOfWork)
+        {
+            this.branchSettings.ConsolidateBranches(branchesToRemove, targetBranch, unitOfWork);
         }
 
         public IObservable<ImmutableList<string>> DetectShallowUpstream(string branchName)
@@ -91,15 +98,23 @@ namespace GitAutomation
 
         public IObservable<BranchDetails> GetBranchDetails(string branchName)
         {
-            return branchSettings.GetBranchDetails(branchName)
-                .WithLatestFrom(this.repositoryState.RemoteBranches(),
-                    (branchDetails, remoteBranches) =>
+            return this.repositoryState.RemoteBranches()
+                .Select(remoteBranches =>
                     {
-                        return new BranchDetails(branchDetails)
-                        {
-                            BranchNames = remoteBranches.Where(remoteBranch => branchIteration.IsBranchIteration(branchDetails.BranchName, remoteBranch)).ToImmutableList()
-                        };
-                    });
+                        return branchSettings.GetConfiguredBranches()
+                            .Select(branches => branches.FirstOrDefault(branch => branchIteration.IsBranchIteration(branch.BranchName, branchName)))
+                            .Select(branchBasicDetails => branchSettings.GetBranchDetails(branchBasicDetails?.BranchName ?? branchName))
+                            .Switch()
+                            .Select(branchDetails => ToBranchDetails(branchDetails, remoteBranches));
+                    }).Switch();
+        }
+
+        private BranchDetails ToBranchDetails(BranchDetails branchDetails, string[] remoteBranches)
+        {
+            return new BranchDetails(branchDetails)
+            {
+                BranchNames = remoteBranches.Where(remoteBranch => branchIteration.IsBranchIteration(branchDetails.BranchName, remoteBranch)).ToImmutableList()
+            };
         }
 
         public IObservable<string> GetNextCandidateBranch(BranchDetails details, bool shouldMutate)
@@ -115,7 +130,7 @@ namespace GitAutomation
             ).Switch();
         }
 
-        public IObservable<string> LatestBranchName(BranchDetails details)
+        public IObservable<string> LatestBranchName(BranchBasicDetails details)
         {
             return (
                 from remoteBranches in this.repositoryState.RemoteBranches()
@@ -125,6 +140,22 @@ namespace GitAutomation
                     where this.branchIteration.IsBranchIteration(details.BranchName, remoteBranch)
                     select remoteBranch
                 )
+            );
+        }
+
+        public IObservable<ImmutableList<GitRef>> GetAllBranchRefs() =>
+            repositoryState.RemoteBranchesWithRefs();
+
+        public IObservable<string> GetBranchRef(string branchName) =>
+            repositoryState.RemoteBranchesWithRefs()
+                .Select(gitref => gitref.Exists(gr => gr.Name == branchName) ? gitref.Find(gr => gr.Name == branchName).Commit : null);
+
+        public IObservable<bool> HasOutstandingCommits(string upstreamBranch, string downstreamBranch)
+        {
+            return Observable.CombineLatest(
+                repositoryState.MergeBaseBetween(upstreamBranch, downstreamBranch),
+                GetBranchRef(upstreamBranch),
+                (mergeBaseResult, showRefResult) => mergeBaseResult != showRefResult
             );
         }
 
@@ -150,7 +181,12 @@ namespace GitAutomation
                 }
             }
             return configuredBranches.Values
-                .Concat(nonconfiguredBranches.Select(factory));
+                .Concat(nonconfiguredBranches.Select(branch =>
+                {
+                    var result = factory(branch);
+                    result.BranchNames = Enumerable.Repeat(branch, 1).ToImmutableList();
+                    return result;
+                }));
         }
     }
 }

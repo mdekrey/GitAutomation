@@ -108,7 +108,14 @@ namespace GitAutomation.Management
         [HttpPut("branch/promote")]
         public void PromoteServiceLine([FromBody] PromoteServiceLineBody requestBody, [FromServices] IOrchestrationActions orchestrationActions)
         {
-            orchestrationActions.ConsolidateServiceLine(requestBody.ReleaseCandidate, requestBody.ServiceLine, requestBody.TagName);
+            orchestrationActions.ReleaseToServiceLine(requestBody.ReleaseCandidate, requestBody.ServiceLine, requestBody.TagName);
+        }
+
+        [Authorize(Auth.PolicyNames.Approve)]
+        [HttpPut("branch/consolidate/{*branchName}")]
+        public void ConsolidateMerged([FromBody] IEnumerable<string> originalBranches, string branchName, [FromServices] IOrchestrationActions orchestrationActions)
+        {
+            orchestrationActions.ConsolidateMerged(originalBranches, branchName);
         }
 
         [Authorize(Auth.PolicyNames.Read)]

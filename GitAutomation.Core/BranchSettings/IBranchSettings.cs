@@ -11,6 +11,7 @@ namespace GitAutomation.BranchSettings
     public interface IBranchSettings
     {
         IObservable<ImmutableList<BranchBasicDetails>> GetConfiguredBranches();
+        IObservable<BranchBasicDetails> GetBranchBasicDetails(string branchName);
         IObservable<BranchDetails> GetBranchDetails(string branchName);
         IObservable<ImmutableList<BranchBasicDetails>> GetDownstreamBranches(string branchName);
         IObservable<ImmutableList<BranchDepthDetails>> GetAllDownstreamBranches();
@@ -23,10 +24,9 @@ namespace GitAutomation.BranchSettings
         void UpdateBranchSetting(string branchName, bool recreateFromUpstream, BranchType branchType, Work.IUnitOfWork work);
         void AddBranchPropagation(string upstreamBranch, string downstreamBranch, Work.IUnitOfWork work);
         void RemoveBranchPropagation(string upstreamBranch, string downstreamBranch, Work.IUnitOfWork work);
-        void ConsolidateServiceLine(string releaseCandidateBranch, string serviceLineBranch, Work.IUnitOfWork work);
+        void ConsolidateBranches(IEnumerable<string> branchesToRemove, string targetBranch, IUnitOfWork unitOfWork);
         void DeleteBranchSettings(string deletingBranch, IUnitOfWork unitOfWork);
 
         void CreateIntegrationBranch(string branchA, string branchB, string integrationBranchName, IUnitOfWork unitOfWork);
-
     }
 }

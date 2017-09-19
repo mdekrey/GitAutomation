@@ -6,12 +6,14 @@ import {
   rxEvent,
   fnSelect,
   rxDatum,
-  rxData
+  rxData,
+  d3element
 } from "../utils/presentation/d3-binding";
 import { runBranchData } from "./data";
 import { buildBranchCheckListing } from "./branch-check-listing";
 import { bindSaveButton } from "./bind-save-button";
 import {
+  consolidateMerged,
   promoteServiceLine,
   deleteBranch,
   detectUpstream
@@ -62,6 +64,10 @@ export const manage = (
 
   <h3>Release to Service Line</h3>
   <label>
+    <span>Approved Branch</span>
+    <select data-locator="approved-branch"></select>
+  </label>
+  <label>
     <span>Service Line Branch</span>
     <input type="text" data-locator="service-line-branch" />
   </label>
@@ -70,6 +76,14 @@ export const manage = (
     <input type="text" data-locator="release-tag" />
   </label>
   <button type="button" data-locator="promote-service-line">Release to Service Line</button>
+
+  <h3>Consolidate Merged</h3>
+  <label>
+    <span>Consolidate Into</span>
+    <select data-locator="consolidate-target-branch"></select>
+  </label>
+  <ul data-locator="consolidate-original-branches"></ul>
+  <button type="button" data-locator="consolidate-branch">Consolidate Branch</button>
 
   <h3>Delete Branch</h3>
   <p>This action cannot be undone.</p>
@@ -184,6 +198,74 @@ export const manage = (
         );
 
         subscription.add(
+          rxData(
+            container.map(fnSelect(`[data-locator="approved-branch"]`)),
+            branchData.state.map(branch => branch.branchNames)
+          )
+            .bind({
+              selector: "option",
+              onCreate: selection =>
+                selection.append<HTMLOptionElement>("option"),
+              onEach: selection =>
+                selection.text(data => data).attr("value", data => data)
+            })
+            .subscribe()
+        );
+
+        subscription.add(
+          rxData(
+            container.map(
+              fnSelect(`[data-locator="consolidate-target-branch"]`)
+            ),
+            branchList.map(branches =>
+              branches.filter(branch => !branch.isUpstream)
+            ),
+            data => data.branch
+          )
+            .bind({
+              selector: "option",
+              onCreate: selection =>
+                selection.append<HTMLOptionElement>("option"),
+              onEach: selection =>
+                selection
+                  .text(data => data.branch)
+                  .attr("value", data => data.branch)
+            })
+            .subscribe()
+        );
+        subscription.add(
+          rxData(
+            container.map(
+              fnSelect(`[data-locator="consolidate-original-branches"]`)
+            ),
+            branchList.map(branches =>
+              [branchName].concat(
+                branches
+                  .filter(branch => branch.isSomewhereUpstream)
+                  .map(branch => branch.branch)
+              )
+            ),
+            data => data
+          )
+            .bind({
+              selector: "li",
+              onCreate: selection => selection.append<HTMLLIElement>("li"),
+              onEnter: selection =>
+                selection.html(
+                  `<label>
+                    <input type="checkbox" data-locator="consolidate-original-branch" />
+                    <span />
+                  </label>`
+                ),
+              onEach: selection => {
+                selection.select("span").text(b => b);
+                selection.select("input").attr("data-branch", b => b);
+              }
+            })
+            .subscribe()
+        );
+
+        subscription.add(
           rxEvent({
             target: container.map(fnSelect(`[data-locator="detect-upstream"]`)),
             eventName: "click"
@@ -215,19 +297,58 @@ export const manage = (
             .switchMap(_ =>
               Observable.combineLatest(
                 container
+                  .map(fnSelect(`[data-locator="approved-branch"]`))
+                  .map(sl => sl.property("value") as string),
+                container
                   .map(fnSelect(`[data-locator="service-line-branch"]`))
                   .map(sl => sl.property("value") as string),
                 container
                   .map(fnSelect(`[data-locator="release-tag"]`))
                   .map(sl => sl.property("value") as string)
-              ).map(([serviceLine, tagName]) => ({
-                releaseCandidate: branchName,
+              ).map(([releaseCandidate, serviceLine, tagName]) => ({
+                releaseCandidate,
                 serviceLine,
                 tagName
               }))
             )
             .take(1)
             .switchMap(promoteServiceLine)
+            .subscribe(response => {
+              state.navigate({ url: "/", replaceCurentHistory: false });
+            })
+        );
+
+        subscription.add(
+          rxEvent({
+            target: container.map(
+              fnSelect(`[data-locator="consolidate-branch"]`)
+            ),
+            eventName: "click"
+          })
+            .switchMap(_ =>
+              Observable.combineLatest(
+                container
+                  .map(fnSelect(`[data-locator="consolidate-target-branch"]`))
+                  .map(sl => sl.property("value") as string),
+                container
+                  .map(elem =>
+                    elem.selectAll<HTMLInputElement, any>(
+                      `[data-locator="consolidate-original-branches"] [data-locator="consolidate-original-branch"]:checked`
+                    )
+                  )
+                  .map(sl => sl.nodes())
+                  .map(checkboxes =>
+                    checkboxes
+                      .map(d3element)
+                      .map(checkbox => checkbox.attr("data-branch"))
+                  )
+              ).map(([targetBranch, originalBranches]) => ({
+                targetBranch,
+                originalBranches
+              }))
+            )
+            .take(1)
+            .switchMap(consolidateMerged)
             .subscribe(response => {
               state.navigate({ url: "/", replaceCurentHistory: false });
             })

@@ -2,6 +2,7 @@
 using GitAutomation.Repository;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -20,15 +21,17 @@ namespace GitAutomation.Orchestration.Actions
 
         public CheckoutAction(string branch)
         {
-            this.Parameters = new Dictionary<string, string>
-            {
-                { "branch", branch }
-            }.ToImmutableDictionary();
+            this.branch = branch;
         }
 
-        public override ImmutableDictionary<string, string> Parameters { get; }
+        private readonly string branch;
+
+        public override JToken Parameters => JToken.FromObject(new Dictionary<string, string>
+            {
+                { "branch", branch }
+            }.ToImmutableDictionary());
         
         protected override IReactiveProcess GetCliAction(GitCli gitCli) =>
-            gitCli.CheckoutRemote(Parameters["branch"]);
+            gitCli.CheckoutRemote(branch);
     }
 }

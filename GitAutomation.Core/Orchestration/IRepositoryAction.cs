@@ -1,4 +1,5 @@
 ﻿using GitAutomation.Processes;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -16,7 +17,7 @@ namespace GitAutomation.Orchestration
         /// <summary>
         /// Parameters that can be used for persistence and translation to indicate the exact action being performed
         /// </summary>
-        ImmutableDictionary<string, string> Parameters { get; }
+        JToken Parameters { get; }
 
         /// <summary>
         /// Gets the output for later execution

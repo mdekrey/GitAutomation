@@ -11,14 +11,10 @@ using System.Text.RegularExpressions;
 
 namespace GitAutomation.Repository
 {
+    // TODO - extract public interface for unit tests
     class GitCli
     {
         private static readonly Regex remoteBranches = new Regex(@"^(?<commit>\S+)\s+refs/heads/(?<branch>.+)");
-        public struct GitRef
-        {
-            public string Commit;
-            public string Name;
-        }
 
         private readonly IReactiveProcessFactory reactiveProcessFactory;
         private readonly string checkoutPath;
@@ -97,6 +93,12 @@ namespace GitAutomation.Repository
         public IReactiveProcess MergeBase(string branchA, string branchB)
         {
             return RunGit("merge-base", RemoteBranch(branchA), RemoteBranch(branchB));
+        }
+
+
+        public IReactiveProcess MergeBaseCommits(string branchA, string branchB)
+        {
+            return RunGit("merge-base", branchA, branchB);
         }
 
         public IReactiveProcess AnnotatedTag(string tagName, string message)

@@ -4,6 +4,7 @@ using GitAutomation.Repository;
 using GitAutomation.Work;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -17,27 +18,27 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 namespace GitAutomation.Orchestration.Actions
 {
-    class ConsolidateServiceLineAction : IRepositoryAction
+    class ReleaseToServiceLineAction : IRepositoryAction
     {
         private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
         private readonly string releaseCandidateBranch;
         private readonly string serviceLineBranch;
         private readonly string tagName;
 
-        public string ActionType => "ConsolidateServiceLine";
+        public string ActionType => "ReleaseToServiceLine";
 
-        public ConsolidateServiceLineAction(string releaseCandidateBranch, string serviceLineBranch, string tagName)
+        public ReleaseToServiceLineAction(string releaseCandidateBranch, string serviceLineBranch, string tagName)
         {
             this.releaseCandidateBranch = releaseCandidateBranch;
             this.serviceLineBranch = serviceLineBranch;
             this.tagName = tagName;
         }
 
-        public ImmutableDictionary<string, string> Parameters => new Dictionary<string, string>
+        public JToken Parameters => JToken.FromObject(new Dictionary<string, string>
             {
                 { "releaseCandidateBranch", releaseCandidateBranch },
                 { "serviceLineBranch", serviceLineBranch },
-            }.ToImmutableDictionary();
+            }.ToImmutableDictionary());
 
         public IObservable<OutputMessage> DeferredOutput => output;
 
@@ -55,8 +56,6 @@ namespace GitAutomation.Orchestration.Actions
             // if it passes:
             //   collect upstream branches
             //   push service line
-            //   run consolidate service line SQL
-            //   delete old upstream branches and release candidate
 
             return Observable.Create<OutputMessage>(async (observer, cancellationToken) =>
             {
@@ -67,7 +66,7 @@ namespace GitAutomation.Orchestration.Actions
                 disposable.Add(Observable.Concat(processes).Subscribe(observer));
                 disposable.Add(processes);
 
-                var readyToFinalize = await CreateOrFastForwardServiceLine(latestBranchName, cli, processes);
+                var readyToFinalize = await CreateOrFastForwardServiceLine(latestBranchName, repository, cli, processes);
 
                 if (!readyToFinalize)
                 {
@@ -82,33 +81,11 @@ namespace GitAutomation.Orchestration.Actions
                     var pushTag = Queueable(cli.Push(tagName));
                     processes.OnNext(pushTag);
                     await pushTag;
-
-                    // TODO - this should be a separate step
-                    var branchesToRemove = await settings.GetAllUpstreamRemovableBranches(releaseCandidateBranch).FirstAsync();
-
+                    
                     var push = Queueable(cli.Push(serviceLineBranch));
                     processes.OnNext(push);
                     await push;
-
-                    using (var unitOfWork = unitOfWorkFactory.CreateUnitOfWork())
-                    {
-                        settings.ConsolidateServiceLine(releaseCandidateBranch, serviceLineBranch, unitOfWork);
-
-                        await unitOfWork.CommitAsync();
-                    }
-
-                    foreach (var branch in branchesToRemove.Concat(details.BranchNames))
-                    {
-                        var deleteBranch = Queueable(cli.DeleteRemote(branch));
-                        processes.OnNext(deleteBranch);
-                        await deleteBranch;
-                    }
-
                 }
-
-                var fetch = Queueable(cli.Fetch());
-                processes.OnNext(fetch);
-                await fetch;
 
                 processes.OnCompleted();
 
@@ -119,11 +96,9 @@ namespace GitAutomation.Orchestration.Actions
             }).Multicast(output).RefCount();
         }
 
-        private async Task<bool> CreateOrFastForwardServiceLine(string latestBranchName, GitCli cli, Subject<IObservable<OutputMessage>> processes)
+        private async Task<bool> CreateOrFastForwardServiceLine(string latestBranchName, IRepositoryMediator repository, GitCli cli, Subject<IObservable<OutputMessage>> processes)
         {
-            var showRef = Queueable(cli.ShowRef(serviceLineBranch));
-            processes.OnNext(showRef);
-            var showRefResult = await (from o in showRef where o.Channel == OutputChannel.Out select o.Message).FirstOrDefaultAsync();
+            var showRefResult = await repository.GetBranchRef(serviceLineBranch).Take(1);
             if (showRefResult == null)
             {
                 // create service line
