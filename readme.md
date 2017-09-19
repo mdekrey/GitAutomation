@@ -14,10 +14,6 @@ The Docker SQL images require at least 3.5GB of RAM. See https://github.com/Micr
 To run the SQL docker container, you must accept the EULA. It is also linked to from [the dockerhub page](https://hub.docker.com/r/microsoft/mssql-server-linux/). The express edition will be available at GA, they say.
 
 # Before you get started
-To clone, you should make sure you have the `autocrlf` in git set to `input`. For example:
-
-    git clone https://github.com/mdekrey/GitAutomation.git --config core.autocrlf=input
-
 Local files that are not included in the repository include:
 
  * /configuration.json - the various configuration settings to use, including the git repo and persistence database. See the `configuration.sample.json` for format. This has several values that need to be replaced by you. For example, most of this file is set up to use GitHub; see [GitHub Setup](./GitAutomation.GitHub/github-setup.md).
