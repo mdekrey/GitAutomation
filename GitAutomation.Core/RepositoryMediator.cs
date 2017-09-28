@@ -68,31 +68,42 @@ namespace GitAutomation
         public IObservable<ImmutableList<string>> DetectShallowUpstream(string branchName)
         {
             return repositoryState.DetectUpstream(branchName)
-                .CombineLatest(branchSettings.GetConfiguredBranches(), async (allUpstream, configured) =>
+                .CombineLatest(branchSettings.GetConfiguredBranches(), PruneUpstream)
+                .Switch();
+        }
+
+        private async System.Threading.Tasks.Task<ImmutableList<string>> PruneUpstream(ImmutableList<string> allUpstream, ImmutableList<BranchBasicDetails> configured)
+        {
+            for (var i = 0; i < allUpstream.Count; i++)
+            {
+                var upstream = allUpstream[i];
+                var isConfigured = configured.Any(branch => branch.BranchName == upstream);
+                var furtherUpstream = await branchSettings.GetAllUpstreamBranches(upstream).FirstOrDefaultAsync();
+                allUpstream = allUpstream.Except(furtherUpstream.Select(b => b.BranchName)).ToImmutableList();
+            }
+
+            // TODO - this could be much smarter
+            for (var i = 0; i < allUpstream.Count; i++)
+            {
+                var upstream = allUpstream[i];
+                var furtherUpstream = await repositoryState.DetectUpstream(upstream).FirstOrDefaultAsync();
+                if (allUpstream.Intersect(furtherUpstream).Any())
                 {
+                    allUpstream = allUpstream.Except(furtherUpstream).ToImmutableList();
+                    i = -1;
+                }
+            }
 
-                    for (var i = 0; i < allUpstream.Count; i++)
-                    {
-                        var upstream = allUpstream[i];
-                        var isConfigured = configured.Any(branch => branch.BranchName == upstream);
-                        var furtherUpstream = await branchSettings.GetAllUpstreamBranches(upstream).FirstOrDefaultAsync();
-                        allUpstream = allUpstream.Except(furtherUpstream.Select(b => b.BranchName)).ToImmutableList();
-                    }
+            return allUpstream;
+        }
 
-                    // TODO - this could be much smarter
-                    for (var i = 0; i < allUpstream.Count; i++)
-                    {
-                        var upstream = allUpstream[i];
-                        var furtherUpstream = await repositoryState.DetectUpstream(upstream).FirstOrDefaultAsync();
-                        if (allUpstream.Intersect(furtherUpstream).Any())
-                        {
-                            allUpstream = allUpstream.Except(furtherUpstream).ToImmutableList();
-                            i = -1;
-                        }
-                    }
-
-                    return allUpstream;
-
+        public IObservable<ImmutableList<string>> DetectShallowUpstreamServiceLines(string branchName)
+        {
+            return branchSettings.GetAllUpstreamBranches(branchName)
+                .CombineLatest(branchSettings.GetConfiguredBranches(), (allUpstreamBranchDetails, configured) =>
+                {
+                    var allUpstream = allUpstreamBranchDetails.Where(b => b.BranchType == BranchType.ServiceLine).Select(b => b.BranchName).ToImmutableList();
+                    return PruneUpstream(allUpstream, configured);
                 }).Switch();
         }
 
