@@ -19,7 +19,7 @@ services:
       - ./GitAutomation.Sql:/src
     working_dir: /src
     
-  gitautomationsql-ci:
+  gitautomationpsql-ci:
     image: gitautomation-psql:build
     build:
       context: ./GitAutomation.Postgres

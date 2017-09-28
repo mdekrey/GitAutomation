@@ -25,7 +25,7 @@ services:
   gitautomation-psql:
     image: gitautomation-psql
 #    build:
-#      context: ./GitAutomation.Sql
+#      context: ./GitAutomation.Postgres
 #      dockerfile: Dockerfile
     ports:
       - "5432"
