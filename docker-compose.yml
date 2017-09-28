@@ -21,6 +21,17 @@ services:
     secrets:
       - sqlcredentials
       - sqleula
+      
+  gitautomation-psql:
+    image: gitautomation-psql
+#    build:
+#      context: ./GitAutomation.Sql
+#      dockerfile: Dockerfile
+    ports:
+      - "5432"
+#    secrets:
+#      - sqlcredentials
+#      - sqleula
 
 
 secrets:

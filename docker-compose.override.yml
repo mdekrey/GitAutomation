@@ -8,6 +8,10 @@ services:
   gitautomation-sql:
     ports:
       - "21433:1433"
+      
+  gitautomation-psql:
+    ports:
+      - "5432:5432"
 
   git-server:
     image: testing-git-server
