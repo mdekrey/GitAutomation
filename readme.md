@@ -60,7 +60,7 @@ To ensure updates to the secrets are seen within the containers, rebuild the doc
 
 1. Make sure the configuration files mentioned above are in place.
 2. `docker-compose -f docker-compose.ci.build.yml up --build`
-3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml build`
+3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.vs-fix.yml build`
 
 And then to run it...
 

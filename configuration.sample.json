@@ -10,6 +10,9 @@
     "type": "GitAutomation.SqlServer.RegisterSqlServer, GitAutomation.SqlServer",
     "sqlServer": {
       "connectionString": "Server=gitautomation-sql;Database=gitautomation;User Id=sa;Password=THE_SA_PASSWORD;"
+    },
+    "postgres": {
+      "connectionString": "Server=gitautomation-psql;Username=postgres;"
     }
   },
   "authentication": {
