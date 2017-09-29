@@ -349,7 +349,7 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             return new BranchBasicDetails
             {
                 BranchName = reader["BranchName"] as string,
-                RecreateFromUpstream = Convert.ToInt32(reader["RecreateFromUpstream"]) == 1,
+                RecreateFromUpstream = (reader["RecreateFromUpstream"] as System.Collections.BitArray)?.Get(0) ?? (reader["RecreateFromUpstream"] as bool?) == true,
                 BranchType = Enum.TryParse<BranchType>(reader["BranchType"] as string, out var branchType)
                     ? branchType
                     : BranchType.Feature,
@@ -361,7 +361,7 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             return new BranchDepthDetails
             {
                 BranchName = reader["BranchName"] as string,
-                RecreateFromUpstream = Convert.ToInt32(reader["RecreateFromUpstream"]) == 1,
+                RecreateFromUpstream = (reader["RecreateFromUpstream"] as System.Collections.BitArray)[0],
                 BranchType = Enum.TryParse<BranchType>(reader["BranchType"] as string, out var branchType)
                     ? branchType
                     : BranchType.Feature,

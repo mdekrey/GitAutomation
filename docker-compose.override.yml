@@ -4,6 +4,8 @@ services:
   gitautomation:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - "./GitAutomation.AllAddons/bin/Debug/netcoreapp2.0:/extra-bins/postgres"
       
   gitautomation-sql:
     ports:
