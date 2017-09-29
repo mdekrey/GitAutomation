@@ -4,4 +4,13 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="3.2.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GitAutomation.Auth\GitAutomation.Auth.csproj" />
+    <ProjectReference Include="..\GitAutomation.Core\GitAutomation.Core.csproj" />
+  </ItemGroup>
+
 </Project>

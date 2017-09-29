@@ -1,0 +1,10 @@
+version: '3.1'
+
+services:
+  gitautomation-psql:
+    image: gitautomation-psql
+    build:
+      context: ../GitAutomation.Postgres
+      dockerfile: Dockerfile
+    ports: 
+      - "35432:5432"
