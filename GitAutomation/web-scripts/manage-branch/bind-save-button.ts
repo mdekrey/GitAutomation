@@ -57,10 +57,10 @@ export const bindSaveButton = (
         ) => {
           const oldUpstream = branches
             .filter(b => b.isUpstream)
-            .map(b => b.branch);
+            .map(b => b.groupName);
           const oldDownstream = branches
             .filter(b => b.isDownstream)
-            .map(b => b.branch);
+            .map(b => b.groupName);
           return {
             recreateFromUpstream,
             branchType,

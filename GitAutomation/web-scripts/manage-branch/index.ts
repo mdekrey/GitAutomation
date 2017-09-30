@@ -145,7 +145,7 @@ export const manage = (
 
         const branchList = branchData.state
           .map(state =>
-            state.branches.filter(({ branch }) => branch !== branchName)
+            state.branches.filter(({ groupName }) => groupName !== branchName)
           )
           .combineLatest(reset, _ => _);
 
@@ -178,7 +178,7 @@ export const manage = (
           rxData(
             container.map(fnSelect(`[data-locator="other-branches"]`)),
             branchList,
-            data => data.branch
+            data => data.groupName
           )
             .bind(buildBranchCheckListing())
             .subscribe()
@@ -220,7 +220,7 @@ export const manage = (
             branchList.map(branches =>
               branches.filter(branch => !branch.isUpstream)
             ),
-            data => data.branch
+            data => data.groupName
           )
             .bind({
               selector: "option",
@@ -228,8 +228,8 @@ export const manage = (
                 selection.append<HTMLOptionElement>("option"),
               onEach: selection =>
                 selection
-                  .text(data => data.branch)
-                  .attr("value", data => data.branch)
+                  .text(data => data.groupName)
+                  .attr("value", data => data.groupName)
             })
             .subscribe()
         );
@@ -242,7 +242,7 @@ export const manage = (
               [branchName].concat(
                 branches
                   .filter(branch => branch.isSomewhereUpstream)
-                  .map(branch => branch.branch)
+                  .map(branch => branch.groupName)
               )
             ),
             data => data
