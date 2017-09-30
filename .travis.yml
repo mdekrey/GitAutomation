@@ -1,0 +1,17 @@
+language: csharp
+
+sudo: required
+
+install:
+- docker pull microsoft/aspnetcore-build:2.0
+- docker build -t travis-docker -f Dockerfile.test .
+
+script:
+#only build if tests succeed
+#(NB: the script/build is run *outside* a container in the following command)
+- docker run -v "$(pwd):/var/build" --rm travis-docker
+
+# TODO - v1.0.0
+#after_success:
+#- docker build -t travis-docker-prod -f Dockerfile.prod .
+#- TODO - upload to docker hub
