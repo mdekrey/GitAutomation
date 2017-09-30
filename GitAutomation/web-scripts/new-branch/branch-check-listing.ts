@@ -19,9 +19,9 @@ export const buildBranchCheckListing = (): IRxBindProps<
     `);
   },
   onEach: selection => {
-    selection.select(`[data-locator="branch"]`).text(data => data.branchName);
+    selection.select(`[data-locator="branch"]`).text(data => data.groupName);
     selection
       .select(`[data-locator="check"]`)
-      .attr("data-branch", data => data.branchName);
+      .attr("data-branch", data => data.groupName);
   }
 });

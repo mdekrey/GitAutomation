@@ -141,7 +141,7 @@ export const homepage = (
 `),
               selector: `li[data-locator="remote-branch"]`,
               onEach: selection => {
-                selection.select(`span`).text(data => data.branchName);
+                selection.select(`span`).text(data => data.groupName);
                 subscription.add(
                   rxEvent({
                     target: Observable.of(
@@ -150,7 +150,7 @@ export const homepage = (
                     eventName: "click"
                   }).subscribe(event =>
                     state.navigate({
-                      url: "/manage/" + event.datum.branchName,
+                      url: "/manage/" + event.datum.groupName,
                       replaceCurentHistory: false
                     })
                   )
@@ -163,7 +163,7 @@ export const homepage = (
                   branch
                     .select(`[data-locator="actual-branches"]`)
                     .selectAll(`li`)
-                    .data(basicBranch => basicBranch.branchNames || [])
+                    .data(basicBranch => basicBranch.branchNames)
                 )
                 .map(target =>
                   bind({

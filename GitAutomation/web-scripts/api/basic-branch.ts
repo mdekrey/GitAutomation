@@ -10,6 +10,6 @@ export enum BranchType {
 export interface BasicBranch {
   recreateFromUpstream: boolean;
   branchType: BranchType;
-  branchName: string;
+  groupName: string;
   branchNames: string[];
 }

@@ -10,12 +10,12 @@ namespace GitAutomation
 {
     public interface IRepositoryMediator
     {
-        IObservable<ImmutableList<BranchBasicDetails>> AllBranches();
-        IObservable<ImmutableList<BranchHierarchyDetails>> AllBranchesHierarchy();
+        IObservable<ImmutableList<BranchGroupCompleteData>> AllBranches();
+        IObservable<ImmutableList<BranchGroupCompleteData>> AllBranchesHierarchy();
         IObservable<ImmutableList<string>> DetectShallowUpstream(string branchName);
-        IObservable<string> LatestBranchName(BranchBasicDetails details);
-        IObservable<string> GetNextCandidateBranch(BranchDetails details, bool shouldMutate);
-        IObservable<BranchDetails> GetBranchDetails(string branchName);
+        IObservable<string> LatestBranchName(BranchGroupDetails details);
+        IObservable<string> GetNextCandidateBranch(BranchGroupDetails details, bool shouldMutate);
+        IObservable<BranchGroupCompleteData> GetBranchDetails(string branchName);
         void ConsolidateBranches(IEnumerable<string> branchesToRemove, string targetBranch, IUnitOfWork unitOfWork);
         IObservable<ImmutableList<Repository.GitRef>> GetAllBranchRefs();
         IObservable<string> GetBranchRef(string branchName);

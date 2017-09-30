@@ -50,14 +50,14 @@ namespace GitAutomation.Management
         
         [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("all-branches")]
-        public Task<ImmutableList<BranchBasicDetails>> AllBranches()
+        public Task<ImmutableList<BranchGroupCompleteData>> AllBranches()
         {
             return repository.AllBranches().FirstAsync().ToTask();
         }
 
         [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("all-branches/hierarchy")]
-        public Task<ImmutableList<BranchHierarchyDetails>> AllBranchesHierarchy()
+        public Task<ImmutableList<BranchGroupCompleteData>> AllBranchesHierarchy()
         {
             return repository.AllBranchesHierarchy().FirstAsync().ToTask();
         }
@@ -71,7 +71,7 @@ namespace GitAutomation.Management
 
         [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("details/{*branchName}")]
-        public Task<BranchDetails> GetDetails(string branchName)
+        public Task<BranchGroupCompleteData> GetDetails(string branchName)
         {
             return repository.GetBranchDetails(branchName).FirstAsync().ToTask();
         }
@@ -135,7 +135,7 @@ namespace GitAutomation.Management
         public class UpdateBranchRequestBody
         {
             public bool RecreateFromUpstream { get; set; }
-            public BranchType BranchType { get; set; }
+            public BranchGroupType BranchType { get; set; }
             public string[] AddUpstream { get; set; }
             public string[] AddDownstream { get; set; }
             public string[] RemoveUpstream { get; set; }

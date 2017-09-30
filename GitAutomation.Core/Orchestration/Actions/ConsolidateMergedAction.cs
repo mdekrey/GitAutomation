@@ -67,14 +67,14 @@ namespace GitAutomation.Orchestration.Actions
             protected override async Task RunProcess()
             {
                 var allBranches = await repository.AllBranches().FirstOrDefaultAsync();
-                var targetBranch = allBranches.Find(branch => branch.BranchName == newBaseBranch);
+                var targetBranch = allBranches.Find(branch => branch.GroupName == newBaseBranch);
 
                 // 1. make sure everything is already merged
                 // 2. run consolidate branches SQL
                 // 3. delete old branches
 
                 var consolidatingBranches = (await (from branch in allBranches.ToObservable()
-                                                    where this.originalBranches.Contains(branch.BranchName) || branch.BranchNames.Any(this.originalBranches.Contains)
+                                                    where this.originalBranches.Contains(branch.GroupName) || branch.BranchNames.Any(this.originalBranches.Contains)
                                                     from result in GetLatestBranchTuple(branch)
                                                     select result
                                         ).ToArray()).ToImmutableHashSet();
@@ -87,7 +87,7 @@ namespace GitAutomation.Orchestration.Actions
                 // want to flatten out those commits too early.
                 using (var unitOfWork = workFactory.CreateUnitOfWork())
                 {
-                    repository.ConsolidateBranches(branchesToRemove.Select(b => b.BranchName), targetBranch.BranchName, unitOfWork);
+                    repository.ConsolidateBranches(branchesToRemove.Select(b => b.GroupName), targetBranch.GroupName, unitOfWork);
 
                     await unitOfWork.CommitAsync();
                 }
@@ -98,13 +98,13 @@ namespace GitAutomation.Orchestration.Actions
                       select entry).StartWith(new OutputMessage());
             }
 
-            private IObservable<(BranchBasicDetails branch, string latestBranchName)> GetLatestBranchTuple(BranchBasicDetails branch)
+            private IObservable<(BranchGroupCompleteData branch, string latestBranchName)> GetLatestBranchTuple(BranchGroupCompleteData branch)
             {
                 return from latestBranchName in repository.LatestBranchName(branch).FirstOrDefaultAsync()
                        select (branch, latestBranchName);
             }
 
-            private async Task<ImmutableList<BranchBasicDetails>> FindReadyToConsolidate(IImmutableSet<(BranchBasicDetails branch, string latestBranchName)> originalBranches)
+            private async Task<ImmutableList<BranchGroupCompleteData>> FindReadyToConsolidate(IImmutableSet<(BranchGroupCompleteData branch, string latestBranchName)> originalBranches)
             {
                 return await (from upstreamBranch in originalBranches.ToObservable()
                               from hasOutstandingCommit in cli.HasOutstandingCommits(upstreamBranch: upstreamBranch.latestBranchName, downstreamBranch: newBaseBranch)

@@ -1,6 +1,6 @@
 ﻿namespace GitAutomation.BranchSettings
 {
-    public enum BranchType
+    public enum BranchGroupType
     {
         Feature,
         ReleaseCandidate,
