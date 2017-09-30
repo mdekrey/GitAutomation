@@ -7,6 +7,8 @@ using GitAutomation.Repository;
 using System.Reactive.Linq;
 using System.Linq;
 using GitAutomation.Work;
+using GitAutomation.GitService;
+using System.Threading.Tasks;
 
 namespace GitAutomation
 {
@@ -15,12 +17,14 @@ namespace GitAutomation
         private readonly IRepositoryState repositoryState;
         private readonly IBranchSettings branchSettings;
         private readonly IBranchIterationMediator branchIteration;
+        private readonly IGitServiceApi gitApi;
 
-        public RepositoryMediator(IRepositoryState repositoryState, IBranchSettings branchSettings, IBranchIterationMediator branchIteration)
+        public RepositoryMediator(IRepositoryState repositoryState, IBranchSettings branchSettings, IBranchIterationMediator branchIteration, IGitServiceApi gitApi)
         {
             this.repositoryState = repositoryState;
             this.branchSettings = branchSettings;
             this.branchIteration = branchIteration;
+            this.gitApi = gitApi;
         }
 
         public IObservable<ImmutableList<BranchBasicDetails>> AllBranches()
@@ -30,10 +34,11 @@ namespace GitAutomation
                 branchSettings.GetConfiguredBranches()
                 .CombineLatest(
                     repositoryState.RemoteBranches(),
-                    (first, second) =>
-                        GroupBranches(first, second , branchName => new BranchBasicDetails { BranchName = branchName })
-                            .OrderBy(a => a.BranchName)
-                            .ToImmutableList()
+                    (first, second) => new { first, second }
+                ).SelectMany(async param =>
+                    (await GroupBranches(param.first, param.second, branchName => new BranchBasicDetails { BranchName = branchName }))
+                        .OrderBy(a => a.BranchName)
+                        .ToImmutableList()
                 )
             );
         }
@@ -52,10 +57,11 @@ namespace GitAutomation
                     .Select(branches => branches.ToImmutableList())
                 .CombineLatest(
                     repositoryState.RemoteBranches(),
-                    (first, second) =>
-                        GroupBranches(first, second , branchName => new BranchHierarchyDetails { BranchName = branchName })
-                            .OrderBy(a => a.BranchName)
-                            .ToImmutableList()
+                    (first, second) => new { first, second }
+                ).SelectMany(async param =>
+                    (await GroupBranches(param.first, param.second, branchName => new BranchHierarchyDetails { BranchName = branchName, BranchNames = new[] { branchName }.ToImmutableList() }))
+                        .OrderBy(a => a.BranchName)
+                        .ToImmutableList()
                 )
             ).FirstAsync();
         }
@@ -159,7 +165,7 @@ namespace GitAutomation
             );
         }
 
-        private IEnumerable<T> GroupBranches<T>(ImmutableList<T> settings, string[] actualBranches, Func<string, T> factory)
+        private async Task<IEnumerable<T>> GroupBranches<T>(ImmutableList<T> settings, string[] actualBranches, Func<string, T> factory)
             where T : BranchBasicDetails
         {
             var nonconfiguredBranches = new HashSet<string>();
@@ -171,6 +177,7 @@ namespace GitAutomation
                     if (branchIteration.IsBranchIteration(configuredBranch.BranchName, actualBranch))
                     {
                         configuredBranch.BranchNames = configuredBranch.BranchNames?.Add(actualBranch) ?? Enumerable.Repeat(actualBranch, 1).ToImmutableList();
+                        configuredBranch.Statuses = await gitApi.GetCommitStatus(actualBranch);
                         configured = true;
                         break;
                     }
@@ -180,13 +187,15 @@ namespace GitAutomation
                     nonconfiguredBranches.Add(actualBranch);
                 }
             }
+            var nonconfiguredResult = await nonconfiguredBranches.ToObservable().SelectMany(async branch =>
+            {
+                var result = factory(branch);
+                result.BranchNames = Enumerable.Repeat(branch, 1).ToImmutableList();
+                result.Statuses = await gitApi.GetCommitStatus(branch);
+                return result;
+            }).ToArray();
             return configuredBranches.Values
-                .Concat(nonconfiguredBranches.Select(branch =>
-                {
-                    var result = factory(branch);
-                    result.BranchNames = Enumerable.Repeat(branch, 1).ToImmutableList();
-                    return result;
-                }));
+                .Concat(nonconfiguredResult);
         }
 
         public void NotifyPushedRemoteBranch(string downstreamBranch)

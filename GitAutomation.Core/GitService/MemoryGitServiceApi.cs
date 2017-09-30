@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,6 +10,16 @@ namespace GitAutomation.GitService
     class MemoryGitServiceApi : IGitServiceApi
     {
         readonly HashSet<Tuple<string, string>> pullRequests = new HashSet<Tuple<string, string>>();
+
+        public Task<ImmutableList<CommitStatus>> GetCommitStatus(string commitSha)
+        {
+            return Task.FromResult(ImmutableList<CommitStatus>.Empty);
+        }
+
+        public Task<ImmutableList<PullRequestReview>> GetPullRequestReviews(string targetBranch)
+        {
+            return Task.FromResult(ImmutableList<PullRequestReview>.Empty);
+        }
 
         public Task<bool> HasOpenPullRequest(string targetBranch = null, string sourceBranch = null)
         {

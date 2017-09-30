@@ -12,6 +12,8 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Collections.Immutable;
+using Newtonsoft.Json.Linq;
 
 namespace GitAutomation.GitHub
 {
@@ -83,10 +85,50 @@ namespace GitAutomation.GitHub
             {
                 await EnsureSuccessStatusCode(response);
                 var responseString = await response.Content.ReadAsStringAsync();
-                var token = Newtonsoft.Json.Linq.JArray.Parse(responseString);
+                var token = JArray.Parse(responseString);
                 return token.Count >= 1;
             }
         }
+
+        public Task<ImmutableList<PullRequestReview>> GetPullRequestReviews(string targetBranch)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<ImmutableList<CommitStatus>> GetCommitStatus(string commitSha)
+        {
+
+            var nvc = new NameValueCollection
+            {
+                { "state", "open" }
+            };
+            using (var response = await client.GetAsync($"/repos/{owner}/{repository}/commits/{commitSha}/status"))
+            {
+                await EnsureSuccessStatusCode(response);
+                var responseString = await response.Content.ReadAsStringAsync();
+                var token = JToken.Parse(responseString);
+                return (from status in token["statuses"] as JArray
+                        select new CommitStatus
+                        {
+                            Key = status["context"].ToString(),
+                            Url = status["url"].ToString(),
+                            Description = status["description"].ToString(),
+                            State = ToCommitState(status["state"].ToString())
+                        }).ToImmutableList();
+            }
+        }
+
+        private CommitStatus.StatusState ToCommitState(string value)
+        {
+            switch (value)
+            {
+                case "success": return CommitStatus.StatusState.Success;
+                case "pending": return CommitStatus.StatusState.Pending;
+                default: return CommitStatus.StatusState.Error;
+            }
+        }
+
+        #region Utilities
 
         private string FullBranchRef(string branchName) =>
             $"{owner}:{branchName}";
@@ -134,5 +176,6 @@ namespace GitAutomation.GitHub
             }
         }
 
+        #endregion
     }
 }

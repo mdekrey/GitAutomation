@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
+using System.Threading.Tasks;
+using GitAutomation.GitService;
 
 namespace GitAutomation.BranchSettings
 {
@@ -24,6 +26,7 @@ namespace GitAutomation.BranchSettings
         public BranchType BranchType { get; set; } = BranchType.Feature;
 
         public ImmutableList<string> BranchNames { get; set; }
+        public ImmutableList<CommitStatus> Statuses { get; internal set; }
     }
 
 }
