@@ -7,6 +7,7 @@ using GitAutomation.Repository;
 using System.Reactive.Linq;
 using System.Linq;
 using GitAutomation.Work;
+using System.Threading.Tasks;
 
 namespace GitAutomation
 {
@@ -23,38 +24,50 @@ namespace GitAutomation
             this.branchIteration = branchIteration;
         }
 
-        public IObservable<ImmutableList<BranchBasicDetails>> AllBranches()
+        public IObservable<ImmutableList<BranchGroupCompleteData>> AllBranches()
         {
-            // TODO - group by iteration
             return (
-                branchSettings.GetConfiguredBranches()
+                branchSettings.GetConfiguredBranches().Select(e => e.Select(group => new BranchGroupCompleteData(group)).ToImmutableList())
                 .CombineLatest(
                     repositoryState.RemoteBranches(),
-                    (first, second) =>
-                        GroupBranches(first, second , branchName => new BranchBasicDetails { BranchName = branchName })
-                            .OrderBy(a => a.BranchName)
+                    (first, second) => new { first, second }
+                )
+                .SelectMany(async param =>
+                        (await GroupBranches(param.first, param.second, ToDefaultBranchGroup))
+                            .OrderBy(a => a.GroupName)
                             .ToImmutableList()
                 )
             );
         }
 
-        public IObservable<ImmutableList<BranchHierarchyDetails>> AllBranchesHierarchy()
+        private Task<BranchGroupCompleteData> ToDefaultBranchGroup(string arg)
+        {
+            return Task.FromResult(new BranchGroupCompleteData { GroupName = arg });
+        }
+
+        public IObservable<ImmutableList<BranchGroupCompleteData>> AllBranchesHierarchy()
         {
             return (
                 // TODO - should be more efficient with SQL here.
                 branchSettings.GetAllDownstreamBranches()
                     .SelectMany(allBranches =>
-                        allBranches.ToObservable().SelectMany(async branch => new BranchHierarchyDetails(branch)
+                        allBranches.ToObservable().SelectMany(async branch => new BranchGroupCompleteData(branch)
                         {
-                            DownstreamBranches = (await branchSettings.GetDownstreamBranches(branch.BranchName).FirstOrDefaultAsync()).Select(b => b.BranchName).ToImmutableList()
+                            DownstreamBranchGroups = (await branchSettings.GetDownstreamBranches(branch.GroupName).FirstOrDefaultAsync()).Select(b => b.GroupName).ToImmutableList()
                         }).ToArray()
                     )
                     .Select(branches => branches.ToImmutableList())
                 .CombineLatest(
                     repositoryState.RemoteBranches(),
-                    (first, second) =>
-                        GroupBranches(first, second , branchName => new BranchHierarchyDetails { BranchName = branchName })
-                            .OrderBy(a => a.BranchName)
+                    (first, second) => new { first, second }
+                )
+                .SelectMany(async param =>
+                        (await GroupBranches(param.first, param.second, ToDefaultBranchGroup))
+                            .OrderBy(a => a.GroupName)
+                            .Select(a => new BranchGroupCompleteData(a)
+                            {
+                                DownstreamBranchGroups = a.DownstreamBranchGroups ?? ImmutableList<string>.Empty,
+                            })
                             .ToImmutableList()
                 )
             ).FirstAsync();
@@ -74,9 +87,9 @@ namespace GitAutomation
                     for (var i = 0; i < allUpstream.Count; i++)
                     {
                         var upstream = allUpstream[i];
-                        var isConfigured = configured.Any(branch => branch.BranchName == upstream);
+                        var isConfigured = configured.Any(branch => branch.GroupName == upstream);
                         var furtherUpstream = await branchSettings.GetAllUpstreamBranches(upstream).FirstOrDefaultAsync();
-                        allUpstream = allUpstream.Except(furtherUpstream.Select(b => b.BranchName)).ToImmutableList();
+                        allUpstream = allUpstream.Except(furtherUpstream.Select(b => b.GroupName)).ToImmutableList();
                     }
 
                     // TODO - this could be much smarter
@@ -96,48 +109,48 @@ namespace GitAutomation
                 }).Switch();
         }
 
-        public IObservable<BranchDetails> GetBranchDetails(string branchName)
+        public IObservable<BranchGroupCompleteData> GetBranchDetails(string branchName)
         {
             return this.repositoryState.RemoteBranches()
                 .Select(remoteBranches =>
                     {
                         return branchSettings.GetConfiguredBranches()
-                            .Select(branches => branches.FirstOrDefault(branch => branchIteration.IsBranchIteration(branch.BranchName, branchName)))
-                            .Select(branchBasicDetails => branchSettings.GetBranchDetails(branchBasicDetails?.BranchName ?? branchName))
+                            .Select(branches => branches.FirstOrDefault(branch => branchIteration.IsBranchIteration(branch.GroupName, branchName)))
+                            .Select(branchBasicDetails => branchSettings.GetBranchDetails(branchBasicDetails?.GroupName ?? branchName))
                             .Switch()
-                            .Select(branchDetails => ToBranchDetails(branchDetails, remoteBranches));
+                            .Select(branchDetails => AddRemoteBranchNames(branchDetails, remoteBranches));
                     }).Switch();
         }
 
-        private BranchDetails ToBranchDetails(BranchDetails branchDetails, string[] remoteBranches)
+        private BranchGroupCompleteData AddRemoteBranchNames(BranchGroupCompleteData branchDetails, string[] remoteBranches)
         {
-            return new BranchDetails(branchDetails)
+            return new BranchGroupCompleteData(branchDetails)
             {
-                BranchNames = remoteBranches.Where(remoteBranch => branchIteration.IsBranchIteration(branchDetails.BranchName, remoteBranch)).ToImmutableList()
+                BranchNames = remoteBranches.Where(remoteBranch => branchIteration.IsBranchIteration(branchDetails.GroupName, remoteBranch)).ToImmutableList()
             };
         }
 
-        public IObservable<string> GetNextCandidateBranch(BranchDetails details, bool shouldMutate)
+        public IObservable<string> GetNextCandidateBranch(BranchGroupDetails details, bool shouldMutate)
         {
             return (
                 from remoteBranches in this.repositoryState.RemoteBranches()
                 select branchIteration.GetNextBranchNameIteration(
-                    details.BranchName,
+                    details.GroupName,
                     from remoteBranch in remoteBranches
-                    where this.branchIteration.IsBranchIteration(details.BranchName, remoteBranch)
+                    where this.branchIteration.IsBranchIteration(details.GroupName, remoteBranch)
                     select remoteBranch
                 )
             ).Switch();
         }
 
-        public IObservable<string> LatestBranchName(BranchBasicDetails details)
+        public IObservable<string> LatestBranchName(BranchGroupDetails details)
         {
             return (
                 from remoteBranches in this.repositoryState.RemoteBranches()
                 select branchIteration.GetLatestBranchNameIteration(
-                    details.BranchName,
+                    details.GroupName,
                     from remoteBranch in remoteBranches
-                    where this.branchIteration.IsBranchIteration(details.BranchName, remoteBranch)
+                    where this.branchIteration.IsBranchIteration(details.GroupName, remoteBranch)
                     select remoteBranch
                 )
             );
@@ -159,16 +172,15 @@ namespace GitAutomation
             );
         }
 
-        private IEnumerable<T> GroupBranches<T>(ImmutableList<T> settings, string[] actualBranches, Func<string, T> factory)
-            where T : BranchBasicDetails
+        private async Task<IEnumerable<BranchGroupCompleteData>> GroupBranches(ImmutableList<BranchGroupCompleteData> settings, string[] actualBranches, Func<string, Task<BranchGroupCompleteData>> factory)
         {
             var nonconfiguredBranches = new HashSet<string>();
-            var configuredBranches = settings.ToDictionary(b => b.BranchName);
+            var configuredBranches = settings.ToDictionary(b => b.GroupName);
             foreach (var actualBranch in actualBranches) {
                 var configured = false;
                 foreach (var configuredBranch in configuredBranches.Values)
                 {
-                    if (branchIteration.IsBranchIteration(configuredBranch.BranchName, actualBranch))
+                    if (branchIteration.IsBranchIteration(configuredBranch.GroupName, actualBranch))
                     {
                         configuredBranch.BranchNames = configuredBranch.BranchNames?.Add(actualBranch) ?? Enumerable.Repeat(actualBranch, 1).ToImmutableList();
                         configured = true;
@@ -180,13 +192,14 @@ namespace GitAutomation
                     nonconfiguredBranches.Add(actualBranch);
                 }
             }
+            var nonconfiguredBranchesResult = await nonconfiguredBranches.ToObservable().SelectMany(async branch =>
+            {
+                var result = await factory(branch);
+                result.BranchNames = Enumerable.Repeat(branch, 1).ToImmutableList();
+                return result;
+            }).ToArray();
             return configuredBranches.Values
-                .Concat(nonconfiguredBranches.Select(branch =>
-                {
-                    var result = factory(branch);
-                    result.BranchNames = Enumerable.Repeat(branch, 1).ToImmutableList();
-                    return result;
-                }));
+                .Concat(nonconfiguredBranchesResult);
         }
 
         public void NotifyPushedRemoteBranch(string downstreamBranch)

@@ -53,7 +53,7 @@ namespace GitAutomation.Orchestration
                     .Where(branches => branches.Length > 0)
                     .Subscribe(allBranches =>
                         branchSettings.GetAllDownstreamBranches()
-                            .SelectMany(all => all.Select(each => each.BranchName).ToObservable())
+                            .SelectMany(all => all.Select(each => each.GroupName).ToObservable())
                             .SelectMany(downstreamBranch => orchestrationActions.CheckDownstreamMerges(downstreamBranch))
                             .Subscribe(
                                 onNext: _ => { }, 

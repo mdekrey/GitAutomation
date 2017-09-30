@@ -63,10 +63,10 @@ namespace GitAutomation.Orchestration.Actions
             private readonly IGitServiceApi gitServiceApi;
             private readonly IntegrateBranchesOrchestration integrateBranches;
             private readonly IRepositoryMediator repository;
-            private readonly Task<BranchDetails> detailsTask;
+            private readonly Task<BranchGroupCompleteData> detailsTask;
             private readonly Task<string> latestBranchName;
 
-            private BranchDetails Details => detailsTask.Result;
+            private BranchGroupCompleteData Details => detailsTask.Result;
             private string LatestBranchName => latestBranchName.Result;
 
             public MergeDownstreamActionProcess(GitCli cli, IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, IRepositoryMediator repository, IntegrateBranchesOrchestration integrateBranches, string downstreamBranch)
@@ -96,10 +96,10 @@ namespace GitAutomation.Orchestration.Actions
                 await latestBranchName;
 
                 var needsCreate = await repository.GetBranchRef(LatestBranchName).Take(1) == null;
-                var upstreamBranches = (await ToUpstreamBranchNames(Details.DirectUpstreamBranches)).ToImmutableList();
+                var upstreamBranches = (await ToUpstreamBranchNames(Details.DirectUpstreamBranchGroups)).ToImmutableList();
                 var neededUpstreamMerges = needsCreate
-                    ? upstreamBranches.ToImmutableList()
-                    : (await FilterUpstreamReadyForMerge(await FindNeededMerges(upstreamBranches), !Details.RecreateFromUpstream)).ToImmutableList();
+                    ? upstreamBranches
+                    : (await FilterUpstreamReadyForMerge(await FindNeededMerges(upstreamBranches), !Details.RecreateFromUpstream));
 
                 if (neededUpstreamMerges.Any() && Details.RecreateFromUpstream)
                 {
@@ -110,7 +110,7 @@ namespace GitAutomation.Orchestration.Actions
 
                 if (needsCreate)
                 {
-                    await AppendProcess(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{Details.BranchName} needs to be created from {string.Join(",", neededUpstreamMerges)}" }));
+                    await AppendProcess(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{Details.GroupName} needs to be created from {string.Join(",", neededUpstreamMerges)}" }));
                     await CreateDownstreamBranch(upstreamBranches);
                 }
                 else if (neededUpstreamMerges.Any())
@@ -129,13 +129,14 @@ namespace GitAutomation.Orchestration.Actions
                 }
             }
 
-            private async Task<IEnumerable<string>> ToUpstreamBranchNames(ImmutableList<BranchBasicDetails> directUpstreamBranches)
+            private async Task<IEnumerable<string>> ToUpstreamBranchNames(ImmutableList<string> directUpstreamBranchGroups)
             {
-                var hierarchy = (await repository.AllBranchesHierarchy().Take(1)).ToDictionary(branch => branch.BranchName, branch => branch.HierarchyDepth);
+                var hierarchy = (await repository.AllBranchesHierarchy().Take(1)).ToDictionary(branch => branch.GroupName, branch => branch.HierarchyDepth);
                 // Put integration branches first; they might be needed for conflict resolution in other branches!
-                return from branch in directUpstreamBranches
-                       orderby hierarchy[branch.BranchName]/*, branch.BranchType == BranchType.Integration ? 0 : 1*/, branch.BranchName
-                       select branch.BranchName;
+                // FIXME - this is using the GroupName rather than the BranchName!
+                return from branch in directUpstreamBranchGroups
+                       orderby hierarchy[branch]/*, branch.BranchType == BranchType.Integration ? 0 : 1*/, branch
+                       select branch;
             }
 
             private async Task<ImmutableList<string>> FindNeededMerges(IEnumerable<string> allUpstreamBranches)
@@ -191,7 +192,7 @@ namespace GitAutomation.Orchestration.Actions
                 repository.NotifyPushedRemoteBranch(downstreamBranch);
             }
 
-            private async Task<List<string>> FilterUpstreamReadyForMerge(IEnumerable<string> allUpstreamBranches, bool checkToTarget)
+            private async Task<ImmutableList<string>> FilterUpstreamReadyForMerge(IEnumerable<string> allUpstreamBranches, bool checkToTarget)
             {
                 var validUpstream = new List<string>();
                 foreach (var upstream in allUpstreamBranches)
@@ -206,7 +207,7 @@ namespace GitAutomation.Orchestration.Actions
                     }
                 }
 
-                return validUpstream;
+                return validUpstream.ToImmutableList();
             }
 
             /// <summary>
@@ -223,12 +224,12 @@ namespace GitAutomation.Orchestration.Actions
                 // conflict!
                 await AppendProcess(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} conflicts with {upstreamBranch}" }));
 
-                var canUseIntegrationBranch = Details.BranchType != BranchType.Integration && Details.DirectUpstreamBranches.Count != 1;
+                var canUseIntegrationBranch = Details.BranchType != BranchGroupType.Integration && Details.DirectUpstreamBranchGroups.Count != 1;
                 var createdIntegrationBranch = canUseIntegrationBranch
                     ? await integrateBranches.FindAndCreateIntegrationBranches(
                             Details,
-                            Details.DirectUpstreamBranches.Select(branch => branch.BranchName), 
-                            DoMerge
+                            Details.DirectUpstreamBranchGroups, 
+                            DoMergeWithCheckout
                         )
                         .ContinueWith(result => result.Result.AddedNewIntegrationBranches || result.Result.HadPullRequest)
                     : false;
@@ -236,6 +237,7 @@ namespace GitAutomation.Orchestration.Actions
                 if (!createdIntegrationBranch)
                 {
                     // Open a PR if we can't open a new integration branch
+                    await PushBranch(downstreamBranch);
                     await gitServiceApi.OpenPullRequest(title: $"Auto-Merge: {downstreamBranch}", targetBranch: downstreamBranch, sourceBranch: upstreamBranch, body: "Failed due to merge conflicts.");
                     return new MergeStatus { HadConflicts = true, Resolution = MergeConflictResolution.PullRequest };
                 }
@@ -252,6 +254,15 @@ namespace GitAutomation.Orchestration.Actions
 
                 await AppendProcess(Queueable(cli.Clean()));
             }
+
+
+            private async Task<bool> DoMergeWithCheckout(string upstreamBranch, string targetBranch, string message)
+            {
+                await AppendProcess(Queueable(cli.CheckoutRemote(targetBranch)));
+
+                return await DoMerge(upstreamBranch, targetBranch, message);
+            }
+
 
             private async Task<bool> DoMerge(string upstreamBranch, string targetBranch, string message)
             {
