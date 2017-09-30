@@ -4,5 +4,5 @@ using System.Runtime.CompilerServices;
 using System.Text;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("GitAutomation.Core.Tests")]
+[assembly: InternalsVisibleTo("GitAutomation.SqlServer.Tests")]
 #endif

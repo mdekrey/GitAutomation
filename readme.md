@@ -9,17 +9,15 @@ for production yet, as there is no security to actually connect to the web-hooks
 You need docker for your operating system. That's it!
 
 # Notices
-The Docker SQL images require at least 3.5GB of RAM. See https://github.com/Microsoft/mssql-docker/issues/114 for how to set the memory requirements.
+Postgres is now the default database provider; the SQL images may be used, but require significantly more RAM (and were still in preview mode at the time of writing.) See the SQL Server section below.
 
-To run the SQL docker container, you must accept the EULA. It is also linked to from [the dockerhub page](https://hub.docker.com/r/microsoft/mssql-server-linux/). The express edition will be available at GA, they say.
+TODO - credentials for Postgres. Currently, we use the default Postgres password, which is no password.
 
 # Before you get started
 Local files that are not included in the repository include:
 
  * /configuration.json - the various configuration settings to use, including the git repo and persistence database. See the `configuration.sample.json` for format. This has several values that need to be replaced by you. For example, most of this file is set up to use GitHub; see [GitHub Setup](./GitAutomation.GitHub/github-setup.md).
  * /git-credentials.txt - the password to use for the git repository. Not persisted in the docker image for security purposes.
- * /sql-credentials.txt - the password to set up for the SA role for the dockerized SQL container. Not persisted in the docker image for security purposes.
- * /sql-eula.txt - whether you agree to Microsoft's EULA for the SQL docker container. Should contain a single 'Y' if you do.
 
 When you add these files, they should be without line endings and without UTF headers or you'll get difficult-to-track errors.
 
@@ -83,3 +81,14 @@ And then to run it...
         docker-compose up --build
 
 4. Run the tests via Visual Studio or run `dotnet test`. (Dockerfile for the tests to come.)
+
+# SQL Server
+
+The Docker SQL Server images require at least 3.5GB of RAM. See https://github.com/Microsoft/mssql-docker/issues/114 for how to set the memory requirements. 
+
+To run the SQL docker container, you must accept the EULA. It is also linked to from [the dockerhub page](https://hub.docker.com/r/microsoft/mssql-server-linux/). The express edition will be available at GA, they say.
+
+## Local files not included
+
+ * /sql-credentials.txt - the password to set up for the SA role for the dockerized SQL container. Not persisted in the docker image for security purposes.
+ * /sql-eula.txt - whether you agree to Microsoft's EULA for the SQL docker container. Should contain a single 'Y' if you do.

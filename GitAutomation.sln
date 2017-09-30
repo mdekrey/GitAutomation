@@ -39,7 +39,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Postgres", "G
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Postgres.Tests", "GitAutomation.Postgres.Tests\GitAutomation.Postgres.Tests.csproj", "{EE4FF41F-BAF5-45AF-96A5-59B9212A4F7A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitAutomation.AllAddons", "GitAutomation.AllAddons\GitAutomation.AllAddons.csproj", "{F5CA5438-867F-4EC4-8861-E12CF0C0674C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.AllAddons", "GitAutomation.AllAddons\GitAutomation.AllAddons.csproj", "{F5CA5438-867F-4EC4-8861-E12CF0C0674C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.SqlServer.Tests", "GitAutomation.SqlServer.Tests\GitAutomation.SqlServer.Tests.csproj", "{A127CEA4-3723-4D81-B31C-D13B9E4FF979}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -93,6 +95,10 @@ Global
 		{F5CA5438-867F-4EC4-8861-E12CF0C0674C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F5CA5438-867F-4EC4-8861-E12CF0C0674C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F5CA5438-867F-4EC4-8861-E12CF0C0674C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A127CEA4-3723-4D81-B31C-D13B9E4FF979}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A127CEA4-3723-4D81-B31C-D13B9E4FF979}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A127CEA4-3723-4D81-B31C-D13B9E4FF979}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A127CEA4-3723-4D81-B31C-D13B9E4FF979}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

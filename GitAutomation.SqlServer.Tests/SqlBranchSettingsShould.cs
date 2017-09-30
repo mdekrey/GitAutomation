@@ -1,9 +1,8 @@
 using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using DeKreyConsulting.AdoTestability;
-using GitAutomation.SqlServer;
 
-namespace GitAutomation.BranchSettings
+namespace GitAutomation.SqlServer
 {
     [TestClass]
     public class SqlBranchSettingsShould

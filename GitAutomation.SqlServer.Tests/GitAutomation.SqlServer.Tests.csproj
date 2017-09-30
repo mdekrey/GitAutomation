@@ -1,9 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>    
-    <TargetFramework>netcoreapp2.0</TargetFramework>    
-    <RootNamespace>GitAutomation</RootNamespace>
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <RootNamespace>GitAutomation.SqlServer</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="configuration.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="configuration.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="DeKreyConsulting.AdoTestability" Version="1.1.0" />
@@ -17,7 +27,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GitAutomation.Core\GitAutomation.Core.csproj" />
     <ProjectReference Include="..\GitAutomation.SqlServer\GitAutomation.SqlServer.csproj" />
   </ItemGroup>
 
