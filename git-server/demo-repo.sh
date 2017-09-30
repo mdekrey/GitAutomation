@@ -1,7 +1,5 @@
 #!/bin/bash
 
-mkdir /demo-repo
-cd /demo-repo
 git init
 
 git config user.email "unit-test@example.com"
@@ -22,6 +20,7 @@ git config user.name "Unit Tester"
 
 git checkout -B original
 touch readme.md
+touch pass-ci
 git add .
 git commit -m "Original"
 
@@ -39,6 +38,7 @@ git checkout initial
 git checkout -B conflicting-readme
 echo "Continue" >> readme.md
 git add .
+git rm pass-ci
 git commit -m "Worse Readme"
 
 git checkout initial
@@ -51,6 +51,7 @@ git checkout additional-content
 git checkout -B feature/garbage-content
 echo "\nJust keep making trash" >> additional.md
 git add .
+git rm pass-ci
 git commit -m "Garbage Content"
 
 git checkout additional-content
