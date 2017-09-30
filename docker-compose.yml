@@ -11,24 +11,35 @@ services:
       - configuration.json
     ports: 
       - "32768:80"
-  gitautomation-sql:
-    image: gitautomation-sql
+#  gitautomation-sql:
+    #image: gitautomation-sql
 #    build:
 #      context: ./GitAutomation.Sql
 #      dockerfile: Dockerfile
-    ports:
-      - "1433"
-    secrets:
-      - sqlcredentials
-      - sqleula
+#    ports:
+#      - "1433"
+#    secrets:
+#      - sqlcredentials
+#      - sqleula
+      
+  gitautomation-psql:
+    image: gitautomation-psql
+#    build:
+#      context: ./GitAutomation.Postgres
+#      dockerfile: Dockerfile
+#    ports:
+#      - "5432"
+#    secrets:
+#      - sqlcredentials
+#      - sqleula
 
 
 secrets:
   gitcredentials:
     file: ./git-credentials.txt
-  sqlcredentials:
-    file: ./sql-credentials.txt
-  sqleula:
-    file: ./sql-eula.txt
+#  sqlcredentials:
+#    file: ./sql-credentials.txt
+#  sqleula:
+#    file: ./sql-eula.txt
   configuration.json:
     file: ./configuration.json

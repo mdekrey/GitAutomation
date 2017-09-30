@@ -1,13 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>    
-    <TargetFramework>netcoreapp2.0</TargetFramework>    
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
     <RootNamespace>GitAutomation</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="configuration.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="configuration.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="DeKreyConsulting.AdoTestability" Version="1.1.0" />
-    <PackageReference Include="DeKreyConsulting.AdoTestability.Testing.SqlServer" Version="1.1.0" />
+    <PackageReference Include="DeKreyConsulting.AdoTestability.Testing.Postgres" Version="1.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="2.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.0.0" />
@@ -17,8 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GitAutomation.Core\GitAutomation.Core.csproj" />
-    <ProjectReference Include="..\GitAutomation.SqlServer\GitAutomation.SqlServer.csproj" />
+    <ProjectReference Include="..\GitAutomation.Postgres\GitAutomation.Postgres.csproj" />
   </ItemGroup>
 
   <ItemGroup>

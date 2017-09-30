@@ -199,5 +199,10 @@ namespace GitAutomation
                     return result;
                 }));
         }
+
+        public void NotifyPushedRemoteBranch(string downstreamBranch)
+        {
+            repositoryState.NotifyPushedRemoteBranch(downstreamBranch);
+        }
     }
 }
