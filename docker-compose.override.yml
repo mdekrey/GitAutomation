@@ -4,10 +4,16 @@ services:
   gitautomation:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - "./GitAutomation.AllAddons/bin/Debug/netcoreapp2.0:/extra-bins/all-addons"
       
-  gitautomation-sql:
+#  gitautomation-sql:
+#    ports:
+#      - "21433:1433"
+      
+  gitautomation-psql:
     ports:
-      - "21433:1433"
+      - "5432:5432"
 
   git-server:
     image: testing-git-server

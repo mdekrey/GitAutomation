@@ -1,17 +1,18 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26730.12
+VisualStudioVersion = 15.0.26730.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation", "GitAutomation\GitAutomation.csproj", "{8759E081-91A2-4136-9D98-516DF1D7D385}"
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{9FE4C16C-2C76-4232-8DB9-8DCFA98A695D}"
 	ProjectSection(ProjectDependencies) = postProject
 		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B} = {4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}
+		{F5CA5438-867F-4EC4-8861-E12CF0C0674C} = {F5CA5438-867F-4EC4-8861-E12CF0C0674C}
 		{8759E081-91A2-4136-9D98-516DF1D7D385} = {8759E081-91A2-4136-9D98-516DF1D7D385}
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0106BA1E-6999-46B0-BD72-7BF7D902ADCA}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_Solution Items", "_Solution Items", "{0106BA1E-6999-46B0-BD72-7BF7D902ADCA}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
 		configuration.json = configuration.json
@@ -32,7 +33,19 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.SqlServer", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.GitHub", "GitAutomation.GitHub\GitAutomation.GitHub.csproj", "{6BC8F9AD-B2E3-46F9-8E07-8998D5CA1CA0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitAutomation.Auth", "GitAutomation.Auth\GitAutomation.Auth.csproj", "{C54F4F9D-63D5-4828-AF92-CE4A7C726CD1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Auth", "GitAutomation.Auth\GitAutomation.Auth.csproj", "{C54F4F9D-63D5-4828-AF92-CE4A7C726CD1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Postgres", "GitAutomation.Postgres\GitAutomation.Postgres.csproj", "{EC63CFFB-6FE1-47CE-A516-158104647A8C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Postgres.Tests", "GitAutomation.Postgres.Tests\GitAutomation.Postgres.Tests.csproj", "{EE4FF41F-BAF5-45AF-96A5-59B9212A4F7A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.AllAddons", "GitAutomation.AllAddons\GitAutomation.AllAddons.csproj", "{F5CA5438-867F-4EC4-8861-E12CF0C0674C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.SqlServer.Tests", "GitAutomation.SqlServer.Tests\GitAutomation.SqlServer.Tests.csproj", "{A127CEA4-3723-4D81-B31C-D13B9E4FF979}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SqlServer", "SqlServer", "{56587E7C-95B5-4E98-9339-3C4CDD88967C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Postgres", "Postgres", "{1EFECA60-71D4-4BFD-B6B3-AF9B17AE5927}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -74,9 +87,32 @@ Global
 		{C54F4F9D-63D5-4828-AF92-CE4A7C726CD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C54F4F9D-63D5-4828-AF92-CE4A7C726CD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C54F4F9D-63D5-4828-AF92-CE4A7C726CD1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC63CFFB-6FE1-47CE-A516-158104647A8C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC63CFFB-6FE1-47CE-A516-158104647A8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC63CFFB-6FE1-47CE-A516-158104647A8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC63CFFB-6FE1-47CE-A516-158104647A8C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE4FF41F-BAF5-45AF-96A5-59B9212A4F7A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE4FF41F-BAF5-45AF-96A5-59B9212A4F7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE4FF41F-BAF5-45AF-96A5-59B9212A4F7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE4FF41F-BAF5-45AF-96A5-59B9212A4F7A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5CA5438-867F-4EC4-8861-E12CF0C0674C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5CA5438-867F-4EC4-8861-E12CF0C0674C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5CA5438-867F-4EC4-8861-E12CF0C0674C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5CA5438-867F-4EC4-8861-E12CF0C0674C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A127CEA4-3723-4D81-B31C-D13B9E4FF979}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A127CEA4-3723-4D81-B31C-D13B9E4FF979}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A127CEA4-3723-4D81-B31C-D13B9E4FF979}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A127CEA4-3723-4D81-B31C-D13B9E4FF979}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B} = {56587E7C-95B5-4E98-9339-3C4CDD88967C}
+		{37C446EC-43BE-4EFB-B192-5598E4E289FB} = {56587E7C-95B5-4E98-9339-3C4CDD88967C}
+		{EC63CFFB-6FE1-47CE-A516-158104647A8C} = {1EFECA60-71D4-4BFD-B6B3-AF9B17AE5927}
+		{EE4FF41F-BAF5-45AF-96A5-59B9212A4F7A} = {1EFECA60-71D4-4BFD-B6B3-AF9B17AE5927}
+		{A127CEA4-3723-4D81-B31C-D13B9E4FF979} = {56587E7C-95B5-4E98-9339-3C4CDD88967C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E0585210-A58F-49F8-AD50-BCD4EE1DD1E0}

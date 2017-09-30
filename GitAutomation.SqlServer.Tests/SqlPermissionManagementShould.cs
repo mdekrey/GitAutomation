@@ -1,11 +1,10 @@
 ﻿using DeKreyConsulting.AdoTestability;
-using GitAutomation.SqlServer;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace GitAutomation.BranchSettings
+namespace GitAutomation.SqlServer
 {
     [TestClass]
     public class SqlPermissionManagementShould
