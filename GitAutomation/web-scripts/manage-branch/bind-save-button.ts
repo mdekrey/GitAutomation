@@ -4,7 +4,7 @@ import { Selection } from "d3-selection";
 
 import { d3element, rxEvent } from "../utils/presentation/d3-binding";
 import { IManageBranch } from "./data";
-import { updateBranch } from "../api/basics";
+import { checkDownstreamMerges, updateBranch } from "../api/basics";
 
 export const bindSaveButton = (
   branchName: string,
@@ -79,7 +79,12 @@ export const bindSaveButton = (
       eventName: "click"
     })
       .switchMap(_ => getUpdateRequest())
-      .switchMap(requestBody => updateBranch(branchName, requestBody))
+      .switchMap(requestBody =>
+        updateBranch(branchName, requestBody).map(_ => branchName)
+      )
+      .switchMap(branchName =>
+        checkDownstreamMerges(branchName).map(_ => branchName)
+      )
       .do(_ => onSaved())
       // TODO - success/error message
       .subscribe({
