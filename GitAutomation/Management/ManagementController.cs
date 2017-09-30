@@ -104,6 +104,13 @@ namespace GitAutomation.Management
             }
         }
 
+        [Authorize(Auth.PolicyNames.Update)]
+        [HttpPut("branch/check-upstream/{*branchName}")]
+        public void CheckDownstreamMerges(string branchName, [FromServices] IOrchestrationActions orchestrationActions)
+        {
+            orchestrationActions.CheckDownstreamMerges(branchName);
+        }
+
         [Authorize(Auth.PolicyNames.Approve)]
         [HttpPut("branch/promote")]
         public void PromoteServiceLine([FromBody] PromoteServiceLineBody requestBody, [FromServices] IOrchestrationActions orchestrationActions)
