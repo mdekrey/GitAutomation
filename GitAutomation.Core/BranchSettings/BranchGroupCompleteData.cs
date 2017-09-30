@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GitAutomation.GitService;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
@@ -36,5 +37,6 @@ namespace GitAutomation.BranchSettings
 
         public int HierarchyDepth { get; set; }
 
+        public ImmutableList<CommitStatus> Statuses { get; set; }
     }
 }
