@@ -12,7 +12,7 @@ Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-co
 		{8759E081-91A2-4136-9D98-516DF1D7D385} = {8759E081-91A2-4136-9D98-516DF1D7D385}
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0106BA1E-6999-46B0-BD72-7BF7D902ADCA}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_Solution Items", "_Solution Items", "{0106BA1E-6999-46B0-BD72-7BF7D902ADCA}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
 		configuration.json = configuration.json
@@ -42,6 +42,10 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.AllAddons", "GitAutomation.AllAddons\GitAutomation.AllAddons.csproj", "{F5CA5438-867F-4EC4-8861-E12CF0C0674C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.SqlServer.Tests", "GitAutomation.SqlServer.Tests\GitAutomation.SqlServer.Tests.csproj", "{A127CEA4-3723-4D81-B31C-D13B9E4FF979}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SqlServer", "SqlServer", "{56587E7C-95B5-4E98-9339-3C4CDD88967C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Postgres", "Postgres", "{1EFECA60-71D4-4BFD-B6B3-AF9B17AE5927}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -102,6 +106,13 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B} = {56587E7C-95B5-4E98-9339-3C4CDD88967C}
+		{37C446EC-43BE-4EFB-B192-5598E4E289FB} = {56587E7C-95B5-4E98-9339-3C4CDD88967C}
+		{EC63CFFB-6FE1-47CE-A516-158104647A8C} = {1EFECA60-71D4-4BFD-B6B3-AF9B17AE5927}
+		{EE4FF41F-BAF5-45AF-96A5-59B9212A4F7A} = {1EFECA60-71D4-4BFD-B6B3-AF9B17AE5927}
+		{A127CEA4-3723-4D81-B31C-D13B9E4FF979} = {56587E7C-95B5-4E98-9339-3C4CDD88967C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E0585210-A58F-49F8-AD50-BCD4EE1DD1E0}
