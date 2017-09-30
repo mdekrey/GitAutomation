@@ -63,6 +63,11 @@ namespace GitAutomation.Repository
             return orchestration.EnqueueAction(new UpdateAction()).Finally(OnUpdated);
         }
 
+        public void NotifyPushedRemoteBranch(string downstreamBranch)
+        {
+            Updated?.Invoke(this, EventArgs.Empty);
+        }
+
         #endregion
 
         private IObservable<ImmutableList<GitRef>> BuildRemoteBranches()
@@ -173,7 +178,5 @@ namespace GitAutomation.Repository
                             select branch.branchName).ToArray();
                 }).Switch().Select(items => items.ToImmutableList());
         }
-
-
     }
 }

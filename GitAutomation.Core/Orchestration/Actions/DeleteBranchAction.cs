@@ -42,6 +42,7 @@ namespace GitAutomation.Orchestration.Actions
         {
             var cli = serviceProvider.GetRequiredService<GitCli>();
             var settings = serviceProvider.GetRequiredService<IBranchSettings>();
+            var repository = serviceProvider.GetRequiredService<IRepositoryMediator>();
             var unitOfWorkFactory = serviceProvider.GetRequiredService<IUnitOfWorkFactory>();
             
             return Observable.Create<OutputMessage>(async (observer, cancellationToken) =>
@@ -61,10 +62,8 @@ namespace GitAutomation.Orchestration.Actions
                 var deleteBranch = Queueable(cli.DeleteRemote(deletingBranch));
                 processes.OnNext(deleteBranch);
                 await deleteBranch;
-                
-                var fetch = Queueable(cli.Fetch());
-                processes.OnNext(fetch);
-                await fetch;
+
+                repository.NotifyPushedRemoteBranch(deletingBranch);
 
                 processes.OnCompleted();
 
