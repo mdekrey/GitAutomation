@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="cd &quot;$(ProjectDir)&quot;&#xD;&#xA;docker build -t &quot;gitautomation-psql:build&quot; -f &quot;Dockerfile-ci&quot; .&#xD;&#xA;docker run -v &quot;$(SolutionDir)$(ProjectName)&quot;:/src -w &quot;/src&quot; &quot;gitautomation-psql:build&quot;&#xD;&#xA;&#xD;&#xA;" />
+    <Exec Command="cd &quot;$(ProjectDir)&quot;&#xD;&#xA;docker build -t &quot;gitautomation-psql:build&quot; -f &quot;Dockerfile-ci&quot; . || echo 1&#xD;&#xA;docker run -v &quot;$(SolutionDir)$(ProjectName)&quot;:/src -w &quot;/src&quot; &quot;gitautomation-psql:build&quot; || echo 1&#xD;&#xA;&#xD;&#xA;" />
   </Target>
 
 </Project>
