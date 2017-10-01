@@ -45,6 +45,9 @@ This uses [.NET Core 2.0.0 SDK](https://github.com/dotnet/core/blob/master/relea
 
 1. Make sure the configuration files mentioned above are in place.
 2. `docker-compose -f docker-compose.ci.build.yml up --build`
+
+    *Note:* If you have Visual Studio running during this step, it may hang while "Building ci-build".
+
 3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.vs-fix.yml build`
 4. Launch the sln file and build.
 

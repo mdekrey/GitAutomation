@@ -45,7 +45,7 @@ SELECT BranchGroup.GroupName AS GroupName,
 SELECT BranchGroup.GroupName, BranchGroup.RecreateFromUpstream, BranchGroup.BranchType
   FROM BranchStream
   INNER JOIN BranchGroup ON BranchStream.UpstreamBranch = BranchGroup.GroupName
-  WHERE UpstreamBranch=@GroupName
+  WHERE DownstreamBranch=@GroupName
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@GroupName", p => p.DbType = System.Data.DbType.AnsiString },
@@ -340,11 +340,16 @@ WHERE BranchType='Integration' AND BranchA.UpstreamBranch=@BranchA AND BranchB.U
             return new BranchGroupDetails
             {
                 GroupName = reader["GroupName"] as string,
-                RecreateFromUpstream = (reader["RecreateFromUpstream"] as System.Collections.BitArray)?.Get(0) ?? (reader["RecreateFromUpstream"] as bool?) == true,
+                RecreateFromUpstream = ReadRecreateFromUpstream(reader),
                 BranchType = Enum.TryParse<BranchGroupType>(reader["BranchType"] as string, out var branchType)
                     ? branchType
                     : BranchGroupType.Feature,
             };
+        }
+
+        private static bool ReadRecreateFromUpstream(System.Data.IDataRecord reader)
+        {
+            return (reader["RecreateFromUpstream"] as System.Collections.BitArray)?.Get(0) ?? (reader["RecreateFromUpstream"] as bool?) == true;
         }
 
         private static BranchGroupCompleteData ReadBranchDepthDetails(System.Data.IDataRecord reader)
@@ -352,7 +357,7 @@ WHERE BranchType='Integration' AND BranchA.UpstreamBranch=@BranchA AND BranchB.U
             return new BranchGroupCompleteData
             {
                 GroupName = reader["GroupName"] as string,
-                RecreateFromUpstream = (reader["RecreateFromUpstream"] as System.Collections.BitArray)[0],
+                RecreateFromUpstream = ReadRecreateFromUpstream(reader),
                 BranchType = Enum.TryParse<BranchGroupType>(reader["BranchType"] as string, out var branchType)
                     ? branchType
                     : BranchGroupType.Feature,

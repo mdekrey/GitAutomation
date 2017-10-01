@@ -195,7 +195,7 @@ namespace GitAutomation
             var nonconfiguredBranchesResult = await nonconfiguredBranches.ToObservable().SelectMany(async branch =>
             {
                 var result = await factory(branch);
-                result.BranchNames = Enumerable.Repeat(branch, 1).ToImmutableList();
+                result.BranchNames = result.BranchNames ?? Enumerable.Repeat(branch, 1).ToImmutableList();
                 return result;
             }).ToArray();
             return configuredBranches.Values
