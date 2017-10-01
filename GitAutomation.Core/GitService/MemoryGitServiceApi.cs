@@ -9,7 +9,7 @@ namespace GitAutomation.GitService
 {
     class MemoryGitServiceApi : IGitServiceApi
     {
-        readonly HashSet<Tuple<string, string>> pullRequests = new HashSet<Tuple<string, string>>();
+        readonly Dictionary<Tuple<string, string>, PullRequest> pullRequests = new Dictionary<Tuple<string, string>, PullRequest>();
 
         public Task<ImmutableList<CommitStatus>> GetCommitStatus(string commitSha)
         {
@@ -21,17 +21,23 @@ namespace GitAutomation.GitService
             return Task.FromResult(ImmutableList<PullRequestReview>.Empty);
         }
 
-        public Task<bool> HasOpenPullRequest(string targetBranch = null, string sourceBranch = null)
+        public Task<ImmutableList<PullRequest>> GetPullRequests(PullRequestState? state = PullRequestState.Open, string targetBranch = null, string sourceBranch = null)
         {
-            var hasOpenPullRequest = pullRequests.Any(ex => (targetBranch == null || ex.Item1 == targetBranch) && (sourceBranch == null || ex.Item2 == sourceBranch));
-            return Task.FromResult(hasOpenPullRequest);
+            return Task.FromResult(
+                pullRequests.Values
+                    .Where(ex => (state == null || ex.State == state) && (targetBranch == null || ex.TargetBranch == targetBranch) && (sourceBranch == null || ex.SourceBranch == sourceBranch))
+                    .ToImmutableList()
+            );
         }
 
         public Task<bool> OpenPullRequest(string title, string targetBranch, string sourceBranch, string body = null)
         {
-            if (!pullRequests.Contains(new Tuple<string, string>(targetBranch, sourceBranch)))
+            if (!pullRequests.ContainsKey(new Tuple<string, string>(targetBranch, sourceBranch)))
             {
-                pullRequests.Add(new Tuple<string, string>(targetBranch, sourceBranch));
+                pullRequests.Add(
+                    new Tuple<string, string>(targetBranch, sourceBranch), 
+                    new PullRequest { TargetBranch = targetBranch, SourceBranch = sourceBranch }
+                );
             }
             return Task.FromResult(true);
         }

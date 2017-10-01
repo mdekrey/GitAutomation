@@ -44,7 +44,7 @@ namespace GitAutomation.GitHub
 
         async Task<bool> IGitServiceApi.OpenPullRequest(string title, string targetBranch, string sourceBranch, string body)
         {
-            var hasPr = await HasOpenPullRequest(targetBranch: targetBranch, sourceBranch: sourceBranch);
+            var hasPr = await this.HasOpenPullRequest(targetBranch, sourceBranch);
 
             if (!hasPr)
             {
@@ -70,12 +70,14 @@ namespace GitAutomation.GitHub
             }
         }
         
-        public async Task<bool> HasOpenPullRequest(string targetBranch = null, string sourceBranch = null)
+        public async Task<ImmutableList<PullRequest>> GetPullRequests(PullRequestState? state = PullRequestState.Open, string targetBranch = null, string sourceBranch = null)
         {
-            var nvc = new NameValueCollection
-            {
-                { "state", "open" }
-            };
+            var nvc = new NameValueCollection();
+            nvc.Add("state", 
+                state == null ? "all"
+                : state == PullRequestState.Open ? "open" 
+                : "closed"
+            );
             if (sourceBranch != null)
             {
                 nvc.Add("head", FullBranchRef(sourceBranch));
@@ -89,13 +91,15 @@ namespace GitAutomation.GitHub
                 await EnsureSuccessStatusCode(response);
                 var responseString = await response.Content.ReadAsStringAsync();
                 var token = JArray.Parse(responseString);
-                return token.Count >= 1;
+                return (from entry in token
+                        select new PullRequest
+                        {
+                            Id = entry["id"].ToString(),
+                            State = entry["state"].ToString() == "open" ? PullRequestState.Open : PullRequestState.Closed,
+                            TargetBranch = entry["base"]["ref"].ToString(),
+                            SourceBranch = entry["head"]["ref"].ToString(),
+                        }).ToImmutableList();
             }
-        }
-
-        public Task<ImmutableList<PullRequestReview>> GetPullRequestReviews(string targetBranch)
-        {
-            throw new NotImplementedException();
         }
 
         public async Task<ImmutableList<CommitStatus>> GetCommitStatus(string commitSha)
