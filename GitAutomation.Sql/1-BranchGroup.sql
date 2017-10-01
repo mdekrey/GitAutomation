@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[DownstreamBranch]
+﻿CREATE TABLE [dbo].[BranchGroup]
 (
     [GroupName] NVARCHAR(255) PRIMARY KEY, 
     [RecreateFromUpstream] BIT NOT NULL DEFAULT 0 , 

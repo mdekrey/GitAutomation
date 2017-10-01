@@ -1,4 +1,4 @@
-﻿CREATE TABLE DownstreamBranch
+﻿CREATE TABLE BranchGroup
 (
     GroupName VARCHAR(255) PRIMARY KEY,
     RecreateFromUpstream BIT NOT NULL DEFAULT '0' ,
