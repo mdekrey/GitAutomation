@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[UpstreamBranch]
+﻿CREATE TABLE [dbo].[BranchStream]
 (
     [DownstreamBranch] NVARCHAR(255) NOT NULL,
     [GroupName] NVARCHAR(255) NOT NULL, 
@@ -8,4 +8,4 @@
 
 GO
 
-CREATE INDEX [IX_UpstreamBranch_GroupName] ON [dbo].[UpstreamBranch] ([GroupName])
+CREATE INDEX [IX_BranchStream_GroupName] ON [dbo].[BranchStream] ([GroupName])
