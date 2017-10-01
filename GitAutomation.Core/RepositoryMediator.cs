@@ -200,6 +200,7 @@ namespace GitAutomation
             {
                 var result = await factory(branch);
                 result.BranchNames = Enumerable.Repeat(branch, 1).ToImmutableList();
+                result.Statuses = ImmutableList<CommitStatus>.Empty;
                 return result;
             }).ToArray();
             return configuredBranches.Values

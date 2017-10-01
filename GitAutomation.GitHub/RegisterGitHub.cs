@@ -57,6 +57,7 @@ namespace GitAutomation.GitHub
         public void RegisterGitServiceApi(IServiceCollection services, IConfiguration configuration)
         {
             services.AddSingleton<IGitServiceApi, GitHubServiceApi>();
+            services.Configure<GithubServiceApiOptions>(configuration.GetSection("github"));
         }
     }
 }

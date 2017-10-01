@@ -21,17 +21,20 @@ namespace GitAutomation.GitHub
     {
         private static Regex githubUrlParse = new Regex(@"^/?(?<owner>[^/]+)/(?<repository>[^/]+)");
 
-        private readonly GitRepositoryOptions options;
+        private readonly GitRepositoryOptions repositoryOptions;
+        private readonly GithubServiceApiOptions serviceOptions;
+
         private readonly string owner;
         private readonly string repository;
         private readonly string username;
         private readonly HttpClient client;
 
-        public GitHubServiceApi(IOptions<GitRepositoryOptions> options, Func<HttpClient> clientFactory)
+        public GitHubServiceApi(IOptions<GitRepositoryOptions> options, IOptions<GithubServiceApiOptions> serviceOptions, Func<HttpClient> clientFactory)
         {
             // TODO - ETag/304 the GET requests
-            this.options = options.Value;
-            var repository = new UriBuilder(this.options.Repository);
+            this.repositoryOptions = options.Value;
+            this.serviceOptions = serviceOptions.Value;
+            var repository = new UriBuilder(this.repositoryOptions.Repository);
             this.username = repository.UserName;
             var match = githubUrlParse.Match(repository.Path);
             this.owner = match.Groups["owner"].Value;
@@ -97,6 +100,10 @@ namespace GitAutomation.GitHub
 
         public async Task<ImmutableList<CommitStatus>> GetCommitStatus(string commitSha)
         {
+            if (!serviceOptions.CheckStatus)
+            {
+                return ImmutableList<CommitStatus>.Empty;
+            }
 
             var nvc = new NameValueCollection
             {
@@ -139,7 +146,7 @@ namespace GitAutomation.GitHub
             client.BaseAddress = new Uri("https://api.github.com");
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
                 "Basic",
-                Convert.ToBase64String(Encoding.ASCII.GetBytes($"{this.username}:{this.options.Password}"))
+                Convert.ToBase64String(Encoding.ASCII.GetBytes($"{this.username}:{this.serviceOptions.Password}"))
             );
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
