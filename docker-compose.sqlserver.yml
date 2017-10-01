@@ -1,0 +1,16 @@
+version: '3.1'
+
+services:
+  gitautomation-sql:
+    image: gitautomation-sql
+    ports:
+      - "21433:1433"
+    secrets:
+      - sqlcredentials
+      - sqleula
+
+secrets:
+  sqlcredentials:
+    file: ./sql-credentials.txt
+  sqleula:
+    file: ./sql-eula.txt

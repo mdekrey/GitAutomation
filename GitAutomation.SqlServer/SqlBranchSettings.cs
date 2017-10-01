@@ -22,13 +22,8 @@ namespace GitAutomation.SqlServer
 
         public static readonly CommandBuilder GetConfiguredBranchesCommand = new CommandBuilder(
             commandText: @"
-SELECT [Branch].GroupName,
-		COALESCE([BranchGroup].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
-		COALESCE([BranchGroup].BranchType, 'Feature') AS [BranchType]
-  FROM (
-	SELECT GroupName FROM [BranchStream] UNION SELECT GroupName FROM [BranchGroup] GROUP BY GroupName
-) AS [Branch]
-  LEFT JOIN [BranchGroup] ON [Branch].GroupName = [BranchGroup].GroupName
+SELECT GroupName, RecreateFromUpstream, BranchType
+FROM [BranchGroup]
 ");
 
         public static readonly CommandBuilder GetDownstreamBranchesCommand = new CommandBuilder(
@@ -38,7 +33,7 @@ SELECT [BranchGroup].GroupName AS [GroupName],
 		[BranchGroup].BranchType AS [BranchType]
   FROM [BranchStream]
   INNER JOIN [BranchGroup] ON [BranchStream].DownstreamBranch = [BranchGroup].GroupName
-  WHERE [BranchStream].[GroupName]=@GroupName
+  WHERE [BranchStream].[UpstreamBranch]=@GroupName
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@GroupName", p => p.DbType = System.Data.DbType.AnsiString },
@@ -46,11 +41,9 @@ SELECT [BranchGroup].GroupName AS [GroupName],
 
         public static readonly CommandBuilder GetUpstreamBranchesCommand = new CommandBuilder(
             commandText: @"
-SELECT COALESCE([BranchStream].GroupName, [BranchGroup].GroupName) AS [GroupName],
-		COALESCE([BranchGroup].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
-		COALESCE([BranchGroup].BranchType, 'Feature') AS [BranchType]
+SELECT GroupName, RecreateFromUpstream, BranchType
   FROM [BranchStream]
-  LEFT JOIN [BranchGroup] ON [BranchStream].GroupName = [BranchGroup].GroupName
+  INNER JOIN [BranchGroup] ON [BranchStream].UpstreamBranch = [BranchGroup].GroupName
   WHERE [DownstreamBranch]=@GroupName
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
@@ -59,46 +52,40 @@ SELECT COALESCE([BranchStream].GroupName, [BranchGroup].GroupName) AS [GroupName
 
         public static readonly CommandBuilder GetAllDownstreamBranchesCommand = new CommandBuilder(
             commandText: @"
-WITH RecursiveDownstream ( DownstreamBranch, GroupName, Ordinal )
+WITH RecursiveDownstream ( DownstreamBranch, UpstreamBranch, Ordinal )
 AS (
-	SELECT GroupName AS DownstreamBranch, GroupName, 0 FROM [BranchGroup]
-UNION
-	SELECT GroupName AS DownstreamBranch, GroupName, 0 FROM [BranchStream]
+	SELECT GroupName AS DownstreamBranch, NULL, 0 FROM [BranchGroup]
 UNION ALL
-	SELECT [BranchStream].DownstreamBranch, RecursiveDownstream.GroupName, RecursiveDownstream.Ordinal + 1
+	SELECT [BranchStream].DownstreamBranch, RecursiveDownstream.UpstreamBranch, RecursiveDownstream.Ordinal + 1
 	FROM [BranchStream]
-	INNER JOIN RecursiveDownstream ON RecursiveDownstream.DownstreamBranch = [BranchStream].GroupName
+	INNER JOIN RecursiveDownstream ON RecursiveDownstream.DownstreamBranch = [BranchStream].UpstreamBranch
 )
-SELECT COALESCE([BranchStream].DownstreamBranch, [BranchGroup].GroupName) AS [GroupName],
-		COALESCE([BranchGroup].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
-		COALESCE([BranchGroup].BranchType, 'Feature') AS [BranchType],
+SELECT BranchGroup.GroupName, BranchGroup.RecreateFromUpstream, BranchGroup.BranchType,
         Ordinal
   FROM (SELECT DownstreamBranch, MAX(Ordinal) AS Ordinal
 		  FROM RecursiveDownstream
 		  GROUP BY DownstreamBranch
 		) AS [BranchStream]
-  LEFT JOIN [BranchGroup] ON [BranchStream].DownstreamBranch = [BranchGroup].GroupName
+  INNER JOIN [BranchGroup] ON [BranchStream].DownstreamBranch = [BranchGroup].GroupName
   ORDER BY Ordinal, [BranchStream].DownstreamBranch
 ");
 
         public static readonly CommandBuilder GetAllDownstreamBranchesFromBranchCommand = new CommandBuilder(
             commandText: @"
-WITH RecursiveUpstream ( DownstreamBranch, GroupName, Ordinal )
+WITH RecursiveUpstream ( DownstreamBranch, UpstreamBranch, Ordinal )
 AS (
-	SELECT DownstreamBranch, GroupName, 1 FROM [BranchStream] WHERE GroupName=@GroupName
+	SELECT DownstreamBranch, UpstreamBranch, 1 FROM [BranchStream] WHERE UpstreamBranch=@GroupName
 UNION ALL
-	SELECT [BranchStream].DownstreamBranch, RecursiveUpstream.GroupName, RecursiveUpstream.Ordinal + 1
+	SELECT [BranchStream].DownstreamBranch, RecursiveUpstream.UpstreamBranch, RecursiveUpstream.Ordinal + 1
 	FROM [BranchStream]
-	INNER JOIN RecursiveUpstream ON RecursiveUpstream.DownstreamBranch = [BranchStream].GroupName
+	INNER JOIN RecursiveUpstream ON RecursiveUpstream.DownstreamBranch = [BranchStream].UpstreamBranch
 )
-SELECT COALESCE([BranchStream].DownstreamBranch, [BranchGroup].GroupName) AS [GroupName],
-		COALESCE([BranchGroup].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
-		COALESCE([BranchGroup].BranchType, 'Feature') AS [BranchType]
+SELECT BranchGroup.GroupName, BranchGroup.RecreateFromUpstream, BranchGroup.BranchType
   FROM (SELECT DownstreamBranch, MIN(Ordinal) AS Ordinal
 		  FROM RecursiveUpstream
-		  GROUP BY DownstreamBranch, GroupName
+		  GROUP BY DownstreamBranch, UpstreamBranch
 		) AS [BranchStream]
-  LEFT JOIN [BranchGroup] ON [BranchStream].DownstreamBranch = [BranchGroup].GroupName
+  INNER JOIN [BranchGroup] ON [BranchStream].DownstreamBranch = [BranchGroup].GroupName
   ORDER BY Ordinal, [BranchStream].DownstreamBranch
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
@@ -107,23 +94,21 @@ SELECT COALESCE([BranchStream].DownstreamBranch, [BranchGroup].GroupName) AS [Gr
 
         public static readonly CommandBuilder GetAllUpstreamBranchesCommand = new CommandBuilder(
             commandText: @"
-WITH RecursiveDownstream ( DownstreamBranch, GroupName, Ordinal )
+WITH RecursiveDownstream ( DownstreamBranch, UpstreamBranch, Ordinal )
 AS (
-	SELECT DownstreamBranch, GroupName, 1 FROM [BranchStream] WHERE DownstreamBranch=@GroupName
+	SELECT DownstreamBranch, UpstreamBranch, 1 FROM [BranchStream] WHERE DownstreamBranch=@GroupName
 UNION ALL
-	SELECT RecursiveDownstream.DownstreamBranch, [BranchStream].GroupName, RecursiveDownstream.Ordinal + 1
+	SELECT RecursiveDownstream.DownstreamBranch, [BranchStream].UpstreamBranch, RecursiveDownstream.Ordinal + 1
 	FROM [BranchStream]
-	INNER JOIN RecursiveDownstream ON [BranchStream].DownstreamBranch = RecursiveDownstream.GroupName
+	INNER JOIN RecursiveDownstream ON [BranchStream].DownstreamBranch = RecursiveDownstream.UpstreamBranch
 )
-SELECT COALESCE([BranchStream].GroupName, [BranchGroup].GroupName) AS [GroupName],
-		COALESCE([BranchGroup].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
-		COALESCE([BranchGroup].BranchType, 'Feature') AS [BranchType]
-  FROM (SELECT [GroupName], MAX(RecursiveDownstream.Ordinal) AS Ordinal
+SELECT BranchGroup.GroupName, BranchGroup.RecreateFromUpstream, BranchGroup.BranchType
+  FROM (SELECT [UpstreamBranch], MAX(RecursiveDownstream.Ordinal) AS Ordinal
 		  FROM RecursiveDownstream
-		  GROUP BY DownstreamBranch, GroupName
+		  GROUP BY DownstreamBranch, UpstreamBranch
 		) AS [BranchStream]
-  LEFT JOIN [BranchGroup] ON [BranchStream].GroupName = [BranchGroup].GroupName
-  ORDER BY Ordinal DESC, [BranchStream].GroupName
+  INNER JOIN [BranchGroup] ON [BranchStream].UpstreamBranch = [BranchGroup].GroupName
+  ORDER BY Ordinal DESC, [BranchStream].UpstreamBranch
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@GroupName", p => p.DbType = System.Data.DbType.AnsiString },
@@ -131,19 +116,19 @@ SELECT COALESCE([BranchStream].GroupName, [BranchGroup].GroupName) AS [GroupName
 
         public static readonly CommandBuilder GetAllUpstreamRemovableBranchesCommand = new CommandBuilder(
             commandText: @"
-WITH RecursiveDownstream ( DownstreamBranch, GroupName )
+WITH RecursiveDownstream ( DownstreamBranch, UpstreamBranch )
 AS (
-	SELECT DownstreamBranch, GroupName FROM [BranchStream] WHERE DownstreamBranch=@GroupName
+	SELECT DownstreamBranch, UpstreamBranch FROM [BranchStream] WHERE DownstreamBranch=@GroupName
 UNION ALL
-	SELECT RecursiveDownstream.DownstreamBranch, [BranchStream].GroupName
+	SELECT RecursiveDownstream.DownstreamBranch, [BranchStream].UpstreamBranch
 	FROM [BranchStream]
-	INNER JOIN RecursiveDownstream ON [BranchStream].DownstreamBranch = RecursiveDownstream.GroupName
+	INNER JOIN RecursiveDownstream ON [BranchStream].DownstreamBranch = RecursiveDownstream.UpstreamBranch
 )
-SELECT RecursiveDownstream.[GroupName]
+SELECT RecursiveDownstream.[UpstreamBranch]
   FROM RecursiveDownstream
-  LEFT JOIN [BranchGroup] ON RecursiveDownstream.GroupName=[BranchGroup].GroupName
-  WHERE COALESCE([BranchGroup].BranchType, 'Feature') != 'ServiceLine'
-  GROUP BY DownstreamBranch, RecursiveDownstream.GroupName
+  INNER JOIN [BranchGroup] ON RecursiveDownstream.UpstreamBranch=[BranchGroup].GroupName
+  WHERE [BranchGroup].BranchType != 'ServiceLine'
+  GROUP BY DownstreamBranch, RecursiveDownstream.UpstreamBranch
   ORDER BY DownstreamBranch
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
@@ -157,7 +142,12 @@ USING (SELECT @DownstreamBranch AS GroupName) AS NewDownstream
 ON Downstream.GroupName = NewDownstream.GroupName
 WHEN NOT MATCHED THEN INSERT (GroupName) VALUES (NewDownstream.GroupName);
 
-INSERT INTO [BranchStream] (GroupName, DownstreamBranch)
+MERGE INTO [BranchGroup] AS Upstream
+USING (SELECT @UpstreamBranch AS GroupName) AS NewUpstream
+ON Upstream.GroupName = NewUpstream.GroupName
+WHEN NOT MATCHED THEN INSERT (GroupName) VALUES (NewUpstream.GroupName);
+
+INSERT INTO [BranchStream] (UpstreamBranch, DownstreamBranch)
 VALUES (@UpstreamBranch, @DownstreamBranch)
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
@@ -168,7 +158,7 @@ VALUES (@UpstreamBranch, @DownstreamBranch)
         public static readonly CommandBuilder RemoveBranchPropagationCommand = new CommandBuilder(
             commandText: @"
 DELETE FROM [BranchStream]
-WHERE GroupName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
+WHERE UpstreamBranch=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@UpstreamBranch", p => p.DbType = System.Data.DbType.AnsiString },
@@ -216,7 +206,7 @@ WHEN NOT MATCHED THEN INSERT (
         public static readonly CommandBuilder DeleteBranchSettingsCommand = new CommandBuilder(
             commandText: @"
 DELETE FROM [BranchStream]
-WHERE  [GroupName]=@GroupName OR [DownstreamBranch]=@GroupName
+WHERE  [UpstreamBranch]=@GroupName OR [DownstreamBranch]=@GroupName
 
 DELETE FROM [BranchGroup]
 WHERE  [GroupName]=@GroupName
@@ -235,13 +225,13 @@ WHEN NOT MATCHED THEN INSERT (GroupName, RecreateFromUpstream, BranchType) VALUE
 MERGE INTO [BranchStream] AS T
 USING (SELECT BranchStream.DownstreamBranch
 		FROM BranchStream
-		WHERE BranchStream.GroupName = @GroupName
+		WHERE BranchStream.UpstreamBranch = @GroupName
 		GROUP BY BranchStream.DownstreamBranch) AS NewDownstream
-ON T.DownstreamBranch = NewDownstream.DownstreamBranch AND T.GroupName=@ReplacementGroupName
-WHEN NOT MATCHED THEN INSERT (GroupName, DownstreamBranch) VALUES (@ReplacementGroupName, NewDownstream.DownstreamBranch);
+ON T.DownstreamBranch = NewDownstream.DownstreamBranch AND T.UpstreamBranch=@ReplacementGroupName
+WHEN NOT MATCHED THEN INSERT (UpstreamBranch, DownstreamBranch) VALUES (@ReplacementGroupName, NewDownstream.DownstreamBranch);
 
 DELETE FROM [BranchStream]
-WHERE GroupName = @GroupName OR DownstreamBranch=@GroupName;
+WHERE UpstreamBranch = @GroupName OR DownstreamBranch=@GroupName;
 
 DELETE FROM [BranchGroup]
 WHERE GroupName = @GroupName;
@@ -257,14 +247,14 @@ SELECT
 	[BranchGroup].GroupName,
 	[BranchGroup].RecreateFromUpstream,
 	[BranchGroup].BranchType,
-	BranchA.GroupName As BranchA,
-	BranchB.GroupName as BranchB,
-	BranchC.GroupName as BranchC
+	BranchA.UpstreamBranch As BranchA,
+	BranchB.UpstreamBranch as BranchB,
+	BranchC.UpstreamBranch as BranchC
 	FROM [dbo].[BranchGroup]
 LEFT JOIN [dbo].[BranchStream] as BranchA ON BranchA.DownstreamBranch=[BranchGroup].GroupName
-LEFT JOIN [dbo].[BranchStream] as BranchB ON BranchB.DownstreamBranch=[BranchGroup].GroupName AND BranchA.GroupName < BranchB.GroupName
-LEFT JOIN [dbo].[BranchStream] as BranchC ON BranchC.DownstreamBranch=[BranchGroup].GroupName AND BranchB.GroupName < BranchC.GroupName
-WHERE BranchType='Integration' AND BranchA.GroupName=@BranchA AND BranchB.GroupName=@BranchB AND BranchC.GroupName IS NULL
+LEFT JOIN [dbo].[BranchStream] as BranchB ON BranchB.DownstreamBranch=[BranchGroup].GroupName AND BranchA.UpstreamBranch < BranchB.UpstreamBranch
+LEFT JOIN [dbo].[BranchStream] as BranchC ON BranchC.DownstreamBranch=[BranchGroup].GroupName AND BranchB.UpstreamBranch < BranchC.UpstreamBranch
+WHERE BranchType='Integration' AND BranchA.UpstreamBranch=@BranchA AND BranchB.UpstreamBranch=@BranchB AND BranchC.UpstreamBranch IS NULL
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@BranchA", p => p.DbType = System.Data.DbType.AnsiString },

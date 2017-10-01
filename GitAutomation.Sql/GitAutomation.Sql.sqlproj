@@ -78,7 +78,7 @@
   <PropertyGroup>
     <PostBuildEvent>cd "$(ProjectDir)"
 docker build -t "gitautomation-sql:build" -f "Dockerfile-ci" .
-docker run -v "$(SolutionDir)$(ProjectName)":/src -w "/src" "gitautomation-sql:build"
+docker run --rm -v "$(SolutionDir)$(ProjectName)":/src -w "/src" "gitautomation-sql:build"
 docker build -t "gitautomation-sql" .
 </PostBuildEvent>
   </PropertyGroup>

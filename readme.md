@@ -87,7 +87,9 @@ And then to run it...
 
 # SQL Server
 
-The Docker SQL Server images require at least 3.5GB of RAM. See https://github.com/Microsoft/mssql-docker/issues/114 for how to set the memory requirements. 
+We don't use SQL Server by default due to the extra requirements, size of images, etc.
+
+The Docker SQL Server images require at least 3.5GB of RAM. See https://github.com/Microsoft/mssql-docker/issues/114 for how to set the memory requirements.
 
 To run the SQL docker container, you must accept the EULA. It is also linked to from [the dockerhub page](https://hub.docker.com/r/microsoft/mssql-server-linux/). The express edition will be available at GA, they say.
 
@@ -95,3 +97,19 @@ To run the SQL docker container, you must accept the EULA. It is also linked to 
 
  * /sql-credentials.txt - the password to set up for the SA role for the dockerized SQL container. Not persisted in the docker image for security purposes.
  * /sql-eula.txt - whether you agree to Microsoft's EULA for the SQL docker container. Should contain a single 'Y' if you do.
+
+## Steps to use
+
+These steps won't add it to your debugging container. Still working on that...
+
+1. Build the `GitAutomation.Sql` project via Visual Studio. It registers your docker image. Alternatively:
+
+        cd "GitAutomation.Sql"
+        docker build -t "gitautomation-sql:build" -f "Dockerfile-ci" .
+        docker run --rm -v "$(pwd)":/src -w "/src" "gitautomation-sql:build"
+        docker build -t "gitautomation-sql" .
+        cd ".."
+
+2. Start the SQL Server docker-compose with the rest:
+
+        docker-compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.sqlserver.yml up --build

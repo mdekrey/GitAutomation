@@ -199,6 +199,11 @@ namespace GitAutomation
                 return result;
             }).ToArray();
             return configuredBranches.Values
+                .Select(group =>
+                {
+                    group.BranchNames = group.BranchNames ?? ImmutableList<string>.Empty;
+                    return group;
+                })
                 .Concat(nonconfiguredBranchesResult);
         }
 
