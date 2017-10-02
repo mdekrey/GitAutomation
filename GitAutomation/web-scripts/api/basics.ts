@@ -1,10 +1,8 @@
 import { Observable } from "rxjs";
 import { OutputMessage } from "./output-message";
-import { BasicBranch } from "./basic-branch";
-import { BranchDetails } from "./branch-details";
+import { BranchGroup } from "./basic-branch";
 import { ClaimDetails } from "./claim-details";
 import { IUpdateUserRequestBody } from "./update-user";
-import { BranchHierarchy } from "./branch-hierarchy";
 
 export const currentClaims = () =>
   Observable.ajax("/api/authentication/claims").map(
@@ -36,22 +34,34 @@ export const actionQueue = () =>
 
 export const allBranches = () =>
   Observable.ajax("/api/management/all-branches").map(
-    response => response.response as BasicBranch[]
+    response => response.response as BranchGroup[]
   );
 
 export const allBranchesHierarchy = () =>
   Observable.ajax("/api/management/all-branches/hierarchy").map(
-    response => response.response as BranchHierarchy[]
+    response => response.response as BranchGroup[]
   );
 
 export const branchDetails = (branchName: string) =>
   Observable.ajax("/api/management/details/" + branchName).map(
-    response => response.response as BranchDetails
+    response => response.response as BranchGroup
   );
 
 export const detectUpstream = (branchName: string) =>
   Observable.ajax("/api/management/detect-upstream/" + branchName).map(
     response => response.response as string[]
+  );
+
+export const checkPullRequests = (branchName: string) =>
+  Observable.ajax("/api/management/check-prs/" + branchName).map(
+    response =>
+      response.response as {
+        reviews: { username: string; state: string[] }[];
+        state: string;
+        sourceBranch: string;
+        targetBranch: string;
+        id: string;
+      }[]
   );
 
 export const getLog = () =>

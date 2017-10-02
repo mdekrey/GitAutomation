@@ -17,8 +17,9 @@ import {
   signOut
 } from "../api/basics";
 import { logPresentation } from "../logs/log.presentation";
-import { BasicBranch } from "../api/basic-branch";
+import { BranchGroup } from "../api/basic-branch";
 import { branchHierarchy } from "./branch-hierarchy";
+import { branchNameDisplay } from "../branch-name-display";
 
 export const homepage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -117,7 +118,7 @@ export const homepage = (
 
         // display branches
         subscription.add(
-          rxData<BasicBranch, HTMLUListElement>(
+          rxData<BranchGroup, HTMLUListElement>(
             body.map(fnSelect(`[data-locator="remote-branches"]`)),
             rxEvent({
               target: body.map(
@@ -135,13 +136,12 @@ export const homepage = (
                   .attr("data-locator", "remote-branch"),
               onEnter: li =>
                 li.html(`
-  <span></span>
   <a data-locator="manage">Manage</a>
   <ul data-locator="actual-branches"></ul>
 `),
               selector: `li[data-locator="remote-branch"]`,
               onEach: selection => {
-                selection.select(`span`).text(data => data.branchName);
+                branchNameDisplay(selection);
                 subscription.add(
                   rxEvent({
                     target: Observable.of(
@@ -150,7 +150,7 @@ export const homepage = (
                     eventName: "click"
                   }).subscribe(event =>
                     state.navigate({
-                      url: "/manage/" + event.datum.branchName,
+                      url: "/manage/" + event.datum.groupName,
                       replaceCurentHistory: false
                     })
                   )
@@ -163,7 +163,7 @@ export const homepage = (
                   branch
                     .select(`[data-locator="actual-branches"]`)
                     .selectAll(`li`)
-                    .data(basicBranch => basicBranch.branchNames || [])
+                    .data(basicBranch => basicBranch.branchNames)
                 )
                 .map(target =>
                   bind({

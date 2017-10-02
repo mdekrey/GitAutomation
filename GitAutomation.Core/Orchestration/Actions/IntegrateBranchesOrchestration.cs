@@ -51,7 +51,7 @@ namespace GitAutomation.Orchestration.Actions
             this.settings = settings;
         }
 
-        public async Task<IntegrationBranchResult> FindAndCreateIntegrationBranches(BranchDetails downstreamDetails, IEnumerable<string> initialUpstreamBranches, AttemptMergeDelegate doMerge)
+        public async Task<IntegrationBranchResult> FindAndCreateIntegrationBranches(BranchGroupCompleteData downstreamDetails, IEnumerable<string> initialUpstreamBranches, AttemptMergeDelegate doMerge)
         {
             // 1. Find branches that conflict
             // 2. Create integration branches for them
@@ -217,12 +217,12 @@ namespace GitAutomation.Orchestration.Actions
                         settings.CreateIntegrationBranch(conflict.BranchA, conflict.BranchB, integrationBranch, work);
                         orchestration.EnqueueAction(new MergeDownstreamAction(integrationBranch)).Subscribe();
                     }
-                    if (!downstreamDetails.UpstreamBranches.Any(b => b.BranchName == integrationBranch))
+                    if (!downstreamDetails.UpstreamBranchGroups.Any(b => b == integrationBranch))
                     {
                         addedIntegrationBranch = true;
-                        settings.AddBranchPropagation(integrationBranch, downstreamDetails.BranchName, work);
-                        settings.RemoveBranchPropagation(conflict.BranchA, downstreamDetails.BranchName, work);
-                        settings.RemoveBranchPropagation(conflict.BranchB, downstreamDetails.BranchName, work);
+                        settings.AddBranchPropagation(integrationBranch, downstreamDetails.GroupName, work);
+                        settings.RemoveBranchPropagation(conflict.BranchA, downstreamDetails.GroupName, work);
+                        settings.RemoveBranchPropagation(conflict.BranchB, downstreamDetails.GroupName, work);
                     }
                 }
                 await work.CommitAsync();
@@ -248,9 +248,10 @@ namespace GitAutomation.Orchestration.Actions
         {
             if (!upstreamBranchListings.ContainsKey(branch))
             {
+                // FIXME - this should return the latest of each branch group instead
                 upstreamBranchListings[branch] = (
                     from b in (await settings.GetUpstreamBranches(branch).FirstOrDefaultAsync())
-                    select b.BranchName
+                    select b.GroupName
                 ).ToImmutableList();
             }
             return upstreamBranchListings[branch];

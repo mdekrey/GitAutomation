@@ -8,5 +8,12 @@ RUN apt-get update && apt-get install -y curl apt-transport-https && \
     echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
     apt-get update && apt-get install -y yarn
 
+WORKDIR /var/build
 
-CMD /bin/bash -c "cd GitAutomation && yarn && yarn build && cd .. && dotnet restore ./GitAutomation.sln && dotnet publish ./GitAutomation.sln -c ci-docker -o ./obj/Docker/publish"
+COPY GitAutomation/package.json GitAutomation/yarn.lock ./GitAutomation/
+RUN cd GitAutomation && yarn && cd ..
+
+COPY **/*.csproj *.sln ./
+RUN dotnet restore ./GitAutomation.sln
+
+CMD ./ci/build-and-test.sh

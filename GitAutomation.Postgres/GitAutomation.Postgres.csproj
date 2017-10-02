@@ -13,4 +13,8 @@
     <ProjectReference Include="..\GitAutomation.Core\GitAutomation.Core.csproj" />
   </ItemGroup>
 
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="cd &quot;$(ProjectDir)&quot;&#xD;&#xA;docker build -t &quot;gitautomation-psql:build&quot; -f &quot;Dockerfile-ci&quot; . || echo 1&#xD;&#xA;docker run --rm -v &quot;$(SolutionDir)$(ProjectName)&quot;:/src -w &quot;/src&quot; &quot;gitautomation-psql:build&quot; || echo 1&#xD;&#xA;docker build -t &quot;gitautomation-psql&quot; . || echo 1&#xD;&#xA;" />
+  </Target>
+
 </Project>

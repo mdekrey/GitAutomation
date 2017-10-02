@@ -45,6 +45,9 @@ This uses [.NET Core 2.0.0 SDK](https://github.com/dotnet/core/blob/master/relea
 
 1. Make sure the configuration files mentioned above are in place.
 2. `docker-compose -f docker-compose.ci.build.yml up --build`
+
+    *Note:* If you have Visual Studio running during this step, it may hang while "Building ci-build".
+
 3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.vs-fix.yml build`
 4. Launch the sln file and build.
 
@@ -84,11 +87,31 @@ And then to run it...
 
 # SQL Server
 
-The Docker SQL Server images require at least 3.5GB of RAM. See https://github.com/Microsoft/mssql-docker/issues/114 for how to set the memory requirements. 
+We don't use SQL Server by default due to the extra requirements. As a result, the SQL Server project may end up out of date before the release of version 1.0.
+
+The Docker SQL Server images require at least 3.5GB of RAM. See https://github.com/Microsoft/mssql-docker/issues/114 for how to set the memory requirements.
 
 To run the SQL docker container, you must accept the EULA. It is also linked to from [the dockerhub page](https://hub.docker.com/r/microsoft/mssql-server-linux/). The express edition will be available at GA, they say.
+
+There are also significant complexities with dynamically loading SQL Server as an add-on. (The `System.Data.SqlClient` is platform specific, and so must be published via a dockerized build rather than through Visual Studio.)
 
 ## Local files not included
 
  * /sql-credentials.txt - the password to set up for the SA role for the dockerized SQL container. Not persisted in the docker image for security purposes.
  * /sql-eula.txt - whether you agree to Microsoft's EULA for the SQL docker container. Should contain a single 'Y' if you do.
+
+## Steps to use
+
+These steps won't add it to your debugging container. Still working on that...
+
+1. Build the `GitAutomation.Sql` project via Visual Studio. It registers your docker image. Alternatively:
+
+        cd "GitAutomation.Sql"
+        docker build -t "gitautomation-sql:build" -f "Dockerfile-ci" .
+        docker run --rm -v "$(pwd)":/src -w "/src" "gitautomation-sql:build"
+        docker build -t "gitautomation-sql" .
+        cd ".."
+
+2. Start the SQL Server docker-compose with the rest:
+
+        docker-compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.sqlserver.yml up --build

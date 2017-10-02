@@ -62,8 +62,8 @@
     <Folder Include="shared-scripts" />
   </ItemGroup>
   <ItemGroup>
-    <Build Include="DownstreamBranch.sql" />
-    <Build Include="UpstreamBranch.sql" />
+    <Build Include="1-BranchGroup.sql" />
+    <Build Include="2-BranchStream.sql" />
     <Build Include="User.sql" />
     <Build Include="UserRole.sql" />
   </ItemGroup>
@@ -78,8 +78,8 @@
   <PropertyGroup>
     <PostBuildEvent>cd "$(ProjectDir)"
 docker build -t "gitautomation-sql:build" -f "Dockerfile-ci" .
-docker run -v "$(SolutionDir)$(ProjectName)":/src -w "/src" "gitautomation-sql:build"
-
+docker run --rm -v "$(SolutionDir)$(ProjectName)":/src -w "/src" "gitautomation-sql:build"
+docker build -t "gitautomation-sql" .
 </PostBuildEvent>
   </PropertyGroup>
 </Project>

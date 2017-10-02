@@ -12,6 +12,8 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Collections.Immutable;
+using Newtonsoft.Json.Linq;
 
 namespace GitAutomation.GitHub
 {
@@ -19,17 +21,20 @@ namespace GitAutomation.GitHub
     {
         private static Regex githubUrlParse = new Regex(@"^/?(?<owner>[^/]+)/(?<repository>[^/]+)");
 
-        private readonly GitRepositoryOptions options;
+        private readonly GitRepositoryOptions repositoryOptions;
+        private readonly GithubServiceApiOptions serviceOptions;
+
         private readonly string owner;
         private readonly string repository;
         private readonly string username;
         private readonly HttpClient client;
 
-        public GitHubServiceApi(IOptions<GitRepositoryOptions> options, Func<HttpClient> clientFactory)
+        public GitHubServiceApi(IOptions<GitRepositoryOptions> options, IOptions<GithubServiceApiOptions> serviceOptions, Func<HttpClient> clientFactory)
         {
             // TODO - ETag/304 the GET requests
-            this.options = options.Value;
-            var repository = new UriBuilder(this.options.Repository);
+            this.repositoryOptions = options.Value;
+            this.serviceOptions = serviceOptions.Value;
+            var repository = new UriBuilder(this.repositoryOptions.Repository);
             this.username = repository.UserName;
             var match = githubUrlParse.Match(repository.Path);
             this.owner = match.Groups["owner"].Value;
@@ -39,7 +44,7 @@ namespace GitAutomation.GitHub
 
         async Task<bool> IGitServiceApi.OpenPullRequest(string title, string targetBranch, string sourceBranch, string body)
         {
-            var hasPr = await HasOpenPullRequest(targetBranch: targetBranch, sourceBranch: sourceBranch);
+            var hasPr = await this.HasOpenPullRequest(targetBranch, sourceBranch);
 
             if (!hasPr)
             {
@@ -65,12 +70,14 @@ namespace GitAutomation.GitHub
             }
         }
         
-        public async Task<bool> HasOpenPullRequest(string targetBranch = null, string sourceBranch = null)
+        public async Task<ImmutableList<PullRequest>> GetPullRequests(PullRequestState? state = PullRequestState.Open, string targetBranch = null, string sourceBranch = null)
         {
-            var nvc = new NameValueCollection
-            {
-                { "state", "open" }
-            };
+            var nvc = new NameValueCollection();
+            nvc.Add("state", 
+                state == null ? "all"
+                : state == PullRequestState.Open ? "open" 
+                : "closed"
+            );
             if (sourceBranch != null)
             {
                 nvc.Add("head", FullBranchRef(sourceBranch));
@@ -83,10 +90,97 @@ namespace GitAutomation.GitHub
             {
                 await EnsureSuccessStatusCode(response);
                 var responseString = await response.Content.ReadAsStringAsync();
-                var token = Newtonsoft.Json.Linq.JArray.Parse(responseString);
-                return token.Count >= 1;
+                var token = JArray.Parse(responseString);
+                return (from entry in token
+                        select new PullRequest
+                        {
+                            Id = entry["number"].ToString(),
+                            State = entry["state"].ToString() == "open" ? PullRequestState.Open : PullRequestState.Closed,
+                            TargetBranch = entry["base"]["ref"].ToString(),
+                            SourceBranch = entry["head"]["ref"].ToString(),
+                        }).ToImmutableList();
             }
         }
+
+        public async Task<ImmutableList<PullRequestReview>> GetPullRequestReviews(string id)
+        {
+            if (!serviceOptions.CheckPullRequestReviews)
+            {
+                return ImmutableList<PullRequestReview>.Empty;
+            }
+
+            using (var response = await client.GetAsync($"/repos/{owner}/{repository}/pulls/{id}/reviews"))
+            {
+                await EnsureSuccessStatusCode(response);
+                var responseString = await response.Content.ReadAsStringAsync();
+                var token = JArray.Parse(responseString);
+                return (from entry in token
+                        let state = ToApprovalState(entry["state"].ToString())
+                        let user = entry["user"]["login"].ToString()
+                        where state.HasValue
+                        group state.Value by user into states
+                        select new PullRequestReview
+                        {
+                            State = states.Last(),
+                            Username = states.Key,
+                        }).ToImmutableList();
+            }
+        }
+
+        private PullRequestReview.ApprovalState? ToApprovalState(string state)
+        {
+            switch (state)
+            {
+                case "APPROVED":
+                    return PullRequestReview.ApprovalState.Approved;
+                case "COMMENTED":
+                case "DISMISSED":
+                    return null;
+                case "CHANGES_REQUESTED":
+                    return PullRequestReview.ApprovalState.ChangesRequested;
+                default:
+                    return PullRequestReview.ApprovalState.Pending;
+            }
+        }
+
+        public async Task<ImmutableList<CommitStatus>> GetCommitStatus(string commitSha)
+        {
+            if (!serviceOptions.CheckStatus)
+            {
+                return ImmutableList<CommitStatus>.Empty;
+            }
+
+            var nvc = new NameValueCollection
+            {
+                { "state", "open" }
+            };
+            using (var response = await client.GetAsync($"/repos/{owner}/{repository}/commits/{commitSha}/status"))
+            {
+                await EnsureSuccessStatusCode(response);
+                var responseString = await response.Content.ReadAsStringAsync();
+                var token = JToken.Parse(responseString);
+                return (from status in token["statuses"] as JArray
+                        select new CommitStatus
+                        {
+                            Key = status["context"].ToString(),
+                            Url = status["url"].ToString(),
+                            Description = status["description"].ToString(),
+                            State = ToCommitState(status["state"].ToString())
+                        }).ToImmutableList();
+            }
+        }
+
+        private CommitStatus.StatusState ToCommitState(string value)
+        {
+            switch (value)
+            {
+                case "success": return CommitStatus.StatusState.Success;
+                case "pending": return CommitStatus.StatusState.Pending;
+                default: return CommitStatus.StatusState.Error;
+            }
+        }
+
+        #region Utilities
 
         private string FullBranchRef(string branchName) =>
             $"{owner}:{branchName}";
@@ -97,7 +191,7 @@ namespace GitAutomation.GitHub
             client.BaseAddress = new Uri("https://api.github.com");
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
                 "Basic",
-                Convert.ToBase64String(Encoding.ASCII.GetBytes($"{this.username}:{this.options.Password}"))
+                Convert.ToBase64String(Encoding.ASCII.GetBytes($"{this.username}:{this.serviceOptions.Password}"))
             );
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
@@ -134,5 +228,6 @@ namespace GitAutomation.GitHub
             }
         }
 
+        #endregion
     }
 }

@@ -22,142 +22,132 @@ namespace GitAutomation.SqlServer
 
         public static readonly CommandBuilder GetConfiguredBranchesCommand = new CommandBuilder(
             commandText: @"
-SELECT [Branch].BranchName,
-		COALESCE([DownstreamBranch].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
-		COALESCE([DownstreamBranch].BranchType, 'Feature') AS [BranchType]
-  FROM (
-	SELECT BranchName FROM [UpstreamBranch] UNION SELECT BranchName FROM [DownstreamBranch] GROUP BY BranchName
-) AS [Branch]
-  LEFT JOIN [DownstreamBranch] ON [Branch].BranchName = [DownstreamBranch].BranchName
+SELECT GroupName, RecreateFromUpstream, BranchType
+FROM [BranchGroup]
 ");
 
         public static readonly CommandBuilder GetDownstreamBranchesCommand = new CommandBuilder(
             commandText: @"
-SELECT [DownstreamBranch].BranchName AS [BranchName],
-		[DownstreamBranch].RecreateFromUpstream AS [RecreateFromUpstream],
-		[DownstreamBranch].BranchType AS [BranchType]
-  FROM [UpstreamBranch]
-  INNER JOIN [DownstreamBranch] ON [UpstreamBranch].DownstreamBranch = [DownstreamBranch].BranchName
-  WHERE [UpstreamBranch].[BranchName]=@BranchName
+SELECT [BranchGroup].GroupName AS [GroupName],
+		[BranchGroup].RecreateFromUpstream AS [RecreateFromUpstream],
+		[BranchGroup].BranchType AS [BranchType]
+  FROM [BranchStream]
+  INNER JOIN [BranchGroup] ON [BranchStream].DownstreamBranch = [BranchGroup].GroupName
+  WHERE [BranchStream].[UpstreamBranch]=@GroupName
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
-                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
+                { "@GroupName", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
         public static readonly CommandBuilder GetUpstreamBranchesCommand = new CommandBuilder(
             commandText: @"
-SELECT COALESCE([UpstreamBranch].BranchName, [DownstreamBranch].BranchName) AS [BranchName],
-		COALESCE([DownstreamBranch].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
-		COALESCE([DownstreamBranch].BranchType, 'Feature') AS [BranchType]
-  FROM [UpstreamBranch]
-  LEFT JOIN [DownstreamBranch] ON [UpstreamBranch].BranchName = [DownstreamBranch].BranchName
-  WHERE [DownstreamBranch]=@BranchName
+SELECT GroupName, RecreateFromUpstream, BranchType
+  FROM [BranchStream]
+  INNER JOIN [BranchGroup] ON [BranchStream].UpstreamBranch = [BranchGroup].GroupName
+  WHERE [DownstreamBranch]=@GroupName
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
-                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
+                { "@GroupName", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
         public static readonly CommandBuilder GetAllDownstreamBranchesCommand = new CommandBuilder(
             commandText: @"
-WITH RecursiveDownstream ( DownstreamBranch, BranchName, Ordinal )
+WITH RecursiveDownstream ( DownstreamBranch, UpstreamBranch, Ordinal )
 AS (
-	SELECT BranchName AS DownstreamBranch, BranchName, 0 FROM [DownstreamBranch]
-UNION
-	SELECT BranchName AS DownstreamBranch, BranchName, 0 FROM [UpstreamBranch]
+	SELECT GroupName AS DownstreamBranch, NULL, 0 FROM [BranchGroup]
 UNION ALL
-	SELECT [UpstreamBranch].DownstreamBranch, RecursiveDownstream.BranchName, RecursiveDownstream.Ordinal + 1
-	FROM [UpstreamBranch]
-	INNER JOIN RecursiveDownstream ON RecursiveDownstream.DownstreamBranch = [UpstreamBranch].BranchName
+	SELECT [BranchStream].DownstreamBranch, RecursiveDownstream.UpstreamBranch, RecursiveDownstream.Ordinal + 1
+	FROM [BranchStream]
+	INNER JOIN RecursiveDownstream ON RecursiveDownstream.DownstreamBranch = [BranchStream].UpstreamBranch
 )
-SELECT COALESCE([UpstreamBranch].DownstreamBranch, [DownstreamBranch].BranchName) AS [BranchName],
-		COALESCE([DownstreamBranch].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
-		COALESCE([DownstreamBranch].BranchType, 'Feature') AS [BranchType],
+SELECT BranchGroup.GroupName, BranchGroup.RecreateFromUpstream, BranchGroup.BranchType,
         Ordinal
   FROM (SELECT DownstreamBranch, MAX(Ordinal) AS Ordinal
 		  FROM RecursiveDownstream
 		  GROUP BY DownstreamBranch
-		) AS [UpstreamBranch]
-  LEFT JOIN [DownstreamBranch] ON [UpstreamBranch].DownstreamBranch = [DownstreamBranch].BranchName
-  ORDER BY Ordinal, [UpstreamBranch].DownstreamBranch
+		) AS [BranchStream]
+  INNER JOIN [BranchGroup] ON [BranchStream].DownstreamBranch = [BranchGroup].GroupName
+  ORDER BY Ordinal, [BranchStream].DownstreamBranch
 ");
 
         public static readonly CommandBuilder GetAllDownstreamBranchesFromBranchCommand = new CommandBuilder(
             commandText: @"
-WITH RecursiveUpstream ( DownstreamBranch, BranchName, Ordinal )
+WITH RecursiveUpstream ( DownstreamBranch, UpstreamBranch, Ordinal )
 AS (
-	SELECT DownstreamBranch, BranchName, 1 FROM [UpstreamBranch] WHERE BranchName=@BranchName
+	SELECT DownstreamBranch, UpstreamBranch, 1 FROM [BranchStream] WHERE UpstreamBranch=@GroupName
 UNION ALL
-	SELECT [UpstreamBranch].DownstreamBranch, RecursiveUpstream.BranchName, RecursiveUpstream.Ordinal + 1
-	FROM [UpstreamBranch]
-	INNER JOIN RecursiveUpstream ON RecursiveUpstream.DownstreamBranch = [UpstreamBranch].BranchName
+	SELECT [BranchStream].DownstreamBranch, RecursiveUpstream.UpstreamBranch, RecursiveUpstream.Ordinal + 1
+	FROM [BranchStream]
+	INNER JOIN RecursiveUpstream ON RecursiveUpstream.DownstreamBranch = [BranchStream].UpstreamBranch
 )
-SELECT COALESCE([UpstreamBranch].DownstreamBranch, [DownstreamBranch].BranchName) AS [BranchName],
-		COALESCE([DownstreamBranch].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
-		COALESCE([DownstreamBranch].BranchType, 'Feature') AS [BranchType]
+SELECT BranchGroup.GroupName, BranchGroup.RecreateFromUpstream, BranchGroup.BranchType
   FROM (SELECT DownstreamBranch, MIN(Ordinal) AS Ordinal
 		  FROM RecursiveUpstream
-		  GROUP BY DownstreamBranch, BranchName
-		) AS [UpstreamBranch]
-  LEFT JOIN [DownstreamBranch] ON [UpstreamBranch].DownstreamBranch = [DownstreamBranch].BranchName
-  ORDER BY Ordinal, [UpstreamBranch].DownstreamBranch
+		  GROUP BY DownstreamBranch, UpstreamBranch
+		) AS [BranchStream]
+  INNER JOIN [BranchGroup] ON [BranchStream].DownstreamBranch = [BranchGroup].GroupName
+  ORDER BY Ordinal, [BranchStream].DownstreamBranch
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
-                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
+                { "@GroupName", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
         public static readonly CommandBuilder GetAllUpstreamBranchesCommand = new CommandBuilder(
             commandText: @"
-WITH RecursiveDownstream ( DownstreamBranch, BranchName, Ordinal )
+WITH RecursiveDownstream ( DownstreamBranch, UpstreamBranch, Ordinal )
 AS (
-	SELECT DownstreamBranch, BranchName, 1 FROM [UpstreamBranch] WHERE DownstreamBranch=@BranchName
+	SELECT DownstreamBranch, UpstreamBranch, 1 FROM [BranchStream] WHERE DownstreamBranch=@GroupName
 UNION ALL
-	SELECT RecursiveDownstream.DownstreamBranch, [UpstreamBranch].BranchName, RecursiveDownstream.Ordinal + 1
-	FROM [UpstreamBranch]
-	INNER JOIN RecursiveDownstream ON [UpstreamBranch].DownstreamBranch = RecursiveDownstream.BranchName
+	SELECT RecursiveDownstream.DownstreamBranch, [BranchStream].UpstreamBranch, RecursiveDownstream.Ordinal + 1
+	FROM [BranchStream]
+	INNER JOIN RecursiveDownstream ON [BranchStream].DownstreamBranch = RecursiveDownstream.UpstreamBranch
 )
-SELECT COALESCE([UpstreamBranch].BranchName, [DownstreamBranch].BranchName) AS [BranchName],
-		COALESCE([DownstreamBranch].RecreateFromUpstream, 0) AS [RecreateFromUpstream],
-		COALESCE([DownstreamBranch].BranchType, 'Feature') AS [BranchType]
-  FROM (SELECT [BranchName], MAX(RecursiveDownstream.Ordinal) AS Ordinal
+SELECT BranchGroup.GroupName, BranchGroup.RecreateFromUpstream, BranchGroup.BranchType
+  FROM (SELECT [UpstreamBranch], MAX(RecursiveDownstream.Ordinal) AS Ordinal
 		  FROM RecursiveDownstream
-		  GROUP BY DownstreamBranch, BranchName
-		) AS [UpstreamBranch]
-  LEFT JOIN [DownstreamBranch] ON [UpstreamBranch].BranchName = [DownstreamBranch].BranchName
-  ORDER BY Ordinal DESC, [UpstreamBranch].BranchName
+		  GROUP BY DownstreamBranch, UpstreamBranch
+		) AS [BranchStream]
+  INNER JOIN [BranchGroup] ON [BranchStream].UpstreamBranch = [BranchGroup].GroupName
+  ORDER BY Ordinal DESC, [BranchStream].UpstreamBranch
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
-                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
+                { "@GroupName", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
         public static readonly CommandBuilder GetAllUpstreamRemovableBranchesCommand = new CommandBuilder(
             commandText: @"
-WITH RecursiveDownstream ( DownstreamBranch, BranchName )
+WITH RecursiveDownstream ( DownstreamBranch, UpstreamBranch )
 AS (
-	SELECT DownstreamBranch, BranchName FROM [UpstreamBranch] WHERE DownstreamBranch=@BranchName
+	SELECT DownstreamBranch, UpstreamBranch FROM [BranchStream] WHERE DownstreamBranch=@GroupName
 UNION ALL
-	SELECT RecursiveDownstream.DownstreamBranch, [UpstreamBranch].BranchName
-	FROM [UpstreamBranch]
-	INNER JOIN RecursiveDownstream ON [UpstreamBranch].DownstreamBranch = RecursiveDownstream.BranchName
+	SELECT RecursiveDownstream.DownstreamBranch, [BranchStream].UpstreamBranch
+	FROM [BranchStream]
+	INNER JOIN RecursiveDownstream ON [BranchStream].DownstreamBranch = RecursiveDownstream.UpstreamBranch
 )
-SELECT RecursiveDownstream.[BranchName]
+SELECT RecursiveDownstream.[UpstreamBranch]
   FROM RecursiveDownstream
-  LEFT JOIN DownstreamBranch ON RecursiveDownstream.BranchName=DownstreamBranch.BranchName
-  WHERE COALESCE(DownstreamBranch.BranchType, 'Feature') != 'ServiceLine'
-  GROUP BY DownstreamBranch, RecursiveDownstream.BranchName
+  INNER JOIN [BranchGroup] ON RecursiveDownstream.UpstreamBranch=[BranchGroup].GroupName
+  WHERE [BranchGroup].BranchType != 'ServiceLine'
+  GROUP BY DownstreamBranch, RecursiveDownstream.UpstreamBranch
   ORDER BY DownstreamBranch
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
-                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
+                { "@GroupName", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
         public static readonly CommandBuilder AddBranchPropagationCommand = new CommandBuilder(
             commandText: @"
-MERGE INTO [DownstreamBranch] AS Downstream
-USING (SELECT @DownstreamBranch AS BranchName) AS NewDownstream
-ON Downstream.BranchName = NewDownstream.BranchName
-WHEN NOT MATCHED THEN INSERT (BranchName) VALUES (NewDownstream.BranchName);
+MERGE INTO [BranchGroup] AS Downstream
+USING (SELECT @DownstreamBranch AS GroupName) AS NewDownstream
+ON Downstream.GroupName = NewDownstream.GroupName
+WHEN NOT MATCHED THEN INSERT (GroupName) VALUES (NewDownstream.GroupName);
 
-INSERT INTO [UpstreamBranch] (BranchName, DownstreamBranch)
+MERGE INTO [BranchGroup] AS Upstream
+USING (SELECT @UpstreamBranch AS GroupName) AS NewUpstream
+ON Upstream.GroupName = NewUpstream.GroupName
+WHEN NOT MATCHED THEN INSERT (GroupName) VALUES (NewUpstream.GroupName);
+
+INSERT INTO [BranchStream] (UpstreamBranch, DownstreamBranch)
 VALUES (@UpstreamBranch, @DownstreamBranch)
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
@@ -167,8 +157,8 @@ VALUES (@UpstreamBranch, @DownstreamBranch)
 
         public static readonly CommandBuilder RemoveBranchPropagationCommand = new CommandBuilder(
             commandText: @"
-DELETE FROM [UpstreamBranch]
-WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
+DELETE FROM [BranchStream]
+WHERE UpstreamBranch=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@UpstreamBranch", p => p.DbType = System.Data.DbType.AnsiString },
@@ -176,95 +166,95 @@ WHERE BranchName=@UpstreamBranch AND DownstreamBranch=@DownstreamBranch
             });
 
         public static readonly CommandBuilder GetBranchBasicDetialsCommand = new CommandBuilder(
-            commandText: @"SELECT [BranchName], [RecreateFromUpstream], [BranchType]
-  FROM [DownstreamBranch]
-  WHERE [BranchName]=@BranchName
+            commandText: @"SELECT [GroupName], [RecreateFromUpstream], [BranchType]
+  FROM [BranchGroup]
+  WHERE [GroupName]=@GroupName
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
-                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
+                { "@GroupName", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
         public static readonly CommandBuilder UpdateBranchSettingCommand = new CommandBuilder(
             commandText: @"
-MERGE INTO [DownstreamBranch] AS Downstream
+MERGE INTO [BranchGroup] AS Downstream
 USING (SELECT 
-    @BranchName AS BranchName
+    @GroupName AS GroupName
     , @RecreateFromUpstream AS RecreateFromUpstream
     , @BranchType As BranchType
 ) AS NewDownstream
-ON Downstream.BranchName = NewDownstream.BranchName
+ON Downstream.GroupName = NewDownstream.GroupName
 WHEN MATCHED THEN UPDATE SET 
     RecreateFromUpstream=NewDownstream.RecreateFromUpstream
     , BranchType=NewDownstream.BranchType
 WHEN NOT MATCHED THEN INSERT (
-    BranchName
+    GroupName
     , RecreateFromUpstream
     , BranchType
 ) VALUES (
-    NewDownstream.BranchName 
+    NewDownstream.GroupName 
     , NewDownstream.RecreateFromUpstream
     , NewDownstream.BranchType
 )
 ;
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
-                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
+                { "@GroupName", p => p.DbType = System.Data.DbType.AnsiString },
                 { "@RecreateFromUpstream", p => p.DbType = System.Data.DbType.Int32 },
                 { "@BranchType", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
         public static readonly CommandBuilder DeleteBranchSettingsCommand = new CommandBuilder(
             commandText: @"
-DELETE FROM [UpstreamBranch]
-WHERE  [BranchName]=@BranchName OR [DownstreamBranch]=@BranchName
+DELETE FROM [BranchStream]
+WHERE  [UpstreamBranch]=@GroupName OR [DownstreamBranch]=@GroupName
 
-DELETE FROM [DownstreamBranch]
-WHERE  [BranchName]=@BranchName
+DELETE FROM [BranchGroup]
+WHERE  [GroupName]=@GroupName
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
-                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
+                { "@GroupName", p => p.DbType = System.Data.DbType.AnsiString },
             });
         
         public static readonly CommandBuilder ConsolidateBranchCommand = new CommandBuilder(
             commandText: @"
-MERGE INTO [DownstreamBranch] AS Downstream
-USING (SELECT @ReplacementBranchName AS BranchName) AS NewDownstream
-ON Downstream.BranchName = NewDownstream.BranchName
-WHEN NOT MATCHED THEN INSERT (BranchName, RecreateFromUpstream, BranchType) VALUES (NewDownstream.BranchName, 0, 'ServiceLine');
+MERGE INTO [BranchGroup] AS Downstream
+USING (SELECT @ReplacementGroupName AS GroupName) AS NewDownstream
+ON Downstream.GroupName = NewDownstream.GroupName
+WHEN NOT MATCHED THEN INSERT (GroupName, RecreateFromUpstream, BranchType) VALUES (NewDownstream.GroupName, 0, 'ServiceLine');
 
-MERGE INTO [UpstreamBranch] AS T
-USING (SELECT UpstreamBranch.DownstreamBranch
-		FROM UpstreamBranch
-		WHERE UpstreamBranch.BranchName = @BranchName
-		GROUP BY UpstreamBranch.DownstreamBranch) AS NewDownstream
-ON T.DownstreamBranch = NewDownstream.DownstreamBranch AND T.BranchName=@ReplacementBranchName
-WHEN NOT MATCHED THEN INSERT (BranchName, DownstreamBranch) VALUES (@ReplacementBranchName, NewDownstream.DownstreamBranch);
+MERGE INTO [BranchStream] AS T
+USING (SELECT BranchStream.DownstreamBranch
+		FROM BranchStream
+		WHERE BranchStream.UpstreamBranch = @GroupName
+		GROUP BY BranchStream.DownstreamBranch) AS NewDownstream
+ON T.DownstreamBranch = NewDownstream.DownstreamBranch AND T.UpstreamBranch=@ReplacementGroupName
+WHEN NOT MATCHED THEN INSERT (UpstreamBranch, DownstreamBranch) VALUES (@ReplacementGroupName, NewDownstream.DownstreamBranch);
 
-DELETE FROM [UpstreamBranch]
-WHERE BranchName = @BranchName OR DownstreamBranch=@BranchName;
+DELETE FROM [BranchStream]
+WHERE UpstreamBranch = @GroupName OR DownstreamBranch=@GroupName;
 
-DELETE FROM [DownstreamBranch]
-WHERE BranchName = @BranchName;
+DELETE FROM [BranchGroup]
+WHERE GroupName = @GroupName;
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
-                { "@BranchName", p => p.DbType = System.Data.DbType.AnsiString },
-                { "@ReplacementBranchName", p => p.DbType = System.Data.DbType.AnsiString },
+                { "@GroupName", p => p.DbType = System.Data.DbType.AnsiString },
+                { "@ReplacementGroupName", p => p.DbType = System.Data.DbType.AnsiString },
             });
 
         public static readonly CommandBuilder GetIntegrationBranchCommand = new CommandBuilder(
             commandText: @"
 SELECT 
-	DownstreamBranch.BranchName,
-	DownstreamBranch.RecreateFromUpstream,
-	DownstreamBranch.BranchType,
-	BranchA.BranchName As BranchA,
-	BranchB.BranchName as BranchB,
-	BranchC.BranchName as BranchC
-	FROM [dbo].[DownstreamBranch]
-LEFT JOIN [dbo].[UpstreamBranch] as BranchA ON BranchA.DownstreamBranch=DownstreamBranch.BranchName
-LEFT JOIN [dbo].[UpstreamBranch] as BranchB ON BranchB.DownstreamBranch=DownstreamBranch.BranchName AND BranchA.BranchName < BranchB.BranchName
-LEFT JOIN [dbo].[UpstreamBranch] as BranchC ON BranchC.DownstreamBranch=DownstreamBranch.BranchName AND BranchB.BranchName < BranchC.BranchName
-WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.BranchName=@BranchB AND BranchC.BranchName IS NULL
+	[BranchGroup].GroupName,
+	[BranchGroup].RecreateFromUpstream,
+	[BranchGroup].BranchType,
+	BranchA.UpstreamBranch As BranchA,
+	BranchB.UpstreamBranch as BranchB,
+	BranchC.UpstreamBranch as BranchC
+	FROM [dbo].[BranchGroup]
+LEFT JOIN [dbo].[BranchStream] as BranchA ON BranchA.DownstreamBranch=[BranchGroup].GroupName
+LEFT JOIN [dbo].[BranchStream] as BranchB ON BranchB.DownstreamBranch=[BranchGroup].GroupName AND BranchA.UpstreamBranch < BranchB.UpstreamBranch
+LEFT JOIN [dbo].[BranchStream] as BranchC ON BranchC.DownstreamBranch=[BranchGroup].GroupName AND BranchB.UpstreamBranch < BranchC.UpstreamBranch
+WHERE BranchType='Integration' AND BranchA.UpstreamBranch=@BranchA AND BranchB.UpstreamBranch=@BranchB AND BranchC.UpstreamBranch IS NULL
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@BranchA", p => p.DbType = System.Data.DbType.AnsiString },
@@ -282,19 +272,19 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             this.serviceProvider = serviceProvider;
         }
 
-        public IObservable<ImmutableList<BranchBasicDetails>> GetConfiguredBranches()
+        public IObservable<ImmutableList<BranchGroupDetails>> GetConfiguredBranches()
         {
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(GetConfiguredBranchesOnce));
         }
 
-        private async Task<ImmutableList<BranchBasicDetails>> GetConfiguredBranchesOnce(DbConnection connection)
+        private async Task<ImmutableList<BranchGroupDetails>> GetConfiguredBranchesOnce(DbConnection connection)
         { 
             using (var command = GetConfiguredBranchesCommand.BuildFrom(connection, ImmutableDictionary<string, object>.Empty))
             {
                 using (var reader = await command.ExecuteReaderAsync())
                 {
-                    var results = new List<BranchBasicDetails>();
+                    var results = new List<BranchGroupDetails>();
                     while (await reader.ReadAsync())
                     {
                         results.Add(ReadBranchBasicDetails(reader));
@@ -304,38 +294,38 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             }
         }
 
-        public IObservable<BranchBasicDetails> GetBranchBasicDetails(string branchName)
+        public IObservable<BranchGroupDetails> GetBranchBasicDetails(string branchName)
         {
             // TODO - better notification
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(GetBranchDetailOnce(branchName)));
         }
 
-        public IObservable<BranchDetails> GetBranchDetails(string branchName)
+        public IObservable<BranchGroupCompleteData> GetBranchDetails(string branchName)
         {
             // TODO - better notification
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(async connection =>
                 {
                     var settings = await GetBranchDetailOnce(branchName)(connection);
-                    return new BranchDetails
+                    return new BranchGroupCompleteData
                     {
-                        BranchName = branchName,
+                        GroupName = branchName,
                         RecreateFromUpstream = settings.RecreateFromUpstream,
                         BranchType = settings.BranchType,
-                        DirectDownstreamBranches = await GetDownstreamBranchesOnce(branchName)(connection),
-                        DirectUpstreamBranches = await GetUpstreamBranchesOnce(branchName)(connection),
-                        DownstreamBranches = await GetAllDownstreamBranchesOnce(branchName)(connection),
-                        UpstreamBranches = await GetAllUpstreamBranchesOnce(branchName)(connection),
+                        DirectDownstreamBranchGroups = (await GetDownstreamBranchesOnce(branchName)(connection)).Select(d => d.GroupName).ToImmutableList(),
+                        DirectUpstreamBranchGroups = (await GetUpstreamBranchesOnce(branchName)(connection)).Select(d => d.GroupName).ToImmutableList(),
+                        DownstreamBranchGroups = (await GetAllDownstreamBranchesOnce(branchName)(connection)).Select(d => d.GroupName).ToImmutableList(),
+                        UpstreamBranchGroups = (await GetAllUpstreamBranchesOnce(branchName)(connection)).Select(d => d.GroupName).ToImmutableList(),
                     };
                 }));
         }
 
-        private Func<DbConnection, Task<BranchBasicDetails>> GetBranchDetailOnce(string branchName)
+        private Func<DbConnection, Task<BranchGroupDetails>> GetBranchDetailOnce(string branchName)
         {
             return async connection =>
             {
-                using (var command = GetBranchBasicDetialsCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchName", branchName } }))
+                using (var command = GetBranchBasicDetialsCommand.BuildFrom(connection, new Dictionary<string, object> { { "@GroupName", branchName } }))
                 {
                     using (var reader = await command.ExecuteReaderAsync())
                     {
@@ -343,57 +333,57 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
                         {
                             return ReadBranchBasicDetails(reader);
                         }
-                        return new BranchBasicDetails
+                        return new BranchGroupDetails
                         {
-                            BranchName = branchName,
+                            GroupName = branchName,
                             RecreateFromUpstream = false,
-                            BranchType = BranchType.Feature,
+                            BranchType = BranchGroupType.Feature,
                         };
                     }
                 }
             };
         }
 
-        private static BranchBasicDetails ReadBranchBasicDetails(System.Data.IDataRecord reader)
+        private static BranchGroupDetails ReadBranchBasicDetails(System.Data.IDataRecord reader)
         {
-            return new BranchBasicDetails
+            return new BranchGroupDetails
             {
-                BranchName = reader["BranchName"] as string,
+                GroupName = reader["GroupName"] as string,
                 RecreateFromUpstream = Convert.ToInt32(reader["RecreateFromUpstream"]) == 1,
-                BranchType = Enum.TryParse<BranchType>(reader["BranchType"] as string, out var branchType)
+                BranchType = Enum.TryParse<BranchGroupType>(reader["BranchType"] as string, out var branchType)
                     ? branchType
-                    : BranchType.Feature,
+                    : BranchGroupType.Feature,
             };
         }
 
-        private static BranchDepthDetails ReadBranchDepthDetails(System.Data.IDataRecord reader)
+        private static BranchGroupCompleteData ReadBranchDepthDetails(System.Data.IDataRecord reader)
         {
-            return new BranchDepthDetails
+            return new BranchGroupCompleteData
             {
-                BranchName = reader["BranchName"] as string,
+                GroupName = reader["GroupName"] as string,
                 RecreateFromUpstream = Convert.ToInt32(reader["RecreateFromUpstream"]) == 1,
-                BranchType = Enum.TryParse<BranchType>(reader["BranchType"] as string, out var branchType)
+                BranchType = Enum.TryParse<BranchGroupType>(reader["BranchType"] as string, out var branchType)
                     ? branchType
-                    : BranchType.Feature,
-                Ordinal = Convert.ToInt32(reader["Ordinal"])
+                    : BranchGroupType.Feature,
+                HierarchyDepth = Convert.ToInt32(reader["Ordinal"])
             };
         }
 
-        public IObservable<ImmutableList<BranchBasicDetails>> GetDownstreamBranches(string branchName)
+        public IObservable<ImmutableList<BranchGroupDetails>> GetDownstreamBranches(string branchName)
         {
             return notifiers.GetDownstreamBranchesChangedNotifier(upstreamBranch: branchName).StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(GetDownstreamBranchesOnce(branchName)));
         }
 
-        private Func<DbConnection, Task<ImmutableList<BranchBasicDetails>>> GetDownstreamBranchesOnce(string branchName)
+        private Func<DbConnection, Task<ImmutableList<BranchGroupDetails>>> GetDownstreamBranchesOnce(string branchName)
         {
             return async connection =>
             {
-                using (var command = GetDownstreamBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchName", branchName } }))
+                using (var command = GetDownstreamBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@GroupName", branchName } }))
                 {
                     using (var reader = await command.ExecuteReaderAsync())
                     {
-                        var results = new List<BranchBasicDetails>();
+                        var results = new List<BranchGroupDetails>();
                         while (await reader.ReadAsync())
                         {
                             results.Add(ReadBranchBasicDetails(reader));
@@ -404,14 +394,14 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             };
         }
 
-        public IObservable<ImmutableList<BranchDepthDetails>> GetAllDownstreamBranches()
+        public IObservable<ImmutableList<BranchGroupCompleteData>> GetAllDownstreamBranches()
         {
             // TODO - better notifications
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(GetAllDownstreamBranchesOnce()));
         }
 
-        private Func<DbConnection, Task<ImmutableList<BranchDepthDetails>>> GetAllDownstreamBranchesOnce()
+        private Func<DbConnection, Task<ImmutableList<BranchGroupCompleteData>>> GetAllDownstreamBranchesOnce()
         {
             return async connection =>
             {
@@ -419,7 +409,7 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
                 {
                     using (var reader = await command.ExecuteReaderAsync())
                     {
-                        var results = new List<BranchDepthDetails>();
+                        var results = new List<BranchGroupCompleteData>();
                         while (await reader.ReadAsync())
                         {
                             results.Add(ReadBranchDepthDetails(reader));
@@ -430,22 +420,22 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             };
         }
 
-        public IObservable<ImmutableList<BranchBasicDetails>> GetAllDownstreamBranches(string branchName)
+        public IObservable<ImmutableList<BranchGroupDetails>> GetAllDownstreamBranches(string branchName)
         {
             // TODO - better notifications
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(GetAllDownstreamBranchesOnce(branchName)));
         }
 
-        private Func<DbConnection, Task<ImmutableList<BranchBasicDetails>>> GetAllDownstreamBranchesOnce(string branchName)
+        private Func<DbConnection, Task<ImmutableList<BranchGroupDetails>>> GetAllDownstreamBranchesOnce(string branchName)
         {
             return async connection =>
             {
-                using (var command = GetAllDownstreamBranchesFromBranchCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchName", branchName } }))
+                using (var command = GetAllDownstreamBranchesFromBranchCommand.BuildFrom(connection, new Dictionary<string, object> { { "@GroupName", branchName } }))
                 {
                     using (var reader = await command.ExecuteReaderAsync())
                     {
-                        var results = new List<BranchBasicDetails>();
+                        var results = new List<BranchGroupDetails>();
                         while (await reader.ReadAsync())
                         {
                             results.Add(ReadBranchBasicDetails(reader));
@@ -456,21 +446,21 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             };
         }
 
-        public IObservable<ImmutableList<BranchBasicDetails>> GetUpstreamBranches(string branchName)
+        public IObservable<ImmutableList<BranchGroupDetails>> GetUpstreamBranches(string branchName)
         {
             return notifiers.GetUpstreamBranchesChangedNotifier(downstreamBranch: branchName).StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(GetUpstreamBranchesOnce(branchName)));
         }
 
-        private Func<DbConnection, Task<ImmutableList<BranchBasicDetails>>> GetUpstreamBranchesOnce(string branchName)
+        private Func<DbConnection, Task<ImmutableList<BranchGroupDetails>>> GetUpstreamBranchesOnce(string branchName)
         {
             return async connection =>
             {
-                using (var command = GetUpstreamBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchName", branchName } }))
+                using (var command = GetUpstreamBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@GroupName", branchName } }))
                 {
                     using (var reader = await command.ExecuteReaderAsync())
                     {
-                        var results = new List<BranchBasicDetails>();
+                        var results = new List<BranchGroupDetails>();
                         while (await reader.ReadAsync())
                         {
                             results.Add(ReadBranchBasicDetails(reader));
@@ -481,22 +471,22 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             };
         }
 
-        public IObservable<ImmutableList<BranchBasicDetails>> GetAllUpstreamBranches(string branchName)
+        public IObservable<ImmutableList<BranchGroupDetails>> GetAllUpstreamBranches(string branchName)
         {
             // TODO - better notifications
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(GetAllUpstreamBranchesOnce(branchName)));
         }
 
-        private Func<DbConnection, Task<ImmutableList<BranchBasicDetails>>> GetAllUpstreamBranchesOnce(string branchName)
+        private Func<DbConnection, Task<ImmutableList<BranchGroupDetails>>> GetAllUpstreamBranchesOnce(string branchName)
         {
             return async connection =>
             {
-                using (var command = GetAllUpstreamBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchName", branchName } }))
+                using (var command = GetAllUpstreamBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@GroupName", branchName } }))
                 {
                     using (var reader = await command.ExecuteReaderAsync())
                     {
-                        var results = new List<BranchBasicDetails>();
+                        var results = new List<BranchGroupDetails>();
                         while (await reader.ReadAsync())
                         {
                             results.Add(ReadBranchBasicDetails(reader));
@@ -535,14 +525,14 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
         {
             return async connection =>
             {
-                using (var command = GetAllUpstreamRemovableBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@BranchName", branchName } }))
+                using (var command = GetAllUpstreamRemovableBranchesCommand.BuildFrom(connection, new Dictionary<string, object> { { "@GroupName", branchName } }))
                 {
                     using (var reader = await command.ExecuteReaderAsync())
                     {
                         var results = new List<string>();
                         while (await reader.ReadAsync())
                         {
-                            results.Add(Convert.ToString(reader["BranchName"]));
+                            results.Add(Convert.ToString(reader["GroupName"]));
                         }
                         return results.ToImmutableList();
                     }
@@ -550,13 +540,13 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             };
         }
 
-        public void UpdateBranchSetting(string branchName, bool recreateFromUpstream, BranchType branchType, IUnitOfWork work)
+        public void UpdateBranchSetting(string branchName, bool recreateFromUpstream, BranchGroupType branchType, IUnitOfWork work)
         {
             PrepareSqlUnitOfWork(work);
             work.Defer(async sp =>
             {
                 using (var command = GetConnectionManagement(sp).Transacted(UpdateBranchSettingCommand, new Dictionary<string, object> {
-                    { "@BranchName", branchName },
+                    { "@GroupName", branchName },
                     { "@RecreateFromUpstream", recreateFromUpstream ? 1 : 0 },
                     { "@BranchType", branchType.ToString("g") },
                 }))
@@ -605,13 +595,13 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             work.Defer(async sp =>
             {
                 using (var command = GetConnectionManagement(sp).Transacted(ConsolidateBranchCommand, new Dictionary<string, object> {
-                    { "@BranchName", null },
-                    { "@ReplacementBranchName", targetBranch },
+                    { "@GroupName", null },
+                    { "@ReplacementGroupName", targetBranch },
                 }))
                 {
                     foreach (var branch in branchesToRemove)
                     {
-                        command.Parameters["@BranchName"].Value = branch;
+                        command.Parameters["@GroupName"].Value = branch;
                         await command.ExecuteNonQueryAsync();
                     }
                 }
@@ -624,7 +614,7 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             work.Defer(async sp =>
             {
                 using (var command = GetConnectionManagement(sp).Transacted(DeleteBranchSettingsCommand, new Dictionary<string, object> {
-                    { "@BranchName", deletingBranch },
+                    { "@GroupName", deletingBranch },
                 }))
                 {
                     await command.ExecuteNonQueryAsync();
@@ -632,11 +622,11 @@ WHERE BranchType='Integration' AND BranchA.BranchName=@BranchA AND BranchB.Branc
             });
         }
 
-        public void CreateIntegrationBranch(string branchA, string branchB, string integrationBranchName, IUnitOfWork work)
+        public void CreateIntegrationBranch(string branchA, string branchB, string integrationGroupName, IUnitOfWork work)
         {
-            UpdateBranchSetting(integrationBranchName, false, BranchType.Integration, work);
-            AddBranchPropagation(branchA, integrationBranchName, work);
-            AddBranchPropagation(branchB, integrationBranchName, work);
+            UpdateBranchSetting(integrationGroupName, false, BranchGroupType.Integration, work);
+            AddBranchPropagation(branchA, integrationGroupName, work);
+            AddBranchPropagation(branchB, integrationGroupName, work);
         }
 
         private void PrepareSqlUnitOfWork(IUnitOfWork work)

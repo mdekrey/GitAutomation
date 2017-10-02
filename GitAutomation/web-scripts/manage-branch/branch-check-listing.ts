@@ -1,5 +1,6 @@
 import { IRxBindProps } from "../utils/presentation/d3-binding";
 import { IBranchData } from "./data";
+import { branchNameDisplay } from "../branch-name-display";
 
 type BranchPredicate = (data: IBranchData) => boolean;
 interface BranchTypeRules {
@@ -34,21 +35,26 @@ export const buildBranchCheckListing = (): IRxBindProps<
       </td>
       <td data-locator="upstream-branches">
         <input type="checkbox" data-locator="check"/>
+        <span data-locator="pr-status"></span>
       </td>
     `);
   },
   onEach: selection => {
-    selection.select(`[data-locator="branch"]`).text(data => data.branch);
+    branchNameDisplay(selection.select(`[data-locator="branch"]`));
     selection
       .select(`[data-locator="downstream-branches"] [data-locator="check"]`)
-      .attr("data-branch", data => data.branch)
+      .attr("data-branch", data => data.groupName)
       .property("checked", downstreamRules.checked)
       .property("disabled", downstreamRules.disabled);
 
     selection
       .select(`[data-locator="upstream-branches"] [data-locator="check"]`)
-      .attr("data-branch", data => data.branch)
+      .attr("data-branch", data => data.groupName)
       .property("checked", upstreamRules.checked)
       .property("disabled", upstreamRules.disabled);
+
+    selection
+      .select(`[data-locator="upstream-branches"] [data-locator="pr-status"]`)
+      .attr("data-branch", data => data.groupName);
   }
 });
