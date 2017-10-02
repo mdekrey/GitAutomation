@@ -52,6 +52,18 @@ export const detectUpstream = (branchName: string) =>
     response => response.response as string[]
   );
 
+export const checkPullRequests = (branchName: string) =>
+  Observable.ajax("/api/management/check-prs/" + branchName).map(
+    response =>
+      response.response as {
+        reviews: { username: string; state: string[] }[];
+        state: string;
+        sourceBranch: string;
+        targetBranch: string;
+        id: string;
+      }[]
+  );
+
 export const getLog = () =>
   Observable.ajax("/api/management/log").map(
     response => response.response as OutputMessage[]

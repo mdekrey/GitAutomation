@@ -134,7 +134,7 @@ namespace GitAutomation.Management
 
         [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("check-prs/{*branchName}")]
-        public Task<ImmutableList<Tuple<GitService.PullRequest, ImmutableList<GitService.PullRequestReview>>>> GetUpstreamPullRequests(string branchName)
+        public Task<ImmutableList<GitService.PullRequestWithReviews>> GetUpstreamPullRequests(string branchName)
         {
             return repository.GetUpstreamPullRequests(branchName).FirstAsync().ToTask();
         }

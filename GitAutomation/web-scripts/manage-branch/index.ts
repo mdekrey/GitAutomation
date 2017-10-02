@@ -13,6 +13,7 @@ import { runBranchData } from "./data";
 import { buildBranchCheckListing } from "./branch-check-listing";
 import { bindSaveButton } from "./bind-save-button";
 import {
+  checkPullRequests,
   consolidateMerged,
   promoteServiceLine,
   deleteBranch,
@@ -50,7 +51,12 @@ export const manage = (
         <tr>
           <td></td>
           <th>Downstream</th>
-          <th>Upstream<br/><a data-locator="detect-upstream">Detect Upstream Branches</a></th>
+          <th>
+            Upstream
+            <br/>
+            <a data-locator="detect-upstream">Detect Upstream Branches</a>
+            <a data-locator="check-prs">Check PRs</a>
+          </th>
         </tr>
       </thead>
       <tbody data-locator="other-branches">
@@ -282,6 +288,32 @@ export const manage = (
                       `[data-locator="upstream-branches"] [data-locator="check"][data-branch="${upstreamBranchName}"]`
                     )
                     .property("checked", true)
+                )
+              );
+            })
+        );
+
+        subscription.add(
+          rxEvent({
+            target: container.map(fnSelect(`[data-locator="check-prs"]`)),
+            eventName: "click"
+          })
+            .withLatestFrom(
+              container.map(fnSelect(`[data-locator="other-branches"]`)),
+              (_, elem) => elem
+            )
+            .subscribe(elements => {
+              checkPullRequests(branchName).subscribe(pullRequests =>
+                pullRequests.forEach(pr =>
+                  elements
+                    .select(
+                      `[data-locator="upstream-branches"] [data-locator="pr-status"][data-branch="${pr.sourceBranch}"]`
+                    )
+                    .text(
+                      `Has PR: ${pr.state} (${pr.reviews
+                        .map(review => `${review.username}: ${review.state}`)
+                        .join(", ")})`
+                    )
                 )
               );
             })

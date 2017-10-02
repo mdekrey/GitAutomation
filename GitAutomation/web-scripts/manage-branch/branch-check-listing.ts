@@ -35,6 +35,7 @@ export const buildBranchCheckListing = (): IRxBindProps<
       </td>
       <td data-locator="upstream-branches">
         <input type="checkbox" data-locator="check"/>
+        <span data-locator="pr-status"></span>
       </td>
     `);
   },
@@ -51,5 +52,9 @@ export const buildBranchCheckListing = (): IRxBindProps<
       .attr("data-branch", data => data.groupName)
       .property("checked", upstreamRules.checked)
       .property("disabled", upstreamRules.disabled);
+
+    selection
+      .select(`[data-locator="upstream-branches"] [data-locator="pr-status"]`)
+      .attr("data-branch", data => data.groupName);
   }
 });

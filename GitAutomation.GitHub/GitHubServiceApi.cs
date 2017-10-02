@@ -115,20 +115,29 @@ namespace GitAutomation.GitHub
                 var responseString = await response.Content.ReadAsStringAsync();
                 var token = JArray.Parse(responseString);
                 return (from entry in token
+                        let state = ToApprovalState(entry["state"].ToString())
+                        let user = entry["user"]["login"].ToString()
+                        where state.HasValue
+                        group state.Value by user into states
                         select new PullRequestReview
                         {
-                            State = ToApprovalState(entry["state"].ToString()),
-                            Username = entry["user"]["login"].ToString(),
+                            State = states.Last(),
+                            Username = states.Key,
                         }).ToImmutableList();
             }
         }
 
-        private PullRequestReview.ApprovalState ToApprovalState(string state)
+        private PullRequestReview.ApprovalState? ToApprovalState(string state)
         {
             switch (state)
             {
                 case "APPROVED":
                     return PullRequestReview.ApprovalState.Approved;
+                case "COMMENTED":
+                case "DISMISSED":
+                    return null;
+                case "CHANGES_REQUESTED":
+                    return PullRequestReview.ApprovalState.ChangesRequested;
                 default:
                     return PullRequestReview.ApprovalState.Pending;
             }

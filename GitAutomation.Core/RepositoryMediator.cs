@@ -113,17 +113,19 @@ namespace GitAutomation
                 }).Switch();
         }
 
-        public IObservable<ImmutableList<Tuple<PullRequest, ImmutableList<PullRequestReview>>>> GetUpstreamPullRequests(string branchName)
+        public IObservable<ImmutableList<PullRequestWithReviews>> GetUpstreamPullRequests(string branchName)
         {
             return repositoryState.RemoteBranches()
                 .Select(remoteBranches =>
                 {
                     return branchSettings.GetBranchBasicDetails(branchName)
-                        .Select(branch => branchIteration.GetLatestBranchNameIteration(branch.GroupName, remoteBranches))
+                        .Select(branch => branchIteration.GetLatestBranchNameIteration(branch.GroupName, remoteBranches.Where(candidate => branchIteration.IsBranchIteration(branch.GroupName, candidate))))
                         .SelectMany(branch => gitApi.GetPullRequests(state: null, targetBranch: branch))
                         .SelectMany(pullRequests =>
-                            pullRequests.ToObservable()
-                                .SelectMany(pullRequest => gitApi.GetPullRequestReviews(pullRequest.Id).ContinueWith(reviews => Tuple.Create(pullRequest, reviews.Result)))
+                            pullRequests.GroupBy(pr => pr.SourceBranch).Select(prGroup => prGroup.First()).ToObservable()
+                                .SelectMany(pullRequest => gitApi.GetPullRequestReviews(pullRequest.Id)
+                                    .ContinueWith(reviews => new PullRequestWithReviews(pullRequest) { Reviews = reviews.Result })
+                                )
                                 .ToArray()
                                 .Select(a => a.ToImmutableList())
                         );
