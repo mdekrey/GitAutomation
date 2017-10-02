@@ -8,4 +8,6 @@ RUN chmod +x /init.sh
 
 COPY demo-repo.sh /demo-repo.sh
 RUN chmod +x /demo-repo.sh
-RUN ./demo-repo.sh
+WORKDIR /demo-repo
+RUN /demo-repo.sh
+WORKDIR /

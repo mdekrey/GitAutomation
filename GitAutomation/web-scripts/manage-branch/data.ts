@@ -1,6 +1,7 @@
 import { Observable, Subscription } from "rxjs";
 
 import { allBranches, branchDetails } from "../api/basics";
+import { BranchGroup } from "../api/basic-branch";
 
 export interface IManageBranch {
   isLoading: boolean;
@@ -10,8 +11,7 @@ export interface IManageBranch {
   branchNames: string[];
 }
 
-export interface IBranchData {
-  branch: string;
+export interface IBranchData extends BranchGroup {
   isDownstream: boolean;
   isUpstream: boolean;
   isSomewhereUpstream: boolean;
@@ -30,21 +30,20 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
       const directUpstreamBranches = branchDetails.directUpstreamBranchGroups;
       const downstreamBranches = branchDetails.downstreamBranchGroups;
       return {
-        branches: allBranches.map(({ groupName }): IBranchData => ({
-          branch: groupName,
-          isDownstream: directDownstreamBranches.indexOf(groupName) >= 0,
-          isDownstreamAllowed: upstreamBranches.indexOf(groupName) == -1,
-          isUpstream: directUpstreamBranches.indexOf(groupName) >= 0,
+        branches: allBranches.map((group): IBranchData => ({
+          ...group,
+          isDownstream: directDownstreamBranches.indexOf(group.groupName) >= 0,
+          isDownstreamAllowed: upstreamBranches.indexOf(group.groupName) == -1,
+          isUpstream: directUpstreamBranches.indexOf(group.groupName) >= 0,
           isSomewhereUpstream: Boolean(
             branchDetails.upstreamBranchGroups.find(
-              branch => branch === groupName
+              branch => branch === group.groupName
             )
           ),
-          isUpstreamAllowed: downstreamBranches.indexOf(groupName) == -1
+          isUpstreamAllowed: downstreamBranches.indexOf(group.groupName) == -1
         })),
         branchType: branchDetails.branchType,
         recreateFromUpstream: branchDetails.recreateFromUpstream,
-        conflictResolutionMode: branchDetails.conflictResolutionMode,
         branchNames: branchDetails.branchNames
       };
     })
@@ -53,7 +52,6 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
         branches,
         recreateFromUpstream,
         branchType,
-        conflictResolutionMode,
         branchNames
       }): IManageBranch => ({
         branches,

@@ -7,7 +7,9 @@ using GitAutomation.Repository;
 using System.Reactive.Linq;
 using System.Linq;
 using GitAutomation.Work;
+using GitAutomation.GitService;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 
 namespace GitAutomation
 {
@@ -16,12 +18,14 @@ namespace GitAutomation
         private readonly IRepositoryState repositoryState;
         private readonly IBranchSettings branchSettings;
         private readonly IBranchIterationMediator branchIteration;
+        private readonly IGitServiceApi gitApi;
 
-        public RepositoryMediator(IRepositoryState repositoryState, IBranchSettings branchSettings, IBranchIterationMediator branchIteration)
+        public RepositoryMediator(IRepositoryState repositoryState, IBranchSettings branchSettings, IBranchIterationMediator branchIteration, IGitServiceApi gitApi)
         {
             this.repositoryState = repositoryState;
             this.branchSettings = branchSettings;
             this.branchIteration = branchIteration;
+            this.gitApi = gitApi;
         }
 
         public IObservable<ImmutableList<BranchGroupCompleteData>> AllBranches()
@@ -109,6 +113,25 @@ namespace GitAutomation
                 }).Switch();
         }
 
+        public IObservable<ImmutableList<PullRequestWithReviews>> GetUpstreamPullRequests(string branchName)
+        {
+            return repositoryState.RemoteBranches()
+                .Select(remoteBranches =>
+                {
+                    return branchSettings.GetBranchBasicDetails(branchName)
+                        .Select(branch => branchIteration.GetLatestBranchNameIteration(branch.GroupName, remoteBranches.Where(candidate => branchIteration.IsBranchIteration(branch.GroupName, candidate))))
+                        .SelectMany(branch => gitApi.GetPullRequests(state: null, targetBranch: branch))
+                        .SelectMany(pullRequests =>
+                            pullRequests.GroupBy(pr => pr.SourceBranch).Select(prGroup => prGroup.First()).ToObservable()
+                                .SelectMany(pullRequest => gitApi.GetPullRequestReviews(pullRequest.Id)
+                                    .ContinueWith(reviews => new PullRequestWithReviews(pullRequest) { Reviews = reviews.Result })
+                                )
+                                .ToArray()
+                                .Select(a => a.ToImmutableList())
+                        );
+                }).Switch();
+        }
+
         public IObservable<BranchGroupCompleteData> GetBranchDetails(string branchName)
         {
             return this.repositoryState.RemoteBranches()
@@ -183,6 +206,7 @@ namespace GitAutomation
                     if (branchIteration.IsBranchIteration(configuredBranch.GroupName, actualBranch))
                     {
                         configuredBranch.BranchNames = configuredBranch.BranchNames?.Add(actualBranch) ?? Enumerable.Repeat(actualBranch, 1).ToImmutableList();
+                        configuredBranch.Statuses = await gitApi.GetCommitStatus(actualBranch);
                         configured = true;
                         break;
                     }
@@ -196,6 +220,7 @@ namespace GitAutomation
             {
                 var result = await factory(branch);
                 result.BranchNames = result.BranchNames ?? Enumerable.Repeat(branch, 1).ToImmutableList();
+                result.Statuses = ImmutableList<CommitStatus>.Empty;
                 return result;
             }).ToArray();
             return configuredBranches.Values

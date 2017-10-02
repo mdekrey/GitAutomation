@@ -21,12 +21,12 @@ import {
 } from "../utils/presentation/d3-binding";
 
 import { allBranchesHierarchy } from "../api/basics";
-import { BranchHierarchy } from "../api/branch-hierarchy";
+import { BranchGroup } from "../api/basic-branch";
 import { branchTypeColors } from "../style/branch-colors";
 import { ICascadingRoutingStrategy } from "../routing/index";
 import { BranchType } from "../api/basic-branch";
 
-interface NodeDatum extends BranchHierarchy, SimulationNodeDatum {
+interface NodeDatum extends BranchGroup, SimulationNodeDatum {
   branchColor: string;
   showLabel?: boolean;
 }

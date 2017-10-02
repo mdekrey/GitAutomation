@@ -1,9 +1,10 @@
 import { IRxBindProps } from "../utils/presentation/d3-binding";
-import { BasicBranch } from "../api/basic-branch";
+import { BranchGroup } from "../api/basic-branch";
+import { branchNameDisplay } from "../branch-name-display";
 
 export const buildBranchCheckListing = (): IRxBindProps<
   HTMLLIElement,
-  BasicBranch,
+  BranchGroup,
   any,
   any
 > => ({
@@ -19,7 +20,7 @@ export const buildBranchCheckListing = (): IRxBindProps<
     `);
   },
   onEach: selection => {
-    selection.select(`[data-locator="branch"]`).text(data => data.groupName);
+    branchNameDisplay(selection.select(`[data-locator="branch"]`));
     selection
       .select(`[data-locator="check"]`)
       .attr("data-branch", data => data.groupName);

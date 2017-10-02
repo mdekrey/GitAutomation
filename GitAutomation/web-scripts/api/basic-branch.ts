@@ -7,9 +7,27 @@ export enum BranchType {
   ReleaseCandidate = "ReleaseCandidate"
 }
 
-export interface BasicBranch {
+export enum StatusState {
+  Success,
+  Error,
+  Pending
+}
+export interface CommitStatus {
+  key: string;
+  description: string;
+  url: string;
+  state: StatusState;
+}
+
+export interface BranchGroup {
   recreateFromUpstream: boolean;
   branchType: BranchType;
   groupName: string;
   branchNames: string[];
+  directDownstreamBranchGroups: string[];
+  downstreamBranchGroups: string[];
+  directUpstreamBranchGroups: string[];
+  upstreamBranchGroups: string[];
+  hierarchyDepth: number;
+  statuses: CommitStatus[];
 }
