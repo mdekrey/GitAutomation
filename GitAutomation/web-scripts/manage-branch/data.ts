@@ -1,6 +1,7 @@
 import { Observable, Subscription } from "rxjs";
 
 import { allBranches, branchDetails } from "../api/basics";
+import { BranchGroup } from "../api/basic-branch";
 
 export interface IManageBranch {
   isLoading: boolean;
@@ -10,8 +11,7 @@ export interface IManageBranch {
   branchNames: string[];
 }
 
-export interface IBranchData {
-  branch: string;
+export interface IBranchData extends BranchGroup {
   isDownstream: boolean;
   isUpstream: boolean;
   isSomewhereUpstream: boolean;
@@ -24,34 +24,26 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
 
   const initializeBranchData = allBranches()
     .combineLatest(branchDetails(branchName), (allBranches, branchDetails) => {
-      const directDownstreamBranches = branchDetails.directDownstreamBranches.map(
-        b => b.branchName
-      );
-      const upstreamBranches = branchDetails.upstreamBranches.map(
-        b => b.branchName
-      );
-      const directUpstreamBranches = branchDetails.directUpstreamBranches.map(
-        b => b.branchName
-      );
-      const downstreamBranches = branchDetails.downstreamBranches.map(
-        b => b.branchName
-      );
+      const directDownstreamBranches =
+        branchDetails.directDownstreamBranchGroups;
+      const upstreamBranches = branchDetails.upstreamBranchGroups;
+      const directUpstreamBranches = branchDetails.directUpstreamBranchGroups;
+      const downstreamBranches = branchDetails.downstreamBranchGroups;
       return {
-        branches: allBranches.map(({ branchName }): IBranchData => ({
-          branch: branchName,
-          isDownstream: directDownstreamBranches.indexOf(branchName) >= 0,
-          isDownstreamAllowed: upstreamBranches.indexOf(branchName) == -1,
-          isUpstream: directUpstreamBranches.indexOf(branchName) >= 0,
+        branches: allBranches.map((group): IBranchData => ({
+          ...group,
+          isDownstream: directDownstreamBranches.indexOf(group.groupName) >= 0,
+          isDownstreamAllowed: upstreamBranches.indexOf(group.groupName) == -1,
+          isUpstream: directUpstreamBranches.indexOf(group.groupName) >= 0,
           isSomewhereUpstream: Boolean(
-            branchDetails.upstreamBranches.find(
-              branch => branch.branchName === branchName
+            branchDetails.upstreamBranchGroups.find(
+              branch => branch === group.groupName
             )
           ),
-          isUpstreamAllowed: downstreamBranches.indexOf(branchName) == -1
+          isUpstreamAllowed: downstreamBranches.indexOf(group.groupName) == -1
         })),
         branchType: branchDetails.branchType,
         recreateFromUpstream: branchDetails.recreateFromUpstream,
-        conflictResolutionMode: branchDetails.conflictResolutionMode,
         branchNames: branchDetails.branchNames
       };
     })
@@ -60,7 +52,6 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
         branches,
         recreateFromUpstream,
         branchType,
-        conflictResolutionMode,
         branchNames
       }): IManageBranch => ({
         branches,

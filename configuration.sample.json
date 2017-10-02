@@ -1,10 +1,13 @@
 ﻿{
   "git": {
     "repository": "https://mdekrey@github.com/mdekrey/gitautomation",
-    "password": "YOUR_GITHUB_PASSWORD",
     "apiType": "GitAutomation.GitHub.RegisterGitHub, GitAutomation.GitHub",
     "userEmail": "git.automation@example.com",
-    "userName": "Git Automation"
+    "userName": "Git Automation",
+    "github": {
+      "password": "YOUR_GITHUB_PASSWORD",
+      "checkStatus": false
+    }
   },
   "persistence": {
     "type": "GitAutomation.Postgres.RegisterPostgres, GitAutomation.Postgres",

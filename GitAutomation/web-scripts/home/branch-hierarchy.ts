@@ -21,12 +21,12 @@ import {
 } from "../utils/presentation/d3-binding";
 
 import { allBranchesHierarchy } from "../api/basics";
-import { BranchHierarchy } from "../api/branch-hierarchy";
+import { BranchGroup } from "../api/basic-branch";
 import { branchTypeColors } from "../style/branch-colors";
 import { ICascadingRoutingStrategy } from "../routing/index";
 import { BranchType } from "../api/basic-branch";
 
-interface NodeDatum extends BranchHierarchy, SimulationNodeDatum {
+interface NodeDatum extends BranchGroup, SimulationNodeDatum {
   branchColor: string;
   showLabel?: boolean;
 }
@@ -73,9 +73,9 @@ export function branchHierarchy({
 
         const links = flatten<SimulationLinkDatum<NodeDatum>>(
           allBranches.map((branch, source) =>
-            branch.downstreamBranches.map(downstream => ({
+            branch.downstreamBranchGroups.map(downstream => ({
               source,
-              target: nodes.find(branch => branch.branchName === downstream)!
+              target: nodes.find(branch => branch.groupName === downstream)!
             }))
           )
         );
@@ -187,7 +187,7 @@ export function branchHierarchy({
             const clicked = simulation.find(x, y, 10);
             if (clicked) {
               state.navigate({
-                url: "/manage/" + clicked.branchName,
+                url: "/manage/" + clicked.groupName,
                 replaceCurentHistory: false
               });
             }
@@ -222,7 +222,7 @@ export function branchHierarchy({
       rxData(
         target.map(fnSelect(`[data-locator="nodes"]`)),
         redraw.map(d => d.nodes),
-        node => node.branchName
+        node => node.groupName
       )
         .bind({
           selector: `circle`,
@@ -249,7 +249,7 @@ export function branchHierarchy({
       rxData(
         target.map(fnSelect(`[data-locator="labels"]`)),
         redraw.map(d => d.nodes),
-        node => node.branchName
+        node => node.groupName
       )
         .bind({
           selector: `g`,
@@ -270,7 +270,7 @@ export function branchHierarchy({
               .attr("stroke-width", 0)
               .attr("dy", -6)
               .attr("dx", 3)
-              .text(node => node.branchName);
+              .text(node => node.groupName);
             const textNode = text.node();
             if (textNode) {
               const textSize = textNode.getClientRects()[0];
@@ -294,20 +294,20 @@ export function branchHierarchy({
         .subscribe()
     );
 
-    type Picked = Pick<NodeDatum, "branchName" | "showLabel">;
+    type Picked = Pick<NodeDatum, "groupName" | "showLabel">;
     subscription.add(
       rxData(
         target.map(fnSelect(`[data-locator="labels"]`)),
         redraw
           .map(d => d.nodes)
           .map(nodes =>
-            nodes.map(({ branchName, showLabel }) => ({
-              branchName,
+            nodes.map(({ groupName, showLabel }) => ({
+              groupName,
               showLabel
             }))
           )
           .distinctUntilChanged<Picked[]>(equals),
-        node => node.branchName
+        node => node.groupName
       )
         .bind({
           selector: `g`,
@@ -327,9 +327,9 @@ export function branchHierarchy({
         target.map(fnSelect(`[data-locator="links"]`)),
         redraw.map(d => d.links),
         links =>
-          (links.source as NodeDatum).branchName +
+          (links.source as NodeDatum).groupName +
           " to " +
-          (links.target as NodeDatum).branchName
+          (links.target as NodeDatum).groupName
       )
         .bind({
           selector: `g`,

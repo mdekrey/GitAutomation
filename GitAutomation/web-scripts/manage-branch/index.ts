@@ -13,6 +13,7 @@ import { runBranchData } from "./data";
 import { buildBranchCheckListing } from "./branch-check-listing";
 import { bindSaveButton } from "./bind-save-button";
 import {
+  checkPullRequests,
   consolidateMerged,
   promoteServiceLine,
   deleteBranch,
@@ -50,7 +51,12 @@ export const manage = (
         <tr>
           <td></td>
           <th>Downstream</th>
-          <th>Upstream<br/><a data-locator="detect-upstream">Detect Upstream Branches</a></th>
+          <th>
+            Upstream
+            <br/>
+            <a data-locator="detect-upstream">Detect Upstream Branches</a>
+            <a data-locator="check-prs">Check PRs</a>
+          </th>
         </tr>
       </thead>
       <tbody data-locator="other-branches">
@@ -145,7 +151,7 @@ export const manage = (
 
         const branchList = branchData.state
           .map(state =>
-            state.branches.filter(({ branch }) => branch !== branchName)
+            state.branches.filter(({ groupName }) => groupName !== branchName)
           )
           .combineLatest(reset, _ => _);
 
@@ -178,7 +184,7 @@ export const manage = (
           rxData(
             container.map(fnSelect(`[data-locator="other-branches"]`)),
             branchList,
-            data => data.branch
+            data => data.groupName
           )
             .bind(buildBranchCheckListing())
             .subscribe()
@@ -220,7 +226,7 @@ export const manage = (
             branchList.map(branches =>
               branches.filter(branch => !branch.isUpstream)
             ),
-            data => data.branch
+            data => data.groupName
           )
             .bind({
               selector: "option",
@@ -228,8 +234,8 @@ export const manage = (
                 selection.append<HTMLOptionElement>("option"),
               onEach: selection =>
                 selection
-                  .text(data => data.branch)
-                  .attr("value", data => data.branch)
+                  .text(data => data.groupName)
+                  .attr("value", data => data.groupName)
             })
             .subscribe()
         );
@@ -242,7 +248,7 @@ export const manage = (
               [branchName].concat(
                 branches
                   .filter(branch => branch.isSomewhereUpstream)
-                  .map(branch => branch.branch)
+                  .map(branch => branch.groupName)
               )
             ),
             data => data
@@ -282,6 +288,32 @@ export const manage = (
                       `[data-locator="upstream-branches"] [data-locator="check"][data-branch="${upstreamBranchName}"]`
                     )
                     .property("checked", true)
+                )
+              );
+            })
+        );
+
+        subscription.add(
+          rxEvent({
+            target: container.map(fnSelect(`[data-locator="check-prs"]`)),
+            eventName: "click"
+          })
+            .withLatestFrom(
+              container.map(fnSelect(`[data-locator="other-branches"]`)),
+              (_, elem) => elem
+            )
+            .subscribe(elements => {
+              checkPullRequests(branchName).subscribe(pullRequests =>
+                pullRequests.forEach(pr =>
+                  elements
+                    .select(
+                      `[data-locator="upstream-branches"] [data-locator="pr-status"][data-branch="${pr.sourceBranch}"]`
+                    )
+                    .text(
+                      `Has PR: ${pr.state} (${pr.reviews
+                        .map(review => `${review.username}: ${review.state}`)
+                        .join(", ")})`
+                    )
                 )
               );
             })
