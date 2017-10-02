@@ -89,7 +89,7 @@ namespace GitAutomation
                 .Switch();
         }
 
-        private async System.Threading.Tasks.Task<ImmutableList<string>> PruneUpstream(ImmutableList<string> allUpstream, ImmutableList<BranchBasicDetails> configured)
+        private async System.Threading.Tasks.Task<ImmutableList<string>> PruneUpstream(ImmutableList<string> allUpstream, ImmutableList<BranchGroupDetails> configured)
         {
             for (var i = 0; i < allUpstream.Count; i++)
             {
@@ -119,7 +119,7 @@ namespace GitAutomation
             return branchSettings.GetAllUpstreamBranches(branchName)
                 .CombineLatest(branchSettings.GetConfiguredBranches(), (allUpstreamBranchDetails, configured) =>
                 {
-                    var allUpstream = allUpstreamBranchDetails.Where(b => b.BranchType == BranchType.ServiceLine).Select(b => b.BranchName).ToImmutableList();
+                    var allUpstream = allUpstreamBranchDetails.Where(b => b.BranchType == BranchGroupType.ServiceLine).Select(b => b.GroupName).ToImmutableList();
                     return PruneUpstream(allUpstream, configured);
                 }).Switch();
         }
