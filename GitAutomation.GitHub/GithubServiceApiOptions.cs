@@ -8,6 +8,8 @@ namespace GitAutomation.GitHub
     {
         public string Password { get; set; }
 
-        public bool CheckStatus { get; set; }
+        public bool CheckStatus { get; set; } = true;
+
+        public bool CheckPullRequestReviews { get; set; } = true;
     }
 }

@@ -94,11 +94,43 @@ namespace GitAutomation.GitHub
                 return (from entry in token
                         select new PullRequest
                         {
-                            Id = entry["id"].ToString(),
+                            Id = entry["number"].ToString(),
                             State = entry["state"].ToString() == "open" ? PullRequestState.Open : PullRequestState.Closed,
                             TargetBranch = entry["base"]["ref"].ToString(),
                             SourceBranch = entry["head"]["ref"].ToString(),
                         }).ToImmutableList();
+            }
+        }
+
+        public async Task<ImmutableList<PullRequestReview>> GetPullRequestReviews(string id)
+        {
+            if (!serviceOptions.CheckPullRequestReviews)
+            {
+                return ImmutableList<PullRequestReview>.Empty;
+            }
+
+            using (var response = await client.GetAsync($"/repos/{owner}/{repository}/pulls/{id}/reviews"))
+            {
+                await EnsureSuccessStatusCode(response);
+                var responseString = await response.Content.ReadAsStringAsync();
+                var token = JArray.Parse(responseString);
+                return (from entry in token
+                        select new PullRequestReview
+                        {
+                            State = ToApprovalState(entry["state"].ToString()),
+                            Username = entry["user"]["login"].ToString(),
+                        }).ToImmutableList();
+            }
+        }
+
+        private PullRequestReview.ApprovalState ToApprovalState(string state)
+        {
+            switch (state)
+            {
+                case "APPROVED":
+                    return PullRequestReview.ApprovalState.Approved;
+                default:
+                    return PullRequestReview.ApprovalState.Pending;
             }
         }
 

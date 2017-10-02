@@ -132,6 +132,13 @@ namespace GitAutomation.Management
             return repository.DetectShallowUpstream(branchName).FirstAsync().ToTask();
         }
 
+        [Authorize(Auth.PolicyNames.Read)]
+        [HttpGet("check-prs/{*branchName}")]
+        public Task<ImmutableList<Tuple<GitService.PullRequest, ImmutableList<GitService.PullRequestReview>>>> GetUpstreamPullRequests(string branchName)
+        {
+            return repository.GetUpstreamPullRequests(branchName).FirstAsync().ToTask();
+        }
+
         public class UpdateBranchRequestBody
         {
             public bool RecreateFromUpstream { get; set; }

@@ -9,6 +9,7 @@ using System.Linq;
 using GitAutomation.Work;
 using GitAutomation.GitService;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 
 namespace GitAutomation
 {
@@ -109,6 +110,23 @@ namespace GitAutomation
 
                     return allUpstream;
 
+                }).Switch();
+        }
+
+        public IObservable<ImmutableList<Tuple<PullRequest, ImmutableList<PullRequestReview>>>> GetUpstreamPullRequests(string branchName)
+        {
+            return repositoryState.RemoteBranches()
+                .Select(remoteBranches =>
+                {
+                    return branchSettings.GetBranchBasicDetails(branchName)
+                        .Select(branch => branchIteration.GetLatestBranchNameIteration(branch.GroupName, remoteBranches))
+                        .SelectMany(branch => gitApi.GetPullRequests(state: null, targetBranch: branch))
+                        .SelectMany(pullRequests =>
+                            pullRequests.ToObservable()
+                                .SelectMany(pullRequest => gitApi.GetPullRequestReviews(pullRequest.Id).ContinueWith(reviews => Tuple.Create(pullRequest, reviews.Result)))
+                                .ToArray()
+                                .Select(a => a.ToImmutableList())
+                        );
                 }).Switch();
         }
 

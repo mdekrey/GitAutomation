@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Text;
 using System.Threading.Tasks;
 using GitAutomation.Work;
+using GitAutomation.GitService;
 
 namespace GitAutomation
 {
@@ -13,6 +14,7 @@ namespace GitAutomation
         IObservable<ImmutableList<BranchGroupCompleteData>> AllBranches();
         IObservable<ImmutableList<BranchGroupCompleteData>> AllBranchesHierarchy();
         IObservable<ImmutableList<string>> DetectShallowUpstream(string branchName);
+        IObservable<ImmutableList<Tuple<PullRequest, ImmutableList<PullRequestReview>>>> GetUpstreamPullRequests(string branchName);
         IObservable<string> LatestBranchName(BranchGroupDetails details);
         IObservable<string> GetNextCandidateBranch(BranchGroupDetails details, bool shouldMutate);
         IObservable<BranchGroupCompleteData> GetBranchDetails(string branchName);
