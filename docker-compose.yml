@@ -9,7 +9,7 @@ services:
     secrets:
       - gitcredentials
       - configuration.json
-    ports: 
+    ports:
       - "32768:80"
 #  gitautomation-sql:
     #image: gitautomation-sql
@@ -21,7 +21,7 @@ services:
 #    secrets:
 #      - sqlcredentials
 #      - sqleula
-      
+
   gitautomation-psql:
     image: gitautomation-psql
 #    build:
