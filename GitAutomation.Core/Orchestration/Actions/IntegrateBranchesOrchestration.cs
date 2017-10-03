@@ -221,8 +221,6 @@ namespace GitAutomation.Orchestration.Actions
                     {
                         addedIntegrationBranch = true;
                         settings.AddBranchPropagation(integrationBranch, downstreamDetails.GroupName, work);
-                        settings.RemoveBranchPropagation(conflict.BranchA, downstreamDetails.GroupName, work);
-                        settings.RemoveBranchPropagation(conflict.BranchB, downstreamDetails.GroupName, work);
                     }
                 }
                 await work.CommitAsync();

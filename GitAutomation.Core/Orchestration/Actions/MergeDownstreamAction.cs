@@ -63,6 +63,8 @@ namespace GitAutomation.Orchestration.Actions
             private readonly IGitServiceApi gitServiceApi;
             private readonly IntegrateBranchesOrchestration integrateBranches;
             private readonly IRepositoryMediator repository;
+            private readonly IRepositoryOrchestration orchestration;
+            private readonly string downstreamBranchGroup;
             private readonly Task<BranchGroupCompleteData> detailsTask;
             private readonly Task<string> latestBranchName;
 
@@ -75,6 +77,8 @@ namespace GitAutomation.Orchestration.Actions
                 this.gitServiceApi = gitServiceApi;
                 this.integrateBranches = integrateBranches;
                 this.repository = repository;
+                this.orchestration = orchestration;
+                this.downstreamBranchGroup = downstreamBranch;
                 this.detailsTask = repository.GetBranchDetails(downstreamBranch).FirstAsync().ToTask();
                 this.latestBranchName = detailsTask.ContinueWith(task => repository.LatestBranchName(task.Result).FirstOrDefaultAsync().ToTask()).Unwrap();
             }
@@ -178,7 +182,10 @@ namespace GitAutomation.Orchestration.Actions
                     var result = await MergeUpstreamBranch(upstreamBranch, downstreamBranch);
                     if (result.HadConflicts)
                     {
-                        // abort!
+                        // abort, but queue another attempt
+#pragma warning disable CS4014
+                        orchestration.EnqueueAction(new MergeDownstreamAction(downstreamBranchGroup));
+#pragma warning restore
                         return;
                     }
                 }
