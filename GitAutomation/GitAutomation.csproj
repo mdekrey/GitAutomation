@@ -36,6 +36,8 @@
   <ItemGroup>
     <ProjectReference Include="..\GitAutomation.Auth\GitAutomation.Auth.csproj" />
     <ProjectReference Include="..\GitAutomation.Core\GitAutomation.Core.csproj" />
+    <ProjectReference Include="..\GitAutomation.Postgres\GitAutomation.Postgres.csproj" />
+    <ProjectReference Include="..\GitAutomation.GitHub\GitAutomation.GitHub.csproj" />
   </ItemGroup>
 
 </Project>

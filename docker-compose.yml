@@ -11,6 +11,8 @@ services:
       - configuration.json
     ports:
       - "32768:80"
+    volumes:
+      - "./GitAutomation.AllAddons/obj/Docker/publish:/extra-bins/all-addons"
 #  gitautomation-sql:
     #image: gitautomation-sql
 #    build:
