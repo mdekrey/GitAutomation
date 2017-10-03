@@ -1,4 +1,4 @@
-FROM microsoft/mssql-server-linux:rc2
+FROM microsoft/mssql-server-linux:2017-GA
 
 WORKDIR /src
 
