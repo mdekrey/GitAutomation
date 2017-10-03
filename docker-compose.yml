@@ -9,8 +9,10 @@ services:
     secrets:
       - gitcredentials
       - configuration.json
-    ports: 
+    ports:
       - "32768:80"
+    volumes:
+      - "./GitAutomation.AllAddons/obj/Docker/publish:/extra-bins/all-addons"
 #  gitautomation-sql:
     #image: gitautomation-sql
 #    build:
@@ -21,7 +23,7 @@ services:
 #    secrets:
 #      - sqlcredentials
 #      - sqleula
-      
+
   gitautomation-psql:
     image: gitautomation-psql
 #    build:
