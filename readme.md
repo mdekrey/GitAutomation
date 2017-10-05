@@ -9,9 +9,7 @@ for production yet, as there is no security to actually connect to the web-hooks
 You need docker for your operating system. That's it!
 
 # Notices
-Postgres is now the default database provider; the SQL images may be used, but require significantly more RAM (and were still in preview mode at the time of writing.) See the SQL Server section below.
-
-TODO - credentials for Postgres. Currently, we use the default Postgres password, which is no password.
+The default configuration uses no password for PostgreSQL. Because there is no persistence when using the default docker-compose files, this is acceptable for dev purposes; however, you will want to make sure you specify a password in your PostgreSQL connection string and for your database when you set up a production instance.
 
 # Before you get started
 Local files that are not included in the repository include:
@@ -31,6 +29,7 @@ Repositories:
  - http://tester@git-server/git/gittesting1.git
  - http://tester@git-server/git/gittesting2.git
  - http://tester@git-server/git/gittesting3.git
+
 Password:
  - TEST_PASSWORD
 
@@ -48,7 +47,7 @@ This uses [.NET Core 2.0.0 SDK](https://github.com/dotnet/core/blob/master/relea
 
     *Note:* If you have Visual Studio running during this step, it may hang while "Building ci-build".
 
-3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.vs-fix.yml build`
+3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml build`
 4. Launch the sln file and build.
 
 And then to run it...
@@ -61,7 +60,7 @@ To ensure updates to the secrets are seen within the containers, rebuild the doc
 
 1. Make sure the configuration files mentioned above are in place.
 2. `docker-compose -f docker-compose.ci.build.yml up --build`
-3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.vs-fix.yml build`
+3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml build`
 
 And then to run it...
 

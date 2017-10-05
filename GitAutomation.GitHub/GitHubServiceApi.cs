@@ -143,6 +143,53 @@ namespace GitAutomation.GitHub
             }
         }
 
+        public async Task MigrateOrClosePullRequests(string fromBranch, string toBranch)
+        {
+            if (!serviceOptions.MigratePullRequests)
+            {
+                return;
+            }
+            var openPRs = await GetPullRequests(state: PullRequestState.Open, targetBranch: fromBranch);
+            foreach (var openPR in openPRs)
+            {
+                using (var response = await client.SendAsync(new HttpRequestMessage(new HttpMethod("PATCH"), $"/repos/{owner}/{repository}/pulls/{openPR.Id}")
+                {
+                    Content = JsonContent(new
+                    {
+                        @base = toBranch
+                    })
+                }))
+                {
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var jobject = JObject.Parse(await response.Content.ReadAsStringAsync());
+                        try
+                        {
+                            var alreadyMerged = jobject["errors"][0]["message"].ToString().StartsWith("There are no new commits between base branch");
+                            if (alreadyMerged)
+                            {
+                                await client.SendAsync(new HttpRequestMessage(new HttpMethod("PATCH"), $"/repos/{owner}/{repository}/pulls/{openPR.Id}")
+                                {
+                                    Content = JsonContent(new
+                                    {
+                                        state = "closed"
+                                    })
+                                });
+                            }
+                        }
+                        catch { }
+
+                        await client.PostAsync($"/repos/{owner}/{repository}/issues/{openPR.Id}/comments", JsonContent(new
+                        {
+                            body = $"Could not automatically migrate to {toBranch}. Either this branch has been merged or there was some other error.\n" +
+                            "\n" +
+                            $"    {string.Join("\n    ", (jobject.ToString(Formatting.Indented)).Split('\n'))}",
+                        }));
+                    }
+                }
+            }
+        }
+
         public async Task<ImmutableList<CommitStatus>> GetCommitStatus(string commitSha)
         {
             if (!serviceOptions.CheckStatus)

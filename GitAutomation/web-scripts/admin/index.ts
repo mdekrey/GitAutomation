@@ -17,7 +17,14 @@ const updateUserData = new Subject<
 >();
 const freshUserData = new Subject<Record<string, string[]>>();
 const userData = allUsers().merge(freshUserData);
-const permissions = ["read", "delete", "update", "approve", "administrate"];
+const permissions = [
+  "read",
+  "create",
+  "delete",
+  "update",
+  "approve",
+  "administrate"
+];
 
 export const admin = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>

@@ -174,6 +174,11 @@ namespace GitAutomation.Repository
             return RunGit(new string[] { "show", "--format=%cI", "-s" }.Concat(commitishes).ToArray());
         }
 
+        public IReactiveProcess GetCommitParents(string commitish)
+        {
+            return RunGit("show", "--format=%P", "-s", commitish);
+        }
+
         public static IObservable<ImmutableList<GitRef>> BranchListingToRefs(IObservable<OutputMessage> refListing)
         {
 

@@ -11,5 +11,7 @@ namespace GitAutomation.GitHub
         public bool CheckStatus { get; set; } = true;
 
         public bool CheckPullRequestReviews { get; set; } = true;
+
+        public bool MigratePullRequests { get; set; } = true;
     }
 }

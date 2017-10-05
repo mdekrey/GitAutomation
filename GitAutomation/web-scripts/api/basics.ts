@@ -74,6 +74,20 @@ export const fetch = () =>
     .post("/api/gitwebhook")
     .map(response => response.response as null);
 
+export const createBranch = (
+  branchName: string,
+  body: {
+    recreateFromUpstream: boolean;
+    branchType: string;
+    addUpstream: string[];
+  }
+) =>
+  Observable.ajax
+    .put("/api/management/branch/create/" + branchName, body, {
+      "Content-Type": "application/json"
+    })
+    .map(response => response.response as null);
+
 export const updateBranch = (
   branchName: string,
   body: {

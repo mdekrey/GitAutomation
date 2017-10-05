@@ -10,6 +10,7 @@ using GitAutomation.Work;
 using GitAutomation.GitService;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
+using System.Reactive.Threading.Tasks;
 
 namespace GitAutomation
 {
@@ -129,9 +130,8 @@ namespace GitAutomation
             return repositoryState.RemoteBranches()
                 .Select(remoteBranches =>
                 {
-                    return branchSettings.GetBranchBasicDetails(branchName)
-                        .Select(branch => branchIteration.GetLatestBranchNameIteration(branch.GroupName, remoteBranches.Where(candidate => branchIteration.IsBranchIteration(branch.GroupName, candidate))))
-                        .SelectMany(branch => gitApi.GetPullRequests(state: null, targetBranch: branch))
+                    var branch = branchIteration.GetLatestBranchNameIteration(branchName, remoteBranches.Where(candidate => branchIteration.IsBranchIteration(branchName, candidate)));
+                    return gitApi.GetPullRequests(state: null, targetBranch: branch).ToObservable()
                         .SelectMany(pullRequests =>
                             pullRequests.GroupBy(pr => pr.SourceBranch).Select(prGroup => prGroup.First()).ToObservable()
                                 .SelectMany(pullRequest => gitApi.GetPullRequestReviews(pullRequest.Id)

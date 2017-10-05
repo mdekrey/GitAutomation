@@ -23,6 +23,13 @@ namespace Microsoft.AspNetCore.Authorization
                     .Build()
             );
             options.AddPolicy(
+                PolicyNames.Create,
+                new AuthorizationPolicyBuilder()
+                    .Combine(anyPermission)
+                    .RequireRole(Permission.Administrator.ToString().ToLower(), Permission.Create.ToString().ToLower())
+                    .Build()
+            );
+            options.AddPolicy(
                 PolicyNames.Delete,
                 new AuthorizationPolicyBuilder()
                     .Combine(anyPermission)
