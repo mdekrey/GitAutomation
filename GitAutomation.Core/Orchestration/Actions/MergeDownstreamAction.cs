@@ -105,11 +105,48 @@ namespace GitAutomation.Orchestration.Actions
                     ? upstreamBranches
                     : (await FilterUpstreamReadyForMerge(await FindNeededMerges(upstreamBranches), !Details.RecreateFromUpstream));
 
-                if (neededUpstreamMerges.Any() && Details.RecreateFromUpstream)
+                if (Details.RecreateFromUpstream)
                 {
-                    neededUpstreamMerges = upstreamBranches;
+                    if (neededUpstreamMerges.Any())
+                    {
+                        neededUpstreamMerges = upstreamBranches;
 
-                    needsCreate = true;
+                        needsCreate = true;
+                    }
+
+                    if (!needsCreate)
+                    {
+                        // It's okay if there are still other "upstreamBranches" that didn't get merged, because we already did that check
+                        var neededRefs = (await (from branchName in upstreamBranches.ToObservable()
+                                                 from branchRef in cli.ShowRef(branchName).FirstOutputMessage()
+                                                 select branchRef).ToArray()).ToImmutableHashSet();
+
+                        var currentHead = await cli.ShowRef(LatestBranchName).FirstOutputMessage();
+                        if (!neededRefs.Contains(currentHead))
+                        {
+                            // The latest commit of the branch isn't one that we needed. That means it's probably a merge commit!
+                            Func<string, IObservable<string[]>> getParents = (commitish) =>
+                                cli.GetCommitParents(commitish).FirstOutputMessage().Select(commit => commit.Split(' '));
+                            var parents = await getParents(cli.RemoteBranch(LatestBranchName));
+                            while (parents.Length > 1)
+                            {
+                                // Figure out what the other commits are, if any
+                                var other = parents.Where(p => !neededRefs.Contains(p)).ToArray();
+                                if (other.Length != 1)
+                                {
+                                    break;
+                                }
+                                else
+                                {
+                                    // If there's another commit, it might be a merge of two of our other requireds. Check it!
+                                    parents = await getParents(other[0]);
+                                }
+                            }
+                            // We either have 2 "others" or no "others", so our single parent will tell us.
+                            // If it's a required commit, we're good. If it's not, we need to recreate the branch.
+                            needsCreate = !neededRefs.Contains(parents[0]);
+                        }
+                    }
                 }
 
                 if (needsCreate)

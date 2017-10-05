@@ -31,6 +31,7 @@ Repositories:
  - http://tester@git-server/git/gittesting1.git
  - http://tester@git-server/git/gittesting2.git
  - http://tester@git-server/git/gittesting3.git
+
 Password:
  - TEST_PASSWORD
 
