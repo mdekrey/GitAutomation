@@ -2,7 +2,7 @@ import { Observable } from "rxjs";
 import { Selection } from "d3-selection";
 
 import { d3element, rxEvent } from "../utils/presentation/d3-binding";
-import { checkDownstreamMerges, updateBranch } from "../api/basics";
+import { checkDownstreamMerges, createBranch } from "../api/basics";
 
 export const bindSaveButton = (
   selector: string,
@@ -48,10 +48,7 @@ export const bindSaveButton = (
           requestBody: {
             recreateFromUpstream,
             branchType,
-            addUpstream: upstream,
-            removeUpstream: [],
-            addDownstream: [],
-            removeDownstream: []
+            addUpstream: upstream
           }
         };
       });
@@ -64,7 +61,7 @@ export const bindSaveButton = (
     })
       .switchMap(_ => getUpdateRequest())
       .switchMap(({ branchName, requestBody }) =>
-        updateBranch(branchName, requestBody).map(_ => branchName)
+        createBranch(branchName, requestBody).map(_ => branchName)
       )
       .switchMap(branchName =>
         checkDownstreamMerges(branchName).map(_ => branchName)

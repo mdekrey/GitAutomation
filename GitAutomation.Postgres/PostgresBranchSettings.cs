@@ -298,7 +298,7 @@ WHERE BranchType='Integration' AND BranchA.UpstreamBranch=@BranchA AND BranchB.U
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
                 .SelectMany(_ => WithConnection(async connection =>
                 {
-                    var settings = await GetBranchDetailOnce(branchName)(connection);
+                    var settings = await GetBranchDetailOnce(branchName)(connection) ?? DefaultBranchGroup(branchName);
                     return new BranchGroupCompleteData
                     {
                         GroupName = branchName,
@@ -324,14 +324,19 @@ WHERE BranchType='Integration' AND BranchA.UpstreamBranch=@BranchA AND BranchB.U
                         {
                             return ReadBranchBasicDetails(reader);
                         }
-                        return new BranchGroupDetails
-                        {
-                            GroupName = branchName,
-                            RecreateFromUpstream = false,
-                            BranchType = BranchGroupType.Feature,
-                        };
+                        return null;
                     }
                 }
+            };
+        }
+
+        private BranchGroupDetails DefaultBranchGroup(string branchName)
+        {
+            return new BranchGroupDetails
+            {
+                GroupName = branchName,
+                RecreateFromUpstream = false,
+                BranchType = BranchGroupType.Feature,
             };
         }
 

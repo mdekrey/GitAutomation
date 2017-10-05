@@ -76,6 +76,29 @@ namespace GitAutomation.Management
             return repository.GetBranchDetails(branchName).FirstAsync().ToTask();
         }
 
+        [Authorize(Auth.PolicyNames.Create)]
+        [HttpPut("branch/create/{*branchName}")]
+        public async Task<IActionResult> CreateBranch(string branchName, [FromBody] CreateBranchRequestBody requestBody)
+        {
+            var branch = await branchSettings.GetBranchBasicDetails(branchName).FirstOrDefaultAsync();
+            if (branch != null)
+            {
+                return StatusCode(409, new { code = "branch-exists", message = "Branch already exists." });
+            }
+
+            using (var unitOfWork = unitOfWorkFactory.CreateUnitOfWork())
+            {
+                foreach (var addedUpstream in requestBody.AddUpstream)
+                {
+                    branchSettings.AddBranchPropagation(addedUpstream, branchName, unitOfWork);
+                }
+                branchSettings.UpdateBranchSetting(branchName, requestBody.RecreateFromUpstream, requestBody.BranchType, unitOfWork);
+
+                await unitOfWork.CommitAsync();
+            }
+            return Ok();
+        }
+
         [Authorize(Auth.PolicyNames.Update)]
         [HttpPut("branch/propagation/{*branchName}")]
         public async Task UpdateBranch(string branchName, [FromBody] UpdateBranchRequestBody requestBody)
@@ -137,6 +160,13 @@ namespace GitAutomation.Management
         public Task<ImmutableList<GitService.PullRequestWithReviews>> GetUpstreamPullRequests(string branchName)
         {
             return repository.GetUpstreamPullRequests(branchName).FirstAsync().ToTask();
+        }
+
+        public class CreateBranchRequestBody
+        {
+            public bool RecreateFromUpstream { get; set; }
+            public BranchGroupType BranchType { get; set; }
+            public string[] AddUpstream { get; set; }
         }
 
         public class UpdateBranchRequestBody
