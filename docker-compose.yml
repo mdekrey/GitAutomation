@@ -9,19 +9,9 @@ services:
     secrets:
       - gitcredentials
       - configuration.json
-    ports: 
+    ports:
       - "32768:80"
-#  gitautomation-sql:
-    #image: gitautomation-sql
-#    build:
-#      context: ./GitAutomation.Sql
-#      dockerfile: Dockerfile
-#    ports:
-#      - "1433"
-#    secrets:
-#      - sqlcredentials
-#      - sqleula
-      
+
   gitautomation-psql:
     image: gitautomation-psql
 #    build:
@@ -37,9 +27,5 @@ services:
 secrets:
   gitcredentials:
     file: ./git-credentials.txt
-#  sqlcredentials:
-#    file: ./sql-credentials.txt
-#  sqleula:
-#    file: ./sql-eula.txt
   configuration.json:
     file: ./configuration.json

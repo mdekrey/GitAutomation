@@ -1,23 +1,22 @@
 version: '3.1'
 
+# VS2017 update 3 chokes if the context of non-.Net containers is present. Use this file to build them.
+# https://developercommunity.visualstudio.com/content/problem/96130/solution-build-fails-with-docker-compose-error-in.html
 services:
-  gitautomation-sql:
-    build:
-      context: ./GitAutomation.Sql
-      dockerfile: Dockerfile
   git-server:
     image: testing-git-server
     build:
       context: ./git-server
       dockerfile: dockerfile
 
+  gitautomation-psql:
+    build:
+      context: ./GitAutomation.Postgres
+      dockerfile: Dockerfile
+
 secrets:
   gitcredentials:
     file: ./git-credentials.txt
-  sqlcredentials:
-    file: ./sql-credentials.txt
-  sqleula:
-    file: ./sql-eula.txt
   configuration.json:
     file: ./configuration.json
 
