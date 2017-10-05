@@ -9,9 +9,7 @@ for production yet, as there is no security to actually connect to the web-hooks
 You need docker for your operating system. That's it!
 
 # Notices
-Postgres is now the default database provider; the SQL images may be used, but require significantly more RAM (and were still in preview mode at the time of writing.) See the SQL Server section below.
-
-TODO - credentials for Postgres. Currently, we use the default Postgres password, which is no password.
+The default configuration uses no password for PostgreSQL. Because there is no persistence when using the default docker-compose files, this is acceptable for dev purposes; however, you will want to make sure you specify a password in your PostgreSQL connection string and for your database when you set up a production instance.
 
 # Before you get started
 Local files that are not included in the repository include:
