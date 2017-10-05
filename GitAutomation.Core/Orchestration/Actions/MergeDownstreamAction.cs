@@ -228,6 +228,11 @@ namespace GitAutomation.Orchestration.Actions
                 }
 
                 await PushBranch(downstreamBranch);
+
+                if (LatestBranchName != null && LatestBranchName != downstreamBranch)
+                {
+                    await gitServiceApi.MigrateOrClosePullRequests(fromBranch: LatestBranchName, toBranch: downstreamBranch);
+                }
             }
 
             private async Task PushBranch(string downstreamBranch)

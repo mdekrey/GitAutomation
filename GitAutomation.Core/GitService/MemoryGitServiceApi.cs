@@ -30,6 +30,11 @@ namespace GitAutomation.GitService
             );
         }
 
+        public Task MigrateOrClosePullRequests(string fromBranch, string toBranch)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task<bool> OpenPullRequest(string title, string targetBranch, string sourceBranch, string body = null)
         {
             if (!pullRequests.ContainsKey(new Tuple<string, string>(targetBranch, sourceBranch)))
