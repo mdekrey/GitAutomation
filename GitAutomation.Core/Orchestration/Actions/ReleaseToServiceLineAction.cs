@@ -87,6 +87,24 @@ namespace GitAutomation.Orchestration.Actions
                     await push;
                 }
 
+                var serviceLine = await settings.GetBranchBasicDetails(serviceLineBranch).FirstOrDefaultAsync();
+                // possible TODO for the future: give option to add missing upstream lines always
+                if (serviceLine == null)
+                {
+                    var upstreamLines = await repository.DetectShallowUpstreamServiceLines(releaseCandidateBranch).FirstOrDefaultAsync();
+                    // We need to set it up as a service line
+                    using (var work = unitOfWorkFactory.CreateUnitOfWork())
+                    {
+                        settings.UpdateBranchSetting(serviceLineBranch, false, BranchGroupType.ServiceLine, work);
+                        foreach (var upstreamServiceLine in upstreamLines)
+                        {
+                            settings.AddBranchPropagation(upstreamServiceLine, serviceLineBranch, work);
+                        }
+
+                        await work.CommitAsync();
+                    }
+                }
+
                 processes.OnCompleted();
 
                 return () =>
