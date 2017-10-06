@@ -219,6 +219,12 @@ export const manage = (
         );
 
         subscription.add(
+          rxDatum(branchData.state.map(branch => branch.latestBranchName))(
+            container.map(fnSelect(`[data-locator="approved-branch"]`))
+          ).subscribe(selection => selection.property("value", d => d))
+        );
+
+        subscription.add(
           rxData(
             container.map(
               fnSelect(`[data-locator="consolidate-target-branch"]`)

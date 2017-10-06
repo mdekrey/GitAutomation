@@ -30,6 +30,8 @@ namespace GitAutomation.BranchSettings
 
         public ImmutableList<string> BranchNames { get; set; }
 
+        public string LatestBranchName { get; set; }
+
         public ImmutableList<string> DirectDownstreamBranchGroups { get; set; }
         public ImmutableList<string> DownstreamBranchGroups { get; set; }
         public ImmutableList<string> DirectUpstreamBranchGroups { get; set; }

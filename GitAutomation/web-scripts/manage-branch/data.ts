@@ -9,6 +9,7 @@ export interface IManageBranch {
   branchType: string;
   branches: IBranchData[];
   branchNames: string[];
+  latestBranchName: string | null;
 }
 
 export interface IBranchData extends BranchGroup {
@@ -44,7 +45,8 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
         })),
         branchType: branchDetails.branchType,
         recreateFromUpstream: branchDetails.recreateFromUpstream,
-        branchNames: branchDetails.branchNames
+        branchNames: branchDetails.branchNames,
+        latestBranchName: branchDetails.latestBranchName
       };
     })
     .map(
@@ -52,13 +54,15 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
         branches,
         recreateFromUpstream,
         branchType,
-        branchNames
+        branchNames,
+        latestBranchName
       }): IManageBranch => ({
         branches,
         recreateFromUpstream,
         branchType,
         isLoading: false,
-        branchNames
+        branchNames,
+        latestBranchName
       })
     );
 
@@ -67,7 +71,8 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
     recreateFromUpstream: false,
     branchType: "Feature",
     branches: [],
-    branchNames: []
+    branchNames: [],
+    latestBranchName: null
   })
     .concat(reload.startWith(null).switchMap(() => initializeBranchData))
     .publishReplay(1)

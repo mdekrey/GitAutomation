@@ -147,9 +147,11 @@ namespace GitAutomation
 
         private BranchGroupCompleteData AddRemoteBranchNames(BranchGroupCompleteData branchDetails, string[] remoteBranches)
         {
+            var names = remoteBranches.Where(remoteBranch => branchIteration.IsBranchIteration(branchDetails.GroupName, remoteBranch)).ToImmutableList();
             return new BranchGroupCompleteData(branchDetails)
             {
-                BranchNames = remoteBranches.Where(remoteBranch => branchIteration.IsBranchIteration(branchDetails.GroupName, remoteBranch)).ToImmutableList()
+                BranchNames = names,
+                LatestBranchName = names.Count == 0 ? null : branchIteration.GetLatestBranchNameIteration(branchDetails.GroupName, names),
             };
         }
 

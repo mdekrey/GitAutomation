@@ -24,6 +24,7 @@ export interface BranchGroup {
   branchType: BranchType;
   groupName: string;
   branchNames: string[];
+  latestBranchName: string | null;
   directDownstreamBranchGroups: string[];
   downstreamBranchGroups: string[];
   directUpstreamBranchGroups: string[];
