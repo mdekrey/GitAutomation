@@ -4,7 +4,6 @@ import {
   forceLink,
   forceSimulation,
   forceManyBody,
-  forceCenter,
   forceX,
   forceY,
   SimulationNodeDatum,
@@ -30,6 +29,8 @@ interface NodeDatum extends BranchGroup, SimulationNodeDatum {
   branchColor: string;
   showLabel?: boolean;
 }
+
+const xOffset = 40;
 
 export function branchHierarchy({
   target,
@@ -82,22 +83,17 @@ export function branchHierarchy({
 
         return { nodes, links };
       })
-      .delay(2000)
       .publishReplay(1)
       .refCount();
 
     const linkForce = forceLink<NodeDatum, SimulationLinkDatum<NodeDatum>>([])
-      .distance(40)
+      .distance(link => {
+        const source = link.source as NodeDatum;
+        const target = link.target as NodeDatum;
+        return (target.hierarchyDepth - source.hierarchyDepth) * 35;
+      })
       .strength(1);
     let hierarchyForceOffset = 0;
-    subscription.add(
-      data
-        .map(({ nodes }) => nodes.map(node => node.hierarchyDepth))
-        .map(hierarchyDepths =>
-          hierarchyDepths.reduce((prev, next) => Math.max(prev, next), 0)
-        )
-        .subscribe(maxDepth => (hierarchyForceOffset = -maxDepth / 2))
-    );
     const simulation = forceSimulation<NodeDatum>([])
       .force("link", linkForce)
       .force(
@@ -106,7 +102,6 @@ export function branchHierarchy({
           .distanceMax(80)
           .strength(-100)
       )
-      .force("center", forceCenter())
       .force(
         "x",
         forceX<NodeDatum>(
@@ -143,7 +138,7 @@ export function branchHierarchy({
             .container(hitbox.node()!)
             .subject(({ width, height }) => {
               return simulation.find(
-                d3event.x - width / 2,
+                d3event.x - xOffset,
                 d3event.y - height / 2
               ) as SubjectPosition;
             })
@@ -167,7 +162,7 @@ export function branchHierarchy({
         let currentHover: NodeDatum | undefined = undefined;
         hitbox
           .on("pointermove", function({ width, height }) {
-            const x = d3mouse(this)[0] - width / 2,
+            const x = d3mouse(this)[0] - xOffset,
               y = d3mouse(this)[1] - height / 2;
             const newHover = simulation.find(x, y, 10);
             if (currentHover !== newHover) {
@@ -182,7 +177,7 @@ export function branchHierarchy({
             }
           })
           .on("click", function({ width, height }) {
-            const x = d3mouse(this)[0] - width / 2,
+            const x = d3mouse(this)[0] - xOffset,
               y = d3mouse(this)[1] - height / 2;
             const clicked = simulation.find(x, y, 10);
             if (clicked) {
@@ -213,7 +208,7 @@ export function branchHierarchy({
       ).subscribe(viewport =>
         viewport.attr(
           "transform",
-          data => `translate(${data.width / 2}, ${data.height / 2})`
+          data => `translate(${xOffset}, ${data.height / 2})`
         )
       )
     );
