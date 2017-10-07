@@ -45,9 +45,18 @@ namespace GitAutomation.Processes
                     process.BeginErrorReadLine();
                 }
                 catch { }
+                var timer = Observable.Interval(TimeSpan.FromSeconds(1000))
+                    .Subscribe(_ =>
+                    {
+                        if (process.HasExited)
+                        {
+                            observer.OnCompleted();
+                        }
+                    });
 
                 return () =>
                 {
+                    timer.Dispose();
                     if (!process.HasExited)
                     {
                         process.Kill();
