@@ -29,7 +29,9 @@ export const branchNameDisplay = (
         // TODO - styling around this
         .text(
           data =>
-            data.statuses.length ? `(${data.statuses[0].state})` : "(No status)"
+            (data.statuses || []).length
+              ? `(${data.statuses[0].state})`
+              : "(No status)"
         );
     }
   });
