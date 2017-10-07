@@ -1,14 +1,15 @@
 import { Observable, Subscription } from "rxjs";
 
 import { allBranches, branchDetails } from "../api/basics";
-import { BranchGroup } from "../api/basic-branch";
+import { BranchGroup, CommitRef } from "../api/basic-branch";
 
 export interface IManageBranch {
   isLoading: boolean;
   recreateFromUpstream: boolean;
   branchType: string;
   branches: IBranchData[];
-  branchNames: string[];
+  actualBranches: CommitRef[];
+  latestBranchName: string | null;
 }
 
 export interface IBranchData extends BranchGroup {
@@ -44,7 +45,8 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
         })),
         branchType: branchDetails.branchType,
         recreateFromUpstream: branchDetails.recreateFromUpstream,
-        branchNames: branchDetails.branchNames
+        actualBranches: branchDetails.branches,
+        latestBranchName: branchDetails.latestBranchName
       };
     })
     .map(
@@ -52,13 +54,15 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
         branches,
         recreateFromUpstream,
         branchType,
-        branchNames
+        actualBranches,
+        latestBranchName
       }): IManageBranch => ({
         branches,
         recreateFromUpstream,
         branchType,
         isLoading: false,
-        branchNames
+        actualBranches,
+        latestBranchName
       })
     );
 
@@ -67,7 +71,8 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
     recreateFromUpstream: false,
     branchType: "Feature",
     branches: [],
-    branchNames: []
+    actualBranches: [],
+    latestBranchName: null
   })
     .concat(reload.startWith(null).switchMap(() => initializeBranchData))
     .publishReplay(1)

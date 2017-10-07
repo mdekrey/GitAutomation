@@ -74,7 +74,7 @@ namespace GitAutomation.Orchestration.Actions
                 // 3. delete old branches
 
                 var consolidatingBranches = (await (from branch in allBranches.ToObservable()
-                                                    where this.originalBranches.Contains(branch.GroupName) || branch.BranchNames.Any(this.originalBranches.Contains)
+                                                    where this.originalBranches.Contains(branch.GroupName) || branch.Branches.Select(b => b.Name).Any(this.originalBranches.Contains)
                                                     from result in GetLatestBranchTuple(branch)
                                                     select result
                                         ).ToArray()).ToImmutableHashSet();
@@ -93,8 +93,8 @@ namespace GitAutomation.Orchestration.Actions
                 }
 
                 await (from branch in branchesToRemove.ToObservable()
-                      from actualBranch in branch.BranchNames
-                      from entry in AppendProcess(Queueable(cli.DeleteRemote(actualBranch)))
+                      from actualBranch in branch.Branches
+                      from entry in AppendProcess(Queueable(cli.DeleteRemote(actualBranch.Name)))
                       select entry).StartWith(new OutputMessage());
             }
 

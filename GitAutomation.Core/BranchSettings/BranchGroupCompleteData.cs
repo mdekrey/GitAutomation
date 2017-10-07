@@ -20,7 +20,7 @@ namespace GitAutomation.BranchSettings
         public BranchGroupCompleteData(BranchGroupCompleteData original)
             : base(original)
         {
-            this.BranchNames = original.BranchNames;
+            this.Branches = original.Branches;
             this.DirectDownstreamBranchGroups = original.DirectDownstreamBranchGroups;
             this.DownstreamBranchGroups = original.DownstreamBranchGroups;
             this.DirectUpstreamBranchGroups = original.DirectUpstreamBranchGroups;
@@ -28,7 +28,9 @@ namespace GitAutomation.BranchSettings
             this.HierarchyDepth = original.HierarchyDepth;
         }
 
-        public ImmutableList<string> BranchNames { get; set; }
+        public ImmutableList<Repository.GitRef> Branches { get; set; }
+
+        public string LatestBranchName { get; set; }
 
         public ImmutableList<string> DirectDownstreamBranchGroups { get; set; }
         public ImmutableList<string> DownstreamBranchGroups { get; set; }

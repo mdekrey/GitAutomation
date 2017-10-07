@@ -11,10 +11,9 @@ namespace GitAutomation.Repository
         IObservable<OutputMessage> DeleteBranch(string branchName);
         IObservable<OutputMessage> DeleteRepository();
         IObservable<OutputMessage> CheckForUpdates();
-
-        IObservable<string[]> RemoteBranches();
-        IObservable<ImmutableList<GitRef>> RemoteBranchesWithRefs();
-        IObservable<ImmutableList<string>> DetectUpstream(string branchName);
+        
+        IObservable<ImmutableList<GitRef>> RemoteBranches();
+        IObservable<ImmutableList<GitRef>> DetectUpstream(string branchName);
         IObservable<string> MergeBaseBetween(string branchName1, string branchName2);
         void NotifyPushedRemoteBranch(string downstreamBranch);
     }

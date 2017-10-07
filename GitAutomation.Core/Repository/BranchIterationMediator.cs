@@ -20,7 +20,7 @@ namespace GitAutomation.Repository
 
         public string GetLatestBranchNameIteration(string branchName, IEnumerable<string> existingNames)
         {
-            var temp = existingNames.ToArray();
+            var temp = existingNames.Where(branch => IsBranchIteration(branchName, branch)).ToArray();
             return this.convention.GetLatestBranchNameIteration(branchName, temp);
         }
 
@@ -29,7 +29,7 @@ namespace GitAutomation.Repository
             var candidateNames = convention.GetBranchNameIterations(branchName, existingNames);
             var remoteBranches = repository.RemoteBranches().Take(1);
             return await candidateNames.CombineLatest(remoteBranches, (name, branches) => new { name, branches })
-                .Where(target => !target.branches.Contains(target.name))
+                .Where(target => !target.branches.Select(b => b.Name).Contains(target.name))
                 .Select(target => target.name)
                 .FirstOrDefaultAsync();
         }

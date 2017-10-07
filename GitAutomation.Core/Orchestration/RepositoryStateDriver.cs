@@ -50,7 +50,7 @@ namespace GitAutomation.Orchestration
                 ),
                 repositoryState
                     .RemoteBranches()
-                    .Where(branches => branches.Length > 0)
+                    .Where(branches => branches.Count > 0)
                     .Subscribe(allBranches =>
                         branchSettings.GetAllDownstreamBranches()
                             .SelectMany(all => all.Select(each => each.GroupName).ToObservable())

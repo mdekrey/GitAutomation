@@ -163,13 +163,16 @@ export const homepage = (
                   branch
                     .select(`[data-locator="actual-branches"]`)
                     .selectAll(`li`)
-                    .data(basicBranch => basicBranch.branchNames)
+                    .data(basicBranch => basicBranch.branches)
                 )
                 .map(target =>
                   bind({
                     target,
                     onCreate: target => target.append("li"),
-                    onEach: target => target.text(data => data)
+                    onEach: target =>
+                      target.text(
+                        data => `${data.name} (${data.commit.substr(0, 7)})`
+                      )
                   })
                 )
             )
