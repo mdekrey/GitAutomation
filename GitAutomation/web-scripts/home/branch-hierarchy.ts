@@ -11,7 +11,7 @@ import {
 } from "d3-force";
 import { drag, SubjectPosition } from "d3-drag";
 import "d3-transition";
-import { equals, flatten } from "ramda";
+import { any, equals, flatten, indexBy } from "ramda";
 import {
   rxEvent,
   rxData,
@@ -28,6 +28,15 @@ import { BranchType } from "../api/basic-branch";
 interface NodeDatum extends BranchGroup, SimulationNodeDatum {
   branchColor: string;
   showLabel?: boolean;
+}
+
+interface AdditionalLinkData {
+  linkIntensity: number;
+}
+
+interface NodeLink extends AdditionalLinkData {
+  source: NodeDatum;
+  target: NodeDatum;
 }
 
 const xOffset = 40;
@@ -67,16 +76,31 @@ export function branchHierarchy({
 
     const data = allBranchesHierarchy()
       .map(allBranches => {
+        const groupLookup = indexBy(b => b.groupName, allBranches) as Record<
+          string,
+          BranchGroup
+        >;
         const nodes = allBranches.map((branch, index): NodeDatum => ({
           ...branch,
           branchColor: getBranchColor(branch.branchType)
         }));
 
-        const links = flatten<SimulationLinkDatum<NodeDatum>>(
+        const links = flatten<
+          AdditionalLinkData & SimulationLinkDatum<NodeDatum>
+        >(
           allBranches.map((branch, source) =>
             branch.downstreamBranchGroups.map(downstream => ({
               source,
-              target: nodes.find(branch => branch.groupName === downstream)!
+              target: nodes.find(branch => branch.groupName === downstream)!,
+              linkIntensity: any(
+                downstreamBranch =>
+                  groupLookup[downstreamBranch]!.downstreamBranchGroups.indexOf(
+                    downstream
+                  ) !== -1,
+                branch.downstreamBranchGroups
+              )
+                ? 0.2
+                : 1
             }))
           )
         );
@@ -86,14 +110,11 @@ export function branchHierarchy({
       .publishReplay(1)
       .refCount();
 
-    const linkForce = forceLink<NodeDatum, SimulationLinkDatum<NodeDatum>>([])
-      .distance(link => {
-        const source = link.source as NodeDatum;
-        const target = link.target as NodeDatum;
-        return (target.hierarchyDepth - source.hierarchyDepth) * 35;
+    const linkForce = forceLink<NodeDatum, NodeLink>([])
+      .distance(({ source, target }) => {
+        return (target.hierarchyDepth - source.hierarchyDepth) * 30;
       })
-      .strength(1);
-    let hierarchyForceOffset = 0;
+      .strength(link => link.linkIntensity);
     const simulation = forceSimulation<NodeDatum>([])
       .force("link", linkForce)
       .force(
@@ -104,21 +125,17 @@ export function branchHierarchy({
       )
       .force(
         "x",
-        forceX<NodeDatum>(
-          branch => (branch.hierarchyDepth + hierarchyForceOffset) * 40
-        ).strength(1)
+        forceX<NodeDatum>(branch => branch.hierarchyDepth * 40).strength(1)
       )
       .force(
         "y",
-        forceY<NodeDatum>(
-          branch => (branch.hierarchyDepth + hierarchyForceOffset) * 0
-        ).strength(0.1)
+        forceY<NodeDatum>(branch => branch.hierarchyDepth * 0).strength(0.1)
       );
 
     subscription.add(
       data.subscribe(({ nodes, links }) => {
         simulation.nodes(nodes);
-        linkForce.links(links);
+        linkForce.links(links as NodeLink[]);
         simulation.alpha(0.3).restart();
       })
     );
@@ -334,8 +351,8 @@ export function branchHierarchy({
               .attr("stroke", "rgba(0,0,0,0)")
               .attr("fill", "rgba(0,0,0,0)")
               .transition()
-              .attr("stroke", "rgba(0,0,0,1)")
-              .attr("fill", "rgba(0,0,0,1)");
+              .attr("stroke", link => `rgba(0,0,0,${link.linkIntensity / 2})`)
+              .attr("fill", link => `rgba(0,0,0,${link.linkIntensity / 2})`);
             target.append(`line`);
             target.append(`path`).attr("d", "M0,0 l-10,3 l0,-6 l10,3");
           },
