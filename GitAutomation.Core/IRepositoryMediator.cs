@@ -24,5 +24,6 @@ namespace GitAutomation
         IObservable<string> GetBranchRef(string branchName);
         IObservable<bool> HasOutstandingCommits(string upstreamBranch, string downstreamBranch);
         void NotifyPushedRemoteBranch(string downstreamBranch);
+        IObservable<ImmutableList<BranchGroupDetails>> GetConfiguredBranchGroups();
     }
 }

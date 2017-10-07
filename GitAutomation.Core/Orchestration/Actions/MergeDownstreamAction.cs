@@ -99,8 +99,9 @@ namespace GitAutomation.Orchestration.Actions
                 await detailsTask;
                 await latestBranchName;
 
+                var allConfigured = await repository.GetConfiguredBranchGroups().FirstOrDefaultAsync();
                 var needsCreate = await repository.GetBranchRef(LatestBranchName).Take(1) == null;
-                var upstreamBranches = (await ToUpstreamBranchNames(Details.DirectUpstreamBranchGroups)).ToImmutableList();
+                var upstreamBranches = (await ToUpstreamBranchNames(Details.DirectUpstreamBranchGroups.Select(groupName => allConfigured.Find(g => g.GroupName == groupName)).ToImmutableList())).ToImmutableList();
                 var neededUpstreamMerges = needsCreate
                     ? upstreamBranches
                     : (await FilterUpstreamReadyForMerge(await FindNeededMerges(upstreamBranches), !Details.RecreateFromUpstream));
@@ -170,14 +171,14 @@ namespace GitAutomation.Orchestration.Actions
                 }
             }
 
-            private async Task<IEnumerable<string>> ToUpstreamBranchNames(ImmutableList<string> directUpstreamBranchGroups)
+            private async Task<IEnumerable<string>> ToUpstreamBranchNames(ImmutableList<BranchGroupDetails> directUpstreamBranchGroups)
             {
                 var hierarchy = (await repository.AllBranchesHierarchy().Take(1)).ToDictionary(branch => branch.GroupName, branch => branch.HierarchyDepth);
                 // Put integration branches first; they might be needed for conflict resolution in other branches!
                 // FIXME - this is using the GroupName rather than the BranchName!
                 return from branch in directUpstreamBranchGroups
-                       orderby hierarchy[branch]/*, branch.BranchType == BranchType.Integration ? 0 : 1*/, branch
-                       select branch;
+                       orderby branch.BranchType == BranchGroupType.Integration ? 0 : 1, -hierarchy[branch.GroupName], branch.GroupName
+                       select branch.GroupName;
             }
 
             private async Task<ImmutableList<string>> FindNeededMerges(IEnumerable<string> allUpstreamBranches)

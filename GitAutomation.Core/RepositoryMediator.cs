@@ -45,6 +45,11 @@ namespace GitAutomation
             );
         }
 
+        public IObservable<ImmutableList<BranchGroupDetails>> GetConfiguredBranchGroups()
+        {
+            return branchSettings.GetConfiguredBranches();
+        }
+
         private Task<BranchGroupCompleteData> ToDefaultBranchGroup(string arg)
         {
             return Task.FromResult(new BranchGroupCompleteData { GroupName = arg });
@@ -103,7 +108,7 @@ namespace GitAutomation
 				});
 		}
 
-        private async System.Threading.Tasks.Task<ImmutableList<string>> PruneUpstream(ImmutableList<string> allUpstream, ImmutableList<BranchGroupDetails> configured, ImmutableList<GitRef> allRemotes)
+        private async System.Threading.Tasks.Task<ImmutableList<string>> PruneUpstream(ImmutableList<GitRef> allUpstream, ImmutableList<BranchGroupDetails> configured, ImmutableList<GitRef> allRemotes)
         {
             var configuredLatest = configured.ToDictionary(branch => branch.GroupName, branch => branchIteration.GetLatestBranchNameIteration(branch.GroupName, allRemotes.Select(b => b.Name)));
 
@@ -133,6 +138,23 @@ namespace GitAutomation
             }
 
             return allUpstream.Select(b => b.Name).ToImmutableList();
+        }
+
+        public IObservable<ImmutableList<string>> DetectShallowUpstreamServiceLines(string branchName)
+        {
+            return branchSettings.GetAllUpstreamBranches(branchName)
+                .CombineLatest(branchSettings.GetConfiguredBranches(), repositoryState.RemoteBranches(),(allUpstreamBranchDetails, configured, allRemotes) =>
+                {
+                    var allUpstream = allUpstreamBranchDetails.Where(b => b.BranchType == BranchGroupType.ServiceLine).Select(b => b.GroupName).ToImmutableList();
+                    return PruneUpstream(
+                        allUpstream
+                            .Select(upstream => branchIteration.GetLatestBranchNameIteration(upstream, allRemotes.Select(r => r.Name)))
+                            .Select(branch => allRemotes.First(b => b.Name == branch))
+                            .ToImmutableList(), 
+                        configured, 
+                        allRemotes
+                    );
+                }).Switch();
         }
 
         public IObservable<ImmutableList<PullRequestWithReviews>> GetUpstreamPullRequests(string branchName)
