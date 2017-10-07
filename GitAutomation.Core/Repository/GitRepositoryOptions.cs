@@ -13,5 +13,7 @@
         public string UserName { get; set; }
 
         public string IntegrationNamingConventionType { get; set; }
+
+        public bool ReadOnly { get; set; } = false;
     }
 }
