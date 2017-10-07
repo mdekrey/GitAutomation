@@ -52,6 +52,8 @@ namespace GitAutomation.Orchestration.Actions
                 disposable.Add(Observable.Concat(processes).Subscribe(observer));
                 disposable.Add(processes);
 
+                var details = await repository.GetBranchDetails(deletingBranch).FirstAsync();
+
                 using (var unitOfWork = unitOfWorkFactory.CreateUnitOfWork())
                 {
                     settings.DeleteBranchSettings(deletingBranch, unitOfWork);
@@ -59,11 +61,14 @@ namespace GitAutomation.Orchestration.Actions
                     await unitOfWork.CommitAsync();
                 }
 
-                var deleteBranch = Queueable(cli.DeleteRemote(deletingBranch));
-                processes.OnNext(deleteBranch);
-                await deleteBranch;
+                foreach (var branch in details.Branches)
+                {
+                    var deleteBranch = Queueable(cli.DeleteRemote(branch.Name));
+                    processes.OnNext(deleteBranch);
+                    await deleteBranch;
+                    repository.NotifyPushedRemoteBranch(branch.Name);
+                }
 
-                repository.NotifyPushedRemoteBranch(deletingBranch);
 
                 processes.OnCompleted();
 
