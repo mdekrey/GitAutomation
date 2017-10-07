@@ -29,7 +29,7 @@ namespace GitAutomation.Repository
             var candidateNames = convention.GetBranchNameIterations(branchName, existingNames);
             var remoteBranches = repository.RemoteBranches().Take(1);
             return await candidateNames.CombineLatest(remoteBranches, (name, branches) => new { name, branches })
-                .Where(target => !target.branches.Contains(target.name))
+                .Where(target => !target.branches.Select(b => b.Name).Contains(target.name))
                 .Select(target => target.name)
                 .FirstOrDefaultAsync();
         }

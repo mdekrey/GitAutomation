@@ -193,12 +193,15 @@ export const manage = (
         subscription.add(
           rxData(
             container.map(fnSelect(`[data-locator="grouped-branches"]`)),
-            branchData.state.map(branch => branch.branchNames)
+            branchData.state.map(branch => branch.actualBranches)
           )
             .bind({
               selector: "li",
               onCreate: selection => selection.append<HTMLLIElement>("li"),
-              onEach: selection => selection.text(data => data)
+              onEach: selection =>
+                selection.text(
+                  data => `${data.name} (${data.commit.substr(0, 7)})`
+                )
             })
             .subscribe()
         );
@@ -206,14 +209,16 @@ export const manage = (
         subscription.add(
           rxData(
             container.map(fnSelect(`[data-locator="approved-branch"]`)),
-            branchData.state.map(branch => branch.branchNames)
+            branchData.state.map(branch => branch.actualBranches)
           )
             .bind({
               selector: "option",
               onCreate: selection =>
                 selection.append<HTMLOptionElement>("option"),
               onEach: selection =>
-                selection.text(data => data).attr("value", data => data)
+                selection
+                  .text(data => `${data.name} (${data.commit.substr(0, 7)})`)
+                  .attr("value", data => data.name)
             })
             .subscribe()
         );

@@ -18,12 +18,16 @@ export interface CommitStatus {
   url: string;
   state: StatusState;
 }
+export interface CommitRef {
+  name: string;
+  commit: string;
+}
 
 export interface BranchGroup {
   recreateFromUpstream: boolean;
   branchType: BranchType;
   groupName: string;
-  branchNames: string[];
+  branches: CommitRef[];
   latestBranchName: string | null;
   directDownstreamBranchGroups: string[];
   downstreamBranchGroups: string[];

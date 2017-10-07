@@ -119,14 +119,8 @@ namespace GitAutomation.Repository
                     branches.ToImmutableDictionary(pair => Tuple.Create(pair.Item1.Name, pair.Item2.Name), pair => commits[ToCommits(pair)])
                 ).Replay(1).ConnectFirst();
         }
-
-        public IObservable<string[]> RemoteBranches()
-        {
-            return remoteBranches
-                .Select(list => list.Select(branch => branch.Name).ToArray());
-        }
-
-        public IObservable<ImmutableList<GitRef>> RemoteBranchesWithRefs()
+        
+        public IObservable<ImmutableList<GitRef>> RemoteBranches()
         {
             return remoteBranches;
         }
