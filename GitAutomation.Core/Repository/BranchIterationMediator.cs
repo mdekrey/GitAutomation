@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace GitAutomation.Repository
@@ -32,6 +33,11 @@ namespace GitAutomation.Repository
                 .Where(target => !target.branches.Select(b => b.Name).Contains(target.name))
                 .Select(target => target.name)
                 .FirstOrDefaultAsync();
+        }
+
+        public string GuessBranchIterationRoot(string branchName)
+        {
+            return new Regex("-[1-9][0-9]*$").Replace(branchName, "");
         }
 
         public bool IsBranchIteration(string originalName, string candidateName)

@@ -10,7 +10,7 @@ using Npgsql;
 
 namespace GitAutomation.Postgres
 {
-    class ConnectionManagement : IUnitOfWorkLifecycleManagement
+    class ConnectionManagement : IUnitOfWorkLifecycleManagement, IDisposable
     {
         private readonly NpgsqlConnection connection;
         private NpgsqlTransaction transaction;
@@ -48,6 +48,12 @@ namespace GitAutomation.Postgres
         internal DbCommand Transacted(CommandBuilder commandBuilder, Dictionary<string, object> parameters)
         {
             return commandBuilder.BuildFrom(Connection, parameters, Transaction);
+        }
+
+        void IDisposable.Dispose()
+        {
+            connection?.Dispose();
+            transaction?.Dispose();
         }
     }
 }

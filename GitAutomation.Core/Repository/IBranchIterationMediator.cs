@@ -12,5 +12,7 @@ namespace GitAutomation.Repository
         bool IsBranchIteration(string originalName, string candidateName);
 
         Task<string> GetNextBranchNameIteration(string branchName, IEnumerable<string> existingNames);
+
+        string GuessBranchIterationRoot(string branchName);
     }
 }

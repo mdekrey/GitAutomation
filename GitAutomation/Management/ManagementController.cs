@@ -162,6 +162,13 @@ namespace GitAutomation.Management
             return repository.GetUpstreamPullRequests(branchName).FirstAsync().ToTask();
         }
 
+        [Authorize(Auth.PolicyNames.Read)]
+        [HttpGet("recommend-groups")]
+        public Task<ImmutableList<string>> RecommendGroups()
+        {
+            return repository.RecommendNewGroups().FirstAsync().ToTask();
+        }
+
         public class CreateBranchRequestBody
         {
             public bool RecreateFromUpstream { get; set; }

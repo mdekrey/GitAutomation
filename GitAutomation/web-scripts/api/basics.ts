@@ -142,3 +142,8 @@ export const deleteBranch = (branchName: string) =>
   Observable.ajax
     .delete("/api/management/branch/" + branchName)
     .map(response => response.response as null);
+
+export const recommendGroups = () =>
+  Observable.ajax
+    .get("/api/management/recommend-groups")
+    .map(response => response.response as string[]);

@@ -52,8 +52,8 @@ export const homepage = (
   <ul data-locator="status">
   </ul>
 
-  <h1>Initial Setup Only</h1>
-  <a data-locator="status-refresh">Auto-Wireup</a>
+  <h1>Initial Setup</h1>
+  <a data-locator="auto-wireup">Auto-Wireup</a>
 `)
     )
     .publishReplay(1)
@@ -222,6 +222,15 @@ export const homepage = (
             eventName: "click"
           }).subscribe(() =>
             state.navigate({ url: "/admin", replaceCurentHistory: false })
+          )
+        );
+
+        subscription.add(
+          rxEvent({
+            target: body.map(fnSelect('[data-locator="auto-wireup"]')),
+            eventName: "click"
+          }).subscribe(() =>
+            state.navigate({ url: "/auto-wireup", replaceCurentHistory: false })
           )
         );
 

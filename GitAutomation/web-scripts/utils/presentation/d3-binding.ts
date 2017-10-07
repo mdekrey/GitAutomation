@@ -103,8 +103,8 @@ export function rxData<TDatum, PElement extends BaseType>(
     }: IRxBindProps<GElement, TDatum, PElement, {}>) => {
       return Observable.create(
         (observer: Observer<Selection<GElement, TDatum, PElement, any>>) => {
-          var onUnsubscribing = new Subject<TDatum[]>();
-          var subscription = target
+          const onUnsubscribing = new Subject<TDatum[]>();
+          const subscription = target
             .switchMap(svgSelection =>
               data
                 .merge(onUnsubscribing)

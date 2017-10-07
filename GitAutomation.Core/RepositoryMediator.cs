@@ -111,6 +111,9 @@ namespace GitAutomation
         private async System.Threading.Tasks.Task<ImmutableList<string>> PruneUpstream(ImmutableList<GitRef> allUpstream, ImmutableList<BranchGroupDetails> configured, ImmutableList<GitRef> allRemotes)
         {
             var configuredLatest = configured.ToDictionary(branch => branch.GroupName, branch => branchIteration.GetLatestBranchNameIteration(branch.GroupName, allRemotes.Select(b => b.Name)));
+            allUpstream = allUpstream.Where(maybeHasNewer =>
+                !configured.Any(c => branchIteration.IsBranchIteration(c.GroupName, maybeHasNewer.Name) && maybeHasNewer.Name != configuredLatest[c.GroupName])
+            ).ToImmutableList();
 
             for (var i = 0; i < allUpstream.Count; i++)
             {
@@ -280,6 +283,26 @@ namespace GitAutomation
         public void NotifyPushedRemoteBranch(string downstreamBranch)
         {
             repositoryState.NotifyPushedRemoteBranch(downstreamBranch);
+        }
+
+        public IObservable<ImmutableList<string>> RecommendNewGroups()
+        {
+            return branchSettings.GetConfiguredBranches()
+                .CombineLatest(
+                    repositoryState.RemoteBranches(),
+                    (configured, allRemotes) =>
+                    {
+                        var remainingRemotes = 
+                            from remote in allRemotes
+                            where !configured.Any(current => branchIteration.IsBranchIteration(current.GroupName, remote.Name))
+                            select remote;
+                        return (
+                            from remote in remainingRemotes
+                            group remote.Name by branchIteration.GuessBranchIterationRoot(remote.Name) into groups
+                            select groups.Key
+                        ).ToImmutableList();
+                    }
+                );
         }
     }
 }

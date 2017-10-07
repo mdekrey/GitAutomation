@@ -16,6 +16,7 @@ import { ClaimDetails } from "./api/claim-details";
 import { login } from "./login/index";
 import "./style/global";
 import { admin } from "./admin/index";
+import { setupWizard } from "./setup-wizard/index";
 
 const body = Observable.of(d3element(document.body));
 
@@ -28,6 +29,7 @@ buildCascadingStrategy(windowHashStrategy)
       "": RouteConcrete(homepage(body)),
       manage: RouteConcrete(manage(body)),
       "new-branch": RouteConcrete(newBranch(body)),
+      "auto-wireup": RouteConcrete(setupWizard(body)),
       admin: RouteConcrete(admin(body)),
       login: RouteConcrete(login(body, claims)),
       [wildcard]: RouteConcrete(() =>

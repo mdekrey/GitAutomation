@@ -10,7 +10,7 @@ using DeKreyConsulting.AdoTestability;
 
 namespace GitAutomation.SqlServer
 {
-    class ConnectionManagement : IUnitOfWorkLifecycleManagement
+    class ConnectionManagement : IUnitOfWorkLifecycleManagement, IDisposable
     {
         private readonly SqlConnection connection;
         private SqlTransaction transaction;
@@ -48,6 +48,12 @@ namespace GitAutomation.SqlServer
         internal DbCommand Transacted(CommandBuilder commandBuilder, Dictionary<string, object> parameters)
         {
             return commandBuilder.BuildFrom(Connection, parameters, Transaction);
+        }
+
+        void IDisposable.Dispose()
+        {
+            connection?.Dispose();
+            transaction?.Dispose();
         }
     }
 }
