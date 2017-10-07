@@ -19,7 +19,6 @@ import {
   fnSelect
 } from "../utils/presentation/d3-binding";
 
-import { allBranchesHierarchy } from "../api/basics";
 import { BranchGroup } from "../api/basic-branch";
 import { branchTypeColors } from "../style/branch-colors";
 import { ICascadingRoutingStrategy } from "../routing/index";
@@ -43,10 +42,12 @@ const xOffset = 40;
 
 export function branchHierarchy({
   target,
-  state
+  state,
+  data: hierarchyData
 }: {
   target: Observable<Selection<SVGSVGElement, any, any, any>>;
   state: ICascadingRoutingStrategy<any>;
+  data: Observable<BranchGroup[]>;
 }) {
   return Observable.create(() => {
     const subscription = new Subscription();
@@ -74,39 +75,54 @@ export function branchHierarchy({
       )
     );
 
-    const data = allBranchesHierarchy()
-      .map(allBranches => {
-        const groupLookup = indexBy(b => b.groupName, allBranches) as Record<
-          string,
-          BranchGroup
-        >;
-        const nodes = allBranches.map((branch, index): NodeDatum => ({
-          ...branch,
-          branchColor: getBranchColor(branch.branchType)
-        }));
+    const data = hierarchyData
+      .scan(
+        ({ nodes: previousNodes }, allBranches) => {
+          const groupLookup = indexBy(b => b.groupName, allBranches) as Record<
+            string,
+            BranchGroup
+          >;
+          const nodes = allBranches.map((branch, index): NodeDatum => {
+            const previous = previousNodes.find(
+              node => node.groupName === branch.groupName
+            );
+            return {
+              ...previous || {},
+              branchColor:
+                previous && previous.branchType === branch.branchType
+                  ? previous.branchColor
+                  : getBranchColor(branch.branchType),
+              ...branch
+            };
+          });
 
-        const links = flatten<
-          AdditionalLinkData & SimulationLinkDatum<NodeDatum>
-        >(
-          allBranches.map((branch, source) =>
-            branch.downstreamBranchGroups.map(downstream => ({
-              source,
-              target: nodes.find(branch => branch.groupName === downstream)!,
-              linkIntensity: any(
-                downstreamBranch =>
-                  groupLookup[downstreamBranch]!.downstreamBranchGroups.indexOf(
-                    downstream
-                  ) !== -1,
-                branch.downstreamBranchGroups
-              )
-                ? 0.2
-                : 1
-            }))
-          )
-        );
+          const links = flatten<
+            AdditionalLinkData & SimulationLinkDatum<NodeDatum>
+          >(
+            allBranches.map((branch, source) =>
+              branch.downstreamBranchGroups.map(downstream => ({
+                source,
+                target: nodes.find(branch => branch.groupName === downstream)!,
+                linkIntensity: any(
+                  downstreamBranch =>
+                    groupLookup[
+                      downstreamBranch
+                    ]!.downstreamBranchGroups.indexOf(downstream) !== -1,
+                  branch.downstreamBranchGroups
+                )
+                  ? 0.2
+                  : 1
+              }))
+            )
+          );
 
-        return { nodes, links };
-      })
+          return { nodes, links };
+        },
+        {
+          nodes: [] as NodeDatum[],
+          links: [] as (AdditionalLinkData & SimulationLinkDatum<NodeDatum>)[]
+        }
+      )
       .publishReplay(1)
       .refCount();
 
@@ -240,10 +256,7 @@ export function branchHierarchy({
           selector: `circle`,
           onCreate: target => target.append<SVGCircleElement>("circle"),
           onEnter: target => {
-            target
-              .transition()
-              .attr("r", 5)
-              .attr("fill", node => node.branchColor);
+            target.transition().attr("r", 5);
           },
           onExit: target =>
             target
@@ -251,7 +264,9 @@ export function branchHierarchy({
               .attr("r", 0)
               .remove(),
           onEach: target => {
-            target.attr("transform", node => `translate(${node.x}, ${node.y})`);
+            target
+              .attr("transform", node => `translate(${node.x}, ${node.y})`)
+              .attr("fill", node => node.branchColor);
           }
         })
         .subscribe()
@@ -273,12 +288,10 @@ export function branchHierarchy({
               .attr("data-locator", "background")
               .attr("rx", 3)
               .attr("ry", 3)
-              .attr("stroke", node => node.branchColor)
               .attr("fill", "white");
             const text = target
               .append<SVGTextElement>("text")
               .attr("data-locator", "foreground")
-              .attr("fill", node => node.branchColor)
               .attr("stroke-width", 0)
               .attr("dy", -6)
               .attr("dx", 3)
@@ -295,12 +308,16 @@ export function branchHierarchy({
             target.attr("transform", node => `translate(${node.x}, ${node.y})`);
             target
               .select<SVGRectElement>(`rect[data-locator="background"]`)
+              .attr("stroke", node => node.branchColor)
               .attr("width", function() {
                 return (
                   this.parentElement!.querySelector("text")!.getClientRects()[0]
                     .width + 6
                 );
               });
+            target
+              .select<SVGRectElement>(`text[data-locator="foreground"]`)
+              .attr("fill", node => node.branchColor);
           }
         })
         .subscribe()
@@ -349,20 +366,19 @@ export function branchHierarchy({
           onEnter: target => {
             target
               .attr("stroke", "rgba(0,0,0,0)")
-              .attr("fill", "rgba(0,0,0,0)")
-              .transition()
-              .attr("stroke", link => `rgba(0,0,0,${link.linkIntensity / 2})`)
-              .attr("fill", link => `rgba(0,0,0,${link.linkIntensity / 2})`);
+              .attr("fill", "rgba(0,0,0,0)");
             target.append(`line`);
             target.append(`path`).attr("d", "M0,0 l-10,3 l0,-6 l10,3");
           },
           onExit: target =>
             target
-              .transition()
               .attr("stroke", "rgba(0,0,0,0)")
               .attr("fill", "rgba(0,0,0,0)")
               .remove(),
           onEach: target => {
+            target
+              .attr("stroke", link => `rgba(0,0,0,${link.linkIntensity / 2})`)
+              .attr("fill", link => `rgba(0,0,0,${link.linkIntensity / 2})`);
             target
               .select(`line`)
               .attr("x1", link => (link.source as NodeDatum).x || null)

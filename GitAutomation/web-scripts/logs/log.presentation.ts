@@ -11,23 +11,32 @@ export const logPresentation: IRxBindProps<
   selector: "li",
   onEach: selection => {
     selection
-      .filter(data => data.channel === OutputMessageChannel.Error)
-      .style("font-weight", "bold")
-      .text(data => data.message);
-
-    selection
-      .filter(data => data.channel === OutputMessageChannel.Out)
-      .text(data => data.message);
-
-    selection
-      .filter(data => data.channel === OutputMessageChannel.StartInfo)
-      .style("font-style", "italic")
-      .text(data => data.message);
-
-    selection
-      .filter(data => data.channel === OutputMessageChannel.ExitCode)
-      .style("color", data => (data.exitCode ? "red" : "initial"))
-      .style("margin-bottom", `10px`)
-      .text(data => `Exit code: ${data.exitCode}`);
+      .style(
+        "font-weight",
+        data =>
+          data.channel === OutputMessageChannel.Error ? "bold" : "normal"
+      )
+      .style(
+        "font-style",
+        data =>
+          data.channel === OutputMessageChannel.StartInfo ? "italic" : "normal"
+      )
+      .style(
+        "color",
+        data =>
+          data.channel === OutputMessageChannel.ExitCode && data.exitCode
+            ? "red"
+            : "initial"
+      )
+      .style(
+        "margin-bottom",
+        data => (data.channel === OutputMessageChannel.ExitCode ? `10px` : null)
+      )
+      .text(
+        data =>
+          data.channel === OutputMessageChannel.ExitCode
+            ? `Exit code: ${data.exitCode}`
+            : data.message
+      );
   }
 };

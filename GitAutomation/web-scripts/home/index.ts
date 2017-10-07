@@ -14,7 +14,8 @@ import {
   allBranches,
   fetch,
   actionQueue,
-  signOut
+  signOut,
+  allBranchesHierarchy
 } from "../api/basics";
 import { logPresentation } from "../logs/log.presentation";
 import { BranchGroup } from "../api/basic-branch";
@@ -36,6 +37,7 @@ export const homepage = (
   </ul>
 
   <h1>Branches</h1>
+  <p><a data-locator="remote-branch-hierarchy-refresh">Refresh</a></p>
   <svg data-locator="hierarchy-container" width="800" height="200"></svg>
 
   <h1>Remote Branches</h1>
@@ -49,6 +51,9 @@ export const homepage = (
   <a data-locator="status-refresh">Refresh</a>
   <ul data-locator="status">
   </ul>
+
+  <h1>Initial Setup Only</h1>
+  <a data-locator="status-refresh">Auto-Wireup</a>
 `)
     )
     .publishReplay(1)
@@ -62,7 +67,15 @@ export const homepage = (
             target: body.map(
               fnSelect<SVGSVGElement>(`svg[data-locator="hierarchy-container"]`)
             ),
-            state
+            state,
+            data: rxEvent({
+              target: body.map(
+                fnSelect('[data-locator="remote-branch-hierarchy-refresh"]')
+              ),
+              eventName: "click"
+            })
+              .startWith(null)
+              .switchMap(allBranchesHierarchy)
           }).subscribe()
         );
 
