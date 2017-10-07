@@ -49,6 +49,12 @@ namespace GitAutomation.Orchestration.Actions
             var settings = serviceProvider.GetRequiredService<IBranchSettings>();
             var unitOfWorkFactory = serviceProvider.GetRequiredService<IUnitOfWorkFactory>();
 
+            var isReadOnly = serviceProvider.GetRequiredService<IOptions<GitRepositoryOptions>>().Value.ReadOnly;
+            if (isReadOnly)
+            {
+                return Observable.Empty<OutputMessage>();
+            }
+
             // either:
             // 1. create new service line from release candidate
             // 2. merge --ff-only from release candidate to service line

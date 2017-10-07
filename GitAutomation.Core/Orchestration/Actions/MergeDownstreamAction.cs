@@ -67,11 +67,12 @@ namespace GitAutomation.Orchestration.Actions
             private readonly string downstreamBranchGroup;
             private readonly Task<BranchGroupCompleteData> detailsTask;
             private readonly Task<string> latestBranchName;
+            private readonly bool isReadOnly;
 
             private BranchGroupCompleteData Details => detailsTask.Result;
             private string LatestBranchName => latestBranchName.Result;
 
-            public MergeDownstreamActionProcess(GitCli cli, IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, IRepositoryMediator repository, IntegrateBranchesOrchestration integrateBranches, string downstreamBranch)
+            public MergeDownstreamActionProcess(GitCli cli, IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, IRepositoryMediator repository, IntegrateBranchesOrchestration integrateBranches, string downstreamBranch, IOptions<GitRepositoryOptions> options)
             {
                 this.cli = cli;
                 this.gitServiceApi = gitServiceApi;
@@ -81,10 +82,15 @@ namespace GitAutomation.Orchestration.Actions
                 this.downstreamBranchGroup = downstreamBranch;
                 this.detailsTask = repository.GetBranchDetails(downstreamBranch).FirstAsync().ToTask();
                 this.latestBranchName = detailsTask.ContinueWith(task => repository.LatestBranchName(task.Result).FirstOrDefaultAsync().ToTask()).Unwrap();
+                this.isReadOnly = options.Value.ReadOnly;
             }
 
             protected override async Task RunProcess()
             {
+                if (isReadOnly)
+                {
+                    return;
+                }
                 // if these two are different, we need to do the merge
                 // cli.MergeBase(upstreamBranch, downstreamBranch);
                 // cli.ShowRef(upstreamBranch);
