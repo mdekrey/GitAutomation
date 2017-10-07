@@ -147,6 +147,7 @@ USING (SELECT @UpstreamBranch AS GroupName) AS NewUpstream
 ON Upstream.GroupName = NewUpstream.GroupName
 WHEN NOT MATCHED THEN INSERT (GroupName) VALUES (NewUpstream.GroupName);
 
+-- TODO - convert this to a MERGE
 INSERT INTO [BranchStream] (UpstreamBranch, DownstreamBranch)
 VALUES (@UpstreamBranch, @DownstreamBranch)
 ", parameters: new Dictionary<string, Action<DbParameter>>
