@@ -150,9 +150,9 @@ namespace GitAutomation.Management
 
         [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("detect-upstream/{*branchName}")]
-        public Task<ImmutableList<string>> DetectUpstream(string branchName)
+        public Task<ImmutableList<string>> DetectUpstream(string branchName, [FromQuery] bool asGroup)
         {
-            return repository.DetectShallowUpstream(branchName).FirstAsync().ToTask();
+            return repository.DetectShallowUpstream(branchName, asGroup).FirstAsync().ToTask();
         }
 
         [Authorize(Auth.PolicyNames.Read)]

@@ -83,25 +83,42 @@ namespace GitAutomation
             this.branchSettings.ConsolidateBranches(branchesToRemove, targetBranch, unitOfWork);
         }
 
-        public IObservable<ImmutableList<string>> DetectShallowUpstream(string branchName)
+        public IObservable<ImmutableList<string>> DetectShallowUpstream(string branchName, bool asGroup)
         {
-            return repositoryState.DetectUpstream(branchName)
-                .CombineLatest(branchSettings.GetConfiguredBranches(), async (allUpstream, configured) =>
+            return repositoryState.RemoteBranches().CombineLatest(branchSettings.GetConfiguredBranches(), (allRemotes, configured) => (allRemotes, configured))
+                .SelectMany(tuple =>
                 {
+                    var actualBranchName = asGroup
+                        ? branchIteration.GetLatestBranchNameIteration(branchName, tuple.allRemotes.Select(b => b.Name))
+                        : branchName;
+                    return repositoryState.DetectUpstream(actualBranchName).Select(allUpstream => (allUpstream, tuple.allRemotes, tuple.configured));
+                })
+                .SelectMany(async tuple =>
+                {
+                    var configured = tuple.configured;
+                    var allRemotes = tuple.allRemotes;
+                    var allUpstream = tuple.allUpstream;
+
+                    var configuredLatest = configured.ToDictionary(branch => branch.GroupName, branch => branchIteration.GetLatestBranchNameIteration(branch.GroupName, allRemotes.Select(b => b.Name)));
 
                     for (var i = 0; i < allUpstream.Count; i++)
                     {
                         var upstream = allUpstream[i];
-                        var isConfigured = configured.Any(branch => branch.GroupName == upstream);
-                        var furtherUpstream = await branchSettings.GetAllUpstreamBranches(upstream).FirstOrDefaultAsync();
-                        allUpstream = allUpstream.Except(furtherUpstream.Select(b => b.GroupName)).ToImmutableList();
+                        var isConfigured = configuredLatest.Values.Contains(upstream.Name);
+                        var furtherUpstream = (await branchSettings.GetAllUpstreamBranches(upstream.Name).FirstOrDefaultAsync()).Select(group => configuredLatest[group.GroupName]).ToImmutableHashSet();
+                        var oldLength = allUpstream.Count;
+                        allUpstream = allUpstream.Where(maybeMatch => !furtherUpstream.Contains(maybeMatch.Name)).ToImmutableList();
+                        if (oldLength != allUpstream.Count)
+                        {
+                            i = -1;
+                        }
                     }
 
                     // TODO - this could be much smarter
                     for (var i = 0; i < allUpstream.Count; i++)
                     {
                         var upstream = allUpstream[i];
-                        var furtherUpstream = await repositoryState.DetectUpstream(upstream).FirstOrDefaultAsync();
+                        var furtherUpstream = await repositoryState.DetectUpstream(upstream.Name).FirstOrDefaultAsync();
                         if (allUpstream.Intersect(furtherUpstream).Any())
                         {
                             allUpstream = allUpstream.Except(furtherUpstream).ToImmutableList();
@@ -109,9 +126,9 @@ namespace GitAutomation
                         }
                     }
 
-                    return allUpstream;
+                    return allUpstream.Select(b => b.Name).ToImmutableList();
 
-                }).Switch();
+                });
         }
 
         public IObservable<ImmutableList<PullRequestWithReviews>> GetUpstreamPullRequests(string branchName)

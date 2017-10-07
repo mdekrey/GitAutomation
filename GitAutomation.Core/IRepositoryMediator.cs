@@ -13,7 +13,7 @@ namespace GitAutomation
     {
         IObservable<ImmutableList<BranchGroupCompleteData>> AllBranches();
         IObservable<ImmutableList<BranchGroupCompleteData>> AllBranchesHierarchy();
-        IObservable<ImmutableList<string>> DetectShallowUpstream(string branchName);
+        IObservable<ImmutableList<string>> DetectShallowUpstream(string branchName, bool asGroup);
         IObservable<ImmutableList<PullRequestWithReviews>> GetUpstreamPullRequests(string branchName);
         IObservable<string> LatestBranchName(BranchGroupDetails details);
         IObservable<string> GetNextCandidateBranch(BranchGroupDetails details, bool shouldMutate);

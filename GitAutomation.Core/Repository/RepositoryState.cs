@@ -151,7 +151,7 @@ namespace GitAutomation.Repository
             return orchestration.EnqueueAction(new DeleteBranchAction(branchName)).Finally(OnUpdated);
         }
 
-        public IObservable<ImmutableList<string>> DetectUpstream(string branchName)
+        public IObservable<ImmutableList<GitRef>> DetectUpstream(string branchName)
         {
             return remoteBranches
                 .Select(remotes =>
@@ -163,13 +163,12 @@ namespace GitAutomation.Repository
                             from mergeBase in MergeBaseBetween(remote.Name, branchName).Take(1)
                             select new
                             {
-                                branchName = remote.Name,
+                                remote,
                                 mergeBase,
-                                commitish = remote.Commit,
                             } into branch
-                            where branch.commitish == branch.mergeBase
-                            where branch.commitish != currentCommitish
-                            select branch.branchName).ToArray();
+                            where branch.remote.Commit == branch.mergeBase
+                            where branch.remote.Commit != currentCommitish
+                            select branch.remote).ToArray();
                 }).Switch().Select(items => items.ToImmutableList());
         }
     }

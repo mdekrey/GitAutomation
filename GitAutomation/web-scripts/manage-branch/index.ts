@@ -292,7 +292,7 @@ export const manage = (
               (_, elem) => elem
             )
             .subscribe(elements => {
-              detectUpstream(branchName).subscribe(branchNames =>
+              detectUpstream(branchName, true).subscribe(branchNames =>
                 branchNames.forEach(upstreamBranchName =>
                   elements
                     .select(
