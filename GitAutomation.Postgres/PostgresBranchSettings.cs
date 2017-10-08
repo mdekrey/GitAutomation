@@ -150,7 +150,7 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO BranchStream (UpstreamBranch, DownstreamBranch)
 VALUES (@UpstreamBranch, @DownstreamBranch)
-ON CONFLICT DO NOTHING;
+ON CONFLICT DO NOTHING
 ", parameters: new Dictionary<string, Action<DbParameter>>
             {
                 { "@UpstreamBranch", p => p.DbType = System.Data.DbType.AnsiString },
