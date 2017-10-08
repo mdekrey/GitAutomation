@@ -151,7 +151,7 @@ namespace GitAutomation.Repository
             return orchestration.EnqueueAction(new DeleteBranchAction(branchName)).Finally(OnUpdated);
         }
 
-        public IObservable<ImmutableList<GitRef>> DetectUpstream(string branchName)
+        public IObservable<ImmutableList<GitRef>> DetectUpstream(string branchName, bool allowSame)
         {
             return remoteBranches
                 .Select(remotes =>
@@ -167,7 +167,7 @@ namespace GitAutomation.Repository
                                 mergeBase,
                             } into branch
                             where branch.remote.Commit == branch.mergeBase
-                            where branch.remote.Commit != currentCommitish
+                            where allowSame || branch.remote.Commit != currentCommitish
                             select branch.remote).ToArray();
                 }).Switch().Select(items => items.ToImmutableList());
         }
