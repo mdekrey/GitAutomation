@@ -114,6 +114,7 @@ export const promoteServiceLine = (body: {
   releaseCandidate: string;
   serviceLine: string;
   tagName: string;
+  autoConsolidate: boolean;
 }) =>
   Observable.ajax
     .put("/api/management/branch/promote", body, {

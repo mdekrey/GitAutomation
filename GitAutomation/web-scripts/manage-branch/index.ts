@@ -81,6 +81,10 @@ export const manage = (
     <span>Release Tag</span>
     <input type="text" data-locator="release-tag" />
   </label>
+  <label>
+    <input type="checkbox" data-locator="auto-consolidate" />
+    <span>Auto-consolidate</span>
+  </label>
   <button type="button" data-locator="promote-service-line">Release to Service Line</button>
 
   <h3>Consolidate Merged</h3>
@@ -347,12 +351,20 @@ export const manage = (
                   .map(sl => sl.property("value") as string),
                 container
                   .map(fnSelect(`[data-locator="release-tag"]`))
-                  .map(sl => sl.property("value") as string)
-              ).map(([releaseCandidate, serviceLine, tagName]) => ({
-                releaseCandidate,
-                serviceLine,
-                tagName
-              }))
+                  .map(sl => sl.property("value") as string),
+                container
+                  .map(fnSelect(`[data-locator="auto-consolidate"]`))
+                  .map(sl => sl.property("checked") as boolean)
+              ).map(
+                (
+                  [releaseCandidate, serviceLine, tagName, autoConsolidate]
+                ) => ({
+                  releaseCandidate,
+                  serviceLine,
+                  tagName,
+                  autoConsolidate
+                })
+              )
             )
             .take(1)
             .switchMap(promoteServiceLine)

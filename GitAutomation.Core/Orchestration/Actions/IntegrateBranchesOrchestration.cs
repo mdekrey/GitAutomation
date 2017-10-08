@@ -19,10 +19,11 @@ namespace GitAutomation.Orchestration.Actions
         public bool Resolved;
         public bool AddedNewIntegrationBranches;
         public bool HadPullRequest;
+        public bool PendingUpdates;
 
         internal bool NeedsPullRequest()
         {
-            return Resolved == false && AddedNewIntegrationBranches == false && HadPullRequest == false;
+            return Resolved == false && AddedNewIntegrationBranches == false && HadPullRequest == false && PendingUpdates == false;
         }
     }
 
@@ -141,6 +142,13 @@ namespace GitAutomation.Orchestration.Actions
             var skippedDueToPullRequest = false;
             while (possibleConflicts.Count > 0)
             {
+                if (possibleConflicts.Any(p => p.BranchA.LatestBranchName == null || p.BranchB.LatestBranchName == null))
+                {
+                    return new IntegrationBranchResult
+                    {
+                        PendingUpdates = true,
+                    };
+                }
                 var possibleConflict = possibleConflicts.Pop();
                 if (leafConflicts.Contains(new ConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possibleConflict.BranchB }))
                 {

@@ -216,6 +216,7 @@ namespace GitAutomation.Orchestration.Actions
             private async Task<ImmutableList<NeededMerge>> FindNeededMerges(IEnumerable<NeededMerge> allUpstreamBranches)
             {
                 return await (from upstreamBranch in allUpstreamBranches.ToObservable()
+                              where upstreamBranch.BranchName != null
                               from hasOutstandingCommit in HasOutstandingCommits(upstreamBranch.BranchName)
                               where hasOutstandingCommit
                               select upstreamBranch)
@@ -318,7 +319,7 @@ namespace GitAutomation.Orchestration.Actions
                             )
                     : (IntegrationBranchResult?)null;
 
-                if (!createdIntegrationBranch.HasValue || (createdIntegrationBranch.Value.NeedsPullRequest()))
+                if (!createdIntegrationBranch.HasValue || createdIntegrationBranch.Value.NeedsPullRequest())
                 {
                     if (await gitServiceApi.HasOpenPullRequest(targetBranch: downstreamBranch, sourceBranch: upstreamBranch.BranchName))
                     {

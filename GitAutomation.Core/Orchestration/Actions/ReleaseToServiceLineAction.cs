@@ -24,14 +24,16 @@ namespace GitAutomation.Orchestration.Actions
         private readonly string releaseCandidateBranch;
         private readonly string serviceLineBranch;
         private readonly string tagName;
+        private readonly bool autoConsolidate;
 
         public string ActionType => "ReleaseToServiceLine";
 
-        public ReleaseToServiceLineAction(string releaseCandidateBranch, string serviceLineBranch, string tagName)
+        public ReleaseToServiceLineAction(string releaseCandidateBranch, string serviceLineBranch, string tagName, bool autoConsolidate)
         {
             this.releaseCandidateBranch = releaseCandidateBranch;
             this.serviceLineBranch = serviceLineBranch;
             this.tagName = tagName;
+            this.autoConsolidate = autoConsolidate;
         }
 
         public JToken Parameters => JToken.FromObject(new Dictionary<string, string>
@@ -48,6 +50,7 @@ namespace GitAutomation.Orchestration.Actions
             var repository = serviceProvider.GetRequiredService<IRepositoryMediator>();
             var settings = serviceProvider.GetRequiredService<IBranchSettings>();
             var unitOfWorkFactory = serviceProvider.GetRequiredService<IUnitOfWorkFactory>();
+            var orchestration = serviceProvider.GetRequiredService<IRepositoryOrchestration>();
 
             var isReadOnly = serviceProvider.GetRequiredService<IOptions<GitRepositoryOptions>>().Value.ReadOnly;
             if (isReadOnly)
@@ -66,6 +69,7 @@ namespace GitAutomation.Orchestration.Actions
             return Observable.Create<OutputMessage>(async (observer, cancellationToken) =>
             {
                 var details = await repository.GetBranchDetails(releaseCandidateBranch).FirstOrDefaultAsync();
+                var upstreamLines = await repository.DetectShallowUpstreamServiceLines(releaseCandidateBranch).FirstOrDefaultAsync();
                 var latestBranchName = await repository.LatestBranchName(details).FirstOrDefaultAsync();
                 var disposable = new CompositeDisposable();
                 var processes = new Subject<IObservable<OutputMessage>>();
@@ -84,32 +88,45 @@ namespace GitAutomation.Orchestration.Actions
                     processes.OnNext(tag);
                     await tag;
 
+                    var serviceLine = await settings.GetBranchBasicDetails(serviceLineBranch).FirstOrDefaultAsync();
+                    // possible TODO for the future: give option to add missing upstream lines always
+                    if (serviceLine == null)
+                    {
+                        // We need to set it up as a service line
+                        using (var work = unitOfWorkFactory.CreateUnitOfWork())
+                        {
+                            settings.UpdateBranchSetting(serviceLineBranch, false, BranchGroupType.ServiceLine, work);
+                            foreach (var upstreamServiceLine in upstreamLines)
+                            {
+                                settings.AddBranchPropagation(upstreamServiceLine, serviceLineBranch, work);
+                            }
+
+                            await work.CommitAsync();
+                        }
+                    }
+
+                    if (autoConsolidate)
+                    {
+                        var consolidating = details.UpstreamBranchGroups.Add(details.GroupName);
+                        foreach (var upstreamServiceLine in upstreamLines)
+                        {
+                            var upstreamDetails = await repository.GetBranchDetails(upstreamServiceLine).FirstOrDefaultAsync();
+                            consolidating = consolidating.Except(upstreamDetails.UpstreamBranchGroups).Except(new[] { upstreamServiceLine }).ToImmutableList();
+                        }
+#pragma warning disable CS4014
+                        orchestration.EnqueueAction(new ConsolidateMergedAction(consolidating, serviceLineBranch));
+#pragma warning restore
+                    }
+
                     var pushTag = Queueable(cli.Push(tagName));
                     processes.OnNext(pushTag);
                     await pushTag;
-                    
+
                     var push = Queueable(cli.Push(serviceLineBranch));
                     processes.OnNext(push);
                     await push;
                 }
 
-                var serviceLine = await settings.GetBranchBasicDetails(serviceLineBranch).FirstOrDefaultAsync();
-                // possible TODO for the future: give option to add missing upstream lines always
-                if (serviceLine == null)
-                {
-                    var upstreamLines = await repository.DetectShallowUpstreamServiceLines(releaseCandidateBranch).FirstOrDefaultAsync();
-                    // We need to set it up as a service line
-                    using (var work = unitOfWorkFactory.CreateUnitOfWork())
-                    {
-                        settings.UpdateBranchSetting(serviceLineBranch, false, BranchGroupType.ServiceLine, work);
-                        foreach (var upstreamServiceLine in upstreamLines)
-                        {
-                            settings.AddBranchPropagation(upstreamServiceLine, serviceLineBranch, work);
-                        }
-
-                        await work.CommitAsync();
-                    }
-                }
 
                 processes.OnCompleted();
 
