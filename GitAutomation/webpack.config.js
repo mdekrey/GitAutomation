@@ -1,4 +1,5 @@
 const path = require("path");
+const UglifyJSPlugin = require("uglifyjs-webpack-plugin");
 
 module.exports = {
   devtool: "cheap-source-map",
@@ -16,3 +17,11 @@ module.exports = {
     loaders: [{ test: /\.ts$/, loader: "ts-loader" }]
   }
 };
+
+if (process.argv.find(arg => arg === "--env.NODE_ENV=production")) {
+  module.exports.devtool = "source-map";
+
+  module.exports.plugins = (module.exports.plugins || []).concat([
+    new UglifyJSPlugin()
+  ]);
+}

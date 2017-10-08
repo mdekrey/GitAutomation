@@ -9,4 +9,4 @@ RUN apt-get update && apt-get install -y curl apt-transport-https && \
     apt-get update && apt-get install -y yarn
 
 
-CMD /bin/bash -c "cd GitAutomation && yarn && yarn build && cd .. && dotnet restore ./GitAutomation.sln && dotnet publish ./GitAutomation.sln -c ci-docker -o ./obj/Docker/publish"
+CMD /bin/bash -c "cd GitAutomation && yarn && yarn build --env.NODE_ENV=production && cd .. && dotnet restore ./GitAutomation.sln && dotnet publish ./GitAutomation.sln -c ci-docker -o ./obj/Docker/publish"
