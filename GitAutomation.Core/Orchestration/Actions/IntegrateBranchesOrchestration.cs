@@ -16,8 +16,14 @@ namespace GitAutomation.Orchestration.Actions
 
     public struct IntegrationBranchResult
     {
+        public bool Resolved;
         public bool AddedNewIntegrationBranches;
         public bool HadPullRequest;
+
+        internal bool NeedsPullRequest()
+        {
+            return Resolved == false && AddedNewIntegrationBranches == false && HadPullRequest == false;
+        }
     }
 
     class IntegrateBranchesOrchestration
@@ -275,6 +281,39 @@ namespace GitAutomation.Orchestration.Actions
             return upstreamBranchListings[branch];
         }
 
+        public async Task<IntegrationBranchResult> FindSingleIntegrationBranch(BranchGroupCompleteData details, string groupName, AttemptMergeDelegate doMerge)
+        {
+            var groups = new[] { details.GroupName, groupName }.OrderBy(g => g).ToArray();
+            var integrationBranch = await settings.GetIntegrationBranch(groups[0], groups[1]);
+            if (integrationBranch == null)
+            {
+                return new IntegrationBranchResult
+                {
+                    AddedNewIntegrationBranches = false,
+                    HadPullRequest = false,
+                };
+            }
 
+            await doMerge(integrationBranch, details.LatestBranchName, $"Auto-merge branch '{integrationBranch}'");
+
+            using (var work = workFactory.CreateUnitOfWork())
+            {
+                settings.AddBranchPropagation(integrationBranch, details.GroupName, work);
+                settings.RemoveBranchPropagation(details.GroupName, integrationBranch, work);
+                settings.RemoveBranchPropagation(groupName, integrationBranch, work);
+                await work.CommitAsync();
+            }
+
+#pragma warning disable CS4014
+            orchestration.EnqueueAction(new ConsolidateMergedAction(new[] { integrationBranch }, details.GroupName));
+#pragma warning restore
+
+            return new IntegrationBranchResult
+            {
+                Resolved = true,
+                AddedNewIntegrationBranches = false,
+                HadPullRequest = false,
+            };
+        }
     }
 }

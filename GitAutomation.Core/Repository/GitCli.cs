@@ -119,6 +119,11 @@ namespace GitAutomation.Repository
             return RunGit("push", "origin", "--delete", branchName);
         }
 
+        public IReactiveProcess Checkout(string branchName)
+        {
+            return RunGit("checkout", branchName);
+        }
+
         public IReactiveProcess CheckoutRemote(string branchName)
         {
             return RunGit("checkout", "-B", branchName, "--track", RemoteBranch(branchName));

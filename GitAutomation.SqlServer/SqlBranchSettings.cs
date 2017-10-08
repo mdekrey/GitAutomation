@@ -231,6 +231,10 @@ USING (SELECT BranchStream.DownstreamBranch
 ON T.DownstreamBranch = NewDownstream.DownstreamBranch AND T.UpstreamBranch=@ReplacementGroupName
 WHEN NOT MATCHED THEN INSERT (UpstreamBranch, DownstreamBranch) VALUES (@ReplacementGroupName, NewDownstream.DownstreamBranch);
 
+-- TODO - there's a better way to do this
+DELETE FROM BranchStream
+WHERE UpstreamBranch = DownstreamBranch;
+
 DELETE FROM [BranchStream]
 WHERE UpstreamBranch = @GroupName OR DownstreamBranch=@GroupName;
 

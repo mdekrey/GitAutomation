@@ -222,6 +222,10 @@ SELECT @ReplacementGroupName, BranchStream.DownstreamBranch
 		GROUP BY BranchStream.DownstreamBranch
 ON CONFLICT (UpstreamBranch, DownstreamBranch) DO NOTHING;
 
+-- TODO - there's a better way to do this
+DELETE FROM BranchStream
+WHERE UpstreamBranch = DownstreamBranch;
+
 DELETE FROM BranchStream
 WHERE UpstreamBranch = @GroupName OR DownstreamBranch=@GroupName;
 
