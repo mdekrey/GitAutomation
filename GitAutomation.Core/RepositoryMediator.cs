@@ -88,6 +88,11 @@ namespace GitAutomation
             this.branchSettings.ConsolidateBranches(branchesToRemove, targetBranch, unitOfWork);
         }
 
+        public IObservable<ImmutableList<string>> DetectUpstream(string actualBranchName)
+        {
+            return repositoryState.DetectUpstream(actualBranchName, true).Select(v => v.Select(r => r.Name).ToImmutableList());
+        }
+
         public IObservable<ImmutableList<string>> DetectShallowUpstream(string branchName, bool asGroup)
         {
             return repositoryState.RemoteBranches().CombineLatest(branchSettings.GetConfiguredBranches(), (allRemotes, configured) => (allRemotes, configured))
@@ -96,7 +101,7 @@ namespace GitAutomation
                     var actualBranchName = asGroup
                         ? branchIteration.GetLatestBranchNameIteration(branchName, tuple.allRemotes.Select(b => b.Name))
                         : branchName;
-                    return repositoryState.DetectUpstream(actualBranchName).Select(allUpstream => (allUpstream, tuple.allRemotes, tuple.configured));
+                    return repositoryState.DetectUpstream(actualBranchName, false).Select(allUpstream => (allUpstream, tuple.allRemotes, tuple.configured));
                 })
                 .SelectMany(tuple =>
                 {
@@ -136,7 +141,7 @@ namespace GitAutomation
             for (var i = 0; i < allUpstream.Count; i++)
             {
                 var upstream = allUpstream[i];
-                var furtherUpstream = await repositoryState.DetectUpstream(upstream.Name).FirstOrDefaultAsync();
+                var furtherUpstream = await repositoryState.DetectUpstream(upstream.Name, false).FirstOrDefaultAsync();
                 if (allUpstream.Intersect(furtherUpstream).Any())
                 {
                     allUpstream = allUpstream.Except(furtherUpstream).ToImmutableList();

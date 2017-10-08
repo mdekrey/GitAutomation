@@ -156,6 +156,13 @@ namespace GitAutomation.Management
         }
 
         [Authorize(Auth.PolicyNames.Read)]
+        [HttpGet("detect-all-upstream/{*branchName}")]
+        public Task<ImmutableList<string>> DetectAllUpstream(string branchName)
+        {
+            return repository.DetectUpstream(branchName).FirstAsync().ToTask();
+        }
+
+        [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("check-prs/{*branchName}")]
         public Task<ImmutableList<GitService.PullRequestWithReviews>> GetUpstreamPullRequests(string branchName)
         {

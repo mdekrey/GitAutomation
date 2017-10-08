@@ -17,7 +17,8 @@ import {
   consolidateMerged,
   promoteServiceLine,
   deleteBranch,
-  detectUpstream
+  detectUpstream,
+  detectAllUpstream
 } from "../api/basics";
 
 export const manage = (
@@ -65,8 +66,16 @@ export const manage = (
   <button type="button" data-locator="reset">Reset</button>
   <button type="button" data-locator="home">Cancel</button>
   <button type="button" data-locator="save">Save</button>
-  <h3>Actual Branches</h3>
-  <ul data-locator="grouped-branches"></ul>
+  <table>
+    <tr style="vertical-align: top;">
+      <td>
+        <h3>Actual Branches</h3>
+        <ul data-locator="grouped-branches"></ul>
+      </td>
+      <td data-locator="up-to-date">
+      </td>
+    </tr>
+  </table>
 
   <h3>Release to Service Line</h3>
   <label>
@@ -194,19 +203,43 @@ export const manage = (
             .subscribe()
         );
 
+        const actualBranchDisplay = rxData(
+          container.map(fnSelect(`[data-locator="grouped-branches"]`)),
+          branchData.state.map(branch => branch.actualBranches)
+        ).bind({
+          selector: "li",
+          onCreate: selection => selection.append<HTMLLIElement>("li"),
+          onEnter: selection =>
+            selection.html(`<span></span> <a>What is up to date?</a>`),
+          onEach: selection =>
+            selection
+              .select("span")
+              .text(data => `${data.name} (${data.commit.substr(0, 7)})`)
+        });
+
         subscription.add(
-          rxData(
-            container.map(fnSelect(`[data-locator="grouped-branches"]`)),
-            branchData.state.map(branch => branch.actualBranches)
-          )
-            .bind({
-              selector: "li",
-              onCreate: selection => selection.append<HTMLLIElement>("li"),
-              onEach: selection =>
-                selection.text(
-                  data => `${data.name} (${data.commit.substr(0, 7)})`
-                )
-            })
+          rxEvent({
+            target: actualBranchDisplay.map(fnSelect("a")),
+            eventName: "click"
+          })
+            .switchMap(event =>
+              rxData(
+                container
+                  .map(fnSelect(`[data-locator="up-to-date"]`))
+                  .do(elem =>
+                    elem.html(`
+                      <h3>Branches Up-to-date in ${event.datum.name}</h3>
+                      <ul></ul>
+                    `)
+                  )
+                  .map(fnSelect("ul")),
+                detectAllUpstream(event.datum.name).take(1)
+              ).bind({
+                selector: "li",
+                onCreate: selection => selection.append<HTMLLIElement>("li"),
+                onEach: selection => selection.text(data => data)
+              })
+            )
             .subscribe()
         );
 

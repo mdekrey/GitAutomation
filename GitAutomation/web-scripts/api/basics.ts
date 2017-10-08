@@ -52,6 +52,11 @@ export const detectUpstream = (branchName: string, asGroup: boolean) =>
     "/api/management/detect-upstream/" + branchName + `?asGroup=${asGroup}`
   ).map(response => response.response as string[]);
 
+export const detectAllUpstream = (branchName: string) =>
+  Observable.ajax("/api/management/detect-all-upstream/" + branchName).map(
+    response => response.response as string[]
+  );
+
 export const checkPullRequests = (branchName: string) =>
   Observable.ajax("/api/management/check-prs/" + branchName).map(
     response =>
