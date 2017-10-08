@@ -104,11 +104,11 @@ namespace GitAutomation
                     var allRemotes = tuple.allRemotes;
                     var allUpstream = tuple.allUpstream;
 
-					return PruneUpstream(allUpstream, configured, allRemotes);
+					return PruneUpstream(allRemotes.Find(remote => remote.Name == branchName), allUpstream, configured, allRemotes);
 				});
 		}
 
-        private async System.Threading.Tasks.Task<ImmutableList<string>> PruneUpstream(ImmutableList<GitRef> allUpstream, ImmutableList<BranchGroupDetails> configured, ImmutableList<GitRef> allRemotes)
+        private async System.Threading.Tasks.Task<ImmutableList<string>> PruneUpstream(GitRef original, ImmutableList<GitRef> allUpstream, ImmutableList<BranchGroupDetails> configured, ImmutableList<GitRef> allRemotes)
         {
             var configuredLatest = configured.ToDictionary(branch => branch.GroupName, branch => branchIteration.GetLatestBranchNameIteration(branch.GroupName, allRemotes.Select(b => b.Name)));
             allUpstream = allUpstream.Where(maybeHasNewer =>
@@ -119,7 +119,11 @@ namespace GitAutomation
             {
                 var upstream = allUpstream[i];
                 var isConfigured = configuredLatest.Values.Contains(upstream.Name);
-                var furtherUpstream = (await branchSettings.GetAllUpstreamBranches(upstream.Name).FirstOrDefaultAsync()).Select(group => configuredLatest[group.GroupName]).ToImmutableHashSet();
+                var furtherUpstream = (from branchGroup in (await branchSettings.GetAllUpstreamBranches(upstream.Name).FirstOrDefaultAsync())
+                                       let latest = configuredLatest[branchGroup.GroupName]
+                                       where allRemotes.Find(b => b.Name == latest).Commit != upstream.Commit
+                                       select latest)
+                    .ToImmutableHashSet();
                 var oldLength = allUpstream.Count;
                 allUpstream = allUpstream.Where(maybeMatch => !furtherUpstream.Contains(maybeMatch.Name)).ToImmutableList();
                 if (oldLength != allUpstream.Count)
@@ -146,10 +150,11 @@ namespace GitAutomation
         public IObservable<ImmutableList<string>> DetectShallowUpstreamServiceLines(string branchName)
         {
             return branchSettings.GetAllUpstreamBranches(branchName)
-                .CombineLatest(branchSettings.GetConfiguredBranches(), repositoryState.RemoteBranches(),(allUpstreamBranchDetails, configured, allRemotes) =>
+                .CombineLatest(branchSettings.GetConfiguredBranches(), repositoryState.RemoteBranches(), (allUpstreamBranchDetails, configured, allRemotes) =>
                 {
                     var allUpstream = allUpstreamBranchDetails.Where(b => b.BranchType == BranchGroupType.ServiceLine).Select(b => b.GroupName).ToImmutableList();
                     return PruneUpstream(
+                        allRemotes.Find(remote => remote.Name == branchName),
                         allUpstream
                             .Select(upstream => branchIteration.GetLatestBranchNameIteration(upstream, allRemotes.Select(r => r.Name)))
                             .Select(branch => allRemotes.First(b => b.Name == branch))
