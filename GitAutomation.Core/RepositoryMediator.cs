@@ -154,7 +154,8 @@ namespace GitAutomation
 
         public IObservable<ImmutableList<string>> DetectShallowUpstreamServiceLines(string branchName)
         {
-            return branchSettings.GetAllUpstreamBranches(branchName)
+            return branchSettings.GetConfiguredBranches().Select(branches => branches.Find(branch => branchIteration.IsBranchIteration(branch.GroupName, branchName)))
+                .SelectMany(branch => branchSettings.GetAllUpstreamBranches(branch.GroupName))
                 .CombineLatest(branchSettings.GetConfiguredBranches(), repositoryState.RemoteBranches(), (allUpstreamBranchDetails, configured, allRemotes) =>
                 {
                     var allUpstream = allUpstreamBranchDetails.Where(b => b.BranchType == BranchGroupType.ServiceLine).Select(b => b.GroupName).ToImmutableList();

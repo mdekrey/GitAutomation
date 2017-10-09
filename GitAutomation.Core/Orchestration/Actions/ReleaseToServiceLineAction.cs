@@ -49,6 +49,7 @@ namespace GitAutomation.Orchestration.Actions
             var cli = serviceProvider.GetRequiredService<GitCli>();
             var repository = serviceProvider.GetRequiredService<IRepositoryMediator>();
             var settings = serviceProvider.GetRequiredService<IBranchSettings>();
+            var branchIteration = serviceProvider.GetRequiredService<IBranchIterationMediator>();
             var unitOfWorkFactory = serviceProvider.GetRequiredService<IUnitOfWorkFactory>();
             var orchestration = serviceProvider.GetRequiredService<IRepositoryOrchestration>();
 
@@ -68,23 +69,21 @@ namespace GitAutomation.Orchestration.Actions
 
             return Observable.Create<OutputMessage>(async (observer, cancellationToken) =>
             {
-                var details = await repository.GetBranchDetails(releaseCandidateBranch).FirstOrDefaultAsync();
                 var upstreamLines = await repository.DetectShallowUpstreamServiceLines(releaseCandidateBranch).FirstOrDefaultAsync();
-                var latestBranchName = await repository.LatestBranchName(details).FirstOrDefaultAsync();
                 var disposable = new CompositeDisposable();
                 var processes = new Subject<IObservable<OutputMessage>>();
                 disposable.Add(Observable.Concat(processes).Subscribe(observer));
                 disposable.Add(processes);
 
-                var readyToFinalize = await CreateOrFastForwardServiceLine(latestBranchName, repository, cli, processes);
+                var readyToFinalize = await CreateOrFastForwardServiceLine(releaseCandidateBranch, repository, cli, processes);
 
                 if (!readyToFinalize)
                 {
-                    processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{serviceLineBranch} unable to be fast-forwarded from {latestBranchName}; aborting" }));
+                    processes.OnNext(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{serviceLineBranch} unable to be fast-forwarded from {releaseCandidateBranch}; aborting" }));
                 }
                 else
                 {
-                    var tag = Queueable(cli.AnnotatedTag(tagName, $"Automated release to service line {serviceLineBranch} from {latestBranchName}"));
+                    var tag = Queueable(cli.AnnotatedTag(tagName, $"Automated release to service line {serviceLineBranch} from {releaseCandidateBranch}"));
                     processes.OnNext(tag);
                     await tag;
 
@@ -107,13 +106,15 @@ namespace GitAutomation.Orchestration.Actions
 
                     if (autoConsolidate)
                     {
-                        var consolidating = details.UpstreamBranchGroups.Add(details.GroupName);
+                        var consolidating = await repository.DetectUpstream(releaseCandidateBranch).FirstOrDefaultAsync();
                         foreach (var upstreamServiceLine in upstreamLines)
                         {
                             var upstreamDetails = await repository.GetBranchDetails(upstreamServiceLine).FirstOrDefaultAsync();
                             consolidating = consolidating.Except(upstreamDetails.UpstreamBranchGroups).Except(new[] { upstreamServiceLine }).ToImmutableList();
                         }
+                        var releasedCandidate = await settings.GetConfiguredBranches().Select(branches => branches.Find(branch => branchIteration.IsBranchIteration(branch.GroupName, releaseCandidateBranch)).GroupName).FirstOrDefaultAsync();
 #pragma warning disable CS4014
+                        orchestration.EnqueueAction(new DeleteBranchAction(releasedCandidate));
                         orchestration.EnqueueAction(new ConsolidateMergedAction(consolidating, serviceLineBranch));
 #pragma warning restore
                     }
