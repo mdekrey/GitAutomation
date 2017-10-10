@@ -368,7 +368,7 @@ namespace GitAutomation.Orchestration.Actions
 
             private async Task<bool> DoMerge(string upstreamBranch, string targetBranch, string message)
             {
-                var timestamps = await (from timestampMessage in cli.GetCommitTimestamps(cli.RemoteBranch(upstreamBranch), cli.RemoteBranch(targetBranch)).Output
+                var timestamps = await (from timestampMessage in cli.GetCommitTimestamps(cli.RemoteBranch(upstreamBranch), targetBranch).Output
                                         where timestampMessage.Channel == OutputChannel.Out
                                         select timestampMessage.Message).ToArray();
                 var timestamp = timestamps.Max();
