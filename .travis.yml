@@ -1,17 +1,16 @@
-language: csharp
-mono: none
-dotnet: 2.0.0
-dist: trusty
+language: c
 sudo: required
 
 install:
 - docker pull microsoft/aspnetcore-build:2.0
-- docker build -t travis-docker -f Dockerfile.test .
+- docker build -t travis-docker -f Dockerfile-ci .
+- docker build -t travis-docker-psql -f ./GitAutomation.Postgres/Dockerfile-ci ./GitAutomation.Postgres
 
 script:
 #only build if tests succeed
 #(NB: the script/build is run *outside* a container in the following command)
-- docker run -v "$(pwd):/var/build" --rm travis-docker
+- docker run -v "$(pwd):/src" -w="/src" --rm travis-docker
+- docker run -v "$(pwd)/GitAutomation.Postgres:/src" -w="/src" --rm travis-docker-psql
 
 # TODO - v1.0.0
 #after_success:
