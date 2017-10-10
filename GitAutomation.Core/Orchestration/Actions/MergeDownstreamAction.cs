@@ -169,12 +169,12 @@ namespace GitAutomation.Orchestration.Actions
 
                 if (needsCreate)
                 {
-                    await AppendProcess(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{Details.GroupName} needs to be created from {string.Join(",", neededUpstreamMerges)}" }));
+                    await AppendProcess(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{Details.GroupName} needs to be created from {string.Join(",", neededUpstreamMerges.Select(up => up.GroupName))}" }));
                     await CreateDownstreamBranch(upstreamBranches);
                 }
                 else if (neededUpstreamMerges.Any())
                 {
-                    await AppendProcess(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{LatestBranchName} needs merges from {string.Join(",", neededUpstreamMerges)}" }));
+                    await AppendProcess(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{LatestBranchName} needs merges from {string.Join(",", neededUpstreamMerges.Select(up => up.GroupName))}" }));
 
                     await AppendProcess(Queueable(cli.CheckoutRemote(LatestBranchName)));
 
@@ -246,7 +246,7 @@ namespace GitAutomation.Orchestration.Actions
                 await checkout;
                 if (!string.IsNullOrEmpty(checkoutError) && checkoutError.StartsWith("fatal"))
                 {
-                    await AppendProcess(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} unable to be branched from {initialBranch}; aborting" }));
+                    await AppendProcess(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} unable to be branched from {initialBranch.BranchName}; aborting" }));
                     return;
                 }
 
