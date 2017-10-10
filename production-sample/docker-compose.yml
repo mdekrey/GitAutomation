@@ -1,0 +1,21 @@
+version: '3.1'
+
+services:
+  gitautomation:
+    image: gitautomation
+    secrets:
+      - gitcredentials
+      - configuration.json
+    ports:
+      - "8080:80"
+
+  gitautomation-psql:
+    image: gitautomation-psql
+    volumes:
+      - ./postgres-data:/var/lib/postgresql
+
+secrets:
+  gitcredentials:
+    file: ./git-credentials.txt
+  configuration.json:
+    file: ./configuration.json
