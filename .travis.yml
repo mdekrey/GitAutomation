@@ -10,12 +10,12 @@ script:
 - docker run -v "$(pwd):/src" -w="/src" --rm travis-docker
 - docker run -v "$(pwd)/GitAutomation.Postgres:/src" -w="/src" --rm travis-docker-psql
 # Splits the branch by `/`
-- PARTS=(${TRAVIS_BRANCH//\// })
+- PARTS=(${TRAVIS_BRANCH//\// });
   if [ "${PARTS[0]}" == "rel" ]; then
-    TAG=:${PARTS[1]}
-  fi
+    TAG=:${PARTS[1]};
+  fi;
   if [ "${PARTS[0]}" == "line" ]; then
-    TAG=:${PARTS[1]}
+    TAG=:${PARTS[1]};
   fi
 - docker build -t gitautomation${TAG} -f ./GitAutomation/Dockerfile ./GitAutomation
 - docker build -t gitautomation-psql${TAG} -f ./GitAutomation.Postgres/Dockerfile ./GitAutomation.Postgres
