@@ -7,12 +7,20 @@ install:
 - docker build -t travis-docker-psql -f ./GitAutomation.Postgres/Dockerfile-ci ./GitAutomation.Postgres
 
 script:
-#only build if tests succeed
-#(NB: the script/build is run *outside* a container in the following command)
 - docker run -v "$(pwd):/src" -w="/src" --rm travis-docker
 - docker run -v "$(pwd)/GitAutomation.Postgres:/src" -w="/src" --rm travis-docker-psql
+# Splits the branch by `/`
+- PARTS=(${TRAVIS_BRANCH//\// })
+  if [ "${PARTS[0]}" == "rel" ]; then
+    TAG=:${PARTS[1]}
+  fi
+  if [ "${PARTS[0]}" == "line" ]; then
+    TAG=:${PARTS[1]}
+  fi
+- docker build -t gitautomation${TAG} -f ./GitAutomation/Dockerfile ./GitAutomation
+- docker build -t gitautomation-psql${TAG} -f ./GitAutomation.Postgres/Dockerfile ./GitAutomation.Postgres
 
-# TODO - v1.0.0
-#after_success:
-#- docker build -t travis-docker-prod -f Dockerfile.prod .
-#- TODO - upload to docker hub
+after_success:
+- docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+- docker push mdekrey/gitautomation${TAG}
+- docker push mdekrey/gitautomation-psql${TAG}
