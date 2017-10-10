@@ -19,8 +19,8 @@ script:
     TAG=:${PARTS[1]};
   fi
 - echo "building tag ${TAG}"
-- docker build -t gitautomation${TAG} -f ./GitAutomation/Dockerfile ./GitAutomation
-- docker build -t gitautomation-psql${TAG} -f ./GitAutomation.Postgres/Dockerfile ./GitAutomation.Postgres
+- docker build -t ${DOCKER_USERNAME}/gitautomation${TAG} -f ./GitAutomation/Dockerfile ./GitAutomation
+- docker build -t ${DOCKER_USERNAME}/gitautomation-psql${TAG} -f ./GitAutomation.Postgres/Dockerfile ./GitAutomation.Postgres
 
 after_success:
 - echo "publishing tag ${TAG}"
