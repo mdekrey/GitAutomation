@@ -20,7 +20,7 @@ secrets:
   configuration.json:
     file: ./configuration.json
 
-# docker volume create --name gitlab-postgresql-volume -d local
+# docker volume create --name gitautomation-postgresql-volume -d local
 volumes:
   gitautomation-postgresql-volume:
     external: true
