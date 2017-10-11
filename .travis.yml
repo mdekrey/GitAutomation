@@ -2,15 +2,14 @@ language: c
 sudo: required
 
 install:
-- docker pull microsoft/aspnetcore-build:2.0
 - docker build -t travis-docker -f Dockerfile-ci .
 - docker build -t travis-docker-psql -f ./GitAutomation.Postgres/Dockerfile-ci ./GitAutomation.Postgres
 
 script:
-- docker run -v "$(pwd):/src" -w="/src" --rm travis-docker
-- docker run -v "$(pwd)/GitAutomation.Postgres:/src" -w="/src" --rm travis-docker-psql
 - TAG=$(./ci/branch-to-tag.sh)
 - echo "building tag ${TAG}"
+- docker run -v "$(pwd):/src" -w="/src" --rm travis-docker
+- docker run -v "$(pwd)/GitAutomation.Postgres:/src" -w="/src" --rm travis-docker-psql
 - docker build -t ${DOCKER_USERNAME}/gitautomation${TAG} -f ./GitAutomation/Dockerfile ./GitAutomation
 - docker build -t ${DOCKER_USERNAME}/gitautomation-psql${TAG} -f ./GitAutomation.Postgres/Dockerfile ./GitAutomation.Postgres
 
