@@ -1,3 +1,4 @@
+TRAVIS_BRANCH=${TRAVIS_TAG:-$TRAVIS_BRANCH}
 PARTS=(${TRAVIS_BRANCH//\// })
 TAG=:dev
 if [ "${PARTS[0]}" == "rel" ]; then
