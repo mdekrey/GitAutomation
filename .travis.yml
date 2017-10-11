@@ -6,6 +6,7 @@ install:
 - docker build -t travis-docker-psql -f ./GitAutomation.Postgres/Dockerfile-ci ./GitAutomation.Postgres
 
 script:
+- echo "branch: $TRAVIS_BRANCH tag: $TRAVIS_TAG"
 - TAG=$(./ci/branch-to-tag.sh)
 - echo "building tag ${TAG}"
 - docker run -v "$(pwd):/src" -w="/src" --rm travis-docker
