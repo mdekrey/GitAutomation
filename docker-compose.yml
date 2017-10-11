@@ -9,6 +9,8 @@ services:
     secrets:
       - gitcredentials
       - configuration.json
+    volumes:
+      - "./GitAutomation.AllAddons/obj/Docker/publish:/extra-bins/z-addons-release"
     ports:
       - "32768:80"
 

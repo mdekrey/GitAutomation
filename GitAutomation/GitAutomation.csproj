@@ -41,7 +41,6 @@
   <ItemGroup>
     <ProjectReference Include="..\GitAutomation.Auth\GitAutomation.Auth.csproj" />
     <ProjectReference Include="..\GitAutomation.Core\GitAutomation.Core.csproj" />
-    <ProjectReference Include="..\GitAutomation.AllAddons\GitAutomation.AllAddons.csproj" />
   </ItemGroup>
 
 </Project>
