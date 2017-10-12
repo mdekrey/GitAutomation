@@ -12,7 +12,7 @@ services:
   gitautomation-psql:
     image: gitautomation-psql
     volumes:
-      - ./postgres-data:/var/lib/postgresql
+      - gitautomation-postgresql-volume:/var/lib/postgresql/data
 
 secrets:
   gitcredentials:
