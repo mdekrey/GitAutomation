@@ -1,4 +1,4 @@
-import { Observable } from "rxjs";
+import { Observable } from "./utils/rxjs";
 import { d3element } from "./utils/presentation/d3-binding";
 import {
   buildCascadingStrategy,

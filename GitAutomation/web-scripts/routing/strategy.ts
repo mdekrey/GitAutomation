@@ -1,4 +1,4 @@
-import { Observable } from "rxjs";
+import { Observable } from "../utils/rxjs";
 import { IRoutingState, Routes } from "./types";
 import { matchRoutes } from "./match-routes";
 import { buildPath } from "./operations";

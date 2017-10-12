@@ -1,4 +1,4 @@
-import { Observable, Subject, Subscription } from "rxjs";
+import { Observable, Subject, Subscription } from "../utils/rxjs";
 import { Selection, event as d3event, mouse as d3mouse } from "d3-selection";
 import {
   forceLink,
@@ -87,7 +87,7 @@ export function branchHierarchy({
               node => node.groupName === branch.groupName
             );
             return {
-              ...previous || {},
+              ...(previous || {}),
               branchColor:
                 previous && previous.branchType === branch.branchType
                   ? previous.branchColor

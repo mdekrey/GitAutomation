@@ -1,4 +1,4 @@
-import { BehaviorSubject } from "rxjs";
+import { BehaviorSubject } from "../../utils/rxjs";
 
 export const windowUrlChanged = new BehaviorSubject<null>(null);
 

@@ -1,4 +1,4 @@
-import { Observable, Subscription, Subject } from "rxjs";
+import { Observable, Subscription, Subject } from "../utils/rxjs";
 import { Selection } from "d3-selection";
 
 import { RoutingComponent } from "../utils/routing-component";
