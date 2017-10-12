@@ -1,4 +1,4 @@
-import { difference, intersection } from "ramda";
+import { difference, intersection } from "../utils/ramda";
 import { Observable } from "../utils/rxjs";
 import { Selection } from "d3-selection";
 

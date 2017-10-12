@@ -1,4 +1,5 @@
 import { Observable, Subject, Subscription } from "../utils/rxjs";
+import { any, equals, flatten, indexBy } from "../utils/ramda";
 import { Selection, event as d3event, mouse as d3mouse } from "d3-selection";
 import {
   forceLink,
@@ -11,7 +12,6 @@ import {
 } from "d3-force";
 import { drag, SubjectPosition } from "d3-drag";
 import "d3-transition";
-import { any, equals, flatten, indexBy } from "ramda";
 import {
   rxEvent,
   rxData,

@@ -7,14 +7,17 @@ import {
   toPairs,
   values,
   zip
-} from "ramda";
+} from "../utils/ramda";
 import { Route, isAlias } from "./route-types/index";
 import { Routes, IRoutingState } from "./types";
 
 export const buildPath = (componentPath: string | null) => (path: string) =>
   path[0] === "/"
     ? path
-    : `/${[componentPath, path].filter(Boolean).map(trimSlashes).join("/")}`;
+    : `/${[componentPath, path]
+        .filter(Boolean)
+        .map(trimSlashes)
+        .join("/")}`;
 
 export function trimSlashes(path: string) {
   return path.replace(/^\/+/, "").replace(/\/+$/, "");
