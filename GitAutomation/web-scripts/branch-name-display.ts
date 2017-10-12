@@ -15,11 +15,7 @@ export const branchNameDisplay = (
       target
         .insert<HTMLSpanElement>("span", `*`)
         .attr("data-locator", "branch-name-display"),
-    onEnter: span =>
-      span.html(`
-        <span data-locator="name"></span>
-        <span data-locator="status"></span>
-      `),
+    onEnter: span => span.html(require("./branch-name-display.html")),
     onEach: selection => {
       selection
         .select(`span[data-locator="name"]`)

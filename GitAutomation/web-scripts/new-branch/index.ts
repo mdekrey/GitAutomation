@@ -11,36 +11,7 @@ export const newBranch = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
 ): RoutingComponent => state =>
   container
-    .do(elem =>
-      elem.html(`
-  <a data-locator="home">Home</a>
-  <h1>New Branch</h1>
-  <h3>Settings</h3>
-  <label>
-      Branch Name
-      <input type="text" data-locator="branch-name" />
-  </label>
-  <label>
-      <input type="checkbox" data-locator="recreate-from-upstream" />
-      Recreate from Upstream
-  </label>
-  <label>
-      Branch Type
-      <select data-locator="branch-type">
-        <option value="Feature">Feature</option>
-        <option value="ReleaseCandidate">Release Candidate</option>
-        <option value="ServiceLine">Service Line</option>
-        <option value="Infrastructure">Infrastructure</option>
-        <option value="Integration">Integration</option>
-        <option value="Hotfix">Hotfix</option>
-      </select>
-  </label>
-  <h3>Upstream Branches</h3>
-  <ul data-locator="upstream-branches"></ul>
-  <button type="button" data-locator="home">Cancel</button>
-  <button type="button" data-locator="save">Save</button>
-`)
-    )
+    .do(elem => elem.html(require("./new-branch.layout.html")))
     .publishReplay(1)
     .refCount()
     .let(container =>

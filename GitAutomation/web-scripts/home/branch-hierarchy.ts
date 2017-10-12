@@ -24,6 +24,8 @@ import { branchTypeColors } from "../style/branch-colors";
 import { ICascadingRoutingStrategy } from "../routing/index";
 import { BranchType } from "../api/basic-branch";
 
+import * as branchHierarchyHtml from "./branch-hierarchy.html";
+
 interface NodeDatum extends BranchGroup, SimulationNodeDatum {
   branchColor: string;
   showLabel?: boolean;
@@ -63,16 +65,9 @@ export function branchHierarchy({
     }
 
     subscription.add(
-      target.distinctUntilChanged().subscribe(svg =>
-        svg.html(`
-        <g data-locator="viewport">
-          <g data-locator="links"/>
-          <g data-locator="nodes"/>
-          <g data-locator="labels"/>
-        </g>
-        <rect data-locator="hitbox" fill="transparent" />
-      `)
-      )
+      target
+        .distinctUntilChanged()
+        .subscribe(svg => svg.html(branchHierarchyHtml))
     );
 
     const data = hierarchyData

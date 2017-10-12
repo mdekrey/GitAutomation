@@ -28,16 +28,7 @@ export const buildBranchCheckListing = (): IRxBindProps<
     target.append<HTMLTableRowElement>("tr").attr("data-static-branch", ""),
   selector: "tr[data-static-branch]",
   onEnter: tr => {
-    tr.html(`
-      <td data-locator="branch" />
-      <td data-locator="downstream-branches">
-        <input type="checkbox" data-locator="check"/>
-      </td>
-      <td data-locator="upstream-branches">
-        <input type="checkbox" data-locator="check"/>
-        <span data-locator="pr-status"></span>
-      </td>
-    `);
+    tr.html(require("./branch-check-listing.row.html"));
   },
   onEach: selection => {
     branchNameDisplay(selection.select(`[data-locator="branch"]`));

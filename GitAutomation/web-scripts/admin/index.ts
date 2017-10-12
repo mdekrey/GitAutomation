@@ -30,25 +30,7 @@ export const admin = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
 ): RoutingComponent => state =>
   container
-    .do(elem =>
-      elem.html(`
-  <a data-locator="home">Home</a>
-
-  <h1>Manage Users</h1>
-
-  <table data-locator="users">
-    <thead>
-      <tr>
-        <th>User name</th>
-        <th data-locator="actions">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-    </tbody>
-  </table>
-
-`)
-    )
+    .do(elem => elem.html(require("./admin.layout.html")))
     .publishReplay(1)
     .refCount()
     .let(body =>
@@ -98,12 +80,7 @@ export const admin = (
             .bind<HTMLTableRowElement>({
               onCreate: target => target.append<HTMLTableRowElement>("tr"),
               selector: "tr",
-              onEnter: tr =>
-                tr.html(`
-                <th data-locator="user-name"></th>
-                <td data-locator="actions">
-                  <button data-locator="save-user">Save User</button>
-                </td>`),
+              onEnter: tr => tr.html(require("./admin.user-row.html")),
               onEach: tr => {
                 tr
                   .select(`[data-locator="user-name"]`)

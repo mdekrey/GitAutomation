@@ -14,7 +14,24 @@ module.exports = {
     extensions: [".webpack.js", ".web.js", ".ts", ".js"]
   },
   module: {
-    loaders: [{ test: /\.ts$/, loader: "ts-loader" }]
+    loaders: [
+      { test: /\.ts$/, loader: "ts-loader" },
+      {
+        test: /\.html$/,
+        loaders: [
+          "raw-loader",
+          {
+            loader: "html-minifier-loader",
+            options: {
+              removeComments: true,
+              collapseWhitespace: true,
+              conservativeCollapse: true,
+              keepClosingSlash: true
+            }
+          }
+        ]
+      }
+    ]
   }
 };
 
