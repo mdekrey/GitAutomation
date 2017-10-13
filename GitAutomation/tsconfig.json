@@ -5,7 +5,8 @@
     "alwaysStrict": true,
     "strictNullChecks": true,
     "module": "commonjs",
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "importHelpers": true
   },
   "compileOnSave": false
 }
