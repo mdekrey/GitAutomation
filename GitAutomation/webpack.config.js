@@ -36,7 +36,7 @@ module.exports = {
 };
 
 if (process.argv.find(arg => arg === "--env.NODE_ENV=production")) {
-  module.exports.devtool = "source-map";
+  module.exports.devtool = "";
 
   module.exports.plugins = (module.exports.plugins || []).concat([
     new UglifyJSPlugin({ extractComments: true })
