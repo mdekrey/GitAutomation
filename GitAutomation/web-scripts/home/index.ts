@@ -118,7 +118,9 @@ export const homepage = (
               onEnter: li => li.html(require("./home.branch-group.html")),
               selector: `li[data-locator="remote-branch"]`,
               onEach: selection => {
-                branchNameDisplay(selection);
+                branchNameDisplay(
+                  selection.select('[data-locator="name-container"]')
+                );
                 subscription.add(
                   rxEvent({
                     target: Observable.of(
