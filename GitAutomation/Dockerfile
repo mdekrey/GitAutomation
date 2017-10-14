@@ -8,9 +8,7 @@ RUN echo "cat /run/secrets/gitcredentials" > /app-scripts/get-git-password.sh
 RUN chmod 700 /app-scripts/get-git-password.sh
 RUN git config --global core.askPass "/app-scripts/get-git-password.sh"
 
-COPY app-scripts .
-
 WORKDIR /app
 EXPOSE 80
 COPY ${source:-obj/Docker/publish} .
-ENTRYPOINT ["bash", "-c", "(/app-scripts/addons.sh || true) && dotnet GitAutomation.dll"]
+ENTRYPOINT ["dotnet", "GitAutomation.dll"]
