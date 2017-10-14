@@ -5,6 +5,6 @@ services:
     image: testing-git-server
     build:
       context: ../git-server
-      dockerfile: dockerfile
+      dockerfile: Dockerfile
     ports:
       - "8081:80"

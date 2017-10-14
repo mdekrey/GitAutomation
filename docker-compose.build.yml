@@ -7,7 +7,7 @@ services:
     image: testing-git-server
     build:
       context: ./git-server
-      dockerfile: dockerfile
+      dockerfile: Dockerfile
 
   psql:
     image: gitautomation/psql-host
