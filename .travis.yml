@@ -10,14 +10,13 @@ install:
 
 script:
 - echo "building tag ${TAG}"
-- sudo docker-compose -f docker-compose.yml -f docker-compose.build.yml build
+- sudo docker-compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.sqlserver.yml build
 
 after_success:
- - echo "publishing tag ${TAG}"
- - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
- - docker images
+ - echo "publishing tag ${TAG} for images:"
  - docker images | grep gitautomation/ | grep latest | awk '{print $1}'
+ - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
  - for image in $(docker images | grep gitautomation/ | grep latest | awk '{print $1}'); do
-     docker tag $image:latest $image:$TAG;
+     docker tag $image:latest $image$TAG;
      docker push $image$TAG;
    done
