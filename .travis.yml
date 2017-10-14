@@ -1,5 +1,6 @@
 language: c
 sudo: required
+services: docker
 
 install:
 - echo "branch ${TRAVIS_BRANCH} tag ${TRAVIS_TAG}"
@@ -10,10 +11,11 @@ install:
 script:
 - echo "building tag ${TAG}"
 - docker-compose -f docker-compose.yml -f docker-compose.build.yml build
-# TODO - re-tag images
 
-# after_success:
-# - echo "publishing tag ${TAG}"
-# - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-# - docker push ${DOCKER_USERNAME}/gitautomation${TAG}
-# - docker push ${DOCKER_USERNAME}/gitautomation-psql${TAG}
+after_success:
+ - echo "publishing tag ${TAG}"
+ - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+ - for image in $(docker images | grep gitautomation/ | grep latest | awk '{print $1}'); do
+     docker tag $image:latest $image:$TAG;
+     docker push $image$TAG
+   done
