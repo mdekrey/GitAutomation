@@ -284,8 +284,12 @@ namespace GitAutomation.Orchestration.Actions
 
             private async Task PushBranch(string downstreamBranch)
             {
-                await AppendProcess(Queueable(cli.Push(downstreamBranch)));
-                repository.NotifyPushedRemoteBranch(downstreamBranch);
+                var pushProcess = AppendProcess(Queueable(cli.Push(downstreamBranch)));
+                var pushExitCode = await (from o in pushProcess where o.Channel == OutputChannel.ExitCode select o.ExitCode).FirstAsync();
+                if (pushExitCode == 0)
+                {
+                    repository.NotifyPushedRemoteBranch(downstreamBranch);
+                }
             }
             
             /// <summary>

@@ -30,5 +30,9 @@ namespace GitAutomation.Orchestration
             return orchestration.EnqueueAction(new ConsolidateMergedAction(originalBranches, newBaseBranch));
         }
 
+        public IObservable<OutputMessage> Update()
+        {
+            return orchestration.EnqueueAction(new UpdateAction());
+        }
     }
 }
