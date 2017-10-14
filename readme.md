@@ -64,9 +64,9 @@ To ensure updates to the secrets are seen within the containers, rebuild the doc
 
 And then to run it...
 
-4. `docker-compose -f docker-compose.yml -f docker-compose.all-addons.yml up`
+4. `docker-compose -f docker-compose.yml -f up`
 
-    If you want to use the `git-server` repository, run it with files specified: `docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.all-addons.yml up --build`
+    If you want to use the `git-server` repository, run it with files specified: `docker-compose -f docker-compose.yml -f docker-compose.override.yml -f up --build`
 
 5. `docker ps` to get the port mapping of the `gitautomation` image.
 
@@ -113,4 +113,4 @@ These steps won't add it to your debugging container. Still working on that...
 
 2. Start the SQL Server docker-compose with the rest:
 
-        docker-compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.all-addons.yml -f docker-compose.sqlserver.yml up --build
+        docker-compose -f docker-compose.yml -f docker-compose.build.yml -f -f docker-compose.sqlserver.yml up --build
