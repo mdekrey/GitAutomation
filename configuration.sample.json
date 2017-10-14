@@ -15,7 +15,7 @@
       "connectionString": "Server=sql;Database=gitautomation;User Id=sa;Password=THE_SA_PASSWORD;"
     },
     "postgres": {
-      "connectionString": "Server=psql;Username=postgres;"
+      "connectionString": "Server=psql;Username=postgres;Password=mysecretpassword"
     }
   },
   "authentication": {

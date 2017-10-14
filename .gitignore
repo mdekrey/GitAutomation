@@ -10,5 +10,7 @@ node_modules
 /git-credentials*.txt
 /configuration*.json
 !/configuration.sample.json
-/sql-credentials.txt
+/sql-credentials*.txt
 /sql-eula.txt
+/psql-credentials*.txt
+!/psql-credentials.sample.txt
