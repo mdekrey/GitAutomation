@@ -49,7 +49,9 @@ namespace GitAutomation.AddonFramework
                     (from depFile in allFiles
                      let dllPath = dependencyExtension.Replace(depFile, ".dll")
                      let assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(dllPath)
-                     select (dir: Path.GetDirectoryName(dllPath), context: DependencyContext.Load(assembly))).ToArray();
+                     let context = DependencyContext.Load(assembly)
+                     where context != null
+                     select (dir: Path.GetDirectoryName(dllPath), context)).ToArray();
 
                 // Register our resolution handler
                 AssemblyLoadContext.Default.Resolving += HandleResolving;
