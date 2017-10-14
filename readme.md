@@ -8,10 +8,19 @@ for production yet, as there is no security to actually connect to the web-hooks
 
 You need docker for your operating system. That's it!
 
-# Notices
+## Notices
 The default configuration uses no password for PostgreSQL. Because there is no persistence when using the default docker-compose files, this is acceptable for dev purposes; however, you will want to make sure you specify a password in your PostgreSQL connection string and for your database when you set up a production instance.
 
-# Before you get started
+# Running GitAutomation
+Currently, we're still in a pre-release mode; I think it could be sufficiently considered in an "alpha" state, though it is quite stable!
+
+* See the [production-sample](./production-sample) folder for an example docker-compose file and instructions on how to set up.
+
+# Development
+
+If you want to hack on GitAutomation...
+
+## Before you get started
 Local files that are not included in the repository include:
 
  * /configuration.json - the various configuration settings to use, including the git repo and persistence database. See the `configuration.sample.json` for format. This has several values that need to be replaced by you. For example, most of this file is set up to use GitHub; see [GitHub Setup](./GitAutomation.GitHub/github-setup.md).
