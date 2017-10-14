@@ -17,4 +17,7 @@ if [ "${PARTS[0]}" == "rc" ]; then
     TAG=$(printf -- "-%s" "${REST[@]}")
     TAG=:${TAG:1}
 fi
+if [ "${PARTS[0]}" == "latest" ]; then
+    TAG=:latest
+fi
 echo $TAG

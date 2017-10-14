@@ -10,6 +10,9 @@ services:
       - "8080:80"
     volumes:
       - "addons:/extra-bins"
+    depends_on:
+      - psql-addon
+      - github-addon
 
   psql:
     image: gitautomation/psql-host
