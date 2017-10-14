@@ -15,7 +15,9 @@ script:
 after_success:
  - echo "publishing tag ${TAG}"
  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+ - docker images
+ - docker images | grep gitautomation/ | grep latest | awk '{print $1}'
  - for image in $(docker images | grep gitautomation/ | grep latest | awk '{print $1}'); do
      docker tag $image:latest $image:$TAG;
-     docker push $image$TAG
+     docker push $image$TAG;
    done
