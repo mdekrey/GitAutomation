@@ -95,13 +95,11 @@ And then to run it...
 
 # SQL Server
 
-We don't use SQL Server by default due to the extra requirements. As a result, the SQL Server project may end up out of date before the release of version 1.0.
+We don't use SQL Server by default due to the extra requirements. As a result, the SQL Server project may end up out of date intermittently before the release of version 1.0.
 
-The Docker SQL Server images require at least 3.5GB of RAM. See https://github.com/Microsoft/mssql-docker/issues/114 for how to set the memory requirements.
+The Docker SQL Server images require at least 3.25GB of RAM. See https://github.com/Microsoft/mssql-docker/issues/114 for how to set the memory requirements.
 
-To run the SQL docker container, you must accept the EULA. It is also linked to from [the dockerhub page](https://hub.docker.com/r/microsoft/mssql-server-linux/). The express edition will be available at GA, they say.
-
-There are also significant complexities with dynamically loading SQL Server as an add-on. (The `System.Data.SqlClient` is platform specific, and so must be published via a dockerized build rather than through Visual Studio.)
+To run the SQL docker container, you must accept the EULA. It is also linked to from [the dockerhub page](https://hub.docker.com/r/microsoft/mssql-server-linux/). This is a development-only license by default; you will need to get a full license from Microsoft or work outside the docker container if you want to use SQL Server.
 
 ## Local files not included
 
