@@ -1,8 +1,12 @@
 version: '3.1'
 
 services:
-  gitautomation-sql:
-    image: gitautomation-sql
+  web:
+    depends_on:
+      - sql-addon
+
+  sql:
+    image: gitautomation/sql-host
     build:
       context: ./GitAutomation.Sql
       dockerfile: Dockerfile
@@ -11,6 +15,11 @@ services:
     secrets:
       - sqlcredentials
       - sqleula
+
+  sql-addon:
+    image: gitautomation/sql-addon
+    volumes:
+      - "addons:/export"
 
 secrets:
   sqlcredentials:

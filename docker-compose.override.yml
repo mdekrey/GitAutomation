@@ -1,15 +1,15 @@
 version: '3.1'
 
 services:
-  gitautomation:
+  web:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      
-#  gitautomation-sql:
+
+#  sql:
 #    ports:
 #      - "21433:1433"
-      
-  gitautomation-psql:
+
+  psql:
     ports:
       - "5432:5432"
 
@@ -18,4 +18,4 @@ services:
     ports:
       - "8082:80"
 
-# TODO - define networks to prevent git-server from accessing gitautomation-sql
+# TODO - define networks to prevent git-server from accessing sql

@@ -1,8 +1,8 @@
 version: '3.1'
 
 services:
-  gitautomation:
-    image: gitautomation
+  web:
+    image: gitautomation/web
     build:
       context: ./GitAutomation
       dockerfile: Dockerfile
@@ -10,12 +10,15 @@ services:
       - gitcredentials
       - configuration.json
     volumes:
-      - "./GitAutomation.AllAddons/obj/Docker/publish:/extra-bins/z-addons-release"
+      - "addons:/extra-bins"
     ports:
       - "32768:80"
+    depends_on:
+      - psql-addon
+      - github-addon
 
-  gitautomation-psql:
-    image: gitautomation-psql
+  psql:
+    image: gitautomation/psql-host
 #    build:
 #      context: ./GitAutomation.Postgres
 #      dockerfile: Dockerfile
@@ -25,6 +28,18 @@ services:
 #      - sqlcredentials
 #      - sqleula
 
+  psql-addon:
+    image: gitautomation/psql-addon
+    volumes:
+      - "addons:/export"
+
+  github-addon:
+    image: gitautomation/github-addon
+    volumes:
+      - "addons:/export"
+
+volumes:
+  addons: {}
 
 secrets:
   gitcredentials:

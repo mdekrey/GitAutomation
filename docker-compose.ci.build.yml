@@ -2,7 +2,7 @@ version: '3.1'
 
 services:
   ci-build:
-    image: gitautomation:build
+    image: gitautomation/web:build
     build:
       context: .
       dockerfile: Dockerfile-ci
@@ -10,16 +10,16 @@ services:
       - .:/src
     working_dir: /src
 
-  gitautomationsql-ci:
-    image: gitautomation-sql:build
+  sql-ci:
+    image: gitautomation/sql-host:build
     build:
       context: ./GitAutomation.Sql
       dockerfile: Dockerfile-ci
     volumes:
       - ./GitAutomation.Sql:/src
 
-  gitautomationpsql-ci:
-    image: gitautomation-psql:build
+  psql-ci:
+    image: gitautomation/psql-host:build
     build:
       context: ./GitAutomation.Postgres
       dockerfile: Dockerfile-ci

@@ -1,0 +1,5 @@
+FROM alpine:latest
+ARG subfolder
+COPY ./$subfolder/obj/Docker/publish /stored
+ENV subfolder $subfolder
+ENTRYPOINT cp -a /stored /export/$subfolder

@@ -1,7 +1,7 @@
 version: '3.1'
 
 services:
-  gitautomation-psql-test:
-    image: gitautomation-psql
-    ports: 
+  psql-test:
+    image: gitautomation/psql-host
+    ports:
       - "35432:5432"

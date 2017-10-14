@@ -64,9 +64,9 @@ To ensure updates to the secrets are seen within the containers, rebuild the doc
 
 And then to run it...
 
-4. `docker-compose -f docker-compose.yml -f up`
+4. `docker-compose up`
 
-    If you want to use the `git-server` repository, run it with files specified: `docker-compose -f docker-compose.yml -f docker-compose.override.yml -f up --build`
+    If you want to use the `git-server` repository, run it with files specified: `docker-compose -f docker-compose.yml -f docker-compose.override.yml up --build`
 
 5. `docker ps` to get the port mapping of the `gitautomation` image.
 

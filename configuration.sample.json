@@ -12,10 +12,10 @@
   "persistence": {
     "type": "GitAutomation.Postgres.RegisterPostgres, GitAutomation.Postgres",
     "sqlServer": {
-      "connectionString": "Server=gitautomation-sql;Database=gitautomation;User Id=sa;Password=THE_SA_PASSWORD;"
+      "connectionString": "Server=sql;Database=gitautomation;User Id=sa;Password=THE_SA_PASSWORD;"
     },
     "postgres": {
-      "connectionString": "Server=gitautomation-psql;Username=postgres;"
+      "connectionString": "Server=psql;Username=postgres;"
     }
   },
   "authentication": {

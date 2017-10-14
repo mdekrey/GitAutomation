@@ -1,18 +1,30 @@
 version: '3.1'
 
 services:
-  gitautomation:
-    image: gitautomation
+  web:
+    image: gitautomation/web
     secrets:
       - gitcredentials
       - configuration.json
     ports:
       - "8080:80"
+    volumes:
+      - "addons:/extra-bins"
 
-  gitautomation-psql:
-    image: gitautomation-psql
+  psql:
+    image: gitautomation/psql-host
     volumes:
       - ./postgres-data:/var/lib/postgresql
+
+  psql-addon:
+    image: gitautomation/psql-addon
+    volumes:
+      - "addons:/export"
+
+  github-addon:
+    image: gitautomation/github-addon
+    volumes:
+      - "addons:/export"
 
 secrets:
   gitcredentials:
@@ -20,7 +32,8 @@ secrets:
   configuration.json:
     file: ./configuration.json
 
-# docker volume create --name gitlab-postgresql-volume -d local
+# docker volume create --name gitautomation-postgresql-volume -d local
 volumes:
   gitautomation-postgresql-volume:
     external: true
+  addons: {}

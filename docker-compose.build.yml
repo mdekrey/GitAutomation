@@ -9,10 +9,35 @@ services:
       context: ./git-server
       dockerfile: dockerfile
 
-  gitautomation-psql:
+  psql:
+    image: gitautomation/psql-host
     build:
       context: ./GitAutomation.Postgres
       dockerfile: Dockerfile
+
+  psql-addon:
+    image: gitautomation/psql-addon
+    build:
+      context: ./
+      dockerfile: Dockerfile-addon
+      args:
+        subfolder: GitAutomation.Postgres
+
+  sql-addon:
+    image: gitautomation/sql-addon
+    build:
+      context: ./
+      dockerfile: Dockerfile-addon
+      args:
+        subfolder: GitAutomation.SqlServer
+
+  github-addon:
+    image: gitautomation/github-addon
+    build:
+      context: ./
+      dockerfile: Dockerfile-addon
+      args:
+        subfolder: GitAutomation.GitHub
 
 secrets:
   gitcredentials:
