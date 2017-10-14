@@ -1,4 +1,4 @@
-import { Observable, Subscription } from "rxjs";
+import { Observable, Subscription } from "../utils/rxjs";
 import { Selection } from "d3-selection";
 
 import {
@@ -26,36 +26,7 @@ export const homepage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
 ): RoutingComponent => state =>
   container
-    .do(elem =>
-      elem.html(`
-  <a data-locator="log-out">Log Out</a>
-  <a data-locator="admin">Admin</a>
-
-  <h1>Action Queue</h1>
-  <a data-locator="action-queue-refresh">Refresh</a>
-  <ul data-locator="action-queue">
-  </ul>
-
-  <h1>Branches</h1>
-  <p><a data-locator="remote-branch-hierarchy-refresh">Refresh</a></p>
-  <svg data-locator="hierarchy-container" width="800" height="200"></svg>
-
-  <h1>Remote Branches</h1>
-  <a data-locator="remote-branches-refresh">Refresh</a>
-  <a data-locator="fetch-from-remote">Fetch</a>
-  <a data-locator="new-branch">New Branch</a>
-  <ul data-locator="remote-branches">
-  </ul>
-
-  <h1>Current Status</h1>
-  <a data-locator="status-refresh">Refresh</a>
-  <ul data-locator="status">
-  </ul>
-
-  <h1>Initial Setup</h1>
-  <a data-locator="auto-wireup">Auto-Wireup</a>
-`)
-    )
+    .do(elem => elem.html(require("./home.layout.html")))
     .publishReplay(1)
     .refCount()
     .let(body =>
@@ -118,10 +89,7 @@ export const homepage = (
           )
             .bind<HTMLLIElement>({
               onCreate: target => target.append<HTMLLIElement>("li"),
-              onEnter: li =>
-                li.html(`
-  <span></span>
-`),
+              onEnter: li => li.append("span"),
               selector: "li",
               onEach: selection =>
                 selection.select(`span`).text(data => JSON.stringify(data))
@@ -147,14 +115,12 @@ export const homepage = (
                 target
                   .append<HTMLLIElement>("li")
                   .attr("data-locator", "remote-branch"),
-              onEnter: li =>
-                li.html(`
-  <a data-locator="manage">Manage</a>
-  <ul data-locator="actual-branches"></ul>
-`),
+              onEnter: li => li.html(require("./home.branch-group.html")),
               selector: `li[data-locator="remote-branch"]`,
               onEach: selection => {
-                branchNameDisplay(selection);
+                branchNameDisplay(
+                  selection.select('[data-locator="name-container"]')
+                );
                 subscription.add(
                   rxEvent({
                     target: Observable.of(

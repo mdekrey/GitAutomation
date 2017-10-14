@@ -14,14 +14,31 @@ module.exports = {
     extensions: [".webpack.js", ".web.js", ".ts", ".js"]
   },
   module: {
-    loaders: [{ test: /\.ts$/, loader: "ts-loader" }]
+    loaders: [
+      { test: /\.ts$/, loader: "ts-loader" },
+      {
+        test: /\.html$/,
+        loaders: [
+          "raw-loader",
+          {
+            loader: "html-minifier-loader",
+            options: {
+              removeComments: true,
+              collapseWhitespace: true,
+              conservativeCollapse: true,
+              keepClosingSlash: true
+            }
+          }
+        ]
+      }
+    ]
   }
 };
 
 if (process.argv.find(arg => arg === "--env.NODE_ENV=production")) {
-  module.exports.devtool = "source-map";
+  module.exports.devtool = "";
 
   module.exports.plugins = (module.exports.plugins || []).concat([
-    new UglifyJSPlugin()
+    new UglifyJSPlugin({ extractComments: true })
   ]);
 }

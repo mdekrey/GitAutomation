@@ -1,4 +1,5 @@
-import { Observable, Subject, Subscription } from "rxjs";
+import { Observable, Subject, Subscription } from "../utils/rxjs";
+import { any, equals, flatten, indexBy } from "../utils/ramda";
 import { Selection, event as d3event, mouse as d3mouse } from "d3-selection";
 import {
   forceLink,
@@ -11,7 +12,6 @@ import {
 } from "d3-force";
 import { drag, SubjectPosition } from "d3-drag";
 import "d3-transition";
-import { any, equals, flatten, indexBy } from "ramda";
 import {
   rxEvent,
   rxData,
@@ -23,6 +23,8 @@ import { BranchGroup } from "../api/basic-branch";
 import { branchTypeColors } from "../style/branch-colors";
 import { ICascadingRoutingStrategy } from "../routing/index";
 import { BranchType } from "../api/basic-branch";
+
+import * as branchHierarchyHtml from "./branch-hierarchy.html";
 
 interface NodeDatum extends BranchGroup, SimulationNodeDatum {
   branchColor: string;
@@ -63,16 +65,9 @@ export function branchHierarchy({
     }
 
     subscription.add(
-      target.distinctUntilChanged().subscribe(svg =>
-        svg.html(`
-        <g data-locator="viewport">
-          <g data-locator="links"/>
-          <g data-locator="nodes"/>
-          <g data-locator="labels"/>
-        </g>
-        <rect data-locator="hitbox" fill="transparent" />
-      `)
-      )
+      target
+        .distinctUntilChanged()
+        .subscribe(svg => svg.html(branchHierarchyHtml))
     );
 
     const data = hierarchyData
@@ -87,7 +82,7 @@ export function branchHierarchy({
               node => node.groupName === branch.groupName
             );
             return {
-              ...previous || {},
+              ...(previous || {}),
               branchColor:
                 previous && previous.branchType === branch.branchType
                   ? previous.branchColor

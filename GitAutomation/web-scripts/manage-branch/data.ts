@@ -1,4 +1,4 @@
-import { Observable, Subscription } from "rxjs";
+import { Observable, Subscription } from "../utils/rxjs";
 
 import { allBranches, branchDetails } from "../api/basics";
 import { BranchGroup, CommitRef } from "../api/basic-branch";

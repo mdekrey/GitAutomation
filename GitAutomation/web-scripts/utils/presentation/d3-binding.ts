@@ -1,4 +1,4 @@
-import { Observable, Observer, Subject } from "rxjs";
+import { Observable, Observer, Subject } from "../rxjs";
 import {
   event as d3event,
   mouse as d3mouse,

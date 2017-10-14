@@ -1,5 +1,5 @@
-import { difference, intersection } from "ramda";
-import { Observable } from "rxjs";
+import { difference, intersection } from "../utils/ramda";
+import { Observable } from "../utils/rxjs";
 import { Selection } from "d3-selection";
 
 import { d3element, rxEvent } from "../utils/presentation/d3-binding";

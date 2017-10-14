@@ -1,4 +1,4 @@
-import { Observable, Subscription, Subject } from "rxjs";
+import { Observable, Subscription, Subject } from "../utils/rxjs";
 import { Selection } from "d3-selection";
 
 import { RoutingComponent } from "../utils/routing-component";
@@ -25,90 +25,7 @@ export const manage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
 ): RoutingComponent => state =>
   container
-    .do(elem =>
-      elem.html(`
-  <a data-locator="home">Home</a>
-  <h1 data-locator="branch-name"></h1>
-  <h3>Settings</h3>
-  <label>
-      <input type="checkbox" data-locator="recreate-from-upstream" />
-      Recreate from Upstream
-  </label>
-  <label>
-      Branch Type
-      <select data-locator="branch-type">
-        <option value="Feature">Feature</option>
-        <option value="ReleaseCandidate">Release Candidate</option>
-        <option value="ServiceLine">Service Line</option>
-        <option value="Infrastructure">Infrastructure</option>
-        <option value="Integration">Integration</option>
-        <option value="Hotfix">Hotfix</option>
-      </select>
-  </label>
-  <h3>Other Branches</h3>
-
-  <table>
-      <thead>
-        <tr>
-          <td></td>
-          <th>Downstream</th>
-          <th>
-            Upstream
-            <br/>
-            <a data-locator="detect-upstream">Detect Upstream Branches</a>
-            <a data-locator="check-prs">Check PRs</a>
-          </th>
-        </tr>
-      </thead>
-      <tbody data-locator="other-branches">
-      </tbody>
-  </table>
-  <button type="button" data-locator="reset">Reset</button>
-  <button type="button" data-locator="home">Cancel</button>
-  <button type="button" data-locator="save">Save</button>
-  <table>
-    <tr style="vertical-align: top;">
-      <td>
-        <h3>Actual Branches</h3>
-        <ul data-locator="grouped-branches"></ul>
-      </td>
-      <td data-locator="up-to-date">
-      </td>
-    </tr>
-  </table>
-
-  <h3>Release to Service Line</h3>
-  <label>
-    <span>Approved Branch</span>
-    <select data-locator="approved-branch"></select>
-  </label>
-  <label>
-    <span>Service Line Branch</span>
-    <input type="text" data-locator="service-line-branch" />
-  </label>
-  <label>
-    <span>Release Tag</span>
-    <input type="text" data-locator="release-tag" />
-  </label>
-  <label>
-    <input type="checkbox" data-locator="auto-consolidate" />
-    <span>Auto-consolidate</span>
-  </label>
-  <button type="button" data-locator="promote-service-line">Release to Service Line</button>
-
-  <h3>Consolidate Merged</h3>
-  <label>
-    <span>Consolidate Into</span>
-    <select data-locator="consolidate-target-branch"></select>
-  </label>
-  <ul data-locator="consolidate-original-branches"></ul>
-  <button type="button" data-locator="consolidate-branch">Consolidate Branch</button>
-
-  <h3>Delete Branch</h3>
-  <p>This action cannot be undone.</p>
-  <button type="button" data-locator="delete-branch">Delete</button>
-`)
-    )
+    .do(elem => elem.html(require("./manage-branch.layout.html")))
     .publishReplay(1)
     .refCount()
     .let(container =>
@@ -210,7 +127,7 @@ export const manage = (
           selector: "li",
           onCreate: selection => selection.append<HTMLLIElement>("li"),
           onEnter: selection =>
-            selection.html(`<span></span> <a>What is up to date?</a>`),
+            selection.html(require("./manage-branch.branch-row.html")),
           onEach: selection =>
             selection
               .select("span")
@@ -227,10 +144,10 @@ export const manage = (
                 container
                   .map(fnSelect(`[data-locator="up-to-date"]`))
                   .do(elem =>
-                    elem.html(`
-                      <h3>Branches Up-to-date in ${event.datum.name}</h3>
-                      <ul></ul>
-                    `)
+                    elem
+                      .html(require("./manage-branch.up-to-date-report.html"))
+                      .select("span")
+                      .text(event.datum.name)
                   )
                   .map(fnSelect("ul")),
                 detectAllUpstream(event.datum.name).take(1)
@@ -306,10 +223,7 @@ export const manage = (
               onCreate: selection => selection.append<HTMLLIElement>("li"),
               onEnter: selection =>
                 selection.html(
-                  `<label>
-                    <input type="checkbox" data-locator="consolidate-original-branch" />
-                    <span />
-                  </label>`
+                  require("./manage-branch.consolidate-entry.html")
                 ),
               onEach: selection => {
                 selection.select("span").text(b => b);

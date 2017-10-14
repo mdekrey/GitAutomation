@@ -1,4 +1,4 @@
-import { Observable, Subscription } from "rxjs";
+import { Observable, Subscription } from "../utils/rxjs";
 import { Selection } from "d3-selection";
 
 import { RoutingComponent } from "../utils/routing-component";
@@ -9,16 +9,7 @@ export const setupWizard = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
 ): RoutingComponent => state =>
   container
-    .do(elem =>
-      elem.html(`
-  <a data-locator="home">Home</a>
-  <h1>Setup Wizard</h1>
-  <h3>New Groups</h3>
-  <ul data-locator="groups-list"></ul>
-  <button type="button" data-locator="home">Cancel</button>
-  <button type="button" data-locator="save">Create New Groups</button>
-`)
-    )
+    .do(elem => elem.html(require("./setup-wizard.layout.html")))
     .publishReplay(1)
     .refCount()
     .let(container =>
@@ -46,9 +37,7 @@ export const setupWizard = (
               selector: "li",
               onCreate: target => target.append<HTMLLIElement>("li"),
               onEnter: target =>
-                target.html(
-                  `<label><input type="checkbox" checked="checked"/><span data-locator="group-name"></span></label>`
-                ),
+                target.html(require("./setup-wizard.group-row.html")),
               onEach: target => {
                 target.select(`[data-locator="group-name"]`).text(data => data);
                 target.select(`input`).attr("data-group", data => data);

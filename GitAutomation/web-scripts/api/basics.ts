@@ -1,4 +1,4 @@
-import { Observable } from "rxjs";
+import { Observable } from "../utils/rxjs";
 import { OutputMessage } from "./output-message";
 import { BranchGroup } from "./basic-branch";
 import { ClaimDetails } from "./claim-details";
