@@ -1,4 +1,6 @@
 ﻿{
+  // Comma-delimited values from https://docs.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.httpoverrides.forwardedheaders?view=aspnetcore-2.0
+  "forwardedHeaders": "XForwardedFor, XForwardedHost",
   "git": {
     "repository": "https://mdekrey@github.com/mdekrey/gitautomation",
     "apiType": "GitAutomation.GitHub.RegisterGitHub, GitAutomation.GitHub",
