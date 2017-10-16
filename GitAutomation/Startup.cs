@@ -111,10 +111,13 @@ namespace GitAutomation
             var forwardHeaders = Configuration.GetValue<string>("forwardedHeaders");
             if (forwardHeaders != null)
             {
-                app.UseForwardedHeaders(new ForwardedHeadersOptions
+                var forwardingOptions = new ForwardedHeadersOptions
                 {
                     ForwardedHeaders = Enum.Parse<ForwardedHeaders>(forwardHeaders),
-                });
+                };
+                forwardingOptions.KnownNetworks.Clear();
+                forwardingOptions.KnownProxies.Clear();
+                app.UseForwardedHeaders(forwardingOptions);
             }
 
             app.UseAuthentication();
