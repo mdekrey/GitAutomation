@@ -7,6 +7,7 @@ install:
 - TAG=$(./ci/branch-to-tag.sh)
 - echo "installing tag ${TAG}"
 - sudo docker-compose -f docker-compose.ci.build.yml up --build
+- cp psql-credentials.sample.txt psql-credentials.txt
 
 script:
 - echo "building tag ${TAG}"
