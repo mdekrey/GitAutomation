@@ -27,7 +27,7 @@ namespace GitAutomation.EFCore.SecurityModel
             PrepareSecurityContextUnitOfWork(work);
             work.Defer(async sp =>
             {
-                var connection = GetConnectionManagement(sp).GetContext();
+                var connection = GetContext(sp);
 
                 await connection.User.AddIfNotExists(new User { ClaimName = username }, user => user.ClaimName == username);
                 await connection.UserRole.AddIfNotExists(new UserRole { ClaimName = username, Role = role }, userRole => userRole.ClaimName == username && userRole.Role == role);
@@ -72,7 +72,7 @@ namespace GitAutomation.EFCore.SecurityModel
             PrepareSecurityContextUnitOfWork(work);
             work.Defer(async sp =>
             {
-                var connection = GetConnectionManagement(sp).GetContext();
+                var connection = GetContext(sp);
 
                 await connection.User.AddIfNotExists(new User { ClaimName = username }, user => user.ClaimName == username);
             });
@@ -83,7 +83,7 @@ namespace GitAutomation.EFCore.SecurityModel
             PrepareSecurityContextUnitOfWork(work);
             work.Defer(async sp =>
             {
-                var connection = GetConnectionManagement(sp).GetContext();
+                var connection = GetContext(sp);
                 var userRole = await connection.UserRole.FirstOrDefaultAsync(ur => ur.ClaimName == username && ur.Role == role);
                 if (userRole != null)
                 {
@@ -98,14 +98,14 @@ namespace GitAutomation.EFCore.SecurityModel
             work.PrepareAndFinalize<ConnectionManagement<SecurityContext>>();
         }
 
-        private IContextFactory<SecurityContext> GetConnectionManagement(IServiceProvider scope) =>
-            scope.GetRequiredService<IContextFactory<SecurityContext>>();
+        private SecurityContext GetContext(IServiceProvider scope) =>
+            scope.GetRequiredService<SecurityContext>();
 
         private async Task<T> WithContext<T>(Func<SecurityContext, Task<T>> target)
         {
             using (var scope = serviceProvider.CreateScope())
             {
-                return await target(GetConnectionManagement(scope.ServiceProvider).GetContext());
+                return await target(GetContext(scope.ServiceProvider));
             }
         }
     }

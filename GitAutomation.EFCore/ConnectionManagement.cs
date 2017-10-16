@@ -12,9 +12,9 @@ namespace GitAutomation.EFCore
     {
         private readonly T context;
 
-        public ConnectionManagement(IContextFactory<T> factory)
+        public ConnectionManagement(T context)
         {
-            this.context = factory.GetContext();
+            this.context = context;
         }
 
         public Task Commit()
