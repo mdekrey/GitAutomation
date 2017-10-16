@@ -25,24 +25,22 @@ namespace GitAutomation.Postgres
 
         Task IUnitOfWorkLifecycleManagement.Commit()
         {
-            transaction.Commit();
-            return Task.CompletedTask;
+            return transaction.CommitAsync();
         }
 
         async Task IUnitOfWorkLifecycleManagement.Prepare()
         {
             if (connection.State != System.Data.ConnectionState.Open)
             {
-                await connection.OpenAsync();
+                await connection.OpenAsync().ConfigureAwait(false);
             }
             transaction = connection.BeginTransaction();
         }
 
         Task IUnitOfWorkLifecycleManagement.Rollback()
         {
-            transaction.Rollback();
-            transaction.Dispose();
-            return Task.CompletedTask;
+            return transaction.RollbackAsync()
+                .ContinueWith(_ => transaction.Dispose());
         }
 
         internal DbCommand Transacted(CommandBuilder commandBuilder, Dictionary<string, object> parameters)

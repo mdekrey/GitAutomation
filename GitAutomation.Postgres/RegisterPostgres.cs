@@ -22,8 +22,7 @@ namespace GitAutomation.Postgres
         {
             // This assumes that the branch settings are already registered
             // TODO - some cleverness to use the common section in both
-            services.AddSingleton<IPrincipalValidation, PostgresPermissionManagement>();
-            services.AddSingleton<IManageUserPermissions, PostgresPermissionManagement>();
+            services.AddEfSecurityContext<PostgresSecurityContextCustomization>();
         }
 
         private void RegisterCommon(IServiceCollection services, IConfiguration configuration)
@@ -31,6 +30,7 @@ namespace GitAutomation.Postgres
             services.AddOptions();
             services.Configure<PostgresOptions>(configuration);
             services.AddScoped<ConnectionManagement>();
+            services.AddSingleton<ContextFactory>();
         }
     }
 }

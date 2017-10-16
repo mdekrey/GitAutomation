@@ -17,26 +17,6 @@ namespace GitAutomation.BranchSettings
         {
             database = new PostgresDriver();
         }
-
-        [TestMethod]
-        public void HaveAValidGetRolesForUserCommand() =>
-            PostgresPermissionManagement.GetRolesForUserCommand.ValidateCommand(database.BuildSqlConnection());
-
-        [TestMethod]
-        public void HaveAValidGetUsersAndRolesCommand() =>
-            PostgresPermissionManagement.GetUsersAndRolesCommand.ValidateCommand(database.BuildSqlConnection());
-
-        [TestMethod]
-        public void HaveAValidEnsureUserCommand() =>
-            PostgresPermissionManagement.EnsureUserCommand.ValidateCommand(database.BuildSqlConnection());
-
-        [TestMethod]
-        public void HaveAValidAddRoleCommand() =>
-            PostgresPermissionManagement.AddRoleCommand.ValidateCommand(database.BuildSqlConnection());
-
-        [TestMethod]
-        public void HaveAValidDeleteRoleCommand() =>
-            PostgresPermissionManagement.DeleteRoleCommand.ValidateCommand(database.BuildSqlConnection());
-
+        
     }
 }
