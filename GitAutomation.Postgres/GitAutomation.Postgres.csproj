@@ -26,8 +26,4 @@
   <ItemGroup>
     <DotNetCliToolReference Include="Microsoft.EntityFrameworkCore.Tools.DotNet" Version="2.0.0" />
   </ItemGroup>
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="cd &quot;$(ProjectDir)&quot;&#xD;&#xA;dotnet ef migrations script --no-build --context GitAutomation.EFCore.SecurityModel.SecurityContext -o obj/Docker/publish/init-security.sql&#xD;&#xA;dotnet ef migrations script --no-build --context GitAutomation.EFCore.BranchingModel.BranchingContext -o obj/Docker/publish/init-branching.sql&#xD;&#xA;" />
-  </Target>
 </Project>
