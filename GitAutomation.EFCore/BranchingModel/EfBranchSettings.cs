@@ -344,12 +344,10 @@ namespace GitAutomation.EFCore.BranchingModel
                     BranchType = BranchGroupType.ServiceLine.ToString("g"),
                 }, branch => branch.GroupName == targetBranch);
 
-                // TODO - this isn't quite right
                 var newDownstream = (await (from branch in context.BranchStream
                                           where branchesToRemove.Contains(branch.UpstreamBranch) // where there's something flowing from an upstream branch
-                                          where !branchesToRemove.Contains(branch.DownstreamBranch) // that is being deleted
-                                          group branch.DownstreamBranchNavigation by branch.DownstreamBranch into downstreamBranches
-                                          where !downstreamBranches.First().BranchStreamUpstreamBranchNavigation.Any(b => b.UpstreamBranch != targetBranch) // and we don't already have the same link
+                                            && !branchesToRemove.Contains(branch.DownstreamBranch) // that is being deleted
+                                          group branch.DownstreamBranch by branch.DownstreamBranch into downstreamBranches
                                           select downstreamBranches.Key).ToArrayAsync())
                     .Distinct();
 
