@@ -15,7 +15,7 @@ namespace GitAutomation.Postgres
         public void RegisterBranchSettings(IServiceCollection services, IConfiguration configuration)
         {
             RegisterCommon(services, configuration.GetSection("postgres"));
-            services.AddSingleton<IBranchSettings, PostgresBranchSettings>();
+            services.AddEfBranchingContext<PostgresBranchingContextCustomization>();
         }
 
         public void RegisterPrincipalValidation(IServiceCollection services, IConfiguration configuration)
@@ -29,8 +29,6 @@ namespace GitAutomation.Postgres
         {
             services.AddOptions();
             services.Configure<PostgresOptions>(configuration);
-            services.AddScoped<ConnectionManagement>();
-            services.AddSingleton<ContextFactory>();
         }
     }
 }

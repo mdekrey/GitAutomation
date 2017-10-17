@@ -1,5 +1,7 @@
 ﻿using GitAutomation.Auth;
+using GitAutomation.BranchSettings;
 using GitAutomation.EFCore;
+using GitAutomation.EFCore.BranchingModel;
 using GitAutomation.EFCore.SecurityModel;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -26,9 +28,29 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddScoped<ConnectionManagement<SecurityContext>>();
         }
 
+        public static void AddEfBranchingContext<T>(this IServiceCollection services)
+            where T : class, IBranchingContextCustomization
+        {
+            services.AddSingleton<IBranchingContextCustomization, T>();
+
+            services.AddSingleton<IBranchSettings, EfBranchSettings>();
+            services.AddSingleton<Func<IServiceProvider, BranchingContext>>(topServiceProvider =>
+            {
+                BranchingContextFactory(topServiceProvider).Database.Migrate();
+                return BranchingContextFactory;
+            });
+            services.AddScoped(sp => sp.GetRequiredService<Func<IServiceProvider, BranchingContext>>()(sp));
+            services.AddScoped<ConnectionManagement<BranchingContext>>();
+        }
+
         static SecurityContext SecurityContextFactory(IServiceProvider sp)
         {
             return new SecurityContext(sp.GetRequiredService<ISecurityContextCustomization>());
+        }
+
+        static BranchingContext BranchingContextFactory(IServiceProvider sp)
+        {
+            return new BranchingContext(sp.GetRequiredService<IBranchingContextCustomization>());
         }
     }
 }

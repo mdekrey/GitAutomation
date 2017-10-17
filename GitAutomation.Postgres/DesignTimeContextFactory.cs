@@ -27,7 +27,7 @@ namespace GitAutomation.Postgres
     {
         public BranchingContext CreateDbContext(string[] args)
         {
-            return new BranchingContext(CreateOptions(args));
+            return new BranchingContext(new PostgresBranchingContextCustomization(options));
         }
     }
 

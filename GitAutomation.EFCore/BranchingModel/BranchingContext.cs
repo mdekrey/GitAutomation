@@ -6,13 +6,15 @@ namespace GitAutomation.EFCore.BranchingModel
 {
     public partial class BranchingContext : DbContext
     {
+        private readonly IBranchingContextCustomization customization;
+
         public virtual DbSet<BranchGroup> BranchGroup { get; set; }
         public virtual DbSet<BranchStream> BranchStream { get; set; }
 
-        public BranchingContext(DbContextOptions options) : base(options)
+        public BranchingContext(IBranchingContextCustomization customization) : base(customization.Options)
         {
+            this.customization = customization;
         }
-        
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -29,8 +31,6 @@ namespace GitAutomation.EFCore.BranchingModel
                     .HasMaxLength(255)
                     .IsUnicode(false)
                     .HasDefaultValueSql("('Feature')");
-
-                entity.Property(e => e.RecreateFromUpstream).HasDefaultValueSql("((0))");
             });
 
             modelBuilder.Entity<BranchStream>(entity =>
@@ -55,6 +55,8 @@ namespace GitAutomation.EFCore.BranchingModel
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_BranchStream_ToUpstreamBranch");
             });
+
+            customization.OnModelCreating(modelBuilder);
         }
     }
 }

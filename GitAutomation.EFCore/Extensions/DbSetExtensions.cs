@@ -13,7 +13,8 @@ namespace Microsoft.EntityFrameworkCore
         public static async Task<T> AddIfNotExists<T>(this DbSet<T> dbSet, T entity, Expression<Func<T, bool>> predicate = null) 
             where T : class, new()
         {
-            var exists = await (predicate != null ? dbSet.FirstOrDefaultAsync(predicate) : dbSet.FirstOrDefaultAsync()).ConfigureAwait(false);
+            var exists = await (predicate != null ? dbSet.FirstOrDefaultAsync(predicate) : dbSet.FirstOrDefaultAsync()).ConfigureAwait(false)
+                ?? dbSet.Local.AsQueryable().FirstOrDefault(predicate);
             if (exists != null)
             {
                 return exists;
