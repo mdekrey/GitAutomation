@@ -17,11 +17,3 @@ services:
       dockerfile: Dockerfile-ci
     volumes:
       - ./GitAutomation.Sql:/src
-
-  psql-ci:
-    image: gitautomation/psql-host:build
-    build:
-      context: ./GitAutomation.Postgres
-      dockerfile: Dockerfile-ci
-    volumes:
-      - ./GitAutomation.Postgres:/src

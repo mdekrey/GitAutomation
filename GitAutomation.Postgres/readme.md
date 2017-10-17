@@ -6,9 +6,7 @@ To add a branching migration:
 
     dotnet ef migrations add (MIGRATION_NAME) --context GitAutomation.EFCore.BranchingModel.BranchingContext -o BranchingMigrations
 
-The migration table for existing DB's looks like:
+To generate the scripts:
 
-			 MigrationId          | ProductVersion
-	------------------------------+-----------------
-	 20171016122131_InitialCreate | 2.0.0-rtm-26452
-
+	dotnet ef migrations script --context GitAutomation.EFCore.SecurityModel.SecurityContext
+	dotnet ef migrations script --context GitAutomation.EFCore.BranchingModel.BranchingContext

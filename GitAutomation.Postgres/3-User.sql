@@ -1,4 +1,0 @@
-﻿CREATE TABLE ClaimedUser
-(
-	ClaimName VARCHAR(256) NOT NULL PRIMARY KEY
-)

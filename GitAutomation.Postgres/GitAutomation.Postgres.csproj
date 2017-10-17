@@ -23,11 +23,11 @@
     <ProjectReference Include="..\GitAutomation.EFCore\GitAutomation.EFCore.csproj" />
   </ItemGroup>
 
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="cd &quot;$(ProjectDir)&quot;&#xD;&#xA;docker build -t &quot;gitautomation-psql:build&quot; -f &quot;Dockerfile-ci&quot; . || echo 1&#xD;&#xA;docker run --rm -v &quot;$(SolutionDir)$(ProjectName)&quot;:/src -w &quot;/src&quot; &quot;gitautomation-psql:build&quot; || echo 1&#xD;&#xA;docker build -t &quot;gitautomation-psql&quot; . || echo 1&#xD;&#xA;" />
-  </Target>
-
   <ItemGroup>
     <DotNetCliToolReference Include="Microsoft.EntityFrameworkCore.Tools.DotNet" Version="2.0.0" />
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="cd &quot;$(ProjectDir)&quot;&#xD;&#xA;dotnet ef migrations script --no-build --context GitAutomation.EFCore.SecurityModel.SecurityContext -o obj/Docker/publish/init-security.sql&#xD;&#xA;dotnet ef migrations script --no-build --context GitAutomation.EFCore.BranchingModel.BranchingContext -o obj/Docker/publish/init-branching.sql&#xD;&#xA;" />
+  </Target>
 </Project>

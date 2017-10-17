@@ -1,4 +1,4 @@
 FROM postgres:9.6
 
-# TODO - initialize somehow from dotnet ef database update
-# COPY obj/Docker/publish/init.sql /docker-entrypoint-initdb.d/
+COPY obj/Docker/publish/init-branching.sql /docker-entrypoint-initdb.d/
+COPY obj/Docker/publish/init-security.sql /docker-entrypoint-initdb.d/
