@@ -9,11 +9,3 @@ services:
     volumes:
       - .:/src
     working_dir: /src
-
-  sql-ci:
-    image: gitautomation/sql-host:build
-    build:
-      context: ./GitAutomation.Sql
-      dockerfile: Dockerfile-ci
-    volumes:
-      - ./GitAutomation.Sql:/src

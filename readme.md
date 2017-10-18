@@ -110,16 +110,8 @@ There are also significant complexities with dynamically loading SQL Server as a
 
 ## Steps to use
 
-These steps won't add it to your debugging container. Still working on that...
+These steps won't add it to your debugging container via Visual Studio due to memory constraints.
 
-1. Build the `GitAutomation.Sql` project via Visual Studio. It registers your docker image. Alternatively:
-
-        cd "GitAutomation.Sql"
-        docker build -t "gitautomation-sql:build" -f "Dockerfile-ci" .
-        docker run --rm -v "$(pwd)":/src -w "/src" "gitautomation-sql:build"
-        docker build -t "gitautomation-sql" .
-        cd ".."
-
-2. Start the SQL Server docker-compose with the rest:
+1. Start the SQL Server docker-compose with the rest:
 
         docker-compose -f docker-compose.yml -f docker-compose.build.yml -f -f docker-compose.sqlserver.yml up --build

@@ -15,22 +15,20 @@ namespace GitAutomation.SqlServer
         public void RegisterBranchSettings(IServiceCollection services, IConfiguration configuration)
         {
             RegisterCommon(services, configuration.GetSection("sqlServer"));
-            services.AddSingleton<IBranchSettings, SqlBranchSettings>();
+            services.AddEfBranchingContext<SqlBranchingContextCustomization>();
         }
 
         public void RegisterPrincipalValidation(IServiceCollection services, IConfiguration configuration)
         {
             // This assumes that the branch settings are already registered
             // TODO - some cleverness to use the common section in both
-            services.AddSingleton<IPrincipalValidation, SqlPermissionManagement>();
-            services.AddSingleton<IManageUserPermissions, SqlPermissionManagement>();
+            services.AddEfSecurityContext<SqlSecurityContextCustomization>();
         }
 
         private void RegisterCommon(IServiceCollection services, IConfiguration configuration)
         {
             services.AddOptions();
             services.Configure<SqlServerOptions>(configuration);
-            services.AddScoped<ConnectionManagement>();
         }
     }
 }

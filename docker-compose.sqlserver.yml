@@ -8,7 +8,7 @@ services:
   sql:
     image: gitautomation/sql-host
     build:
-      context: ./GitAutomation.Sql
+      context: ./GitAutomation.SqlServer
       dockerfile: Dockerfile
     ports:
       - "21433:1433"

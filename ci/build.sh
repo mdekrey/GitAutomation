@@ -15,3 +15,10 @@ dotnet build
 dotnet ef migrations script --no-build --context GitAutomation.EFCore.SecurityModel.SecurityContext -o obj/Docker/publish/init-security.sql
 dotnet ef migrations script --no-build --context GitAutomation.EFCore.BranchingModel.BranchingContext -o obj/Docker/publish/init-branching.sql
 cd ..
+
+cd GitAutomation.SqlServer
+# Need to build the debug version to generate scripts
+dotnet build
+dotnet ef migrations script --no-build --context GitAutomation.EFCore.SecurityModel.SecurityContext -o obj/Docker/publish/init-security.sql
+dotnet ef migrations script --no-build --context GitAutomation.EFCore.BranchingModel.BranchingContext -o obj/Docker/publish/init-branching.sql
+cd ..

@@ -26,6 +26,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Core", "GitAutomation.Core\GitAutomation.Core.csproj", "{5020BA49-2C19-4BE1-B734-6961D2DC61BE}"
 EndProject
 Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "GitAutomation.Sql", "GitAutomation.Sql\GitAutomation.Sql.sqlproj", "{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{37C446EC-43BE-4EFB-B192-5598E4E289FB} = {37C446EC-43BE-4EFB-B192-5598E4E289FB}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Core.Tests", "GitAutomation.Core.Tests\GitAutomation.Core.Tests.csproj", "{D3F761A1-0008-4A0C-9656-D4E17971B3F4}"
 EndProject
@@ -49,7 +52,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Postgres", "Postgres", "{1E
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EF Core", "EF Core", "{7E4800CC-E08A-4302-A29B-3B707D53EDF5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitAutomation.EFCore", "GitAutomation.EFCore\GitAutomation.EFCore.csproj", "{E5951D67-7C93-41EF-8DBB-5ADD962AC3B4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.EFCore", "GitAutomation.EFCore\GitAutomation.EFCore.csproj", "{E5951D67-7C93-41EF-8DBB-5ADD962AC3B4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -77,11 +80,7 @@ Global
 		{5020BA49-2C19-4BE1-B734-6961D2DC61BE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.ci-docker|Any CPU.ActiveCfg = Release|Any CPU
 		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
 		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4FF51215-4EE0-4C72-B4BC-7AE3D3E2AB6B}.Release|Any CPU.Deploy.0 = Release|Any CPU
 		{D3F761A1-0008-4A0C-9656-D4E17971B3F4}.ci-docker|Any CPU.ActiveCfg = Release|Any CPU
 		{D3F761A1-0008-4A0C-9656-D4E17971B3F4}.ci-docker|Any CPU.Build.0 = Release|Any CPU
 		{D3F761A1-0008-4A0C-9656-D4E17971B3F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
