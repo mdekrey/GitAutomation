@@ -347,15 +347,20 @@ namespace GitAutomation.EFCore.BranchingModel
                 var newDownstream = (await (from branch in context.BranchStream
                                           where branchesToRemove.Contains(branch.UpstreamBranch) // where there's something flowing from an upstream branch
                                             && !branchesToRemove.Contains(branch.DownstreamBranch) // that is being deleted
-                                          group branch.DownstreamBranch by branch.DownstreamBranch into downstreamBranches
+                                          group branch.DownstreamBranchNavigation by branch.DownstreamBranch into downstreamBranches
                                           select downstreamBranches.Key).ToArrayAsync())
                     .Distinct();
 
+                var oldDownstream = (await (from branch in context.BranchStream
+                                            where branch.UpstreamBranch == targetBranch
+                                            select branch.DownstreamBranch).ToArrayAsync());
                 context.BranchStream.AddRange(
-                    newDownstream
-                        .Where(upstream => upstream != targetBranch)
-                        .Select(upstream => new BranchStream { DownstreamBranch = upstream, UpstreamBranch = targetBranch })
+                    from downstream in newDownstream
+                    where downstream != targetBranch
+                    where !oldDownstream.Contains(downstream)
+                    select new BranchStream { DownstreamBranch = downstream, UpstreamBranch = targetBranch }
                 );
+                
                 context.BranchStream.RemoveRange(await (from branch in context.BranchStream
                                                         where branchesToRemove.Contains(branch.UpstreamBranch)
                                                           || branchesToRemove.Contains(branch.DownstreamBranch)
