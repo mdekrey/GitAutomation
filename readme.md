@@ -1,15 +1,14 @@
 # Automation for Scaled Git Flow!
 
+[![Build Status](https://travis-ci.org/mdekrey/GitAutomation.svg?branch=latest)](https://travis-ci.org/mdekrey/GitAutomation)
+[![Docker Stars](https://img.shields.io/docker/pulls/gitautomation/web.svg)](https://hub.docker.com/u/gitautomation/)
+
 This is an automation project for [Scaled Git Flow](https://medium.com/@matt.dekrey/a-better-git-branching-model-b3bc8b73e472).
-This currently a work in progress, as is noted by the Issues list, but will work for a minimal set of use-cases. However, it isn't recommended
-for production yet, as there is no security to actually connect to the web-hooks.
+This currently a work in progress, as is noted by the Issues list, but will work for a minimal set of use-cases.
 
 ## Prerequisites
 
 You need docker for your operating system. That's it!
-
-## Notices
-The default configuration uses no password for PostgreSQL. Because there is no persistence when using the default docker-compose files, this is acceptable for dev purposes; however, you will want to make sure you specify a password in your PostgreSQL connection string and for your database when you set up a production instance.
 
 # Running GitAutomation
 Currently, we're still in a pre-release mode; I think it could be sufficiently considered in an "alpha" state, though it is quite stable!
@@ -25,6 +24,7 @@ Local files that are not included in the repository include:
 
  * /configuration.json - the various configuration settings to use, including the git repo and persistence database. See the `configuration.sample.json` for format. This has several values that need to be replaced by you. For example, most of this file is set up to use GitHub; see [GitHub Setup](./GitAutomation.GitHub/github-setup.md).
  * /git-credentials.txt - the password to use for the git repository. Not persisted in the docker image for security purposes.
+ * /psql-credentials.txt - the environment variable definition for the postgres database. Not persisted in the docker image for security purposes.
 
 When you add these files, they should be without line endings and without UTF headers or you'll get difficult-to-track errors.
 
@@ -95,13 +95,11 @@ And then to run it...
 
 # SQL Server
 
-We don't use SQL Server by default due to the extra requirements. As a result, the SQL Server project may end up out of date before the release of version 1.0.
+We don't use SQL Server by default due to the extra requirements. As a result, the SQL Server project may end up out of date intermittently before the release of version 1.0.
 
-The Docker SQL Server images require at least 3.5GB of RAM. See https://github.com/Microsoft/mssql-docker/issues/114 for how to set the memory requirements.
+The Docker SQL Server images require at least 3.25GB of RAM. See https://github.com/Microsoft/mssql-docker/issues/114 for how to set the memory requirements.
 
-To run the SQL docker container, you must accept the EULA. It is also linked to from [the dockerhub page](https://hub.docker.com/r/microsoft/mssql-server-linux/). The express edition will be available at GA, they say.
-
-There are also significant complexities with dynamically loading SQL Server as an add-on. (The `System.Data.SqlClient` is platform specific, and so must be published via a dockerized build rather than through Visual Studio.)
+To run the SQL docker container, you must accept the EULA. It is also linked to from [the dockerhub page](https://hub.docker.com/r/microsoft/mssql-server-linux/). This is a development-only license by default; you will need to get a full license from Microsoft or work outside the docker container if you want to use SQL Server.
 
 ## Local files not included
 

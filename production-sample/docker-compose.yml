@@ -18,6 +18,7 @@ services:
     image: gitautomation/psql-host
     volumes:
       - gitautomation-postgresql-volume:/var/lib/postgresql/data
+    env_file: ./psql-credentials.txt
 
   psql-addon:
     image: gitautomation/psql-addon

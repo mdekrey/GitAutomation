@@ -19,6 +19,7 @@ services:
 
   psql:
     image: gitautomation/psql-host
+    env_file: ./psql-credentials.txt
 #    build:
 #      context: ./GitAutomation.Postgres
 #      dockerfile: Dockerfile
