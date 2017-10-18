@@ -2,4 +2,4 @@ FROM alpine:latest
 ARG subfolder
 COPY ./$subfolder/obj/Docker/publish /stored
 ENV subfolder $subfolder
-ENTRYPOINT cp -a /stored /export/$subfolder
+ENTRYPOINT (rm -rf /export/$subfolder || echo 1) && cp -a /stored /export/$subfolder
