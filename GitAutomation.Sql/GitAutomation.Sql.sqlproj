@@ -59,8 +59,6 @@
     <Folder Include="Properties" />
   </ItemGroup>
   <ItemGroup>
-    <Build Include="C:\Users\mattd\Documents\Visual Studio 2017\Projects\GitAutomation\GitAutomation.SqlServer\obj\Docker\publish\init-branching.sql" />
-    <Build Include="C:\Users\mattd\Documents\Visual Studio 2017\Projects\GitAutomation\GitAutomation.SqlServer\obj\Docker\publish\init-security.sql" />
   </ItemGroup>
   <PropertyGroup>
     <PostBuildEvent>
