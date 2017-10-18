@@ -2,6 +2,11 @@ language: c
 sudo: required
 services: docker
 
+before_install:
+# needs at least docker 17.05 for the multi-phase builds
+  - sudo apt-get update
+  - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+
 install:
 - echo "branch ${TRAVIS_BRANCH} tag ${TRAVIS_TAG}"
 - TAG=$(./ci/branch-to-tag.sh)
