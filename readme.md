@@ -93,6 +93,12 @@ And then to run it...
 
 4. Run the tests via Visual Studio or run `dotnet test`. (Dockerfile for the tests to come.)
 
+# GraphQL
+
+Recommended testing local GraphQL via:
+
+    docker run --rm -p 30000:8080 -d -e GRAPHQL_SERVER=http://localhost:32768/api/graphql merapar/graphql-browser-docker
+
 # SQL Server
 
 We don't use SQL Server by default due to the extra requirements. As a result, the SQL Server project may end up out of date intermittently before the release of version 1.0.
