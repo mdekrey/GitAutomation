@@ -165,7 +165,7 @@ namespace GitAutomation.EFCore.BranchingModel
             {
                 return (from branch in context.BranchGroup
                         where branch.GroupName == branchName
-                        from downstream in branch.BranchStreamUpstreamBranchNavigation
+                        from downstream in branch.DownstreamBranchConnections
                         select downstream.DownstreamBranchNavigation).AsNoTracking().ToArrayAsync()
                 .ContinueWith(task => task.Result.Select(EfBranchGroupToModel).ToImmutableList());
             };
@@ -226,7 +226,7 @@ namespace GitAutomation.EFCore.BranchingModel
             {
                 return (from branch in context.BranchGroup
                         where branch.GroupName == branchName
-                        from downstream in branch.BranchStreamDownstreamBranchNavigation
+                        from downstream in branch.UpstreamBranchConnections
                         select downstream.UpstreamBranchNavigation).AsNoTracking().ToArrayAsync()
                 .ContinueWith(task => task.Result.Select(EfBranchGroupToModel).ToImmutableList());
             };
@@ -267,9 +267,9 @@ namespace GitAutomation.EFCore.BranchingModel
             {
                 return (from integrationBranch in context.BranchGroup
                         where integrationBranch.BranchType == BranchGroupType.Integration.ToString("g")
-                           && integrationBranch.BranchStreamDownstreamBranchNavigation.Any(bs => bs.UpstreamBranch == branches[0])
-                           && integrationBranch.BranchStreamDownstreamBranchNavigation.Any(bs => bs.UpstreamBranch == branches[1])
-                           && integrationBranch.BranchStreamDownstreamBranchNavigation.Count == 2
+                           && integrationBranch.UpstreamBranchConnections.Any(bs => bs.UpstreamBranch == branches[0])
+                           && integrationBranch.UpstreamBranchConnections.Any(bs => bs.UpstreamBranch == branches[1])
+                           && integrationBranch.UpstreamBranchConnections.Count == 2
                         select integrationBranch.GroupName).FirstOrDefaultAsync();
             });
         }

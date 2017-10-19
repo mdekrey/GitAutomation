@@ -44,13 +44,13 @@ namespace GitAutomation.EFCore.BranchingModel
                 entity.Property(e => e.UpstreamBranch).HasMaxLength(255);
 
                 entity.HasOne(d => d.DownstreamBranchNavigation)
-                    .WithMany(p => p.BranchStreamDownstreamBranchNavigation)
+                    .WithMany(p => p.UpstreamBranchConnections)
                     .HasForeignKey(d => d.DownstreamBranch)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_BranchStream_ToDownstreamBranch");
 
                 entity.HasOne(d => d.UpstreamBranchNavigation)
-                    .WithMany(p => p.BranchStreamUpstreamBranchNavigation)
+                    .WithMany(p => p.DownstreamBranchConnections)
                     .HasForeignKey(d => d.UpstreamBranch)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_BranchStream_ToUpstreamBranch");
