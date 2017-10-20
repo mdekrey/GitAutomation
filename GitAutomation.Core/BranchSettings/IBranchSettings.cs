@@ -10,14 +10,14 @@ namespace GitAutomation.BranchSettings
 {
     public interface IBranchSettings
     {
-        IObservable<ImmutableList<BranchGroupDetails>> GetConfiguredBranches();
-        IObservable<BranchGroupDetails> GetBranchBasicDetails(string branchName);
+        IObservable<ImmutableList<BranchGroup>> GetConfiguredBranches();
+        IObservable<BranchGroup> GetBranchBasicDetails(string branchName);
         IObservable<BranchGroupCompleteData> GetBranchDetails(string branchName);
-        IObservable<ImmutableList<BranchGroupDetails>> GetDownstreamBranches(string branchName);
+        IObservable<ImmutableList<BranchGroup>> GetDownstreamBranches(string branchName);
         IObservable<ImmutableList<BranchGroupCompleteData>> GetAllDownstreamBranches();
-        IObservable<ImmutableList<BranchGroupDetails>> GetAllDownstreamBranches(string branchName);
-        IObservable<ImmutableList<BranchGroupDetails>> GetUpstreamBranches(string branchName);
-        IObservable<ImmutableList<BranchGroupDetails>> GetAllUpstreamBranches(string branchName);
+        IObservable<ImmutableList<BranchGroup>> GetAllDownstreamBranches(string branchName);
+        IObservable<ImmutableList<BranchGroup>> GetUpstreamBranches(string branchName);
+        IObservable<ImmutableList<BranchGroup>> GetAllUpstreamBranches(string branchName);
         IObservable<ImmutableList<string>> GetAllUpstreamRemovableBranches(string branchName);
         Task<string> GetIntegrationBranch(string branchA, string branchB);
 

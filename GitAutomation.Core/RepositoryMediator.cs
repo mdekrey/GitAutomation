@@ -45,7 +45,7 @@ namespace GitAutomation
             );
         }
 
-        public IObservable<ImmutableList<BranchGroupDetails>> GetConfiguredBranchGroups()
+        public IObservable<ImmutableList<BranchGroup>> GetConfiguredBranchGroups()
         {
             return branchSettings.GetConfiguredBranches();
         }
@@ -113,7 +113,7 @@ namespace GitAutomation
 				});
 		}
 
-        private async System.Threading.Tasks.Task<ImmutableList<string>> PruneUpstream(GitRef original, ImmutableList<GitRef> allUpstream, ImmutableList<BranchGroupDetails> configured, ImmutableList<GitRef> allRemotes)
+        private async System.Threading.Tasks.Task<ImmutableList<string>> PruneUpstream(GitRef original, ImmutableList<GitRef> allUpstream, ImmutableList<BranchGroup> configured, ImmutableList<GitRef> allRemotes)
         {
             var configuredLatest = configured.ToDictionary(branch => branch.GroupName, branch => branchIteration.GetLatestBranchNameIteration(branch.GroupName, allRemotes.Select(b => b.Name)));
             allUpstream = allUpstream.Where(maybeHasNewer =>
@@ -158,7 +158,7 @@ namespace GitAutomation
                 .SelectMany(branch => branchSettings.GetAllUpstreamBranches(branch.GroupName))
                 .CombineLatest(branchSettings.GetConfiguredBranches(), repositoryState.RemoteBranches(), (allUpstreamBranchDetails, configured, allRemotes) =>
                 {
-                    var allUpstream = allUpstreamBranchDetails.Where(b => b.BranchType == BranchGroupType.ServiceLine).Select(b => b.GroupName).ToImmutableList();
+                    var allUpstream = allUpstreamBranchDetails.Where(b => b.BranchType == BranchGroupType.ServiceLine.ToString("g")).Select(b => b.GroupName).ToImmutableList();
                     return PruneUpstream(
                         allRemotes.Find(remote => remote.Name == branchName),
                         allUpstream
@@ -212,7 +212,7 @@ namespace GitAutomation
             };
         }
 
-        public IObservable<string> GetNextCandidateBranch(BranchGroupDetails details, bool shouldMutate)
+        public IObservable<string> GetNextCandidateBranch(BranchGroup details, bool shouldMutate)
         {
             return (
                 from remoteBranches in this.repositoryState.RemoteBranches()
@@ -225,7 +225,7 @@ namespace GitAutomation
             ).Switch();
         }
 
-        public IObservable<string> LatestBranchName(BranchGroupDetails details)
+        public IObservable<string> LatestBranchName(BranchGroup details)
         {
             return (
                 from remoteBranches in this.repositoryState.RemoteBranches()

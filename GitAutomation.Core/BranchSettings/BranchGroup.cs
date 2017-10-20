@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace GitAutomation.EFCore.BranchingModel
+namespace GitAutomation.BranchSettings
 {
     public partial class BranchGroup
     {

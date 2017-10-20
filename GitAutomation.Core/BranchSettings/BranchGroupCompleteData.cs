@@ -6,20 +6,24 @@ using System.Text;
 
 namespace GitAutomation.BranchSettings
 {
-    public class BranchGroupCompleteData : BranchGroupDetails
+    public class BranchGroupCompleteData : BranchGroup
     {
         public BranchGroupCompleteData()
         {
         }
 
-        public BranchGroupCompleteData(BranchGroupDetails original)
-            : base(original)
+        public BranchGroupCompleteData(BranchGroup original)
         {
+            this.GroupName = original.GroupName;
+            this.RecreateFromUpstream = original.RecreateFromUpstream;
+            this.BranchType = original.BranchType ?? BranchGroupType.Feature.ToString("g");
         }
 
         public BranchGroupCompleteData(BranchGroupCompleteData original)
-            : base(original)
         {
+            this.GroupName = original.GroupName;
+            this.RecreateFromUpstream = original.RecreateFromUpstream;
+            this.BranchType = original.BranchType ?? BranchGroupType.Feature.ToString("g");
             this.Branches = original.Branches;
             this.DirectDownstreamBranchGroups = original.DirectDownstreamBranchGroups;
             this.DownstreamBranchGroups = original.DownstreamBranchGroups;
@@ -27,6 +31,10 @@ namespace GitAutomation.BranchSettings
             this.UpstreamBranchGroups = original.UpstreamBranchGroups;
             this.HierarchyDepth = original.HierarchyDepth;
         }
+        
+        public BranchGroupType GroupType => Enum.TryParse<BranchGroupType>(BranchType, out var result)
+                ? result
+                : BranchGroupType.Feature;
 
         public ImmutableList<Repository.GitRef> Branches { get; set; }
 

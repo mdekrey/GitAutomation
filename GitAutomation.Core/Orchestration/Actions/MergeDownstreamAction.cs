@@ -198,14 +198,14 @@ namespace GitAutomation.Orchestration.Actions
                 }
             }
 
-            private async Task<IEnumerable<NeededMerge>> ToUpstreamBranchNames(ImmutableList<BranchGroupDetails> directUpstreamBranchGroups)
+            private async Task<IEnumerable<NeededMerge>> ToUpstreamBranchNames(ImmutableList<BranchGroup> directUpstreamBranchGroups)
             {
                 var hierarchy = (await repository.AllBranchesHierarchy().Take(1)).ToDictionary(branch => branch.GroupName, branch => branch.HierarchyDepth);
                 var remotes = await repository.GetAllBranchRefs().FirstOrDefaultAsync();
                 // Put integration branches first; they might be needed for conflict resolution in other branches!
                 // FIXME - this is using the GroupName rather than the BranchName!
                 return from branch in directUpstreamBranchGroups
-                       orderby branch.BranchType == BranchGroupType.Integration ? 0 : 1, -hierarchy[branch.GroupName], branch.GroupName
+                       orderby branch.BranchType == BranchGroupType.Integration.ToString("g") ? 0 : 1, -hierarchy[branch.GroupName], branch.GroupName
                        select new NeededMerge
                        {
                            GroupName = branch.GroupName,
@@ -308,7 +308,7 @@ namespace GitAutomation.Orchestration.Actions
 
                 
 
-                var canUseIntegrationBranch = Details.BranchType != BranchGroupType.Integration;
+                var canUseIntegrationBranch = Details.BranchType != BranchGroupType.Integration.ToString("g");
                 var createdIntegrationBranch = canUseIntegrationBranch
                     ? Details.DirectUpstreamBranchGroups.Count != 1 
                         ? await integrateBranches.FindAndCreateIntegrationBranches(
