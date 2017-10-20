@@ -11,7 +11,7 @@ namespace GitAutomation.Auth
         Delete,
         Update,
         Approve,
-        Administrator,
+        Administrate,
     }
 
     public static class PolicyNames

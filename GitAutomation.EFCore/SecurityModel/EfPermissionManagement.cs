@@ -30,7 +30,7 @@ namespace GitAutomation.EFCore.SecurityModel
                 var connection = GetContext(sp);
 
                 await connection.User.AddIfNotExists(new User { ClaimName = username }, user => user.ClaimName == username);
-                await connection.UserRole.AddIfNotExists(new UserRole { ClaimName = username, Role = role }, userRole => userRole.ClaimName == username && userRole.Role == role);
+                await connection.UserRole.AddIfNotExists(new UserRole { ClaimName = username, Permission = role }, userRole => userRole.ClaimName == username && userRole.Permission == role);
             });
         }
 
@@ -39,9 +39,9 @@ namespace GitAutomation.EFCore.SecurityModel
             return WithContext(async context =>
             {
                 return (await context.User
-                    .Include(u => u.UserRole)
+                    .Include(u => u.Roles)
                     .AsNoTracking()
-                    .ToDictionaryAsync(user => user.ClaimName, user => user.UserRole.Select(r => r.Role).ToImmutableList())
+                    .ToDictionaryAsync(user => user.ClaimName, user => user.Roles.Select(r => r.Permission).ToImmutableList())
                 )
                 .ToImmutableDictionary();
             });
@@ -61,7 +61,7 @@ namespace GitAutomation.EFCore.SecurityModel
                 var claimsIdentity = currentPrincipal.Identity as ClaimsIdentity;
                 await (from r in context.UserRole
                        where r.ClaimName == currentPrincipal.Identity.Name
-                       select r.Role)
+                       select r.Permission)
                     .ForEachAsync(role => claimsIdentity.AddClaim(new Claim(Constants.PermissionType, role)));
                 return currentPrincipal;
             });
@@ -84,7 +84,7 @@ namespace GitAutomation.EFCore.SecurityModel
             work.Defer(async sp =>
             {
                 var connection = GetContext(sp);
-                var userRole = await connection.UserRole.FirstOrDefaultAsync(ur => ur.ClaimName == username && ur.Role == role);
+                var userRole = await connection.UserRole.FirstOrDefaultAsync(ur => ur.ClaimName == username && ur.Permission == role);
                 if (userRole != null)
                 {
                     connection.UserRole.Remove(userRole);

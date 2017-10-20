@@ -1,17 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace GitAutomation.EFCore.SecurityModel
+namespace GitAutomation.Auth
 {
     public partial class User
     {
         public User()
         {
-            UserRole = new HashSet<UserRole>();
+            Roles = new HashSet<UserRole>();
         }
 
         public string ClaimName { get; set; }
 
-        public ICollection<UserRole> UserRole { get; set; }
+        public ICollection<UserRole> Roles { get; set; }
     }
 }

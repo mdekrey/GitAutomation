@@ -19,42 +19,42 @@ namespace Microsoft.AspNetCore.Authorization
                 PolicyNames.Read,
                 new AuthorizationPolicyBuilder()
                     .Combine(anyPermission)
-                    .RequireRole(Permission.Administrator.ToString().ToLower(), Permission.Read.ToString().ToLower())
+                    .RequireRole(Permission.Administrate.ToString().ToLower(), Permission.Read.ToString().ToLower())
                     .Build()
             );
             options.AddPolicy(
                 PolicyNames.Create,
                 new AuthorizationPolicyBuilder()
                     .Combine(anyPermission)
-                    .RequireRole(Permission.Administrator.ToString().ToLower(), Permission.Create.ToString().ToLower())
+                    .RequireRole(Permission.Administrate.ToString().ToLower(), Permission.Create.ToString().ToLower())
                     .Build()
             );
             options.AddPolicy(
                 PolicyNames.Delete,
                 new AuthorizationPolicyBuilder()
                     .Combine(anyPermission)
-                    .RequireRole(Permission.Administrator.ToString().ToLower(), Permission.Delete.ToString().ToLower())
+                    .RequireRole(Permission.Administrate.ToString().ToLower(), Permission.Delete.ToString().ToLower())
                     .Build()
             );
             options.AddPolicy(
                 PolicyNames.Update,
                 new AuthorizationPolicyBuilder()
                     .Combine(anyPermission)
-                    .RequireRole(Permission.Administrator.ToString().ToLower(), Permission.Update.ToString().ToLower())
+                    .RequireRole(Permission.Administrate.ToString().ToLower(), Permission.Update.ToString().ToLower())
                     .Build()
             );
             options.AddPolicy(
                 PolicyNames.Approve,
                 new AuthorizationPolicyBuilder()
                     .Combine(anyPermission)
-                    .RequireRole(Permission.Administrator.ToString().ToLower(), Permission.Approve.ToString().ToLower())
+                    .RequireRole(Permission.Administrate.ToString().ToLower(), Permission.Approve.ToString().ToLower())
                     .Build()
             );
             options.AddPolicy(
                 PolicyNames.Administrate,
                 new AuthorizationPolicyBuilder()
                     .Combine(anyPermission)
-                    .RequireRole(Permission.Administrator.ToString().ToLower())
+                    .RequireRole(Permission.Administrate.ToString().ToLower())
                     .Build()
             );
 
