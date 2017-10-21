@@ -2,7 +2,7 @@
 
 namespace GitAutomation.GraphQL
 {
-    internal class BranchGroupDetailsInterface : ObjectGraphType<BranchSettings.BranchGroupDetails>
+    internal class BranchGroupDetailsInterface : ObjectGraphType<BranchSettings.BranchGroup>
     {
         public BranchGroupDetailsInterface()
         {

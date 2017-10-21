@@ -198,7 +198,7 @@ namespace GitAutomation.Orchestration.Actions
                 }
             }
 
-            private async Task<IEnumerable<NeededMerge>> ToUpstreamBranchNames(ImmutableList<BranchGroupDetails> directUpstreamBranchGroups)
+            private async Task<IEnumerable<NeededMerge>> ToUpstreamBranchNames(ImmutableList<BranchGroup> directUpstreamBranchGroups)
             {
                 var hierarchy = (await repository.AllBranchesHierarchy().Take(1)).ToDictionary(branch => branch.GroupName, branch => branch.HierarchyDepth);
                 var remotes = await repository.GetAllBranchRefs().FirstOrDefaultAsync();

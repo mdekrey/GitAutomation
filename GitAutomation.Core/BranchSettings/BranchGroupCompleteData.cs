@@ -6,13 +6,13 @@ using System.Text;
 
 namespace GitAutomation.BranchSettings
 {
-    public class BranchGroupCompleteData : BranchGroupDetails
+    public class BranchGroupCompleteData : BranchGroup
     {
         public BranchGroupCompleteData()
         {
         }
 
-        public BranchGroupCompleteData(BranchGroupDetails original)
+        public BranchGroupCompleteData(BranchGroup original)
             : base(original)
         {
         }

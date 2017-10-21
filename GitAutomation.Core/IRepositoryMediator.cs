@@ -17,15 +17,15 @@ namespace GitAutomation
         IObservable<ImmutableList<string>> DetectShallowUpstream(string branchName, bool asGroup);
         IObservable<ImmutableList<string>> DetectShallowUpstreamServiceLines(string branchName);
         IObservable<ImmutableList<PullRequestWithReviews>> GetUpstreamPullRequests(string branchName);
-        IObservable<string> LatestBranchName(BranchGroupDetails details);
-        IObservable<string> GetNextCandidateBranch(BranchGroupDetails details, bool shouldMutate);
+        IObservable<string> LatestBranchName(BranchGroup details);
+        IObservable<string> GetNextCandidateBranch(BranchGroup details, bool shouldMutate);
         IObservable<BranchGroupCompleteData> GetBranchDetails(string branchName);
         void ConsolidateBranches(IEnumerable<string> branchesToRemove, string targetBranch, IUnitOfWork unitOfWork);
         IObservable<ImmutableList<Repository.GitRef>> GetAllBranchRefs();
         IObservable<string> GetBranchRef(string branchName);
         IObservable<bool> HasOutstandingCommits(string upstreamBranch, string downstreamBranch);
         void NotifyPushedRemoteBranch(string downstreamBranch);
-        IObservable<ImmutableList<BranchGroupDetails>> GetConfiguredBranchGroups();
+        IObservable<ImmutableList<BranchGroup>> GetConfiguredBranchGroups();
         IObservable<ImmutableList<string>> RecommendNewGroups();
     }
 }
