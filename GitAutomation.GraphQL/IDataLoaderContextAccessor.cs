@@ -5,12 +5,12 @@ using System.Text;
 
 namespace GitAutomation.GraphQL
 {
-    interface IDataLoaderContextAccessor
+    public interface IDataLoaderContextAccessor
     {
         DataLoaderContext LoadContext { get; }
     }
 
-    public class DataLoaderContextStore : IDataLoaderContextAccessor
+    class DataLoaderContextStore : IDataLoaderContextAccessor
     {
         public DataLoaderContext LoadContext { get; set; }
     }

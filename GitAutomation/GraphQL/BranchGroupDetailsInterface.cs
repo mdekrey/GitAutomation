@@ -4,6 +4,7 @@ using GitAutomation.GraphQL.Resolvers;
 using GraphQL.Types;
 using System;
 using System.Threading.Tasks;
+using static GitAutomation.GraphQL.Resolvers.Resolver;
 
 namespace GitAutomation.GraphQL
 {
@@ -18,11 +19,11 @@ namespace GitAutomation.GraphQL
 
             Field<BooleanGraphType>()
                 .Name(nameof(BranchGroup.RecreateFromUpstream))
-                .Resolve(Resolver.Resolve(this, nameof(LoadRecreateFromUpstream)));
+                .Resolve(Resolve(this, nameof(LoadRecreateFromUpstream)));
 
             Field<BranchGroupTypeEnum>()
                 .Name(nameof(BranchGroup.BranchType))
-                .Resolve(Resolver.Resolve(this, nameof(LoadBranchType)));
+                .Resolve(Resolve(this, nameof(LoadBranchType)));
 
         }
 

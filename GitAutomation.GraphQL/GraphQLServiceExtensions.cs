@@ -10,7 +10,8 @@ namespace Microsoft.Extensions.DependencyInjection
 {
     public static class GraphQLServiceExtensions
     {
-        public static void AddGraphQLServices(this IServiceCollection services)
+        public static void AddGraphQLServices<TQuery>(this IServiceCollection services)
+            where TQuery : class, IObjectGraphType
         {
             services.AddScoped<IDataLoaderContextAccessor>(sp => sp.GetRequiredService<DataLoaderContextStore>());
             services.AddScoped<DataLoaderContextStore>();
@@ -19,13 +20,12 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddScoped<IDocumentExecuter, DocumentExecuter>();
             services.AddScoped<GraphQLExecutor>();
-            services.AddSingleton<GitAutomationQuery>();
-            services.AddScoped<Loaders>();
+            services.AddSingleton<TQuery>();
             services.AddSingleton<ISchema>(serviceProvider =>
             {
                 return new Schema(type => (IGraphType)ActivatorUtilities.GetServiceOrCreateInstance(serviceProvider, type))
                 {
-                    Query = serviceProvider.GetRequiredService<GitAutomationQuery>(),
+                    Query = serviceProvider.GetRequiredService<TQuery>(),
                 };
             });
         }

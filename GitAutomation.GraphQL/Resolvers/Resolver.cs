@@ -11,7 +11,7 @@ using System.Reflection;
 
 namespace GitAutomation.GraphQL.Resolvers
 {
-    class Resolver : IFieldResolver
+    public class Resolver : IFieldResolver
     {
         private Func<ResolveFieldContext, Task<object>> func;
 
@@ -20,7 +20,7 @@ namespace GitAutomation.GraphQL.Resolvers
             this.func = func;
         }
         
-        internal static IFieldResolver Resolve(object target, string methodName)
+        public static IFieldResolver Resolve(object target, string methodName)
         {
             if (target == null)
             {

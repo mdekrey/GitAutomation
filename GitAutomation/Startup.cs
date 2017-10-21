@@ -108,7 +108,9 @@ namespace GitAutomation
                     options.Filters.Add(new CorsAuthorizationFilterFactory("Allow"));
                 });
             }
-            services.AddGraphQLServices();
+
+            services.AddGraphQLServices<GraphQL.GitAutomationQuery>();
+            services.AddScoped<GraphQL.Loaders>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
