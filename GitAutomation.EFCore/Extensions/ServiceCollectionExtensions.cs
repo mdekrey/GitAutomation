@@ -33,6 +33,7 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             services.AddSingleton<IBranchingContextCustomization, T>();
 
+            services.AddScoped<IBranchSettingsAccessor, EfBranchSettingsAccessor>();
             services.AddSingleton<IBranchSettings, EfBranchSettings>();
             services.AddSingleton<Func<IServiceProvider, BranchingContext>>(topServiceProvider =>
             {

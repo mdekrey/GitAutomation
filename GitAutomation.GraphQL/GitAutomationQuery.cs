@@ -43,16 +43,20 @@ namespace GitAutomation.GraphQL
                 public string Name { get; set; }
             }
 
-            private readonly IBranchSettings settings;
+            private readonly IBranchSettingsAccessor settings;
 
-            public BranchGroupResolver(IBranchSettings settings)
+            public BranchGroupResolver(IBranchSettingsAccessor settings)
             {
                 this.settings = settings;
             }
 
-            protected override Task<BranchGroup> Resolve(Args arg)
+            protected override async Task<BranchGroup> Resolve(Args arg)
             {
-                return settings.GetBranchBasicDetails(arg.Name).FirstOrDefaultAsync().ToTask();
+                var result = await settings.GetBranchGroups(arg.Name).ConfigureAwait(false);
+                
+                return result.TryGetValue(arg.Name, out var value) 
+                    ? value
+                    : null;
             }
         }
     }

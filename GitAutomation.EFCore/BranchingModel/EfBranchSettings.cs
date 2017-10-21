@@ -27,7 +27,7 @@ namespace GitAutomation.EFCore.BranchingModel
         public IObservable<ImmutableList<BranchSettings.BranchGroup>> GetConfiguredBranches()
         {
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
-                .SelectMany(_ => WithContext(GetConfiguredBranchesOnce));
+                .SelectMany(_ => WithAccessor(a => a.GetAllBranchGroups()));
         }
 
         private Task<ImmutableList<BranchSettings.BranchGroup>> GetConfiguredBranchesOnce(BranchingContext context)
@@ -57,7 +57,8 @@ namespace GitAutomation.EFCore.BranchingModel
         {
             // TODO - better notification
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
-                .SelectMany(_ => WithContext(GetBranchDetailOnce(branchName)));
+                .SelectMany(_ => WithAccessor(a => a.GetBranchGroups(branchName)))
+                .Select(grouped => grouped[branchName]);
         }
 
         public IObservable<BranchGroupCompleteData> GetBranchDetails(string branchName)
@@ -403,11 +404,21 @@ namespace GitAutomation.EFCore.BranchingModel
         private BranchingContext GetContext(IServiceProvider scope) =>
             scope.GetRequiredService<BranchingContext>();
 
+        private IBranchSettingsAccessor GetAccessor(IServiceProvider scope) =>
+            scope.GetRequiredService<IBranchSettingsAccessor>();
+
         private async Task<T> WithContext<T>(Func<BranchingContext, Task<T>> target)
         {
             using (var scope = serviceProvider.CreateScope())
             {
                 return await target(GetContext(scope.ServiceProvider));
+            }
+        }
+        private async Task<T> WithAccessor<T>(Func<IBranchSettingsAccessor, Task<T>> target)
+        {
+            using (var scope = serviceProvider.CreateScope())
+            {
+                return await target(GetAccessor(scope.ServiceProvider));
             }
         }
     }
