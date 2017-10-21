@@ -13,14 +13,11 @@ namespace Microsoft.Extensions.DependencyInjection
         public static void AddGraphQLServices(this IServiceCollection services)
         {
             services.AddScoped<IDocumentExecuter, DocumentExecuter>();
-            services.AddScoped<GitAutomationQuery>();
-            services.AddScoped<ISchema>(serviceProvider =>
+            services.AddScoped<GraphQLExecutor>();
+            services.AddSingleton<GitAutomationQuery>();
+            services.AddSingleton<ISchema>(serviceProvider =>
             {
-                return new Schema(type =>
-                {
-                    var result = (IGraphType)ActivatorUtilities.GetServiceOrCreateInstance(serviceProvider, type);
-                    return result;
-                })
+                return new Schema(type => (IGraphType)ActivatorUtilities.GetServiceOrCreateInstance(serviceProvider, type))
                 {
                     Query = serviceProvider.GetRequiredService<GitAutomationQuery>(),
                 };

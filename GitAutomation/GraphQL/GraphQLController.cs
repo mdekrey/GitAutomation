@@ -16,14 +16,10 @@ namespace GitAutomation.GraphQL
     [Route("api/[controller]")]
     public class GraphQLController : Controller
     {
-        private IDocumentExecuter _documentExecuter { get; set; }
-        private ISchema _schema { get; set; }
         private readonly ILogger _logger;
 
-        public GraphQLController(IDocumentExecuter documentExecuter, ISchema schema, ILogger<GraphQLController> logger)
+        public GraphQLController(ILogger<GraphQLController> logger)
         {
-            _documentExecuter = documentExecuter;
-            _schema = schema;
             _logger = logger;
         }
 
@@ -35,30 +31,20 @@ namespace GitAutomation.GraphQL
         }
 
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] GraphQLQuery query)
+        public async Task<IActionResult> Post([FromBody] GraphQLQuery query, [FromServices] GraphQLExecutor executor)
         {
             if (query == null) { throw new ArgumentNullException(nameof(query)); }
+            
+            var result = await executor.Execute(query.Query).ConfigureAwait(false);
 
-            var executionOptions = new ExecutionOptions { Schema = _schema, Query = query.Query };
-
-            try
+            if (result.Errors?.Count > 0)
             {
-                var result = await _documentExecuter.ExecuteAsync(executionOptions).ConfigureAwait(false);
-
-                if (result.Errors?.Count > 0)
-                {
-                    _logger.LogError("GraphQL errors: {0}", result.Errors);
-                    return BadRequest(result);
-                }
-
-                _logger.LogDebug("GraphQL execution result: {result}", JsonConvert.SerializeObject(result.Data));
-                return Ok(result);
+                _logger.LogError("GraphQL errors: {0}", result.Errors);
+                return BadRequest(result);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError("Document exexuter exception", ex);
-                return BadRequest(ex);
-            }
+
+            _logger.LogDebug("GraphQL execution result: {result}", JsonConvert.SerializeObject(result.Data));
+            return Ok(result);
         }
     }
 
