@@ -13,9 +13,9 @@ namespace GitAutomation.GraphQL.Resolvers
 {
     public class Resolver : IFieldResolver
     {
-        private Func<ResolveFieldContext, Task<object>> func;
+        private Func<ResolveFieldContext, object> func;
 
-        private Resolver(Func<ResolveFieldContext, Task<object>> func)
+        private Resolver(Func<ResolveFieldContext, object> func)
         {
             this.func = func;
         }
@@ -43,16 +43,14 @@ namespace GitAutomation.GraphQL.Resolvers
             var contextParameter = Expression.Parameter(typeof(ResolveFieldContext), "context");
             var arguments = (from param in method.GetParameters()
                              select ParameterToExpression(param, contextParameter)).ToArray();
-            var result = Expression.Lambda<Func<ResolveFieldContext, Task<object>>>(
-                Expression.Call(
+            var result = Expression.Lambda<Func<ResolveFieldContext, object>>(
+                Expression.Convert(
                     Expression.Call(
                         instance: Expression.Constant(target, target.GetType()),
                         method: method,
                         arguments: arguments
                     ),
-                    nameof(Task.ContinueWith),
-                    new Type[] { typeof(object) },
-                    Expression.Constant(Delegate.CreateDelegate(typeof(Func<,>).MakeGenericType(method.ReturnType, typeof(object)), FinalCastMethod.MakeGenericMethod(method.ReturnType.GetGenericArguments())))
+                    typeof(object)
                 ),
                 contextParameter
             );
