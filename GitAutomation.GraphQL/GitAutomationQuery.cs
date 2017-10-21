@@ -23,41 +23,8 @@ namespace GitAutomation.GraphQL
             Field<BranchGroupDetailsInterface>()
                 .Name("branchGroup")
                 .Argument<NonNullGraphType<StringGraphType>>("name", "full name of the branch group")
-                .Resolve(Resolve<object, BranchGroupResolver>());
+                .Resolve(ctx => ctx.GetArgument<string>("name"));
         }
 
-        Func<ResolveFieldContext<TSource>, Task<object>> Resolve<TSource, TLoader>()
-            where TLoader : IDataResolver<TSource>
-        {
-            return (context) =>
-            {
-                var loaderInstance = ActivatorUtilities.GetServiceOrCreateInstance<TLoader>(context.UserContext as IServiceProvider);
-                return loaderInstance.Resolve(context);
-            };
-        }
-
-        class BranchGroupResolver : DataResolverBase<object, BranchGroupResolver.Args, BranchGroup>
-        {
-            public class Args
-            {
-                public string Name { get; set; }
-            }
-
-            private readonly IBranchSettingsAccessor settings;
-
-            public BranchGroupResolver(IBranchSettingsAccessor settings)
-            {
-                this.settings = settings;
-            }
-
-            protected override async Task<BranchGroup> Resolve(Args arg)
-            {
-                var result = await settings.GetBranchGroups(arg.Name).ConfigureAwait(false);
-                
-                return result.TryGetValue(arg.Name, out var value) 
-                    ? value
-                    : null;
-            }
-        }
     }
 }

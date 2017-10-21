@@ -1,17 +1,47 @@
-﻿using GraphQL.Types;
+﻿using DataLoader;
+using GitAutomation.BranchSettings;
+using GitAutomation.GraphQL.Resolvers;
+using GraphQL.Types;
+using System;
+using System.Threading.Tasks;
 
 namespace GitAutomation.GraphQL
 {
-    internal class BranchGroupDetailsInterface : ObjectGraphType<BranchSettings.BranchGroup>
+    internal class BranchGroupDetailsInterface : ObjectGraphType<string>
     {
         public BranchGroupDetailsInterface()
         {
             Name = "BranchGroupDetails";
 
-            Field(d => d.GroupName).Description("The full name of the group.");
+            Field(nameof(BranchGroup.GroupName), d => d)
+                .Description("The full name of the group.");
 
-            Field(d => d.RecreateFromUpstream).Description("Whether a new branch is recreated from upstream branches when new changes are about to be merged.");
-            Field(d => d.BranchType, type: typeof(BranchGroupTypeEnum)).Description("The type of the branch.");
+            Field<BooleanGraphType>()
+                .Name(nameof(BranchGroup.RecreateFromUpstream))
+                .Resolve(Resolver.Resolve(this, nameof(LoadRecreateFromUpstream)));
+
+            Field<BranchGroupTypeEnum>()
+                .Name(nameof(BranchGroup.BranchType))
+                .Resolve(Resolver.Resolve(this, nameof(LoadBranchType)));
+
+        }
+
+        Task<bool?> LoadRecreateFromUpstream([Source] string name, [FromServices] Loaders loaders)
+        {
+            return loaders.LoadBranchGroup(name)
+                .ContinueWith(r =>
+                {
+                    return r.Result?.RecreateFromUpstream;
+                });
+        }
+
+        Task<BranchGroupType?> LoadBranchType([Source] string name, [FromServices] Loaders loaders)
+        {
+            return loaders.LoadBranchGroup(name)
+                .ContinueWith(r =>
+                {
+                    return r.Result?.BranchType;
+                });
         }
     }
 }

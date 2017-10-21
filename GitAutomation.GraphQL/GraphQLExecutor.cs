@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Types;
+using DataLoader;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GitAutomation.GraphQL
 {
@@ -22,13 +24,17 @@ namespace GitAutomation.GraphQL
 
         public Task<ExecutionResult> Execute(string query)
         {
-            var executionOptions = new ExecutionOptions
+            return DataLoaderContext.Run(loadCtx =>
             {
-                Schema = schema,
-                Query = query,
-                UserContext = serviceProvider,
-            };
-            return documentExecuter.ExecuteAsync(executionOptions);
+                serviceProvider.GetRequiredService<DataLoaderContextStore>().LoadContext = loadCtx;
+                var executionOptions = new ExecutionOptions
+                {
+                    Schema = schema,
+                    Query = query,
+                    UserContext = serviceProvider,
+                };
+                return documentExecuter.ExecuteAsync(executionOptions);
+            });
         }
     }
 }
