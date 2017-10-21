@@ -26,11 +26,15 @@ using System.Security.Claims;
 using GitAutomation.Plugins;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Cors.Internal;
 
 namespace GitAutomation
 {
     public class Startup
     {
+        private readonly IHostingEnvironment env;
+
         public Startup(IHostingEnvironment env)
         {
             var builder = new ConfigurationBuilder()
@@ -41,6 +45,7 @@ namespace GitAutomation
                 .AddEnvironmentVariables();
 
             Configuration = builder.Build();
+            this.env = env;
         }
 
         public IConfigurationRoot Configuration { get; }
@@ -90,6 +95,20 @@ namespace GitAutomation
                 authenticationSection: Configuration.GetSection("authentication"),
                 authorizationSection: Configuration.GetSection("authorization")
             );
+
+            if (env.IsDevelopment())
+            {
+                services.AddCors(options =>
+                {
+                    options.AddPolicy("Allow",
+                        builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader().AllowCredentials());
+                });
+                services.Configure<MvcOptions>(options =>
+                {
+                    options.Filters.Add(new CorsAuthorizationFilterFactory("Allow"));
+                });
+            }
+            services.AddGraphQLServices();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -106,6 +125,7 @@ namespace GitAutomation
                 repositoryState.DeleteRepository();
 
                 app.UseDeveloperExceptionPage();
+                app.UseCors("Allow");
             }
 
             var forwardHeaders = Configuration.GetValue<string>("forwardedHeaders");
