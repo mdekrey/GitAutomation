@@ -10,5 +10,7 @@ namespace GitAutomation.BranchSettings
     {
         Task<ImmutableList<BranchGroup>> GetAllBranchGroups();
         Task<ImmutableDictionary<string, BranchGroup>> GetBranchGroups(params string[] groupNames);
+        Task<ImmutableDictionary<string, ImmutableList<string>>> GetDownstreamBranchGroups(params string[] groupNames);
+        Task<ImmutableDictionary<string, ImmutableList<string>>> GetUpstreamBranchGroups(params string[] groupNames);
     }
 }

@@ -3,6 +3,7 @@ using GitAutomation.BranchSettings;
 using GitAutomation.GraphQL.Resolvers;
 using GraphQL.Types;
 using System;
+using System.Collections.Immutable;
 using System.Threading.Tasks;
 using static GitAutomation.GraphQL.Resolvers.Resolver;
 
@@ -25,6 +26,15 @@ namespace GitAutomation.GraphQL
                 .Name(nameof(BranchGroup.BranchType))
                 .Resolve(Resolve(this, nameof(LoadBranchType)));
 
+
+            Field<ListGraphType<BranchGroupDetailsInterface>>()
+                .Name("directDownstream")
+                .Resolve(Resolve(this, nameof(DownstreamBranches)));
+
+
+            Field<ListGraphType<BranchGroupDetailsInterface>>()
+                .Name("directUpstream")
+                .Resolve(Resolve(this, nameof(UpstreamBranches)));
         }
 
         Task<bool?> LoadRecreateFromUpstream([Source] string name, [FromServices] Loaders loaders)
@@ -43,6 +53,16 @@ namespace GitAutomation.GraphQL
                 {
                     return r.Result?.BranchType;
                 });
+        }
+
+        Task<ImmutableList<string>> DownstreamBranches([Source] string name, [FromServices] Loaders loaders)
+        {
+            return loaders.LoadDownstreamBranches(name);
+        }
+
+        Task<ImmutableList<string>> UpstreamBranches([Source] string name, [FromServices] Loaders loaders)
+        {
+            return loaders.LoadUpstreamBranches(name);
         }
     }
 }

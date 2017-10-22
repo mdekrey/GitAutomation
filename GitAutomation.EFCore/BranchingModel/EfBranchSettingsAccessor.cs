@@ -53,5 +53,22 @@ namespace GitAutomation.EFCore.BranchingModel
             };
         }
 
+        public Task<ImmutableDictionary<string, ImmutableList<string>>> GetDownstreamBranchGroups(params string[] groupNames)
+        {
+            return (from connection in BranchConnections
+                    where groupNames.Contains(connection.UpstreamBranch)
+                    group connection.DownstreamBranch by connection.UpstreamBranch)
+                .ToDictionaryAsync(e => e.Key, e => e.ToImmutableList())
+                .ContinueWith(t => t.Result.ToImmutableDictionary());
+        }
+
+        public Task<ImmutableDictionary<string, ImmutableList<string>>> GetUpstreamBranchGroups(params string[] groupNames)
+        {
+            return (from connection in BranchConnections
+                    where groupNames.Contains(connection.DownstreamBranch)
+                    group connection.UpstreamBranch by connection.DownstreamBranch)
+                .ToDictionaryAsync(e => e.Key, e => e.ToImmutableList())
+                .ContinueWith(t => t.Result.ToImmutableDictionary());
+        }
     }
 }

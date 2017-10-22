@@ -35,5 +35,21 @@ namespace GitAutomation.GraphQL
                 return result.Select(group => group.GroupName).ToImmutableList();
             }).LoadAsync();
         }
+
+        internal Task<ImmutableList<string>> LoadDownstreamBranches(string name)
+        {
+            return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetDownstreamBranchGroups", async keys => {
+                var result = await branchSettings.GetDownstreamBranchGroups(keys.ToArray());
+                return result.ToDictionary(e => e.Key, e => e.Value);
+            }).LoadAsync(name);
+        }
+
+        internal Task<ImmutableList<string>> LoadUpstreamBranches(string name)
+        {
+            return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetUpstreamBranchGroups", async keys => {
+                var result = await branchSettings.GetUpstreamBranchGroups(keys.ToArray());
+                return result.ToDictionary(e => e.Key, e => e.Value);
+            }).LoadAsync(name);
+        }
     }
 }
