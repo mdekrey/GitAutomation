@@ -1,5 +1,6 @@
 ﻿using GitAutomation.BranchSettings;
 using GitAutomation.GraphQL.Resolvers;
+using GitAutomation.Repository;
 using GraphQL;
 using GraphQL.Types;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,11 +31,20 @@ namespace GitAutomation.GraphQL
             Field<ListGraphType<BranchGroupDetailsInterface>>()
                 .Name("configuredBranchGroups")
                 .Resolve(Resolve(this, nameof(BranchGroups)));
+
+            Field<ListGraphType<GitRefInterface>>()
+                .Name("allActualBranches")
+                .Resolve(Resolve(this, nameof(AllGitRefs)));
         }
 
         Task<ImmutableList<string>> BranchGroups([FromServices] Loaders loaders)
         {
             return loaders.LoadBranchGroups();
+        }
+
+        Task<ImmutableList<GitRef>> AllGitRefs([FromServices] Loaders loaders)
+        {
+            return loaders.LoadAllGitRefs();
         }
     }
 }

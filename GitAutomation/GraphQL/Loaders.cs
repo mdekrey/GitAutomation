@@ -6,6 +6,8 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using GitAutomation.Repository;
+using System.Reactive.Linq;
 
 namespace GitAutomation.GraphQL
 {
@@ -13,11 +15,13 @@ namespace GitAutomation.GraphQL
     {
         private readonly DataLoaderContext loadContext;
         private readonly IBranchSettingsAccessor branchSettings;
+        private readonly IRepositoryState repositoryState;
 
-        public Loaders(IDataLoaderContextAccessor loadContextAccessor, IBranchSettingsAccessor branchSettings)
+        public Loaders(IDataLoaderContextAccessor loadContextAccessor, IBranchSettingsAccessor branchSettings, IRepositoryState repositoryState)
         {
             this.loadContext = loadContextAccessor.LoadContext;
             this.branchSettings = branchSettings;
+            this.repositoryState = repositoryState;
         }
 
         public Task<BranchGroup> LoadBranchGroup(string name)
@@ -51,5 +55,12 @@ namespace GitAutomation.GraphQL
                 return result.ToDictionary(e => e.Key, e => e.Value);
             }).LoadAsync(name);
         }
+        internal Task<ImmutableList<GitRef>> LoadAllGitRefs()
+        {
+            return loadContext.Factory.GetOrCreateLoader<ImmutableList<GitRef>>("GetAllGitRefs", async () => {
+                return await repositoryState.RemoteBranches().FirstOrDefaultAsync();
+            }).LoadAsync();
+        }
+
     }
 }
