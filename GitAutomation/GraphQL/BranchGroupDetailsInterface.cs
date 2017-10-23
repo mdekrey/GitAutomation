@@ -1,6 +1,7 @@
 ﻿using DataLoader;
 using GitAutomation.BranchSettings;
 using GitAutomation.GraphQL.Resolvers;
+using GitAutomation.Repository;
 using GraphQL.Types;
 using System;
 using System.Collections.Immutable;
@@ -35,6 +36,14 @@ namespace GitAutomation.GraphQL
             Field<ListGraphType<BranchGroupDetailsInterface>>()
                 .Name("directUpstream")
                 .Resolve(Resolve(this, nameof(UpstreamBranches)));
+
+            Field<ListGraphType<GitRefInterface>>()
+                .Name("branches")
+                .Resolve(Resolve(this, nameof(ActualBranches)));
+
+            Field<GitRefInterface>()
+                .Name("latestBranch")
+                .Resolve(Resolve(this, nameof(LatestBranch)));
         }
 
         Task<bool?> LoadRecreateFromUpstream([Source] string name, [FromServices] Loaders loaders)
@@ -63,6 +72,16 @@ namespace GitAutomation.GraphQL
         Task<ImmutableList<string>> UpstreamBranches([Source] string name, [FromServices] Loaders loaders)
         {
             return loaders.LoadUpstreamBranches(name);
+        }
+
+        Task<ImmutableList<GitRef>> ActualBranches([Source] string name, [FromServices] Loaders loaders)
+        {
+            return loaders.LoadActualBranches(name);
+        }
+
+        Task<GitRef> LatestBranch([Source] string name, [FromServices] Loaders loaders)
+        {
+            return loaders.LoadLatestBranch(name);
         }
     }
 }

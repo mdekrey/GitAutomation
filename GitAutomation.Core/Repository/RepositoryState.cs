@@ -12,6 +12,7 @@ using GitAutomation.Orchestration.Actions;
 using GitAutomation.Orchestration;
 using System.Threading.Tasks;
 using System.Reactive.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace GitAutomation.Repository
 {
@@ -23,7 +24,8 @@ namespace GitAutomation.Repository
         private readonly IObservable<ImmutableList<GitRef>> remoteBranches;
         private readonly IRepositoryOrchestration orchestration;
         private readonly GitCli cli;
-        private readonly IObservable<ImmutableDictionary<Tuple<string, string>, LazyObservable<string>>> mergeBases;
+        private readonly IObservable<ImmutableDictionary<Tuple<string, string>, LazyObservable<string>>> mergeBaseBranches;
+        private readonly ConcurrentDictionary<Tuple<string, string>, Task<string>> mergeBaseCommits = new ConcurrentDictionary<Tuple<string, string>, Task<string>>();
 
         public event EventHandler Updated;
 
@@ -39,7 +41,7 @@ namespace GitAutomation.Repository
             ).Select(_ => Unit.Default);
             this.remoteBranches = BuildRemoteBranches();
 
-            this.mergeBases = BuildMergeBases();
+            this.mergeBaseBranches = BuildMergeBases();
         }
 
         #region Reset
@@ -131,19 +133,29 @@ namespace GitAutomation.Repository
             return Tuple.Create(list[0], list[1]);
         }
 
+        public Task<string> MergeBaseBetweenCommits(string commit1, string commit2)
+        {
+            return mergeBaseCommits.GetOrAdd(
+                key: commit1.CompareTo(commit2) < 0
+                    ? Tuple.Create(commit1, commit2)
+                    : Tuple.Create(commit2, commit1),
+                valueFactory: key => cli.MergeBaseCommits(key.Item1, key.Item2).GetFirstOutput().ToTask()
+            );
+        }
+
         public IObservable<string> MergeBaseBetween(string branchName1, string branchName2)
         {
             var key = branchName1.CompareTo(branchName2) < 0
                 ? Tuple.Create(branchName1, branchName2)
                 : Tuple.Create(branchName2, branchName1);
-            return this.mergeBases.SelectMany(bases => bases.ContainsKey(key)
+            return this.mergeBaseBranches.SelectMany(bases => bases.ContainsKey(key)
                 ? bases[key]
                 : Observable.Return<string>(null));
         }
 
         private IObservable<string> GetMergeBase(Tuple<string, string> commitPair)
         {
-            return cli.MergeBaseCommits(commitPair.Item1, commitPair.Item2).GetFirstOutput();
+            return MergeBaseBetweenCommits(commitPair.Item1, commitPair.Item2).ToObservable();
         }
 
         public IObservable<OutputMessage> DeleteBranch(string branchName)

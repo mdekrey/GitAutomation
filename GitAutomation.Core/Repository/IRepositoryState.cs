@@ -14,6 +14,7 @@ namespace GitAutomation.Repository
         
         IObservable<ImmutableList<GitRef>> RemoteBranches();
         IObservable<ImmutableList<GitRef>> DetectUpstream(string branchName, bool allowSame);
+        Task<string> MergeBaseBetweenCommits(string commit1, string commit2);
         IObservable<string> MergeBaseBetween(string branchName1, string branchName2);
         void NotifyPushedRemoteBranch(string downstreamBranch);
     }

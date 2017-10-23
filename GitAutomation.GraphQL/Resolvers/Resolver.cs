@@ -87,13 +87,28 @@ namespace GitAutomation.GraphQL.Resolvers
                     );
 
                 case FromArgumentAttribute a:
-                    return Expression.Call(contextParameter, nameof(ResolveFieldContext.GetArgument), new[] { param.ParameterType }, Expression.Constant(param.Name));
+                    return Expression.Call(
+                        contextParameter, 
+                        GetArgumentGeneric.MakeGenericMethod(param.ParameterType), 
+                        Expression.Constant(param.Name),
+                        Expression.Constant(
+                            param.ParameterType.IsValueType
+                                ? Activator.CreateInstance(param.ParameterType)
+                                : null,
+                            param.ParameterType
+                        )
+                    );
 
                 default:
                     throw new ArgumentException("Invalid argument; parameter must have a ResolverAttribute.", param.Name);
             }
 
         }
+
+        private static readonly MethodInfo GetArgumentGeneric = 
+            typeof(ResolveFieldContext).GetMethods()
+                .Where(m => m.Name == nameof(ResolveFieldContext.GetArgument) && m.IsGenericMethodDefinition)
+                .SingleOrDefault();
 
         private static readonly MethodInfo GetOptionalServiceMethod = typeof(Resolver).GetMethod(nameof(GetOptionalService), BindingFlags.Static | BindingFlags.NonPublic);
         private static T GetOptionalService<T>(IServiceProvider serviceProvider)
