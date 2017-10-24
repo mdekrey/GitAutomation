@@ -13,8 +13,6 @@ using GitAutomation.Repository;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
 using GitAutomation.BranchSettings;
-using GitAutomation.Swagger;
-using Swashbuckle.SwaggerGen.Generator;
 using GitAutomation.Orchestration;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Net.Http;
@@ -58,28 +56,7 @@ namespace GitAutomation
             {
                 options.SerializerSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
             });
-
-
-            services.AddSwaggerGen(options =>
-            {
-                options.SingleApiVersion(new Swashbuckle.Swagger.Model.Info
-                {
-                    Version = "v1",
-                    Title = "GitAutomation",
-                    Description = "Automate your Git Repository",
-                    TermsOfService = "TODO"
-                });
-                options.DescribeAllEnumsAsStrings();
-                //options.OperationFilter<IgnoreCustomBindingOperationFilter>();
-                //options.OperationFilter<FixPathOperationFilter>();
-                options.OperationFilter<OperationIdFilter>();
-                //options.OperationFilter<AddValidationResponseOperationFilter>();
-                //options.CustomSchemaIds(t => t.FriendlyId(true));
-                //options.SchemaFilter<AdditionalValidationFilter>();
-                //options.SchemaFilter<ReferenceEnumFilter>();
-                //options.SchemaFilter<ClassAssemblyFilter>();
-            });
-
+            
             services.AddGitUtilities(Configuration.GetSection("persistence"), Configuration.GetSection("git"));
             services.Configure<GitRepositoryOptions>(Configuration.GetSection("git"));
             services.Configure<PersistenceOptions>(Configuration.GetSection("persistence"));
@@ -155,8 +132,6 @@ namespace GitAutomation
             repositoryStateRunner.Start();
             app.UseStaticFiles();
             app.UseMvc();
-            app.UseSwagger();
-            app.UseSwaggerUi();
 
             app.Use((context, next) =>
             {
