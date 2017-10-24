@@ -3,6 +3,7 @@ using GitAutomation.Repository;
 using GraphQL.Types;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
 using static GitAutomation.GraphQL.Resolvers.Resolver;
@@ -23,6 +24,10 @@ namespace GitAutomation.GraphQL
                 .Argument<NonNullGraphType<StringGraphType>>("commitish", "target of the merge base")
                 .Argument<NonNullGraphType<CommitishKindTypeEnum>>("kind", "the type of 'commitish'")
                 .Resolve(Resolve(this, nameof(MergeBase)));
+
+            Field<ListGraphType<CommitStatusInterface>>()
+                .Name("statuses")
+                .Resolve(Resolve(this, nameof(GetStatuses)));
         }
 
         private Task<string> MergeBase([FromArgument] string commitish, [FromArgument] CommitishKind kind, [Source] GitRef gitRef, [FromServices] Loaders loaders)
@@ -38,6 +43,11 @@ namespace GitAutomation.GraphQL
                 default:
                     return Task.FromResult<string>(null);
             }
+        }
+
+        private Task<ImmutableList<GitService.CommitStatus>> GetStatuses([Source] GitRef gitRef, [FromServices] Loaders loaders)
+        {
+            return loaders.LoadBranchStatus(gitRef.Commit);
         }
     }
 }
