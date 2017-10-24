@@ -28,6 +28,16 @@ namespace GitAutomation.GraphQL
             Field<ListGraphType<CommitStatusInterface>>()
                 .Name("statuses")
                 .Resolve(Resolve(this, nameof(GetStatuses)));
+
+            Field<ListGraphType<PullRequestInterface>>()
+                .Name("pullRequestsInto")
+                .Argument<StringGraphType>("target", "target of pull requests")
+                .Resolve(Resolve(this, nameof(PullRequestsInto)));
+
+            Field<ListGraphType<PullRequestInterface>>()
+                .Name("pullRequestsFrom")
+                .Argument<StringGraphType>("source", "source of pull requests")
+                .Resolve(Resolve(this, nameof(PullRequestsFrom)));
         }
 
         private Task<string> MergeBase([FromArgument] string commitish, [FromArgument] CommitishKind kind, [Source] GitRef gitRef, [FromServices] Loaders loaders)
@@ -48,6 +58,16 @@ namespace GitAutomation.GraphQL
         private Task<ImmutableList<GitService.CommitStatus>> GetStatuses([Source] GitRef gitRef, [FromServices] Loaders loaders)
         {
             return loaders.LoadBranchStatus(gitRef.Commit);
+        }
+
+        private Task<ImmutableList<GitService.PullRequest>> PullRequestsInto([Source] GitRef gitRef, [FromArgument] string target, [FromServices] Loaders loaders)
+        {
+            return loaders.LoadPullRequests(source: gitRef.Name, target: target);
+        }
+
+        private Task<ImmutableList<GitService.PullRequest>> PullRequestsFrom([Source] GitRef gitRef, [FromArgument] string source, [FromServices] Loaders loaders)
+        {
+            return loaders.LoadPullRequests(source: source, target: gitRef.Name);
         }
     }
 }

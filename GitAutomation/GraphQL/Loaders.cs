@@ -66,6 +66,12 @@ namespace GitAutomation.GraphQL
             }).LoadAsync();
         }
 
+        internal Task<ImmutableList<PullRequest>> LoadPullRequests(string source, string target)
+        {
+            // TODO - GraphQL to GitHub and pass through?
+            return gitService.GetPullRequests(targetBranch: target, sourceBranch: source);
+        }
+
         internal Task<ImmutableList<string>> LoadDownstreamBranches(string name)
         {
             return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetDownstreamBranchGroups", async keys => {
