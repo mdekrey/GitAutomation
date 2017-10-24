@@ -1,0 +1,37 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>GraphiQl</title>
+
+  <script src="//use.typekit.net/pea2oar.js"></script>
+  <script>try { Typekit.load({ async: true }); } catch (e) { }</script>
+
+  <link href="//cdn.jsdelivr.net/graphql-toolbox/latest/graphiql.min.css" rel="stylesheet" />
+  <!-- for now, need to provide explicit font-face for Glyphicons until the issue is fixed on graphql-toolbox side -->
+  <style>
+    @font-face {
+      font-family: 'Glyphicons Halflings';
+      src: url(//cdn.jsdelivr.net/bootstrap/3.3.7/fonts/glyphicons-halflings-regular.eot);
+      src: url(//cdn.jsdelivr.net/bootstrap/3.3.7/fonts/glyphicons-halflings-regular.eot) format("embedded-opentype"), url(//cdn.jsdelivr.net/bootstrap/3.3.7/fonts/glyphicons-halflings-regular.woff2) format("woff2"), url(//cdn.jsdelivr.net/bootstrap/3.3.7/fonts/glyphicons-halflings-regular.woff) format("woff"), url(//cdn.jsdelivr.net/bootstrap/3.3.7/fonts/glyphicons-halflings-regular.ttf) format("truetype"), url(//cdn.jsdelivr.net/bootstrap/3.3.7/fonts/glyphicons-halflings-regular.svg) format("svg");
+    }
+  </style>
+
+  <script src="//cdn.jsdelivr.net/graphql-toolbox/latest/graphiql.min.js"></script>
+</head>
+
+<body>
+  <div id="graphiql-tool"></div>
+  <script type="text/javascript">
+    graphiql.bootstrap({
+      defaultUrl: '/api/graphql',
+      defaultQuery: '',
+      defaultVariables: ''
+    });
+  </script>
+</body>
+
+</html>

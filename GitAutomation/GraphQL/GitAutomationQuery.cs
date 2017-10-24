@@ -3,6 +3,8 @@ using GitAutomation.GraphQL.Resolvers;
 using GitAutomation.Repository;
 using GraphQL;
 using GraphQL.Types;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -26,7 +28,7 @@ namespace GitAutomation.GraphQL
             Field<BranchGroupDetailsInterface>()
                 .Name("branchGroup")
                 .Argument<NonNullGraphType<StringGraphType>>("name", "full name of the branch group")
-                .Resolve(ctx => ctx.GetArgument<string>("name"));
+                .Resolve(Resolve(this, nameof(BranchByName)));
 
             Field<ListGraphType<BranchGroupDetailsInterface>>()
                 .Name("configuredBranchGroups")
@@ -37,14 +39,34 @@ namespace GitAutomation.GraphQL
                 .Resolve(Resolve(this, nameof(AllGitRefs)));
         }
 
-        Task<ImmutableList<string>> BranchGroups([FromServices] Loaders loaders)
+        async Task<string> BranchByName([FromArgument] string name, [FromServices] IAuthorizationService authorizationService, [FromServices] IHttpContextAccessor httpContext)
         {
-            return loaders.LoadBranchGroups();
+            await Authorize(authorizationService, httpContext, Auth.PolicyNames.Read);
+            return name;
         }
 
-        Task<ImmutableList<GitRef>> AllGitRefs([FromServices] Loaders loaders)
+        async Task<ImmutableList<string>> BranchGroups([FromServices] Loaders loaders, [FromServices] IAuthorizationService authorizationService, [FromServices] IHttpContextAccessor httpContext)
         {
-            return loaders.LoadAllGitRefs();
+            await Authorize(authorizationService, httpContext, Auth.PolicyNames.Read);
+            return await loaders.LoadBranchGroups().ConfigureAwait(false);
         }
+
+        async Task<ImmutableList<GitRef>> AllGitRefs([FromServices] Loaders loaders, [FromServices] IAuthorizationService authorizationService, [FromServices] IHttpContextAccessor httpContext)
+        {
+            await Authorize(authorizationService, httpContext, Auth.PolicyNames.Read);
+            return await loaders.LoadAllGitRefs().ConfigureAwait(false);
+        }
+
+        private static async Task Authorize(IAuthorizationService authorizationService, IHttpContextAccessor httpContext, string policyName)
+        {
+            var authorization = await authorizationService.AuthorizeAsync(httpContext.HttpContext.User, policyName).ConfigureAwait(false);
+            if (!authorization.Succeeded)
+            {
+                throw new Exception(httpContext.HttpContext.User.Identity.IsAuthenticated
+                    ? "Not authorized"
+                    : "Not authenticated");
+            }
+        }
+
     }
 }

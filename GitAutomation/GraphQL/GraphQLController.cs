@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 
 namespace GitAutomation.GraphQL
 {
-    //[Authorize]
     [Route("api/[controller]")]
     public class GraphQLController : Controller
     {

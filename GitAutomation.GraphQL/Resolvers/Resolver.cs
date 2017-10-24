@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Linq.Expressions;
 using System.Linq;
 using System.Reflection;
+using GraphQL;
 
 namespace GitAutomation.GraphQL.Resolvers
 {
@@ -130,7 +131,28 @@ namespace GitAutomation.GraphQL.Resolvers
 
         public object Resolve(ResolveFieldContext context)
         {
-            return func(context);
+            return ResolveAsync(context);
+        }
+
+        public async Task<object> ResolveAsync(ResolveFieldContext context)
+        {
+            try
+            {
+                var result = func(context);
+                if (result is Task t)
+                {
+                    await t.ConfigureAwait(false);
+                    result = t.GetProperyValue(nameof(Task<object>.Result));
+                }
+                return result;
+            }
+            catch (Exception ex)
+            {
+                var err = new ExecutionError(ex.Message);
+                err.AddLocation(context.FieldAst, context.Document);
+                context.Errors.Add(err);
+                return null;
+            }
         }
     }
 }
