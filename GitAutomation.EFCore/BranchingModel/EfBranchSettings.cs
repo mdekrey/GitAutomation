@@ -58,7 +58,7 @@ namespace GitAutomation.EFCore.BranchingModel
             // TODO - better notification
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
                 .SelectMany(_ => WithAccessor(a => a.GetBranchGroups(branchName)))
-                .Select(grouped => grouped[branchName]);
+                .Select(grouped => grouped.ContainsKey(branchName) ? grouped[branchName] : null);
         }
 
         public IObservable<BranchGroupCompleteData> GetBranchDetails(string branchName)
