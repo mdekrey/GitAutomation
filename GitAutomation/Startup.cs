@@ -1,31 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.IO;
-using System.Reactive.Linq;
-using GitAutomation.Repository;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
-using GitAutomation.BranchSettings;
-using GitAutomation.Orchestration;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using Microsoft.AspNetCore.Authentication.OAuth;
-using Newtonsoft.Json.Linq;
-using Microsoft.AspNetCore.Authentication;
-using System.Security.Claims;
-using GitAutomation.Plugins;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Cors.Internal;
+using GitAutomation.BranchSettings;
+using GitAutomation.Orchestration;
+using GitAutomation.Repository;
 
 namespace GitAutomation
 {
