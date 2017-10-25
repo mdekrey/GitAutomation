@@ -37,6 +37,10 @@ namespace GitAutomation.GraphQL
             Field<ListGraphType<GitRefInterface>>()
                 .Name("allActualBranches")
                 .Resolve(Resolve(this, nameof(AllGitRefs)));
+
+            Field<ListGraphType<PermissionEnumType>>()
+                .Name("currentPermissions")
+                .Resolve(Resolve(this, nameof(CurrentPermissions)));
         }
 
         async Task<string> BranchByName([FromArgument] string name, [FromServices] IAuthorizationService authorizationService, [FromServices] IHttpContextAccessor httpContext)
@@ -55,6 +59,15 @@ namespace GitAutomation.GraphQL
         {
             await Authorize(authorizationService, httpContext, Auth.PolicyNames.Read);
             return await loaders.LoadAllGitRefs().ConfigureAwait(false);
+        }
+
+        Task<ImmutableList<Auth.Permission>> CurrentPermissions([FromServices] IHttpContextAccessor httpContext)
+        {
+            return Task.FromResult(
+                (from permission in Enum.GetValues(typeof(Auth.Permission)).Cast<Auth.Permission>()
+                 where httpContext.HttpContext.User.IsInRole(permission.ToString("g").ToLower())
+                 select permission).ToImmutableList()
+            );
         }
 
         private static async Task Authorize(IAuthorizationService authorizationService, IHttpContextAccessor httpContext, string policyName)
