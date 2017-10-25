@@ -2,8 +2,13 @@
 
 # Intended to be run with cwd being the root of the project inside docker
 
+cd GitAutomation.GraphQL
+dotnet run > ../GitAutomation/generated/graphql.json
+cd ..
+
 cd GitAutomation
 yarn
+yarn gql-generation
 yarn build --env.NODE_ENV=production
 cd ..
 

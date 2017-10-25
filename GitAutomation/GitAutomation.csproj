@@ -45,5 +45,8 @@
   <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <ProjectReference Include="..\GitAutomation.AllAddons\GitAutomation.AllAddons.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="generated\" />
+  </ItemGroup>
 
 </Project>

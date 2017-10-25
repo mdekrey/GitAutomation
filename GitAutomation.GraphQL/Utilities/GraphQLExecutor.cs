@@ -31,11 +31,26 @@ namespace GitAutomation.GraphQL.Utilities
                 {
                     Schema = schema,
                     Query = query.Query,
-                    Inputs = Newtonsoft.Json.JsonConvert.DeserializeObject<Inputs>(query.Variables),
+                    Inputs = GetInputs(query.Variables),
                     UserContext = serviceProvider,
                 };
                 return documentExecuter.ExecuteAsync(executionOptions);
             });
+        }
+
+        private Inputs GetInputs(string variables)
+        {
+            try
+            {
+                if (variables != null)
+                {
+                    return Newtonsoft.Json.JsonConvert.DeserializeObject<Inputs>(variables);
+                }
+            }
+            catch
+            {
+            }
+            return null;
         }
     }
 }

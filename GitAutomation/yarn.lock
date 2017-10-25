@@ -2,6 +2,36 @@
 # yarn lockfile v1
 
 
+"@gql2ts/from-query@^1.2.2":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@gql2ts/from-query/-/from-query-1.2.2.tgz#b2eda5ff5fe927acba4331db6c6ab7a9b867585a"
+  dependencies:
+    "@gql2ts/language-typescript" "^1.2.2"
+    "@gql2ts/util" "^1.2.2"
+    graphql ">= 0.10 <0.12"
+
+"@gql2ts/from-schema@^1.2.2":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@gql2ts/from-schema/-/from-schema-1.2.2.tgz#30d07b98abdbc934008dc7defa6ba7431ce17fd3"
+  dependencies:
+    "@gql2ts/language-typescript" "^1.2.2"
+    "@gql2ts/util" "^1.2.2"
+    graphql ">= 0.10 <0.12"
+
+"@gql2ts/language-typescript@^1.2.2":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@gql2ts/language-typescript/-/language-typescript-1.2.2.tgz#f808a30336e7b4da2ecf7f2fd829009c08db046a"
+  dependencies:
+    "@gql2ts/util" "^1.2.2"
+    humps "^2.0.0"
+    typescript "^2.2.2"
+
+"@gql2ts/util@^1.2.2":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@gql2ts/util/-/util-1.2.2.tgz#5f8e46dcc6169ec3440b01deeac75f7585071152"
+  dependencies:
+    graphql ">= 0.10 <0.12"
+
 "@types/d3-drag@1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@types/d3-drag/-/d3-drag-1.1.0.tgz#9105e35ca58aa0c4783f3ce83082bcb24ccb6960"
@@ -514,7 +544,7 @@ combined-stream@^1.0.5, combined-stream@~1.0.5:
   dependencies:
     delayed-stream "~1.0.0"
 
-commander@2.11.x, commander@~2.11.0:
+commander@2.11.x, commander@^2.9.0, commander@~2.11.0:
   version "2.11.0"
   resolved "https://registry.yarnpkg.com/commander/-/commander-2.11.0.tgz#157152fd1e7a6c8d98a5b715cf376df928004563"
 
@@ -1305,9 +1335,24 @@ globby@^6.1.0:
     pify "^2.0.0"
     pinkie-promise "^2.0.0"
 
+gql2ts@^1.2.2:
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/gql2ts/-/gql2ts-1.2.2.tgz#14a53c492d38a62c21109fce20a51a7a089d6af5"
+  dependencies:
+    "@gql2ts/from-query" "^1.2.2"
+    "@gql2ts/from-schema" "^1.2.2"
+    "@gql2ts/util" "^1.2.2"
+    commander "^2.9.0"
+
 graceful-fs@^4.1.11, graceful-fs@^4.1.2:
   version "4.1.11"
   resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.1.11.tgz#0e8bdfe4d1ddb8854d64e04ea7c00e2a026e5658"
+
+"graphql@>= 0.10 <0.12":
+  version "0.11.7"
+  resolved "https://registry.yarnpkg.com/graphql/-/graphql-0.11.7.tgz#e5abaa9cb7b7cccb84e9f0836bf4370d268750c6"
+  dependencies:
+    iterall "1.1.3"
 
 handle-thing@^1.2.5:
   version "1.2.5"
@@ -1450,6 +1495,10 @@ http-signature@~1.1.0:
 https-browserify@0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/https-browserify/-/https-browserify-0.0.1.tgz#3f91365cabe60b77ed0ebba24b454e3e09d95a82"
+
+humps@^2.0.0:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/humps/-/humps-2.0.1.tgz#dd02ea6081bd0568dc5d073184463957ba9ef9aa"
 
 ieee754@^1.1.4:
   version "1.1.8"
@@ -1649,6 +1698,10 @@ isobject@^2.0.0:
 isstream@~0.1.2:
   version "0.1.2"
   resolved "https://registry.yarnpkg.com/isstream/-/isstream-0.1.2.tgz#47e63f7af55afa6f92e1500e690eb8b8529c099a"
+
+iterall@1.1.3:
+  version "1.1.3"
+  resolved "https://registry.yarnpkg.com/iterall/-/iterall-1.1.3.tgz#1cbbff96204056dde6656e2ed2e2226d0e6d72c9"
 
 jsbn@~0.1.0:
   version "0.1.1"
@@ -2994,6 +3047,10 @@ type-is@~1.6.15:
 typedarray@^0.0.6:
   version "0.0.6"
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
+
+typescript@^2.2.2:
+  version "2.5.3"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.5.3.tgz#df3dcdc38f3beb800d4bc322646b04a3f6ca7f0d"
 
 typescript@^2.4.1:
   version "2.4.2"
