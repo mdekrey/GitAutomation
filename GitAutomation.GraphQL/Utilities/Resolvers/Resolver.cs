@@ -10,7 +10,7 @@ using System.Linq;
 using System.Reflection;
 using GraphQL;
 
-namespace GitAutomation.GraphQL.Resolvers
+namespace GitAutomation.GraphQL.Utilities.Resolvers
 {
     public class Resolver : IFieldResolver
     {

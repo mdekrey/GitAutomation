@@ -10,10 +10,11 @@ using GitAutomation.Repository;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using GitAutomation.GitService;
+using GitAutomation.GraphQL.Utilities;
 
 namespace GitAutomation.GraphQL
 {
-    class Loaders
+    public class Loaders
     {
         private readonly DataLoaderContext loadContext;
         private readonly IBranchSettingsAccessor branchSettings;

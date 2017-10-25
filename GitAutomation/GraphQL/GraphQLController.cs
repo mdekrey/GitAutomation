@@ -1,4 +1,5 @@
-﻿using GraphQL;
+﻿using GitAutomation.GraphQL.Utilities;
+using GraphQL;
 using GraphQL.Types;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,11 +31,11 @@ namespace GitAutomation.GraphQL
         }
 
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] GraphQLQuery query, [FromServices] GraphQLExecutor executor)
+        public async Task<IActionResult> Post([FromBody] GraphQLQuery query, [FromServices] Utilities.GraphQLExecutor executor)
         {
             if (query == null) { throw new ArgumentNullException(nameof(query)); }
             
-            var result = await executor.Execute(query.Query).ConfigureAwait(false);
+            var result = await executor.Execute(query).ConfigureAwait(false);
 
             if (result.Errors?.Count > 0)
             {
@@ -44,38 +45,6 @@ namespace GitAutomation.GraphQL
 
             _logger.LogDebug("GraphQL execution result: {result}", JsonConvert.SerializeObject(result.Data));
             return Ok(result);
-        }
-    }
-
-    public class GraphQLQuery
-    {
-        public string OperationName { get; set; }
-        public string NamedQuery { get; set; }
-        public string Query { get; set; }
-        public string Variables { get; set; }
-
-        public override string ToString()
-        {
-            var builder = new StringBuilder();
-            builder.AppendLine();
-            if (!string.IsNullOrWhiteSpace(OperationName))
-            {
-                builder.AppendLine($"OperationName = {OperationName}");
-            }
-            if (!string.IsNullOrWhiteSpace(NamedQuery))
-            {
-                builder.AppendLine($"NamedQuery = {NamedQuery}");
-            }
-            if (!string.IsNullOrWhiteSpace(Query))
-            {
-                builder.AppendLine($"Query = {Query}");
-            }
-            if (!string.IsNullOrWhiteSpace(Variables))
-            {
-                builder.AppendLine($"Variables = {Variables}");
-            }
-
-            return builder.ToString();
         }
     }
 

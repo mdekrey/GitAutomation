@@ -1,5 +1,5 @@
 ﻿using GitAutomation.BranchSettings;
-using GitAutomation.GraphQL.Resolvers;
+using GitAutomation.GraphQL.Utilities.Resolvers;
 using GitAutomation.Repository;
 using GraphQL;
 using GraphQL.Types;
@@ -15,11 +15,11 @@ using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Reflection;
 using System.Threading.Tasks;
-using static GitAutomation.GraphQL.Resolvers.Resolver;
+using static GitAutomation.GraphQL.Utilities.Resolvers.Resolver;
 
 namespace GitAutomation.GraphQL
 {
-    internal class GitAutomationQuery : ObjectGraphType<object>
+    public class GitAutomationQuery : ObjectGraphType<object>
     {
         public GitAutomationQuery()
         {

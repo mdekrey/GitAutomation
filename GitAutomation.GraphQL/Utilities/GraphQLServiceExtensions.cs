@@ -1,4 +1,5 @@
 ﻿using GitAutomation.GraphQL;
+using GitAutomation.GraphQL.Utilities;
 using GraphQL;
 using GraphQL.Types;
 using System;

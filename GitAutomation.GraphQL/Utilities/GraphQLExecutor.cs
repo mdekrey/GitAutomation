@@ -7,7 +7,7 @@ using GraphQL.Types;
 using DataLoader;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace GitAutomation.GraphQL
+namespace GitAutomation.GraphQL.Utilities
 {
     public class GraphQLExecutor
     {
@@ -22,7 +22,7 @@ namespace GitAutomation.GraphQL
             this.serviceProvider = serviceProvider;
         }
 
-        public Task<ExecutionResult> Execute(string query)
+        public Task<ExecutionResult> Execute(GraphQLQuery query)
         {
             return DataLoaderContext.Run(loadCtx =>
             {
@@ -30,7 +30,8 @@ namespace GitAutomation.GraphQL
                 var executionOptions = new ExecutionOptions
                 {
                     Schema = schema,
-                    Query = query,
+                    Query = query.Query,
+                    Inputs = Newtonsoft.Json.JsonConvert.DeserializeObject<Inputs>(query.Variables),
                     UserContext = serviceProvider,
                 };
                 return documentExecuter.ExecuteAsync(executionOptions);

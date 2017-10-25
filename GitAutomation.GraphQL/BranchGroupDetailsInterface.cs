@@ -1,12 +1,12 @@
 ﻿using DataLoader;
 using GitAutomation.BranchSettings;
-using GitAutomation.GraphQL.Resolvers;
+using GitAutomation.GraphQL.Utilities.Resolvers;
 using GitAutomation.Repository;
 using GraphQL.Types;
 using System;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
-using static GitAutomation.GraphQL.Resolvers.Resolver;
+using static GitAutomation.GraphQL.Utilities.Resolvers.Resolver;
 
 namespace GitAutomation.GraphQL
 {
