@@ -6,7 +6,6 @@ using GraphQL.Types;
 using System;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
-using static GitAutomation.GraphQL.Utilities.Resolvers.Resolver;
 
 namespace GitAutomation.GraphQL
 {
@@ -21,29 +20,29 @@ namespace GitAutomation.GraphQL
 
             Field<BooleanGraphType>()
                 .Name(nameof(BranchGroup.RecreateFromUpstream))
-                .Resolve(Resolve(this, nameof(LoadRecreateFromUpstream)));
+                .Resolve(this, nameof(LoadRecreateFromUpstream));
 
             Field<BranchGroupTypeEnum>()
                 .Name(nameof(BranchGroup.BranchType))
-                .Resolve(Resolve(this, nameof(LoadBranchType)));
+                .Resolve(this, nameof(LoadBranchType));
 
 
             Field<ListGraphType<BranchGroupDetailsInterface>>()
                 .Name("directDownstream")
-                .Resolve(Resolve(this, nameof(DownstreamBranches)));
+                .Resolve(this, nameof(DownstreamBranches));
 
 
             Field<ListGraphType<BranchGroupDetailsInterface>>()
                 .Name("directUpstream")
-                .Resolve(Resolve(this, nameof(UpstreamBranches)));
+                .Resolve(this, nameof(UpstreamBranches));
 
             Field<ListGraphType<GitRefInterface>>()
                 .Name("branches")
-                .Resolve(Resolve(this, nameof(ActualBranches)));
+                .Resolve(this, nameof(ActualBranches));
 
             Field<GitRefInterface>()
                 .Name("latestBranch")
-                .Resolve(Resolve(this, nameof(LatestBranch)));
+                .Resolve(this, nameof(LatestBranch));
         }
 
         Task<bool?> LoadRecreateFromUpstream([Source] string name, [FromServices] Loaders loaders)

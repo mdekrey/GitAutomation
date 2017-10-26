@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
-using static GitAutomation.GraphQL.Utilities.Resolvers.Resolver;
 
 namespace GitAutomation.GraphQL
 {
@@ -23,21 +22,21 @@ namespace GitAutomation.GraphQL
                 .Name("mergeBase")
                 .Argument<NonNullGraphType<StringGraphType>>("commitish", "target of the merge base")
                 .Argument<NonNullGraphType<CommitishKindTypeEnum>>("kind", "the type of 'commitish'")
-                .Resolve(Resolve(this, nameof(MergeBase)));
+                .Resolve(this, nameof(MergeBase));
 
             Field<ListGraphType<CommitStatusInterface>>()
                 .Name("statuses")
-                .Resolve(Resolve(this, nameof(GetStatuses)));
+                .Resolve(this, nameof(GetStatuses));
 
             Field<ListGraphType<PullRequestInterface>>()
                 .Name("pullRequestsInto")
                 .Argument<StringGraphType>("target", "target of pull requests")
-                .Resolve(Resolve(this, nameof(PullRequestsInto)));
+                .Resolve(this, nameof(PullRequestsInto));
 
             Field<ListGraphType<PullRequestInterface>>()
                 .Name("pullRequestsFrom")
                 .Argument<StringGraphType>("source", "source of pull requests")
-                .Resolve(Resolve(this, nameof(PullRequestsFrom)));
+                .Resolve(this, nameof(PullRequestsFrom));
         }
 
         private Task<string> MergeBase([FromArgument] string commitish, [FromArgument] CommitishKind kind, [Source] GitRef gitRef, [FromServices] Loaders loaders)

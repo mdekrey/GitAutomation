@@ -1,5 +1,4 @@
 ﻿using GraphQL.Types;
-using static GitAutomation.GraphQL.Utilities.Resolvers.Resolver;
 using GitAutomation.GraphQL.Utilities.Resolvers;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
@@ -15,7 +14,7 @@ namespace GitAutomation.GraphQL
 
             Field<ListGraphType<NonNullGraphType<RoleInterface>>>()
                 .Name("users")
-                .Resolve(Resolve(this, nameof(LoadUsers)));
+                .Resolve(this, nameof(LoadUsers));
 
         }
 

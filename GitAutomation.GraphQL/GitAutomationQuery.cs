@@ -15,7 +15,6 @@ using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Reflection;
 using System.Threading.Tasks;
-using static GitAutomation.GraphQL.Utilities.Resolvers.Resolver;
 
 namespace GitAutomation.GraphQL
 {
@@ -28,41 +27,41 @@ namespace GitAutomation.GraphQL
             Field<BranchGroupDetailsInterface>()
                 .Name("branchGroup")
                 .Argument<NonNullGraphType<StringGraphType>>("name", "full name of the branch group")
-                .Resolve(Resolve(this, nameof(BranchByName)));
+                .Resolve(this, nameof(BranchByName));
 
             Field<ListGraphType<BranchGroupDetailsInterface>>()
                 .Name("configuredBranchGroups")
-                .Resolve(Resolve(this, nameof(BranchGroups)));
+                .Resolve(this, nameof(BranchGroups));
 
             Field<ListGraphType<GitRefInterface>>()
                 .Name("allActualBranches")
-                .Resolve(Resolve(this, nameof(AllGitRefs)));
+                .Resolve(this, nameof(AllGitRefs));
 
             Field<ListGraphType<NonNullGraphType<StringGraphType>>>()
                 .Name("currentRoles")
-                .Resolve(Resolve(this, nameof(CurrentRoles)));
+                .Resolve(this, nameof(CurrentRoles));
 
             Field<ListGraphType<ClaimInterface>>()
                 .Name("currentClaims")
-                .Resolve(Resolve(this, nameof(CurrentClaims)));
+                .Resolve(this, nameof(CurrentClaims));
 
             Field<ListGraphType<NonNullGraphType<UserInterface>>>()
                 .Name("users")
-                .Resolve(Resolve(this, nameof(GetUsers)));
+                .Resolve(this, nameof(GetUsers));
 
             Field<NonNullGraphType<UserInterface>>()
                 .Name("user")
                 .Argument<NonNullGraphType<StringGraphType>>("username", "username for the user")
-                .Resolve(Resolve(this, nameof(GetUser)));
+                .Resolve(this, nameof(GetUser));
 
             Field<ListGraphType<NonNullGraphType<RoleInterface>>>()
                 .Name("roles")
-                .Resolve(Resolve(this, nameof(GetRoles)));
+                .Resolve(this, nameof(GetRoles));
 
             Field<NonNullGraphType<RoleInterface>>()
                 .Name("role")
                 .Argument<NonNullGraphType<StringGraphType>>("role", "role to retrieve")
-                .Resolve(Resolve(this, nameof(GetRole)));
+                .Resolve(this, nameof(GetRole));
         }
 
         async Task<string> BranchByName([FromArgument] string name, [FromServices] IAuthorizationService authorizationService, [FromServices] IHttpContextAccessor httpContext)
