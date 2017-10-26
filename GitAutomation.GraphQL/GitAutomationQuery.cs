@@ -38,9 +38,31 @@ namespace GitAutomation.GraphQL
                 .Name("allActualBranches")
                 .Resolve(Resolve(this, nameof(AllGitRefs)));
 
-            Field<ListGraphType<PermissionEnumType>>()
-                .Name("currentPermissions")
-                .Resolve(Resolve(this, nameof(CurrentPermissions)));
+            Field<ListGraphType<NonNullGraphType<StringGraphType>>>()
+                .Name("currentRoles")
+                .Resolve(Resolve(this, nameof(CurrentRoles)));
+
+            Field<ListGraphType<ClaimInterface>>()
+                .Name("currentClaims")
+                .Resolve(Resolve(this, nameof(CurrentClaims)));
+
+            Field<ListGraphType<NonNullGraphType<UserInterface>>>()
+                .Name("users")
+                .Resolve(Resolve(this, nameof(GetUsers)));
+
+            Field<NonNullGraphType<UserInterface>>()
+                .Name("user")
+                .Argument<NonNullGraphType<StringGraphType>>("username", "username for the user")
+                .Resolve(Resolve(this, nameof(GetUser)));
+
+            Field<ListGraphType<NonNullGraphType<RoleInterface>>>()
+                .Name("roles")
+                .Resolve(Resolve(this, nameof(GetRoles)));
+
+            Field<NonNullGraphType<RoleInterface>>()
+                .Name("role")
+                .Argument<NonNullGraphType<StringGraphType>>("role", "role to retrieve")
+                .Resolve(Resolve(this, nameof(GetRole)));
         }
 
         async Task<string> BranchByName([FromArgument] string name, [FromServices] IAuthorizationService authorizationService, [FromServices] IHttpContextAccessor httpContext)
@@ -61,14 +83,44 @@ namespace GitAutomation.GraphQL
             return await loaders.LoadAllGitRefs().ConfigureAwait(false);
         }
 
-        Task<ImmutableList<Auth.Permission>> CurrentPermissions([FromServices] IHttpContextAccessor httpContext)
+        Task<ImmutableList<string>> CurrentRoles([FromServices] IHttpContextAccessor httpContext)
         {
             return Task.FromResult(
-                (from permission in Enum.GetValues(typeof(Auth.Permission)).Cast<Auth.Permission>()
-                 where httpContext.HttpContext.User.IsInRole(permission.ToString("g").ToLower())
-                 select permission).ToImmutableList()
+                (from claim in httpContext.HttpContext.User.Claims
+                 where claim.Type == Auth.Constants.PermissionType
+                 select claim.Value).ToImmutableList()
             );
         }
+
+        Task<ImmutableList<System.Security.Claims.Claim>> CurrentClaims([FromServices] IHttpContextAccessor httpContext)
+        {
+            return Task.FromResult(httpContext.HttpContext.User.Claims.ToImmutableList());
+        }
+
+        async Task<ImmutableList<string>> GetUsers([FromServices] Loaders loaders, [FromServices] IAuthorizationService authorizationService, [FromServices] IHttpContextAccessor httpContext)
+        {
+            await Authorize(authorizationService, httpContext, Auth.PolicyNames.Administrate).ConfigureAwait(false);
+            return await loaders.GetUsers().ConfigureAwait(false);
+        }
+
+        async Task<string> GetUser([FromArgument] string username, [FromServices] IAuthorizationService authorizationService, [FromServices] IHttpContextAccessor httpContext)
+        {
+            await Authorize(authorizationService, httpContext, Auth.PolicyNames.Administrate).ConfigureAwait(false);
+            return username;
+        }
+
+        async Task<ImmutableList<string>> GetRoles([FromServices] Loaders loaders, [FromServices] IAuthorizationService authorizationService, [FromServices] IHttpContextAccessor httpContext)
+        {
+            await Authorize(authorizationService, httpContext, Auth.PolicyNames.Administrate).ConfigureAwait(false);
+            return await loaders.GetRoles().ConfigureAwait(false);
+        }
+
+        async Task<string> GetRole([FromArgument] string role, [FromServices] IAuthorizationService authorizationService, [FromServices] IHttpContextAccessor httpContext)
+        {
+            await Authorize(authorizationService, httpContext, Auth.PolicyNames.Administrate).ConfigureAwait(false);
+            return role;
+        }
+
 
         private static async Task Authorize(IAuthorizationService authorizationService, IHttpContextAccessor httpContext, string policyName)
         {

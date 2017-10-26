@@ -19,6 +19,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddSingleton<IPrincipalValidation, EfPermissionManagement>();
             services.AddSingleton<IManageUserPermissions, EfPermissionManagement>();
+            services.AddScoped<IUserPermissionAccessor, EfPermissionAccessor>();
             services.AddSingleton<Func<IServiceProvider, SecurityContext>>(topServiceProvider =>
             {
                 SecurityContextFactory(topServiceProvider).Database.Migrate();

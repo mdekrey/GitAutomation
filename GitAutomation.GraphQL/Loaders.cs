@@ -11,6 +11,7 @@ using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using GitAutomation.GitService;
 using GitAutomation.GraphQL.Utilities;
+using GitAutomation.Auth;
 
 namespace GitAutomation.GraphQL
 {
@@ -18,14 +19,16 @@ namespace GitAutomation.GraphQL
     {
         private readonly DataLoaderContext loadContext;
         private readonly IBranchSettingsAccessor branchSettings;
+        private readonly IUserPermissionAccessor permissionAccessor;
         private readonly IRepositoryState repositoryState;
         private readonly IBranchIterationNamingConvention branchIteration;
         private readonly IGitServiceApi gitService;
 
-        public Loaders(IDataLoaderContextAccessor loadContextAccessor, IBranchSettingsAccessor branchSettings, IRepositoryState repositoryState, IBranchIterationNamingConvention branchIteration, IGitServiceApi gitService)
+        public Loaders(IDataLoaderContextAccessor loadContextAccessor, IBranchSettingsAccessor branchSettings, IUserPermissionAccessor permissionAccessor, IRepositoryState repositoryState, IBranchIterationNamingConvention branchIteration, IGitServiceApi gitService)
         {
             this.loadContext = loadContextAccessor.LoadContext;
             this.branchSettings = branchSettings;
+            this.permissionAccessor = permissionAccessor;
             this.repositoryState = repositoryState;
             this.branchIteration = branchIteration;
             this.gitService = gitService;
@@ -115,6 +118,32 @@ namespace GitAutomation.GraphQL
             var refs = await LoadActualBranches(name).ConfigureAwait(false);
             var latestName = branchIteration.GetLatestBranchNameIteration(name, refs.Select(n => n.Name));
             return refs.SingleOrDefault(r => r.Name == latestName);
+        }
+
+        internal Task<ImmutableList<string>> GetUsers()
+        {
+            return loadContext.Factory.GetOrCreateLoader("GetAllUsers", () => permissionAccessor.GetUsers()).LoadAsync();
+        }
+
+        internal Task<ImmutableList<string>> LoadUsers(string role)
+        {
+            return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetUsersByRole", async keys => {
+                var result = await permissionAccessor.GetUsersByRole(keys.ToArray());
+                return keys.ToDictionary(e => e, e => result.ContainsKey(e) ? result[e] : ImmutableList<string>.Empty);
+            }).LoadAsync(role);
+        }
+
+        internal Task<ImmutableList<string>> GetRoles()
+        {
+            return loadContext.Factory.GetOrCreateLoader("GetAllRoles", () => permissionAccessor.GetRoles()).LoadAsync();
+        }
+
+        internal Task<ImmutableList<string>> LoadRoles(string username)
+        {
+            return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetRolesByUser", async keys => {
+                var result = await permissionAccessor.GetRolesByUser(keys.ToArray());
+                return result.ToDictionary(e => e.Key, e => e.Value);
+            }).LoadAsync(username);
         }
 
     }
