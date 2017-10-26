@@ -20,6 +20,7 @@ const jsonMimeType = {
   "Content-Type": "application/json"
 };
 
+// TODO - provide "dataloader" like functionality on this side to combine queries
 export const graphQl = <TResult>(
   query: string,
   variables: Record<string, any> | null = null

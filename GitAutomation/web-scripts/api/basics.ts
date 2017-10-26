@@ -22,9 +22,25 @@ export const signOut = () =>
   );
 
 export const allUsers = () =>
-  Observable.ajax("/api/authenticationManagement/all-users").map(
-    response => response.response as Record<string, string[]>
-  );
+  graphQl<Pick<GitAutomationGQL.IQuery, "users">>(`
+{
+  users {
+    username
+    roles {
+      role
+    }
+  }
+}
+  `).map(r => r.users);
+
+export const allRoles = () =>
+  graphQl<{ roles: { role: string }[] }>(`
+{
+  roles {
+    role
+  }
+}
+  `).map(r => r.roles);
 
 export const updateUser = (userName: string, body: IUpdateUserRequestBody) =>
   Observable.ajax

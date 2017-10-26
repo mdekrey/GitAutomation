@@ -19,14 +19,7 @@ namespace GitAutomation.Auth
             this.unitOfWorkFactory = unitOfWorkFactory;
             this.permissions = permissions;
         }
-
-        [Authorize(Auth.PolicyNames.Administrate)]
-        [HttpGet("all-users")]
-        public async Task<IActionResult> GetAllUsers()
-        {
-            return Ok(await permissions.GetUsersAndRoles());
-        }
-
+        
         [Authorize(Auth.PolicyNames.Administrate)]
         [HttpPut("user/{*userName}")]
         public async Task<IActionResult> UpdateUser(string userName, [FromBody] UpdateUserRequestBody requestBody)

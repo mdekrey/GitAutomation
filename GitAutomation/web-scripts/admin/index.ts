@@ -1,4 +1,10 @@
-import { Observable, Subject, Subscription } from "../utils/rxjs";
+import { indexBy } from "../utils/ramda";
+import {
+  BehaviorSubject,
+  Observable,
+  Subject,
+  Subscription
+} from "../utils/rxjs";
 import { Selection, select as d3select } from "d3-selection";
 
 import {
@@ -9,22 +15,17 @@ import {
 } from "../utils/presentation/d3-binding";
 
 import { RoutingComponent } from "../utils/routing-component";
-import { allUsers, updateUser } from "../api/basics";
+import { allUsers, allRoles, updateUser } from "../api/basics";
 import { IUpdateUserRequestBody } from "../api/update-user";
 
 const updateUserData = new Subject<
   { userName: string } & IUpdateUserRequestBody
 >();
-const freshUserData = new Subject<Record<string, string[]>>();
-const userData = allUsers().merge(freshUserData);
-const permissions = [
-  "read",
-  "create",
-  "delete",
-  "update",
-  "approve",
-  "administrate"
-];
+const freshUserData = new BehaviorSubject<null>(null);
+const userData = freshUserData.switchMap(v =>
+  allUsers().map(indexBy(user => user.username))
+);
+const permissions = allRoles().map(roles => roles.map(({ role }) => role));
 
 export const admin = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -42,13 +43,13 @@ export const admin = (
             .switchMap(({ userName, addRoles, removeRoles }) =>
               updateUser(userName, { addRoles, removeRoles })
             )
-            .subscribe(result => freshUserData.next(result))
+            .subscribe(result => freshUserData.next(null))
         );
 
         subscription.add(
           rxData(
             body.map(fnSelect(`[data-locator="users"] thead tr`)),
-            Observable.of(permissions)
+            permissions
           )
             .bind<HTMLTableHeaderCellElement>({
               onCreate: target =>
@@ -71,7 +72,7 @@ export const admin = (
               Object.keys(record)
                 .map(key => ({
                   userName: key,
-                  roles: record[key]
+                  roles: record[key].roles.map(({ role }) => role)
                 }))
                 .concat([{ userName: "", roles: [] }])
             ),
@@ -124,39 +125,41 @@ export const admin = (
                   });
               }
             })
-            .do(selection =>
-              bind({
-                target: selection
-                  .selectAll<HTMLTableCellElement, any>(
-                    `td[data-locator="user-permission"]`
-                  )
-                  .data(({ userName, roles }) =>
-                    permissions.map(permission => ({
-                      permission,
-                      userName,
-                      hasPermission: roles.indexOf(permission) !== -1
-                    }))
-                  ),
-                onCreate: target =>
-                  target
-                    .insert<HTMLTableCellElement>(
-                      "td",
-                      `[data-locator="actions"]`
+            .switchMap(selection =>
+              permissions.map(permissions =>
+                bind({
+                  target: selection
+                    .selectAll<HTMLTableCellElement, any>(
+                      `td[data-locator="user-permission"]`
                     )
-                    .attr("data-locator", "user-permission"),
-                onEnter: target => target.html(`<input type="checkbox"/>`),
-                onEach: target => {
-                  target
-                    .select("input")
-                    .property("checked", data => data.hasPermission)
-                    .attr("data-role", ({ permission }) => permission)
-                    .attr(
-                      "data-locator",
-                      ({ userName, permission }) =>
-                        `${userName}-has-${permission}`
-                    );
-                }
-              })
+                    .data(({ userName, roles }) =>
+                      permissions.map(permission => ({
+                        permission,
+                        userName,
+                        hasPermission: roles.indexOf(permission) !== -1
+                      }))
+                    ),
+                  onCreate: target =>
+                    target
+                      .insert<HTMLTableCellElement>(
+                        "td",
+                        `[data-locator="actions"]`
+                      )
+                      .attr("data-locator", "user-permission"),
+                  onEnter: target => target.html(`<input type="checkbox"/>`),
+                  onEach: target => {
+                    target
+                      .select("input")
+                      .property("checked", data => data.hasPermission)
+                      .attr("data-role", ({ permission }) => permission)
+                      .attr(
+                        "data-locator",
+                        ({ userName, permission }) =>
+                          `${userName}-has-${permission}`
+                      );
+                  }
+                })
+              )
             )
             .subscribe()
         );
