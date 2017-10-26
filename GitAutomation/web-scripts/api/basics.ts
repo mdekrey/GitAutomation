@@ -3,11 +3,18 @@ import { OutputMessage } from "./output-message";
 import { BranchGroup } from "./basic-branch";
 import { ClaimDetails } from "./claim-details";
 import { IUpdateUserRequestBody } from "./update-user";
+import { graphQl } from "./graphql";
 
 export const currentClaims = () =>
-  Observable.ajax("/api/authentication/claims").map(
-    response => response.response as ClaimDetails
-  );
+  graphQl<ClaimDetails>(`
+{
+  claims: currentClaims {
+    type
+    value
+  }
+  roles: currentRoles
+}
+`);
 
 export const signOut = () =>
   Observable.ajax("/api/authentication/sign-out").map(

@@ -1,4 +1,4 @@
 export interface ClaimDetails {
-  claims: { type: string; value: string }[];
+  claims: GitAutomationGQL.IClaimInterface[];
   roles: string[];
 }

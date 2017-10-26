@@ -29,23 +29,5 @@ namespace GitAutomation.Auth
         {
             return this.SignOut(CookieAuthenticationDefaults.AuthenticationScheme);
         }
-
-        [HttpGet("claims")]
-        public async Task<IActionResult> GetClaims([FromServices] Work.IUnitOfWorkFactory workFactory)
-        {
-            var manageUserPermissions = HttpContext.RequestServices.GetService<IManageUserPermissions>();
-            if (User.Identity.IsAuthenticated && manageUserPermissions != null)
-            {
-                using (var work = workFactory.CreateUnitOfWork())
-                {
-                    manageUserPermissions.RecordUser(User.Identity.Name, work);
-                    await work.CommitAsync();
-                }
-            }
-            return Ok(new {
-                Claims = User.Claims.Select(claim => new { Type = claim.Type, Value = claim.Value }),
-                Roles = User.Claims.Where(claim => claim.Type == Constants.PermissionType).Select(claim => claim.Value),
-            });
-        }
     }
 }
