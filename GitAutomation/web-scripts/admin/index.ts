@@ -1,4 +1,3 @@
-import { indexBy } from "../utils/ramda";
 import {
   BehaviorSubject,
   Observable,
@@ -22,9 +21,7 @@ const updateUserData = new Subject<
   { userName: string } & IUpdateUserRequestBody
 >();
 const freshUserData = new BehaviorSubject<null>(null);
-const userData = freshUserData.switchMap(v =>
-  allUsers().map(indexBy(user => user.username))
-);
+const userData = freshUserData.switchMap(v => allUsers());
 const permissions = allRoles().map(roles => roles.map(({ role }) => role));
 
 export const admin = (
@@ -68,15 +65,8 @@ export const admin = (
         subscription.add(
           rxData(
             body.map(fnSelect(`[data-locator="users"] tbody`)),
-            userData.map(record =>
-              Object.keys(record)
-                .map(key => ({
-                  userName: key,
-                  roles: record[key].roles.map(({ role }) => role)
-                }))
-                .concat([{ userName: "", roles: [] }])
-            ),
-            data => data.userName
+            userData.map(users => users.concat([{ username: "", roles: [] }])),
+            data => data.username
           )
             .bind<HTMLTableRowElement>({
               onCreate: target => target.append<HTMLTableRowElement>("tr"),
@@ -87,12 +77,12 @@ export const admin = (
                   .select(`[data-locator="user-name"]`)
                   .attr(
                     "data-locator",
-                    row => (row.userName ? "user-name-value" : null)
+                    row => (row.username ? "user-name-value" : null)
                   )
                   .html(
                     row =>
-                      row.userName
-                        ? row.userName
+                      row.username
+                        ? row.username
                         : `<input type="text" data-locator="user-name-value" />`
                   );
                 tr
@@ -132,10 +122,10 @@ export const admin = (
                     .selectAll<HTMLTableCellElement, any>(
                       `td[data-locator="user-permission"]`
                     )
-                    .data(({ userName, roles }) =>
+                    .data(({ username, roles }) =>
                       permissions.map(permission => ({
                         permission,
-                        userName,
+                        username,
                         hasPermission: roles.indexOf(permission) !== -1
                       }))
                     ),
@@ -154,8 +144,8 @@ export const admin = (
                       .attr("data-role", ({ permission }) => permission)
                       .attr(
                         "data-locator",
-                        ({ userName, permission }) =>
-                          `${userName}-has-${permission}`
+                        ({ username, permission }) =>
+                          `${username}-has-${permission}`
                       );
                   }
                 })

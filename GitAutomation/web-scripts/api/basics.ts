@@ -38,7 +38,12 @@ export const allUsers = () =>
         }
       }
     `
-  }).map(r => r.users);
+  }).map(r =>
+    r.users.map(user => ({
+      username: user.username,
+      roles: user.roles.map(({ role }) => role)
+    }))
+  );
 
 export const allRoles = () =>
   graphQl<{ roles: { role: string }[] }>({
@@ -48,7 +53,8 @@ export const allRoles = () =>
           role
         }
       }
-    `
+    `,
+    pollInterval: 0
   }).map(r => r.roles);
 
 export const updateUser = (userName: string, body: IUpdateUserRequestBody) =>
