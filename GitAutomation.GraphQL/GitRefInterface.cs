@@ -24,16 +24,16 @@ namespace GitAutomation.GraphQL
                 .Argument<NonNullGraphType<CommitishKindTypeEnum>>("kind", "the type of 'commitish'")
                 .Resolve(this, nameof(MergeBase));
 
-            Field<ListGraphType<CommitStatusInterface>>()
+            Field<NonNullGraphType<ListGraphType<CommitStatusInterface>>>()
                 .Name("statuses")
                 .Resolve(this, nameof(GetStatuses));
 
-            Field<ListGraphType<PullRequestInterface>>()
+            Field<NonNullGraphType<ListGraphType<PullRequestInterface>>>()
                 .Name("pullRequestsInto")
                 .Argument<StringGraphType>("target", "target of pull requests")
                 .Resolve(this, nameof(PullRequestsInto));
 
-            Field<ListGraphType<PullRequestInterface>>()
+            Field<NonNullGraphType<ListGraphType<PullRequestInterface>>>()
                 .Name("pullRequestsFrom")
                 .Argument<StringGraphType>("source", "source of pull requests")
                 .Resolve(this, nameof(PullRequestsFrom));

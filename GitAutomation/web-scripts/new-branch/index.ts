@@ -3,7 +3,7 @@ import { Selection } from "d3-selection";
 
 import { RoutingComponent } from "../utils/routing-component";
 import { rxEvent, fnSelect, rxData } from "../utils/presentation/d3-binding";
-import { allBranches } from "../api/basics";
+import { allBranchGroups } from "../api/basics";
 import { buildBranchCheckListing } from "./branch-check-listing";
 import { bindSaveButton } from "./bind-save-button";
 
@@ -34,7 +34,9 @@ export const newBranch = (
         subscription.add(
           rxData(
             container.map(fnSelect(`[data-locator="upstream-branches"]`)),
-            allBranches()
+            allBranchGroups().map(groups =>
+              groups.map(({ groupName }) => ({ groupName }))
+            )
           )
             .bind<HTMLLIElement>(buildBranchCheckListing())
             .subscribe()

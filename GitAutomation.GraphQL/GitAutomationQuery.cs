@@ -24,16 +24,16 @@ namespace GitAutomation.GraphQL
         {
             Name = "Query";
 
-            Field<BranchGroupDetailsInterface>()
+            Field<NonNullGraphType<BranchGroupDetailsInterface>>()
                 .Name("branchGroup")
                 .Argument<NonNullGraphType<StringGraphType>>("name", "full name of the branch group")
                 .Resolve(this, nameof(BranchByName));
 
-            Field<ListGraphType<BranchGroupDetailsInterface>>()
+            Field<NonNullGraphType<ListGraphType<BranchGroupDetailsInterface>>>()
                 .Name("configuredBranchGroups")
                 .Resolve(this, nameof(BranchGroups));
 
-            Field<ListGraphType<GitRefInterface>>()
+            Field<NonNullGraphType<ListGraphType<GitRefInterface>>>()
                 .Name("allActualBranches")
                 .Resolve(this, nameof(AllGitRefs));
 
@@ -41,7 +41,7 @@ namespace GitAutomation.GraphQL
                 .Name("currentRoles")
                 .Resolve(this, nameof(CurrentRoles));
 
-            Field<ListGraphType<ClaimInterface>>()
+            Field<NonNullGraphType<ListGraphType<ClaimInterface>>>()
                 .Name("currentClaims")
                 .Resolve(this, nameof(CurrentClaims));
 

@@ -10,7 +10,7 @@ namespace GitAutomation.GraphQL
             Field(r => r.Description);
             Field(r => r.Url);
 
-            Field<CommitStatusStateTypeEnum>()
+            Field<NonNullGraphType<CommitStatusStateTypeEnum>>()
                 .Name(nameof(GitService.CommitStatus.State))
                 .Resolve(ctx => ctx.Source.State);
         }

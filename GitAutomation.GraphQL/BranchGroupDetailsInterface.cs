@@ -18,25 +18,25 @@ namespace GitAutomation.GraphQL
             Field(nameof(BranchGroup.GroupName), d => d)
                 .Description("The full name of the group.");
 
-            Field<BooleanGraphType>()
+            Field<NonNullGraphType<BooleanGraphType>>()
                 .Name(nameof(BranchGroup.RecreateFromUpstream))
                 .Resolve(this, nameof(LoadRecreateFromUpstream));
 
-            Field<BranchGroupTypeEnum>()
+            Field<NonNullGraphType<BranchGroupTypeEnum>>()
                 .Name(nameof(BranchGroup.BranchType))
                 .Resolve(this, nameof(LoadBranchType));
 
 
-            Field<ListGraphType<BranchGroupDetailsInterface>>()
+            Field<NonNullGraphType<ListGraphType<BranchGroupDetailsInterface>>>()
                 .Name("directDownstream")
                 .Resolve(this, nameof(DownstreamBranches));
 
 
-            Field<ListGraphType<BranchGroupDetailsInterface>>()
+            Field<NonNullGraphType<ListGraphType<BranchGroupDetailsInterface>>>()
                 .Name("directUpstream")
                 .Resolve(this, nameof(UpstreamBranches));
 
-            Field<ListGraphType<GitRefInterface>>()
+            Field<NonNullGraphType<ListGraphType<GitRefInterface>>>()
                 .Name("branches")
                 .Resolve(this, nameof(ActualBranches));
 

@@ -1,10 +1,9 @@
 import { IRxBindProps } from "../utils/presentation/d3-binding";
-import { BranchGroup } from "../api/basic-branch";
 import { branchNameDisplay } from "../branch-name-display";
 
 export const buildBranchCheckListing = (): IRxBindProps<
   HTMLLIElement,
-  BranchGroup,
+  Pick<GitAutomationGQL.IBranchGroupDetails, "groupName">,
   any,
   any
 > => ({

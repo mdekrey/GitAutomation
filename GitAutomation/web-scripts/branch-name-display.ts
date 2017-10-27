@@ -1,9 +1,13 @@
 import { Selection } from "d3-selection";
-import { BranchGroup } from "./api/basic-branch";
 import { bind } from "./utils/presentation/d3-binding";
 
 export const branchNameDisplay = (
-  target: Selection<any, BranchGroup, any, any>
+  target: Selection<
+    any,
+    Pick<GitAutomationGQL.IBranchGroupDetails, "groupName">,
+    any,
+    any
+  >
 ) =>
   bind({
     target: target
@@ -20,14 +24,15 @@ export const branchNameDisplay = (
       selection
         .select(`span[data-locator="name"]`)
         .text(data => data.groupName);
-      selection
-        .select(`span[data-locator="status"]`)
-        // TODO - styling around this
-        .text(
-          data =>
-            (data.statuses || []).length
-              ? `(${data.statuses[0].state})`
-              : "(No status)"
-        );
+      // TODO - restore status
+      // selection
+      //   .select(`span[data-locator="status"]`)
+      //   // TODO - styling around this
+      //   .text(
+      //     data =>
+      //       (data.statuses || []).length
+      //         ? `(${data.statuses[0].state})`
+      //         : "(No status)"
+      //   );
     }
   });

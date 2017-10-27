@@ -4,6 +4,7 @@ import { BranchGroup } from "./basic-branch";
 import { ClaimDetails } from "./claim-details";
 import { IUpdateUserRequestBody } from "./update-user";
 import { graphQl } from "./graphql";
+import { flatten } from "../utils/ramda";
 
 export const currentClaims = () =>
   graphQl<ClaimDetails>(`
@@ -55,10 +56,50 @@ export const actionQueue = () =>
       response.response as { actionType: string; parameters: string[] }[]
   );
 
-export const allBranches = () =>
-  Observable.ajax("/api/management/all-branches").map(
-    response => response.response as BranchGroup[]
-  );
+type AllBranchesQuery = {
+  allActualBranches: GitAutomationGQL.IGitRef[];
+  configuredBranchGroups: Pick<
+    GitAutomationGQL.IBranchGroupDetails,
+    "groupName" | "branchType" | "latestBranch" | "branches"
+  >[];
+};
+
+export const allBranchGroups = () =>
+  graphQl<AllBranchesQuery>(`
+{
+  allActualBranches {
+    name
+    commit
+  }
+  configuredBranchGroups {
+    groupName
+    branchType
+    latestBranch {
+      name
+    }
+    branches {
+      name
+      commit
+    }
+  }
+}
+`).map(result => {
+    const configuredBranches = flatten<string>(
+      result.configuredBranchGroups.map(g => g.branches.map(b => b.name))
+    );
+    const nonConfiguredBranches = result.allActualBranches.filter(
+      b => configuredBranches.indexOf(b.name) === -1
+    );
+    return [
+      ...result.configuredBranchGroups,
+      ...nonConfiguredBranches.map(branch => ({
+        groupName: branch.name,
+        branchType: "Feature" as GitAutomationGQL.IBranchGroupTypeEnum,
+        latestBranch: { name: branch.name },
+        branches: [branch]
+      }))
+    ];
+  });
 
 export const allBranchesHierarchy = () =>
   Observable.ajax("/api/management/all-branches/hierarchy").map(

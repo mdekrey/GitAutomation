@@ -11,14 +11,13 @@ import {
 import { RoutingComponent } from "../utils/routing-component";
 import {
   getLog,
-  allBranches,
+  allBranchGroups,
   fetch,
   actionQueue,
   signOut,
   allBranchesHierarchy
 } from "../api/basics";
 import { logPresentation } from "../logs/log.presentation";
-import { BranchGroup } from "../api/basic-branch";
 import { branchHierarchy } from "./branch-hierarchy";
 import { branchNameDisplay } from "../branch-name-display";
 
@@ -99,7 +98,13 @@ export const homepage = (
 
         // display branches
         subscription.add(
-          rxData<BranchGroup, HTMLUListElement>(
+          rxData<
+            Pick<
+              GitAutomationGQL.IBranchGroupDetails,
+              "groupName" | "branches"
+            >,
+            HTMLUListElement
+          >(
             body.map(fnSelect(`[data-locator="remote-branches"]`)),
             rxEvent({
               target: body.map(
@@ -108,7 +113,7 @@ export const homepage = (
               eventName: "click"
             })
               .startWith(null)
-              .switchMap(() => allBranches())
+              .switchMap(() => allBranchGroups())
           )
             .bind<HTMLLIElement>({
               onCreate: target =>

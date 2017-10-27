@@ -1,18 +1,23 @@
 import { Observable, Subscription } from "../utils/rxjs";
 
-import { allBranches, branchDetails } from "../api/basics";
-import { BranchGroup, CommitRef } from "../api/basic-branch";
+import { allBranchGroups, branchDetails } from "../api/basics";
 
 export interface IManageBranch {
   isLoading: boolean;
   recreateFromUpstream: boolean;
   branchType: string;
   branches: IBranchData[];
-  actualBranches: CommitRef[];
+  actualBranches: Pick<GitAutomationGQL.IGitRef, "name" | "commit">[];
   latestBranchName: string | null;
 }
 
-export interface IBranchData extends BranchGroup {
+export interface IBranchData {
+  groupName: string;
+  branchType: GitAutomationGQL.IBranchGroupTypeEnum;
+  latestBranch: {
+    name: string;
+  } | null;
+  branches: GitAutomationGQL.IGitRef[];
   isDownstream: boolean;
   isUpstream: boolean;
   isSomewhereUpstream: boolean;
@@ -23,7 +28,7 @@ export interface IBranchData extends BranchGroup {
 export const runBranchData = (branchName: string, reload: Observable<any>) => {
   const subscription = new Subscription();
 
-  const initializeBranchData = allBranches()
+  const initializeBranchData = allBranchGroups()
     .combineLatest(branchDetails(branchName), (allBranches, branchDetails) => {
       const directDownstreamBranches =
         branchDetails.directDownstreamBranchGroups;
