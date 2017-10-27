@@ -4,7 +4,7 @@ import { OutputMessage } from "./output-message";
 import { BranchGroup } from "./basic-branch";
 import { ClaimDetails } from "./claim-details";
 import { IUpdateUserRequestBody } from "./update-user";
-import { graphQl } from "./graphql";
+import { graphQl, invalidateQuery } from "./graphql";
 import { flatten } from "../utils/ramda";
 
 export const currentClaims = () =>
@@ -62,6 +62,18 @@ export const updateUser = (userName: string, body: IUpdateUserRequestBody) =>
     .put("/api/authenticationManagement/user/" + userName, body, {
       "Content-Type": "application/json"
     })
+    .do(() =>
+      invalidateQuery(gql`
+        {
+          users {
+            username
+            roles {
+              role
+            }
+          }
+        }
+      `)
+    )
     .map(response => response.response as Record<string, string[]>);
 
 export const actionQueue = () =>

@@ -1,6 +1,7 @@
 import { Observable } from "../utils/rxjs";
 import { ApolloClient, HttpLink, InMemoryCache } from "apollo-client-preset";
 import { ApolloQueryResult, WatchQueryOptions } from "apollo-client";
+import { DocumentNode } from "graphql";
 
 const client = new ApolloClient({
   link: new HttpLink({
@@ -33,3 +34,6 @@ export const graphQl = <TResult>(options: WatchQueryOptions) =>
     }
     throw new GraphQLError(response);
   });
+
+export const invalidateQuery = (query: DocumentNode) =>
+  client.query({ query, fetchPolicy: "network-only" });
