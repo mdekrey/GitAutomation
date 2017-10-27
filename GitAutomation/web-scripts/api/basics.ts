@@ -8,15 +8,18 @@ import { graphQl } from "./graphql";
 import { flatten } from "../utils/ramda";
 
 export const currentClaims = () =>
-  graphQl<ClaimDetails>(gql`
-    {
-      claims: currentClaims {
-        type
-        value
+  graphQl<ClaimDetails>({
+    query: gql`
+      {
+        claims: currentClaims {
+          type
+          value
+        }
+        roles: currentRoles
       }
-      roles: currentRoles
-    }
-  `);
+    `,
+    pollInterval: 60000
+  });
 
 export const signOut = () =>
   Observable.ajax("/api/authentication/sign-out").map(
@@ -24,25 +27,29 @@ export const signOut = () =>
   );
 
 export const allUsers = () =>
-  graphQl<Pick<GitAutomationGQL.IQuery, "users">>(gql`
-    {
-      users {
-        username
+  graphQl<Pick<GitAutomationGQL.IQuery, "users">>({
+    query: gql`
+      {
+        users {
+          username
+          roles {
+            role
+          }
+        }
+      }
+    `
+  }).map(r => r.users);
+
+export const allRoles = () =>
+  graphQl<{ roles: { role: string }[] }>({
+    query: gql`
+      {
         roles {
           role
         }
       }
-    }
-  `).map(r => r.users);
-
-export const allRoles = () =>
-  graphQl<{ roles: { role: string }[] }>(gql`
-    {
-      roles {
-        role
-      }
-    }
-  `).map(r => r.roles);
+    `
+  }).map(r => r.roles);
 
 export const updateUser = (userName: string, body: IUpdateUserRequestBody) =>
   Observable.ajax
@@ -66,25 +73,27 @@ type AllBranchesQuery = {
 };
 
 export const allBranchGroups = () =>
-  graphQl<AllBranchesQuery>(gql`
-    {
-      allActualBranches {
-        name
-        commit
-      }
-      configuredBranchGroups {
-        groupName
-        branchType
-        latestBranch {
-          name
-        }
-        branches {
+  graphQl<AllBranchesQuery>({
+    query: gql`
+      {
+        allActualBranches {
           name
           commit
         }
+        configuredBranchGroups {
+          groupName
+          branchType
+          latestBranch {
+            name
+          }
+          branches {
+            name
+            commit
+          }
+        }
       }
-    }
-  `).map(result => {
+    `
+  }).map(result => {
     const configuredBranches = flatten<string>(
       result.configuredBranchGroups.map(g => g.branches.map(b => b.name))
     );
