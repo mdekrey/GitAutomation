@@ -38,13 +38,17 @@ namespace GitAutomation.GraphQL.Utilities
             });
         }
 
-        private Inputs GetInputs(string variables)
+        private Inputs GetInputs(Object variables)
         {
             try
             {
-                if (variables != null)
+                if (variables is IDictionary<string, Object> vars)
                 {
-                    return Newtonsoft.Json.JsonConvert.DeserializeObject<Inputs>(variables);
+                    return new Inputs(vars);
+                }
+                else if (variables is string s)
+                {
+                    return Newtonsoft.Json.JsonConvert.DeserializeObject<Inputs>(s);
                 }
             }
             catch

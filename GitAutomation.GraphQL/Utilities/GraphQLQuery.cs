@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GraphQL;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -9,7 +10,7 @@ namespace GitAutomation.GraphQL.Utilities
         public string OperationName { get; set; }
         public string NamedQuery { get; set; }
         public string Query { get; set; }
-        public string Variables { get; set; }
+        public Object Variables { get; set; }
 
         public override string ToString()
         {
@@ -27,9 +28,17 @@ namespace GitAutomation.GraphQL.Utilities
             {
                 builder.AppendLine($"Query = {Query}");
             }
-            if (!string.IsNullOrWhiteSpace(Variables))
+            if (Variables != null)
             {
-                builder.AppendLine($"Variables = {Variables}");
+                if (Variables is string s)
+                {
+                    builder.AppendLine($"Variables = {s}");
+                }
+                else
+                {
+                    builder.AppendLine($"Variables = {Newtonsoft.Json.JsonConvert.SerializeObject(Variables)}");
+
+                }
             }
 
             return builder.ToString();
