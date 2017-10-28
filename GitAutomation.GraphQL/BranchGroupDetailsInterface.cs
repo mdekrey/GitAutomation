@@ -63,9 +63,10 @@ namespace GitAutomation.GraphQL
                 });
         }
 
-        Task<ImmutableList<string>> DownstreamBranches([Source] string name, [FromServices] Loaders loaders)
+        async Task<ImmutableList<string>> DownstreamBranches([Source] string name, [FromServices] Loaders loaders)
         {
-            return loaders.LoadDownstreamBranches(name);
+            var result = await loaders.LoadDownstreamBranches(name).ConfigureAwait(false);
+            return result;
         }
 
         Task<ImmutableList<string>> UpstreamBranches([Source] string name, [FromServices] Loaders loaders)
@@ -78,7 +79,7 @@ namespace GitAutomation.GraphQL
             return loaders.LoadActualBranches(name);
         }
 
-        Task<GitRef> LatestBranch([Source] string name, [FromServices] Loaders loaders)
+        Task<GitRef?> LatestBranch([Source] string name, [FromServices] Loaders loaders)
         {
             return loaders.LoadLatestBranch(name);
         }

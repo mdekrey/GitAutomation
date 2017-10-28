@@ -1,5 +1,5 @@
 import { Observable, Subject, Subscription } from "../utils/rxjs";
-import { any, equals, flatten, indexBy } from "../utils/ramda";
+import { any, equals, flatten, values } from "../utils/ramda";
 import { Selection, event as d3event, mouse as d3mouse } from "d3-selection";
 import {
   forceLink,
@@ -19,14 +19,14 @@ import {
   fnSelect
 } from "../utils/presentation/d3-binding";
 
-import { BranchGroup } from "../api/basic-branch";
+import { BranchGroupWithHierarchy } from "../api/basic-branch";
 import { branchTypeColors } from "../style/branch-colors";
 import { ICascadingRoutingStrategy } from "../routing/index";
 import { BranchType } from "../api/basic-branch";
 
 import * as branchHierarchyHtml from "./branch-hierarchy.html";
 
-interface NodeDatum extends BranchGroup, SimulationNodeDatum {
+interface NodeDatum extends BranchGroupWithHierarchy, SimulationNodeDatum {
   branchColor: string;
   showLabel?: boolean;
 }
@@ -49,7 +49,7 @@ export function branchHierarchy({
 }: {
   target: Observable<Selection<SVGSVGElement, any, any, any>>;
   state: ICascadingRoutingStrategy<any>;
-  data: Observable<BranchGroup[]>;
+  data: Observable<Record<string, BranchGroupWithHierarchy>>;
 }) {
   return Observable.create(() => {
     const subscription = new Subscription();
@@ -57,7 +57,7 @@ export function branchHierarchy({
 
     const branchCounter: Partial<Record<BranchType, number>> = {};
 
-    function getBranchColor(branchType: BranchType) {
+    function getBranchColor(branchType: GitAutomationGQL.IBranchGroupTypeEnum) {
       const counter = branchCounter[branchType] || 0;
       branchCounter[branchType] =
         (counter + 1) % branchTypeColors[branchType].length;
@@ -73,11 +73,7 @@ export function branchHierarchy({
     const data = hierarchyData
       .scan(
         ({ nodes: previousNodes }, allBranches) => {
-          const groupLookup = indexBy(b => b.groupName, allBranches) as Record<
-            string,
-            BranchGroup
-          >;
-          const nodes = allBranches.map((branch, index): NodeDatum => {
+          const nodes = values(allBranches).map((branch, index): NodeDatum => {
             const previous = previousNodes.find(
               node => node.groupName === branch.groupName
             );
@@ -94,16 +90,16 @@ export function branchHierarchy({
           const links = flatten<
             AdditionalLinkData & SimulationLinkDatum<NodeDatum>
           >(
-            allBranches.map((branch, source) =>
-              branch.downstreamBranchGroups.map(downstream => ({
+            values(allBranches).map((branch, source) =>
+              branch.directDownstream.map(downstream => ({
                 source,
                 target: nodes.find(branch => branch.groupName === downstream)!,
                 linkIntensity: any(
                   downstreamBranch =>
-                    groupLookup[
-                      downstreamBranch
-                    ]!.downstreamBranchGroups.indexOf(downstream) !== -1,
-                  branch.downstreamBranchGroups
+                    allBranches[downstreamBranch]!.downstream.indexOf(
+                      downstream
+                    ) !== -1,
+                  branch.downstream
                 )
                   ? 0.2
                   : 1

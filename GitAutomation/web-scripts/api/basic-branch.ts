@@ -23,16 +23,12 @@ export interface CommitRef {
   commit: string;
 }
 
-export interface BranchGroup {
-  recreateFromUpstream: boolean;
-  branchType: BranchType;
+export interface BranchGroupWithHierarchy {
+  branchType: GitAutomationGQL.IBranchGroupTypeEnum;
   groupName: string;
-  branches: CommitRef[];
-  latestBranchName: string | null;
-  directDownstreamBranchGroups: string[];
-  downstreamBranchGroups: string[];
-  directUpstreamBranchGroups: string[];
-  upstreamBranchGroups: string[];
+  directDownstream: string[];
+  downstream: string[];
+  directUpstream: string[];
+  upstream: string[];
   hierarchyDepth: number;
-  statuses: CommitStatus[];
 }

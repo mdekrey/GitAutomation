@@ -54,7 +54,7 @@ namespace GitAutomation.GraphQL
 
         internal Task<string> GetMergeBaseOfCommitAndGroup(string commit, string group)
         {
-            return LoadLatestBranch(group).ContinueWith(t => GetMergeBaseOfCommits(commit, t.Result.Commit)).Unwrap();
+            return LoadLatestBranch(group).ContinueWith(t => GetMergeBaseOfCommits(commit, t.Result?.Commit)).Unwrap();
         }
 
         internal Task<string> GetMergeBaseOfCommits(string commit1, string commit2)
@@ -80,7 +80,7 @@ namespace GitAutomation.GraphQL
         {
             return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetDownstreamBranchGroups", async keys => {
                 var result = await branchSettings.GetDownstreamBranchGroups(keys.ToArray());
-                return result.ToDictionary(e => e.Key, e => e.Value);
+                return keys.ToDictionary(k => k, key => result.ContainsKey(key) ? result[key] : ImmutableList<string>.Empty);
             }).LoadAsync(name);
         }
 
@@ -88,7 +88,7 @@ namespace GitAutomation.GraphQL
         {
             return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetUpstreamBranchGroups", async keys => {
                 var result = await branchSettings.GetUpstreamBranchGroups(keys.ToArray());
-                return result.ToDictionary(e => e.Key, e => e.Value);
+                return keys.ToDictionary(k => k, key => result.ContainsKey(key) ? result[key] : ImmutableList<string>.Empty);
             }).LoadAsync(name);
         }
 
@@ -113,11 +113,11 @@ namespace GitAutomation.GraphQL
                     select branch).ToImmutableList();
         }
 
-        async internal Task<GitRef> LoadLatestBranch(string name)
+        async internal Task<GitRef?> LoadLatestBranch(string name)
         {
             var refs = await LoadActualBranches(name).ConfigureAwait(false);
             var latestName = branchIteration.GetLatestBranchNameIteration(name, refs.Select(n => n.Name));
-            return refs.SingleOrDefault(r => r.Name == latestName);
+            return latestName == null ? (GitRef?)null : refs.SingleOrDefault(r => r.Name == latestName);
         }
 
         internal Task<ImmutableList<string>> GetUsers()
@@ -142,7 +142,7 @@ namespace GitAutomation.GraphQL
         {
             return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetRolesByUser", async keys => {
                 var result = await permissionAccessor.GetRolesByUser(keys.ToArray());
-                return result.ToDictionary(e => e.Key, e => e.Value);
+                return keys.ToDictionary(k => k, key => result.ContainsKey(key) ? result[key] : ImmutableList<string>.Empty);
             }).LoadAsync(username);
         }
 

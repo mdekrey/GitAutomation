@@ -1,11 +1,11 @@
 import gql from "graphql-tag";
 import { Observable } from "../utils/rxjs";
 import { OutputMessage } from "./output-message";
-import { BranchGroup } from "./basic-branch";
+import { BranchGroupWithHierarchy } from "./basic-branch";
 import { ClaimDetails } from "./claim-details";
 import { IUpdateUserRequestBody } from "./update-user";
 import { graphQl, invalidateQuery } from "./graphql";
-import { flatten } from "../utils/ramda";
+import { flatten, indexBy } from "../utils/ramda";
 
 export const currentClaims = () =>
   graphQl<ClaimDetails>({
@@ -84,34 +84,39 @@ export const actionQueue = () =>
 
 type AllBranchesQuery = {
   allActualBranches: GitAutomationGQL.IGitRef[];
-  configuredBranchGroups: Pick<
+  configuredBranchGroups: (Pick<
     GitAutomationGQL.IBranchGroupDetails,
     "groupName" | "branchType" | "latestBranch" | "branches"
-  >[];
+  > & {
+    directDownstream: Pick<GitAutomationGQL.IBranchGroupDetails, "groupName">[];
+  })[];
 };
 
-export const allBranchGroups = () =>
-  graphQl<AllBranchesQuery>({
-    query: gql`
-      {
-        allActualBranches {
+export const branchGroupStream = graphQl<AllBranchesQuery>({
+  query: gql`
+    {
+      allActualBranches {
+        name
+        commit
+      }
+      configuredBranchGroups {
+        groupName
+        branchType
+        directDownstream {
+          groupName
+        }
+        latestBranch {
+          name
+        }
+        branches {
           name
           commit
         }
-        configuredBranchGroups {
-          groupName
-          branchType
-          latestBranch {
-            name
-          }
-          branches {
-            name
-            commit
-          }
-        }
       }
-    `
-  }).map(result => {
+    }
+  `
+})
+  .map(result => {
     const configuredBranches = flatten<string>(
       result.configuredBranchGroups.map(g => g.branches.map(b => b.name))
     );
@@ -124,20 +129,130 @@ export const allBranchGroups = () =>
         groupName: branch.name,
         branchType: "Feature" as GitAutomationGQL.IBranchGroupTypeEnum,
         latestBranch: { name: branch.name },
-        branches: [branch]
+        branches: [branch],
+        directDownstream: [] as Pick<
+          GitAutomationGQL.IBranchGroupDetails,
+          "groupName"
+        >[]
       }))
     ];
+  })
+  .publish()
+  .refCount();
+
+export const allBranchGroups = () => branchGroupStream;
+
+interface TreeEntry {
+  descendants: Set<string>;
+  depth: number;
+  ancestors: Set<string>;
+}
+const newTreeEntry = (): TreeEntry => ({
+  descendants: new Set<string>(),
+  depth: 0,
+  ancestors: new Set<string>()
+});
+const buildDescendantsTree = <T>(
+  items: T[],
+  getKey: (entry: T) => string,
+  getChildrenKeys: (entry: T) => string[]
+) => {
+  const lookup = indexBy(getKey, items);
+  const result: Record<string, TreeEntry> = {};
+  const getOrCreate = (key: string) =>
+    (result[key] = result[key] || newTreeEntry());
+  const enqueued = new Set<string>(items.map(getKey));
+  const addTo = (target: Set<string>) => (entry: string) => target.add(entry);
+  while (enqueued.size > 0) {
+    const next = Array.from(enqueued)[0];
+    enqueued.delete(next);
+    const target = getOrCreate(next);
+    getChildrenKeys(lookup[next]).forEach(childKey => {
+      target.descendants.add(childKey);
+      const child = getOrCreate(childKey);
+      child.descendants.forEach(addTo(target.descendants));
+      child.ancestors.add(next);
+      target.ancestors.forEach(addTo(child.ancestors));
+    });
+    const originalDepth = target.depth;
+    target.ancestors.forEach(ancestor => {
+      enqueued.add(ancestor);
+      target.depth = Math.max(target.depth, getOrCreate(ancestor).depth + 1);
+    });
+    if (target.depth != originalDepth) {
+      enqueued.add(next);
+      target.descendants.forEach(addTo(enqueued));
+    }
+  }
+  return result;
+};
+
+export const allBranchesHierarchy: () => Observable<
+  Record<string, BranchGroupWithHierarchy>
+> = () =>
+  allBranchGroups().map(branches => {
+    const directUpstreamTree = indexBy(
+      b => b.groupName,
+      branches.map(b => ({
+        groupName: b.groupName,
+        upstream: branches
+          .filter(other =>
+            other.directDownstream.find(d => d.groupName === b.groupName)
+          )
+          .map(other => other.groupName)
+      }))
+    );
+
+    const downstreamTree = buildDescendantsTree(
+      branches,
+      b => b.groupName,
+      b => (b ? b.directDownstream.map(v => v.groupName) : [])
+    );
+
+    return indexBy(
+      g => g.groupName,
+      branches.map((branch): BranchGroupWithHierarchy => ({
+        branchType: branch.branchType,
+        groupName: branch.groupName,
+        directDownstream: branch.directDownstream.map(
+          downstream => downstream.groupName
+        ),
+        downstream: Array.from(downstreamTree[branch.groupName].descendants),
+        upstream: Array.from(downstreamTree[branch.groupName].ancestors),
+        directUpstream: directUpstreamTree[branch.groupName].upstream,
+        hierarchyDepth: downstreamTree[branch.groupName].depth
+      }))
+    );
   });
 
-export const allBranchesHierarchy = () =>
-  Observable.ajax("/api/management/all-branches/hierarchy").map(
-    response => response.response as BranchGroup[]
-  );
-
 export const branchDetails = (branchName: string) =>
-  Observable.ajax("/api/management/details/" + branchName).map(
-    response => response.response as BranchGroup
-  );
+  graphQl<Pick<GitAutomationGQL.IQuery, "branchGroup">>({
+    query: gql`
+      query($branchName: String!) {
+        branchGroup(name: $branchName) {
+          groupName
+          recreateFromUpstream
+          branchType
+          directDownstream {
+            groupName
+          }
+          directUpstream {
+            groupName
+          }
+          latestBranch {
+            name
+          }
+          branches {
+            name
+            commit
+          }
+        }
+      }
+    `,
+    variables: {
+      branchName
+    }
+  }).map(g => g.branchGroup);
 
 export const detectUpstream = (branchName: string, asGroup: boolean) =>
   Observable.ajax(

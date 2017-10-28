@@ -1,6 +1,10 @@
 import { Observable, Subscription } from "../utils/rxjs";
 
-import { allBranchGroups, branchDetails } from "../api/basics";
+import {
+  allBranchGroups,
+  branchDetails,
+  allBranchesHierarchy
+} from "../api/basics";
 
 export interface IManageBranch {
   isLoading: boolean;
@@ -29,31 +33,44 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
   const subscription = new Subscription();
 
   const initializeBranchData = allBranchGroups()
-    .combineLatest(branchDetails(branchName), (allBranches, branchDetails) => {
-      const directDownstreamBranches =
-        branchDetails.directDownstreamBranchGroups;
-      const upstreamBranches = branchDetails.upstreamBranchGroups;
-      const directUpstreamBranches = branchDetails.directUpstreamBranchGroups;
-      const downstreamBranches = branchDetails.downstreamBranchGroups;
-      return {
-        branches: allBranches.map((group): IBranchData => ({
-          ...group,
-          isDownstream: directDownstreamBranches.indexOf(group.groupName) >= 0,
-          isDownstreamAllowed: upstreamBranches.indexOf(group.groupName) == -1,
-          isUpstream: directUpstreamBranches.indexOf(group.groupName) >= 0,
-          isSomewhereUpstream: Boolean(
-            branchDetails.upstreamBranchGroups.find(
-              branch => branch === group.groupName
-            )
-          ),
-          isUpstreamAllowed: downstreamBranches.indexOf(group.groupName) == -1
-        })),
-        branchType: branchDetails.branchType,
-        recreateFromUpstream: branchDetails.recreateFromUpstream,
-        actualBranches: branchDetails.branches,
-        latestBranchName: branchDetails.latestBranchName
-      };
-    })
+    .combineLatest(
+      branchDetails(branchName),
+      allBranchesHierarchy(),
+      (allBranches, branchDetails, hierarchyData) => {
+        const directDownstreamBranches = branchDetails.directDownstream.map(
+          g => g.groupName
+        );
+        const upstreamBranches =
+          hierarchyData[branchDetails.groupName].upstream;
+        const directUpstreamBranches = branchDetails.directUpstream.map(
+          g => g.groupName
+        );
+        const downstreamBranches =
+          hierarchyData[branchDetails.groupName].downstream;
+        return {
+          branches: allBranches.map((group): IBranchData => ({
+            ...group,
+            isDownstream:
+              directDownstreamBranches.indexOf(group.groupName) >= 0,
+            isDownstreamAllowed:
+              upstreamBranches.indexOf(group.groupName) == -1,
+            isUpstream: directUpstreamBranches.indexOf(group.groupName) >= 0,
+            isSomewhereUpstream: Boolean(
+              hierarchyData[branchDetails.groupName].upstream.find(
+                branch => branch === group.groupName
+              )
+            ),
+            isUpstreamAllowed: downstreamBranches.indexOf(group.groupName) == -1
+          })),
+          branchType: branchDetails.branchType,
+          recreateFromUpstream: branchDetails.recreateFromUpstream,
+          actualBranches: branchDetails.branches,
+          latestBranchName: branchDetails.latestBranch
+            ? branchDetails.latestBranch.name
+            : null
+        };
+      }
+    )
     .map(
       ({
         branches,

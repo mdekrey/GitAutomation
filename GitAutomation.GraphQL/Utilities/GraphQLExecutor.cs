@@ -38,10 +38,14 @@ namespace GitAutomation.GraphQL.Utilities
             });
         }
 
-        private Inputs GetInputs(Object variables)
+        private Inputs GetInputs(object variables)
         {
             try
             {
+                if (variables is Newtonsoft.Json.Linq.JObject obj)
+                {
+                    return obj.ToInputs();
+                }
                 if (variables is IDictionary<string, Object> vars)
                 {
                     return new Inputs(vars);

@@ -1,8 +1,6 @@
 import { Route } from "./route-types/index";
 
-export interface Routes<T> {
-  [key: string]: Route<T>;
-}
+export type Routes<T> = Record<string, Route<T>>;
 
 export interface IRoutingState<T> {
   componentPath: string;

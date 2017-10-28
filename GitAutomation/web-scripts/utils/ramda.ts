@@ -15,5 +15,7 @@ export const merge: R["merge"] = require("ramda/src/merge");
 export const sortBy: R["sortBy"] = require("ramda/src/sortBy");
 export const take: R["take"] = require("ramda/src/take");
 export const toPairs: R["toPairs"] = require("ramda/src/toPairs");
-export const values: R["values"] = require("ramda/src/values");
+export const values: <T>(
+  record: Record<string, T>
+) => T[] = require("ramda/src/values");
 export const zip: R["zip"] = require("ramda/src/zip");
