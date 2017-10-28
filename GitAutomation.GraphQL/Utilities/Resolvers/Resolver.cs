@@ -9,6 +9,7 @@ using System.Linq.Expressions;
 using System.Linq;
 using System.Reflection;
 using GraphQL;
+using Microsoft.Extensions.Logging;
 
 namespace GitAutomation.GraphQL.Utilities.Resolvers
 {
@@ -20,7 +21,7 @@ namespace GitAutomation.GraphQL.Utilities.Resolvers
         {
             this.func = func;
         }
-        
+
         public static IFieldResolver Resolve(object target, string methodName)
         {
             if (target == null)
@@ -89,8 +90,8 @@ namespace GitAutomation.GraphQL.Utilities.Resolvers
 
                 case FromArgumentAttribute a:
                     return Expression.Call(
-                        contextParameter, 
-                        GetArgumentGeneric.MakeGenericMethod(param.ParameterType), 
+                        contextParameter,
+                        GetArgumentGeneric.MakeGenericMethod(param.ParameterType),
                         Expression.Constant(param.Name),
                         Expression.Constant(
                             param.ParameterType.IsValueType
@@ -106,7 +107,7 @@ namespace GitAutomation.GraphQL.Utilities.Resolvers
 
         }
 
-        private static readonly MethodInfo GetArgumentGeneric = 
+        private static readonly MethodInfo GetArgumentGeneric =
             typeof(ResolveFieldContext).GetMethods()
                 .Where(m => m.Name == nameof(ResolveFieldContext.GetArgument) && m.IsGenericMethodDefinition)
                 .SingleOrDefault();
@@ -138,12 +139,15 @@ namespace GitAutomation.GraphQL.Utilities.Resolvers
         {
             try
             {
+                var logger = (context.UserContext as IServiceProvider).GetRequiredService<ILoggerFactory>().CreateLogger<Resolver>();
+                logger.LogInformation("Resolving field {0}", context.FieldName);
                 var result = func(context);
                 if (result is Task t)
                 {
                     await t.ConfigureAwait(false);
                     result = t.GetProperyValue(nameof(Task<object>.Result));
                 }
+                logger.LogInformation("Finished resolving field {0}", context.FieldName);
                 return result;
             }
             catch (Exception ex)
