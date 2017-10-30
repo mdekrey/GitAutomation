@@ -24,7 +24,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddSingleton<TQuery>();
             services.AddSingleton<ISchema>(serviceProvider =>
             {
-                return new Schema(type => (IGraphType)ActivatorUtilities.GetServiceOrCreateInstance(serviceProvider, type))
+                return new Schema(new FuncDependencyResolver(type => (IGraphType)ActivatorUtilities.GetServiceOrCreateInstance(serviceProvider, type)))
                 {
                     Query = serviceProvider.GetRequiredService<TQuery>(),
                 };

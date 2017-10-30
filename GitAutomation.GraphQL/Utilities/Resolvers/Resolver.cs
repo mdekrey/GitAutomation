@@ -15,9 +15,9 @@ namespace GitAutomation.GraphQL.Utilities.Resolvers
 {
     public class Resolver : IFieldResolver
     {
-        private Func<ResolveFieldContext, object> func;
+        private Func<ResolveFieldContext, Task<object>> func;
 
-        private Resolver(Func<ResolveFieldContext, object> func)
+        private Resolver(Func<ResolveFieldContext, Task<object>> func)
         {
             this.func = func;
         }
@@ -41,18 +41,34 @@ namespace GitAutomation.GraphQL.Utilities.Resolvers
             {
                 throw new ArgumentException("Return type must be of type Task<>", nameof(methodName));
             }
+            var originalReturnType = method.ReturnType;
 
             var contextParameter = Expression.Parameter(typeof(ResolveFieldContext), "context");
             var arguments = (from param in method.GetParameters()
                              select ParameterToExpression(param, contextParameter)).ToArray();
-            var result = Expression.Lambda<Func<ResolveFieldContext, object>>(
-                Expression.Convert(
-                    Expression.Call(
-                        instance: Expression.Constant(target, target.GetType()),
-                        method: method,
-                        arguments: arguments
-                    ),
-                    typeof(object)
+            var callResolver = Expression.Call(
+                    instance: Expression.Constant(target, target.GetType()),
+                    method: method,
+                    arguments: arguments
+                );
+            var delegateType = typeof(Func<,>).MakeGenericType(originalReturnType, typeof(object));
+            var continueWithMethod = (from m in originalReturnType.GetMethods()
+                                      where m.Name == nameof(Task.ContinueWith)
+                                      where m.IsGenericMethodDefinition
+                                      where m.GetParameters().Length == 1
+                                      let resultMethod = m.MakeGenericMethod(typeof(object))
+                                      where resultMethod.GetParameters()[0].ParameterType == delegateType
+                                      select resultMethod).Single();
+            var result = Expression.Lambda<Func<ResolveFieldContext, Task<object>>>(
+                Expression.Call(
+                    callResolver,
+                    continueWithMethod,
+                    Expression.Constant(
+                        Delegate.CreateDelegate(
+                            delegateType, 
+                            FinalCastMethod.MakeGenericMethod(originalReturnType.GetGenericArguments())
+                        )
+                    )
                 ),
                 contextParameter
             );
@@ -141,12 +157,7 @@ namespace GitAutomation.GraphQL.Utilities.Resolvers
             {
                 var logger = (context.UserContext as IServiceProvider).GetRequiredService<ILoggerFactory>().CreateLogger<Resolver>();
                 logger.LogInformation("Resolving field {0}", context.FieldName);
-                var result = func(context);
-                if (result is Task t)
-                {
-                    await t.ConfigureAwait(false);
-                    result = t.GetProperyValue(nameof(Task<object>.Result));
-                }
+                var result = await func(context).ConfigureAwait(false);
                 logger.LogInformation("Finished resolving field {0}", context.FieldName);
                 return result;
             }
