@@ -39,6 +39,8 @@ namespace GitAutomation.Orchestration.Actions
         });
 
         public IObservable<OutputMessage> DeferredOutput => output;
+        public IEnumerable<string> OriginalBranches => originalBranches;
+        public string NewBaseBranch => newBaseBranch;
 
         public IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider)
         {

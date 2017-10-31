@@ -47,6 +47,7 @@ namespace GitAutomation.Orchestration.Actions
         private readonly string downstreamBranch;
 
         public string ActionType => "MergeDownstream";
+        public string DownstreamBranch => downstreamBranch;
 
         public MergeDownstreamAction(string downstreamBranch)
         {

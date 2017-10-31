@@ -14,12 +14,30 @@ namespace GitAutomation.Orchestration.Actions
 {
     public delegate Task<bool> AttemptMergeDelegate(string upstreamBranch, string targetBranch, string message);
 
+    public struct LatestBranchGroup
+    {
+        public string GroupName;
+        public string LatestBranchName;
+
+        internal int CompareTo(LatestBranchGroup other)
+        {
+            return GroupName.CompareTo(other.GroupName);
+        }
+    }
+
+    public struct ConflictingBranches
+    {
+        public LatestBranchGroup BranchA;
+        public LatestBranchGroup BranchB;
+    }
+
     public struct IntegrationBranchResult
     {
         public bool Resolved;
         public bool AddedNewIntegrationBranches;
         public bool HadPullRequest;
         public bool PendingUpdates;
+        public IEnumerable<ConflictingBranches> Conflicts;
 
         internal bool NeedsPullRequest()
         {
@@ -37,29 +55,12 @@ namespace GitAutomation.Orchestration.Actions
         private readonly IBranchIterationMediator branchIteration;
         private readonly IGitServiceApi gitServiceApi;
 
-        private struct LatestBranchGroup
-        {
-            public string GroupName;
-            public string LatestBranchName;
-
-            internal int CompareTo(LatestBranchGroup other)
-            {
-                return GroupName.CompareTo(other.GroupName);
-            }
-        }
-
         struct PossibleConflictingBranches
         {
             public LatestBranchGroup BranchA;
             public LatestBranchGroup BranchB;
 
             public ConflictingBranches? ConflictWhenSuccess;
-        }
-
-        struct ConflictingBranches
-        {
-            public LatestBranchGroup BranchA;
-            public LatestBranchGroup BranchB;
         }
 
         public IntegrateBranchesOrchestration(IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, IIntegrationNamingMediator integrationNaming, IBranchSettings settings, IRepositoryState repository, IBranchIterationMediator branchIteration)
@@ -79,6 +80,51 @@ namespace GitAutomation.Orchestration.Actions
             // 2. Create integration branches for them
             // 3. Add the integration branch for ourselves
 
+            var result = await FindConflicts(downstreamDetails.LatestBranchName, initialUpstreamBranchGroups, doMerge);
+
+            var addedIntegrationBranch = false;
+            using (var work = workFactory.CreateUnitOfWork())
+            {
+                foreach (var conflict in result.Conflicts)
+                {
+                    var integrationBranch = await settings.GetIntegrationBranch(conflict.BranchA.GroupName, conflict.BranchB.GroupName);
+                    if (integrationBranch == null)
+                    {
+                        integrationBranch = await integrationNaming.GetIntegrationBranchName(conflict.BranchA.GroupName, conflict.BranchB.GroupName);
+                        settings.CreateIntegrationBranch(conflict.BranchA.GroupName, conflict.BranchB.GroupName, integrationBranch, work);
+#pragma warning disable CS4014
+                        orchestration.EnqueueAction(new MergeDownstreamAction(integrationBranch));
+#pragma warning restore
+                    }
+                    if (conflict.BranchA.GroupName == downstreamDetails.GroupName || conflict.BranchB.GroupName == downstreamDetails.GroupName)
+                    {
+                        addedIntegrationBranch = true;
+                        settings.AddBranchPropagation(integrationBranch, downstreamDetails.GroupName, work);
+                        settings.RemoveBranchPropagation(downstreamDetails.GroupName, integrationBranch, work);
+
+#pragma warning disable CS4014
+                        orchestration.EnqueueAction(new MergeDownstreamAction(downstreamDetails.GroupName));
+                        orchestration.EnqueueAction(new ConsolidateMergedAction(new[] { integrationBranch }, downstreamDetails.GroupName));
+#pragma warning restore
+                    }
+                    else if (!downstreamDetails.UpstreamBranchGroups.Any(b => b == integrationBranch))
+                    {
+                        addedIntegrationBranch = true;
+                        settings.AddBranchPropagation(integrationBranch, downstreamDetails.GroupName, work);
+                    }
+                }
+                await work.CommitAsync();
+            }
+
+            return new IntegrationBranchResult
+            {
+                AddedNewIntegrationBranches = addedIntegrationBranch,
+                HadPullRequest = result.HadPullRequest,
+            };
+        }
+
+        public async Task<IntegrationBranchResult> FindConflicts(string targetBranch, IEnumerable<string> initialUpstreamBranchGroups, AttemptMergeDelegate doMerge)
+        {
 
             // When finding branches that conflict, we should go to the earliest point of conflict... so we need to know full ancestry.
             // Except... we can start at the direct upstream, and if those conflict, then move up; a double breadth-first search.
@@ -106,17 +152,25 @@ namespace GitAutomation.Orchestration.Actions
                 LatestBranchName = branchIteration.GetLatestBranchNameIteration(group, remoteBranches)
             };
 
-            var upstreamBranchListings = new Dictionary<string, ImmutableList<string>>();
+            var upstreamBranchListings = new Dictionary<string, ImmutableList<string>>
+            {
+                { targetBranch, initialUpstreamBranchGroups.ToImmutableList() }
+            };
             var hasOpenPullRequest = new Dictionary<string, bool>();
             var leafConflicts = new HashSet<ConflictingBranches>();
             var unflippedConflicts = new HashSet<ConflictingBranches>();
             // Remove from `middleConflicts` if we find a deeper one that conflicts
             var middleConflicts = new HashSet<ConflictingBranches>();
             var possibleConflicts = new Stack<PossibleConflictingBranches>(
-                from branchA in initialUpstreamBranchGroups.Select(groupToLatest)
-                from branchB in initialUpstreamBranchGroups.Select(groupToLatest)
-                where branchA.CompareTo(branchB) < 0
-                select new PossibleConflictingBranches { BranchA = branchA, BranchB = branchB, ConflictWhenSuccess = null }
+                (
+                    from branchA in initialUpstreamBranchGroups.Select(groupToLatest)
+                    from branchB in initialUpstreamBranchGroups.Select(groupToLatest)
+                    where branchA.CompareTo(branchB) < 0
+                    select new PossibleConflictingBranches { BranchA = branchA, BranchB = branchB, ConflictWhenSuccess = null }
+                ).Concat(
+                    from branch in initialUpstreamBranchGroups.Select(groupToLatest)
+                    select new PossibleConflictingBranches { BranchA = branch, BranchB = groupToLatest(targetBranch), ConflictWhenSuccess = null }
+                )
             );
 
             Func<PossibleConflictingBranches, Task<bool>> digDeeper = async (possibleConflict) =>
@@ -125,7 +179,7 @@ namespace GitAutomation.Orchestration.Actions
                 if (upstreamBranches.Count > 0)
                 {
                     // go deeper on the left side
-                    foreach (var possible in upstreamBranches)
+                    foreach (var possible in upstreamBranches.Where(b => b.GroupName != possibleConflict.BranchB.GroupName))
                     {
                         possibleConflicts.Push(new PossibleConflictingBranches
                         {
@@ -240,30 +294,9 @@ namespace GitAutomation.Orchestration.Actions
                 }
             }
 
-            var addedIntegrationBranch = false;
-            using (var work = workFactory.CreateUnitOfWork())
-            {
-                foreach (var conflict in leafConflicts.Concat(middleConflicts))
-                {
-                    var integrationBranch = await settings.GetIntegrationBranch(conflict.BranchA.GroupName, conflict.BranchB.GroupName);
-                    if (integrationBranch == null)
-                    {
-                        integrationBranch = await integrationNaming.GetIntegrationBranchName(conflict.BranchA.GroupName, conflict.BranchB.GroupName);
-                        settings.CreateIntegrationBranch(conflict.BranchA.GroupName, conflict.BranchB.GroupName, integrationBranch, work);
-                        orchestration.EnqueueAction(new MergeDownstreamAction(integrationBranch)).Subscribe();
-                    }
-                    if (!downstreamDetails.UpstreamBranchGroups.Any(b => b == integrationBranch))
-                    {
-                        addedIntegrationBranch = true;
-                        settings.AddBranchPropagation(integrationBranch, downstreamDetails.GroupName, work);
-                    }
-                }
-                await work.CommitAsync();
-            }
-
             return new IntegrationBranchResult
             {
-                AddedNewIntegrationBranches = addedIntegrationBranch,
+                Conflicts = leafConflicts.Concat(middleConflicts),
                 HadPullRequest = skippedDueToPullRequest,
             };
         }
