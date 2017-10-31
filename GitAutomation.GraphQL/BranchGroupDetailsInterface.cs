@@ -1,5 +1,4 @@
-﻿using DataLoader;
-using GitAutomation.BranchSettings;
+﻿using GitAutomation.BranchSettings;
 using GitAutomation.GraphQL.Utilities.Resolvers;
 using GitAutomation.Repository;
 using GraphQL.Types;

@@ -25,7 +25,7 @@ export class GraphQLError<T> extends Error {
 export const graphQl = <TResult>(options: WatchQueryOptions) =>
   Observable.from(
     client.watchQuery<TResult>({
-      pollInterval: 5000,
+      pollInterval: 60000,
       ...options
     })
   ).map(response => {

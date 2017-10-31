@@ -137,7 +137,7 @@ export const branchGroupStream = graphQl<AllBranchesQuery>({
       }))
     ];
   })
-  .publish()
+  .publishReplay(1)
   .refCount();
 
 export const allBranchGroups = () => branchGroupStream;
