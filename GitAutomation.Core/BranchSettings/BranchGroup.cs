@@ -5,13 +5,13 @@ using System.Text;
 
 namespace GitAutomation.BranchSettings
 {
-    public class BranchGroupDetails
+    public class BranchGroup
     {
-        public BranchGroupDetails()
+        public BranchGroup()
         {
         }
 
-        public BranchGroupDetails(BranchGroupDetails original)
+        public BranchGroup(BranchGroup original)
         {
             this.GroupName = original.GroupName;
             this.RecreateFromUpstream = original.RecreateFromUpstream;

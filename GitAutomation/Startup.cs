@@ -1,36 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.IO;
-using System.Reactive.Linq;
-using GitAutomation.Repository;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
-using GitAutomation.BranchSettings;
-using GitAutomation.Swagger;
-using Swashbuckle.SwaggerGen.Generator;
-using GitAutomation.Orchestration;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using Microsoft.AspNetCore.Authentication.OAuth;
-using Newtonsoft.Json.Linq;
-using Microsoft.AspNetCore.Authentication;
-using System.Security.Claims;
-using GitAutomation.Plugins;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Cors.Internal;
+using GitAutomation.BranchSettings;
+using GitAutomation.Orchestration;
+using GitAutomation.Repository;
 
 namespace GitAutomation
 {
     public class Startup
     {
+        private readonly IHostingEnvironment env;
+
         public Startup(IHostingEnvironment env)
         {
             var builder = new ConfigurationBuilder()
@@ -41,6 +29,7 @@ namespace GitAutomation
                 .AddEnvironmentVariables();
 
             Configuration = builder.Build();
+            this.env = env;
         }
 
         public IConfigurationRoot Configuration { get; }
@@ -53,28 +42,7 @@ namespace GitAutomation
             {
                 options.SerializerSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
             });
-
-
-            services.AddSwaggerGen(options =>
-            {
-                options.SingleApiVersion(new Swashbuckle.Swagger.Model.Info
-                {
-                    Version = "v1",
-                    Title = "GitAutomation",
-                    Description = "Automate your Git Repository",
-                    TermsOfService = "TODO"
-                });
-                options.DescribeAllEnumsAsStrings();
-                //options.OperationFilter<IgnoreCustomBindingOperationFilter>();
-                //options.OperationFilter<FixPathOperationFilter>();
-                options.OperationFilter<OperationIdFilter>();
-                //options.OperationFilter<AddValidationResponseOperationFilter>();
-                //options.CustomSchemaIds(t => t.FriendlyId(true));
-                //options.SchemaFilter<AdditionalValidationFilter>();
-                //options.SchemaFilter<ReferenceEnumFilter>();
-                //options.SchemaFilter<ClassAssemblyFilter>();
-            });
-
+            
             services.AddGitUtilities(Configuration.GetSection("persistence"), Configuration.GetSection("git"));
             services.Configure<GitRepositoryOptions>(Configuration.GetSection("git"));
             services.Configure<PersistenceOptions>(Configuration.GetSection("persistence"));
@@ -133,8 +101,6 @@ namespace GitAutomation
             repositoryStateRunner.Start();
             app.UseStaticFiles();
             app.UseMvc();
-            app.UseSwagger();
-            app.UseSwaggerUi();
 
             app.Use((context, next) =>
             {

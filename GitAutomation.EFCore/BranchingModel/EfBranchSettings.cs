@@ -24,26 +24,26 @@ namespace GitAutomation.EFCore.BranchingModel
             this.serviceProvider = serviceProvider;
         }
 
-        public IObservable<ImmutableList<BranchGroupDetails>> GetConfiguredBranches()
+        public IObservable<ImmutableList<BranchSettings.BranchGroup>> GetConfiguredBranches()
         {
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
-                .SelectMany(_ => WithContext(GetConfiguredBranchesOnce));
+                .SelectMany(_ => WithAccessor(a => a.GetAllBranchGroups()));
         }
 
-        private Task<ImmutableList<BranchGroupDetails>> GetConfiguredBranchesOnce(BranchingContext context)
+        private Task<ImmutableList<BranchSettings.BranchGroup>> GetConfiguredBranchesOnce(BranchingContext context)
         {
             return (from branch in context.BranchGroup
                     select branch).AsNoTracking().ToArrayAsync()
                 .ContinueWith(result => result.Result.Select(EfBranchGroupToModel).ToImmutableList());
         }
 
-        private static BranchGroupDetails EfBranchGroupToModel(BranchGroup branch)
+        private static BranchSettings.BranchGroup EfBranchGroupToModel(BranchGroup branch)
         {
             if (branch == null)
             {
                 return null;
             }
-            return new BranchGroupDetails
+            return new BranchSettings.BranchGroup
             {
                 GroupName = branch.GroupName,
                 RecreateFromUpstream = branch.RecreateFromUpstream,
@@ -53,11 +53,12 @@ namespace GitAutomation.EFCore.BranchingModel
             };
         }
 
-        public IObservable<BranchGroupDetails> GetBranchBasicDetails(string branchName)
+        public IObservable<BranchSettings.BranchGroup> GetBranchBasicDetails(string branchName)
         {
             // TODO - better notification
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
-                .SelectMany(_ => WithContext(GetBranchDetailOnce(branchName)));
+                .SelectMany(_ => WithAccessor(a => a.GetBranchGroups(branchName)))
+                .Select(grouped => grouped.ContainsKey(branchName) ? grouped[branchName] : null);
         }
 
         public IObservable<BranchGroupCompleteData> GetBranchDetails(string branchName)
@@ -85,7 +86,7 @@ namespace GitAutomation.EFCore.BranchingModel
             return (downstream, upstream);
         }
 
-        private BranchGroupCompleteData BuildCompleteData(string branchName, BranchGroupDetails settings, ImmutableDictionary<string, ImmutableList<string>> downstream, ImmutableDictionary<string, ImmutableList<string>> upstream)
+        private BranchGroupCompleteData BuildCompleteData(string branchName, BranchSettings.BranchGroup settings, ImmutableDictionary<string, ImmutableList<string>> downstream, ImmutableDictionary<string, ImmutableList<string>> upstream)
         {
             return new BranchGroupCompleteData
             {
@@ -122,7 +123,7 @@ namespace GitAutomation.EFCore.BranchingModel
             return accumulator;
         }
 
-        private Func<BranchingContext, Task<BranchGroupDetails>> GetBranchDetailOnce(string branchName)
+        private Func<BranchingContext, Task<BranchSettings.BranchGroup>> GetBranchDetailOnce(string branchName)
         {
             return context =>
             {
@@ -143,9 +144,9 @@ namespace GitAutomation.EFCore.BranchingModel
             };
         }
 
-        private BranchGroupDetails DefaultBranchGroup(string branchName)
+        private BranchSettings.BranchGroup DefaultBranchGroup(string branchName)
         {
-            return new BranchGroupDetails
+            return new BranchSettings.BranchGroup
             {
                 GroupName = branchName,
                 RecreateFromUpstream = false,
@@ -153,13 +154,13 @@ namespace GitAutomation.EFCore.BranchingModel
             };
         }
         
-        public IObservable<ImmutableList<BranchGroupDetails>> GetDownstreamBranches(string branchName)
+        public IObservable<ImmutableList<BranchSettings.BranchGroup>> GetDownstreamBranches(string branchName)
         {
             return notifiers.GetDownstreamBranchesChangedNotifier(upstreamBranch: branchName).StartWith(Unit.Default)
                 .SelectMany(_ => WithContext(GetDownstreamBranchesOnce(branchName)));
         }
 
-        private Func<BranchingContext, Task<ImmutableList<BranchGroupDetails>>> GetDownstreamBranchesOnce(string branchName)
+        private Func<BranchingContext, Task<ImmutableList<BranchSettings.BranchGroup>>> GetDownstreamBranchesOnce(string branchName)
         {
             return context =>
             {
@@ -193,14 +194,14 @@ namespace GitAutomation.EFCore.BranchingModel
             };
         }
 
-        public IObservable<ImmutableList<BranchGroupDetails>> GetAllDownstreamBranches(string branchName)
+        public IObservable<ImmutableList<BranchSettings.BranchGroup>> GetAllDownstreamBranches(string branchName)
         {
             // TODO - better notifications
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
                 .SelectMany(_ => WithContext(GetAllDownstreamBranchesOnce(branchName)));
         }
 
-        private Func<BranchingContext, Task<ImmutableList<BranchGroupDetails>>> GetAllDownstreamBranchesOnce(string branchName)
+        private Func<BranchingContext, Task<ImmutableList<BranchSettings.BranchGroup>>> GetAllDownstreamBranchesOnce(string branchName)
         {
             return async context =>
             {
@@ -214,13 +215,13 @@ namespace GitAutomation.EFCore.BranchingModel
             };
         }
 
-        public IObservable<ImmutableList<BranchGroupDetails>> GetUpstreamBranches(string branchName)
+        public IObservable<ImmutableList<BranchSettings.BranchGroup>> GetUpstreamBranches(string branchName)
         {
             return notifiers.GetUpstreamBranchesChangedNotifier(downstreamBranch: branchName).StartWith(Unit.Default)
                 .SelectMany(_ => WithContext(GetUpstreamBranchesOnce(branchName)));
         }
 
-        private Func<BranchingContext, Task<ImmutableList<BranchGroupDetails>>> GetUpstreamBranchesOnce(string branchName)
+        private Func<BranchingContext, Task<ImmutableList<BranchSettings.BranchGroup>>> GetUpstreamBranchesOnce(string branchName)
         {
             return context =>
             {
@@ -232,14 +233,14 @@ namespace GitAutomation.EFCore.BranchingModel
             };
         }
 
-        public IObservable<ImmutableList<BranchGroupDetails>> GetAllUpstreamBranches(string branchName)
+        public IObservable<ImmutableList<BranchSettings.BranchGroup>> GetAllUpstreamBranches(string branchName)
         {
             // TODO - better notifications
             return notifiers.GetAnyNotification().StartWith(Unit.Default)
                 .SelectMany(_ => WithContext(GetAllUpstreamBranchesOnce(branchName)));
         }
 
-        private Func<BranchingContext, Task<ImmutableList<BranchGroupDetails>>> GetAllUpstreamBranchesOnce(string branchName)
+        private Func<BranchingContext, Task<ImmutableList<BranchSettings.BranchGroup>>> GetAllUpstreamBranchesOnce(string branchName)
         {
             return async context =>
             {
@@ -403,11 +404,21 @@ namespace GitAutomation.EFCore.BranchingModel
         private BranchingContext GetContext(IServiceProvider scope) =>
             scope.GetRequiredService<BranchingContext>();
 
+        private IBranchSettingsAccessor GetAccessor(IServiceProvider scope) =>
+            scope.GetRequiredService<IBranchSettingsAccessor>();
+
         private async Task<T> WithContext<T>(Func<BranchingContext, Task<T>> target)
         {
             using (var scope = serviceProvider.CreateScope())
             {
                 return await target(GetContext(scope.ServiceProvider));
+            }
+        }
+        private async Task<T> WithAccessor<T>(Func<IBranchSettingsAccessor, Task<T>> target)
+        {
+            using (var scope = serviceProvider.CreateScope())
+            {
+                return await target(GetAccessor(scope.ServiceProvider));
             }
         }
     }

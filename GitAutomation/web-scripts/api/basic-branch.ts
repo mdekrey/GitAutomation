@@ -29,10 +29,19 @@ export interface BranchGroup {
   groupName: string;
   branches: CommitRef[];
   latestBranchName: string | null;
+  statuses: CommitStatus[];
   directDownstreamBranchGroups: string[];
   downstreamBranchGroups: string[];
   directUpstreamBranchGroups: string[];
   upstreamBranchGroups: string[];
+}
+
+export interface BranchGroupWithHierarchy {
+  branchType: BranchType;
+  groupName: string;
+  directDownstream: string[];
+  downstream: string[];
+  directUpstream: string[];
+  upstream: string[];
   hierarchyDepth: number;
-  statuses: CommitStatus[];
 }

@@ -1,6 +1,6 @@
 import { Observable, Subscription } from "../utils/rxjs";
 
-import { allBranches, branchDetails } from "../api/basics";
+import { allBranchGroups, branchDetails } from "../api/basics";
 import { BranchGroup, CommitRef } from "../api/basic-branch";
 
 export interface IManageBranch {
@@ -23,7 +23,7 @@ export interface IBranchData extends BranchGroup {
 export const runBranchData = (branchName: string, reload: Observable<any>) => {
   const subscription = new Subscription();
 
-  const initializeBranchData = allBranches()
+  const initializeBranchData = allBranchGroups()
     .combineLatest(branchDetails(branchName), (allBranches, branchDetails) => {
       const directDownstreamBranches =
         branchDetails.directDownstreamBranchGroups;

@@ -6,7 +6,12 @@
     "strictNullChecks": true,
     "module": "commonjs",
     "moduleResolution": "node",
-    "importHelpers": true
+    "importHelpers": true,
+    "lib": [
+      "es2017",
+      "dom",
+      "esnext.asynciterable"
+    ]
   },
   "compileOnSave": false
 }

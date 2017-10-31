@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace GitAutomation.Auth
+namespace GitAutomation.EFCore.SecurityModel
 {
     public partial class User
     {
