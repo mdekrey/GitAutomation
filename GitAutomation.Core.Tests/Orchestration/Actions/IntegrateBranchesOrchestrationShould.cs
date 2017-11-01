@@ -177,11 +177,12 @@ namespace GitAutomation.Orchestration.Actions
             }, new[] { "ServiceLine" }, setup.AttemptMergeMock.Object.AttemptMergeDelegate);
 
             Assert.IsFalse(result.HadPullRequest);
-            Assert.IsTrue(result.AddedNewIntegrationBranches);
-            setup.settingsMock.Verify(settings => settings.AddBranchPropagation("Integ", "B", It.IsAny<IUnitOfWork>()));
-            setup.settingsMock.Verify(settings => settings.RemoveBranchPropagation("B", "Integ", It.IsAny<IUnitOfWork>()));
-            setup.orchestrationMock.Verify(orchestration => orchestration.EnqueueAction(It.Is<MergeDownstreamAction>(a => a.DownstreamBranch == "B")));
-            setup.orchestrationMock.Verify(orchestration => orchestration.EnqueueAction(It.Is<ConsolidateMergedAction>(a => a.NewBaseBranch == "B" && a.OriginalBranches.Single() == "Integ")));
+            Assert.IsFalse(result.AddedNewIntegrationBranches);
+            Assert.IsTrue(result.Conflicts.Any(a => a.BranchA.GroupName == "B" && a.BranchB.GroupName == "ServiceLine"));
+            setup.settingsMock.Verify(settings => settings.AddBranchPropagation("Integ", "B", It.IsAny<IUnitOfWork>()), Times.Never());
+            setup.settingsMock.Verify(settings => settings.RemoveBranchPropagation("B", "Integ", It.IsAny<IUnitOfWork>()), Times.Never());
+            setup.orchestrationMock.Verify(orchestration => orchestration.EnqueueAction(It.Is<MergeDownstreamAction>(a => a.DownstreamBranch == "B")), Times.Never());
+            setup.orchestrationMock.Verify(orchestration => orchestration.EnqueueAction(It.Is<ConsolidateMergedAction>(a => a.NewBaseBranch == "B" && a.OriginalBranches.Single() == "Integ")), Times.Never());
         }
     }
 }

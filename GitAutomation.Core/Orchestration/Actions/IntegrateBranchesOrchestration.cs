@@ -123,6 +123,7 @@ namespace GitAutomation.Orchestration.Actions
 
             return new IntegrationBranchResult
             {
+                Conflicts = result.Conflicts,
                 AddedNewIntegrationBranches = addedIntegrationBranch,
                 HadPullRequest = result.HadPullRequest,
             };
