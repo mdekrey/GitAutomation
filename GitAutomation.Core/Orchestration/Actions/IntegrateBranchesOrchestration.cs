@@ -87,21 +87,21 @@ namespace GitAutomation.Orchestration.Actions
             {
                 foreach (var conflict in result.Conflicts)
                 {
-                    if (conflict.BranchA.GroupName == downstreamDetails.GroupName || conflict.BranchB.GroupName == downstreamDetails.GroupName)
-                    {
-                        continue;
-                    }
                     var integrationBranch = await settings.GetIntegrationBranch(conflict.BranchA.GroupName, conflict.BranchB.GroupName);
                     var originalIntegrationBranch = integrationBranch;
                     if (integrationBranch == null)
                     {
+                        if (conflict.BranchA.GroupName == downstreamDetails.GroupName || conflict.BranchB.GroupName == downstreamDetails.GroupName)
+                        {
+                            continue;
+                        }
                         integrationBranch = await integrationNaming.GetIntegrationBranchName(conflict.BranchA.GroupName, conflict.BranchB.GroupName);
                         settings.CreateIntegrationBranch(conflict.BranchA.GroupName, conflict.BranchB.GroupName, integrationBranch, work);
 #pragma warning disable CS4014
                         orchestration.EnqueueAction(new MergeDownstreamAction(integrationBranch));
 #pragma warning restore
                     }
-                    if (originalIntegrationBranch != null && conflict.BranchA.GroupName == downstreamDetails.GroupName || conflict.BranchB.GroupName == downstreamDetails.GroupName)
+                    if (originalIntegrationBranch != null && (conflict.BranchA.GroupName == downstreamDetails.GroupName || conflict.BranchB.GroupName == downstreamDetails.GroupName))
                     {
                         addedIntegrationBranch = true;
                         settings.AddBranchPropagation(integrationBranch, downstreamDetails.GroupName, work);
