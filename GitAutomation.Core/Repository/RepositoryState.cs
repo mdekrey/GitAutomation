@@ -158,9 +158,9 @@ namespace GitAutomation.Repository
             return MergeBaseBetweenCommits(commitPair.Item1, commitPair.Item2).ToObservable();
         }
 
-        public IObservable<OutputMessage> DeleteBranch(string branchName)
+        public IObservable<OutputMessage> DeleteBranch(string branchName, DeleteBranchMode mode)
         {
-            return orchestration.EnqueueAction(new DeleteBranchAction(branchName)).Finally(OnUpdated);
+            return orchestration.EnqueueAction(new DeleteBranchAction(branchName, mode)).Finally(OnUpdated);
         }
 
         public IObservable<ImmutableList<GitRef>> DetectUpstream(string branchName, bool allowSame)

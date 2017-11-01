@@ -8,7 +8,7 @@ namespace GitAutomation.Repository
 {
     public interface IRepositoryState
     {
-        IObservable<OutputMessage> DeleteBranch(string branchName);
+        IObservable<OutputMessage> DeleteBranch(string branchName, DeleteBranchMode mode);
         IObservable<OutputMessage> DeleteRepository();
         IObservable<OutputMessage> CheckForUpdates();
         

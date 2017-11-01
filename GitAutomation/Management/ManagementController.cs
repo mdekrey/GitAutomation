@@ -64,9 +64,9 @@ namespace GitAutomation.Management
 
         [Authorize(Auth.PolicyNames.Delete)]
         [HttpDelete("branch/{*branchName}")]
-        public void DeleteBranch(string branchName)
+        public void DeleteBranch(string branchName, [FromQuery] DeleteBranchMode mode = DeleteBranchMode.BranchAndGroup)
         {
-            repositoryState.DeleteBranch(branchName);
+            repositoryState.DeleteBranch(branchName, mode);
         }
 
         [Authorize(Auth.PolicyNames.Read)]

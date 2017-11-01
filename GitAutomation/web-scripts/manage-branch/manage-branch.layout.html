@@ -2,20 +2,19 @@
 <h1 data-locator="branch-name"></h1>
 <h3>Settings</h3>
 <label>
-      <input type="checkbox" data-locator="recreate-from-upstream" />
-      Recreate from Upstream
-  </label>
+  <input type="checkbox" data-locator="recreate-from-upstream" /> Recreate from Upstream
+</label>
 <label>
-      Branch Type
-      <select data-locator="branch-type">
-        <option value="Feature">Feature</option>
-        <option value="ReleaseCandidate">Release Candidate</option>
-        <option value="ServiceLine">Service Line</option>
-        <option value="Infrastructure">Infrastructure</option>
-        <option value="Integration">Integration</option>
-        <option value="Hotfix">Hotfix</option>
-      </select>
-  </label>
+  Branch Type
+  <select data-locator="branch-type">
+    <option value="Feature">Feature</option>
+    <option value="ReleaseCandidate">Release Candidate</option>
+    <option value="ServiceLine">Service Line</option>
+    <option value="Infrastructure">Infrastructure</option>
+    <option value="Integration">Integration</option>
+    <option value="Hotfix">Hotfix</option>
+  </select>
+</label>
 <h3>Other Branches</h3>
 
 <table>
@@ -50,31 +49,32 @@
 
 <h3>Release to Service Line</h3>
 <label>
-    <span>Approved Branch</span>
-    <select data-locator="approved-branch"></select>
-  </label>
+  <span>Approved Branch</span>
+  <select data-locator="approved-branch"></select>
+</label>
 <label>
-    <span>Service Line Branch</span>
-    <input type="text" data-locator="service-line-branch" />
-  </label>
+  <span>Service Line Branch</span>
+  <input type="text" data-locator="service-line-branch" />
+</label>
 <label>
-    <span>Release Tag</span>
-    <input type="text" data-locator="release-tag" />
-  </label>
+  <span>Release Tag</span>
+  <input type="text" data-locator="release-tag" />
+</label>
 <label>
-    <input type="checkbox" data-locator="auto-consolidate" />
-    <span>Auto-consolidate</span>
-  </label>
+  <input type="checkbox" data-locator="auto-consolidate" />
+  <span>Auto-consolidate</span>
+</label>
 <button type="button" data-locator="promote-service-line">Release to Service Line</button>
 
 <h3>Consolidate Merged</h3>
 <label>
-    <span>Consolidate Into</span>
-    <select data-locator="consolidate-target-branch"></select>
-  </label>
+  <span>Consolidate Into</span>
+  <select data-locator="consolidate-target-branch"></select>
+</label>
 <ul data-locator="consolidate-original-branches"></ul>
 <button type="button" data-locator="consolidate-branch">Consolidate Branch</button>
 
 <h3>Delete Branch</h3>
 <p>This action cannot be undone.</p>
 <button type="button" data-locator="delete-branch">Delete</button>
+<button type="button" data-locator="delete-group">Delete Group</button>
