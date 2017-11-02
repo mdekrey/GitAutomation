@@ -153,7 +153,7 @@ namespace GitAutomation.EFCore.BranchingModel
                 BranchType = BranchGroupType.Feature,
             };
         }
-        
+
         public IObservable<ImmutableList<BranchSettings.BranchGroup>> GetDownstreamBranches(string branchName)
         {
             return notifiers.GetDownstreamBranchesChangedNotifier(upstreamBranch: branchName).StartWith(Unit.Default)
@@ -186,7 +186,7 @@ namespace GitAutomation.EFCore.BranchingModel
                 var hierarchies = GetBranchHierarchies(await (from entry in context.BranchStream
                                                               select entry).ToArrayAsync().ConfigureAwait(false));
                 var configured = await GetConfiguredBranchesOnce(context).ConfigureAwait(false);
-                
+
                 return configured.Select(bg =>
                 {
                     return BuildCompleteData(bg.GroupName, bg, hierarchies.downstream, hierarchies.upstream);
@@ -348,7 +348,7 @@ namespace GitAutomation.EFCore.BranchingModel
                 var newDownstream = (await (from branch in context.BranchStream
                                           where branchesToRemove.Contains(branch.UpstreamBranch) // where there's something flowing from an upstream branch
                                             && !branchesToRemove.Contains(branch.DownstreamBranch) // that is being deleted
-                                          group branch.DownstreamBranch by branch.DownstreamBranch into downstreamBranches
+                                          group branch.DownstreamBranchNavigation by branch.DownstreamBranch into downstreamBranches
                                           select downstreamBranches.Key).ToArrayAsync())
                     .Distinct();
 
@@ -356,7 +356,7 @@ namespace GitAutomation.EFCore.BranchingModel
                 {
                     await context.BranchStream.AddIfNotExists(new BranchStream { DownstreamBranch = upstream, UpstreamBranch = targetBranch }, b => b.DownstreamBranch == upstream && b.UpstreamBranch == targetBranch);
                 }
-                
+
                 context.BranchStream.RemoveRange(await (from branch in context.BranchStream
                                                         where branchesToRemove.Contains(branch.UpstreamBranch)
                                                           || branchesToRemove.Contains(branch.DownstreamBranch)
