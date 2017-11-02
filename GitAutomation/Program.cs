@@ -8,8 +8,6 @@ namespace GitAutomation
     {
         public static void Main(string[] args)
         {
-            new AddonFramework.AddonAssemblyLoader("/extra-bins");
-
             var host = new WebHostBuilder()
                 .UseKestrel()
                 .UseContentRoot(Directory.GetCurrentDirectory())

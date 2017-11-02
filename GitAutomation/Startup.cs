@@ -12,21 +12,35 @@ using Microsoft.AspNetCore.Mvc.Cors.Internal;
 using GitAutomation.BranchSettings;
 using GitAutomation.Orchestration;
 using GitAutomation.Repository;
+using GitAutomation.AddonFramework;
 
 namespace GitAutomation
 {
     public class Startup
     {
         private readonly IHostingEnvironment env;
+        private readonly AddonAssemblyLoader addonLoader;
 
         public Startup(IHostingEnvironment env)
         {
             var builder = new ConfigurationBuilder()
                 .SetBasePath(env.ContentRootPath)
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
-                .AddJsonFile("/run/secrets/configuration.json", optional: false, reloadOnChange: true)
-                .AddEnvironmentVariables();
+                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true);
+
+            var cfgPath = builder.Build().GetValue<string>("OS:additional-configuration");
+            if (cfgPath != null)
+            {
+                builder = builder.AddJsonFile(cfgPath, optional: false, reloadOnChange: true);
+            }
+
+            builder = builder.AddEnvironmentVariables();
+
+            var addonPath = builder.Build().GetValue<string>("OS:addon-path");
+            if (addonPath != null)
+            {
+                addonLoader = new AddonAssemblyLoader(addonPath);
+            }
 
             Configuration = builder.Build();
             this.env = env;
