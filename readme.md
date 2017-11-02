@@ -119,3 +119,7 @@ These steps won't add it to your debugging container via Visual Studio due to me
 1. Start the SQL Server docker-compose with the rest:
 
         docker-compose -f docker-compose.yml -f docker-compose.build.yml -f -f docker-compose.sqlserver.yml up --build
+
+# Hosting outside of Docker
+
+We highly recommend hosting inside of docker due to convenience of getting all the libraries set up. (Git, dotnet, etc.) However, all the paths for inside the linux container can be changed in the config files. The configuration.json can also be merged with the appsettings.json for an easier management experience.

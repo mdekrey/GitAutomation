@@ -92,7 +92,7 @@ type AllBranchesQuery = {
   })[];
 };
 
-export const branchGroupStream = graphQl<AllBranchesQuery>({
+export const allBranchGroups = () => graphQl<AllBranchesQuery>({
   query: gql`
     {
       allActualBranches {
@@ -136,11 +136,7 @@ export const branchGroupStream = graphQl<AllBranchesQuery>({
         >[]
       }))
     ];
-  })
-  .publishReplay(1)
-  .refCount();
-
-export const allBranchGroups = () => branchGroupStream;
+  });
 
 interface TreeEntry {
   descendants: Set<string>;
@@ -354,6 +350,14 @@ export const consolidateMerged = ({
 export const deleteBranch = (branchName: string) =>
   Observable.ajax
     .delete("/api/management/branch/" + branchName)
+    .map(response => response.response as null);
+
+export const deleteBranchByMode = (
+  branchName: string,
+  mode: "ActualBranchOnly" | "GroupOnly"
+) =>
+  Observable.ajax
+    .delete("/api/management/branch/" + branchName + "?mode=" + mode)
     .map(response => response.response as null);
 
 export const recommendGroups = () =>

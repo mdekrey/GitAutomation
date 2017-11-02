@@ -47,6 +47,7 @@ namespace GitAutomation.Orchestration.Actions
         private readonly string downstreamBranch;
 
         public string ActionType => "MergeDownstream";
+        public string DownstreamBranch => downstreamBranch;
 
         public MergeDownstreamAction(string downstreamBranch)
         {
@@ -333,7 +334,15 @@ namespace GitAutomation.Orchestration.Actions
                     {
                         // Open a PR if we can't open a new integration branch
                         await PushBranch(downstreamBranch);
-                        await gitServiceApi.OpenPullRequest(title: $"Auto-Merge: {downstreamBranch}", targetBranch: downstreamBranch, sourceBranch: upstreamBranch.BranchName, body: "Failed due to merge conflicts.");
+                        await gitServiceApi.OpenPullRequest(
+                            title: $"Auto-Merge: {downstreamBranch}", 
+                            targetBranch: downstreamBranch, 
+                            sourceBranch: upstreamBranch.BranchName, 
+                            body: @"Failed due to merge conflicts. Don't use web resolution. Instead:
+
+    git checkout -B " + downstreamBranch + @" --track origin/" + downstreamBranch + @"
+    git merge origin/" + upstreamBranch.BranchName + @"
+");
                         return new MergeStatus { HadConflicts = true, Resolution = MergeConflictResolution.PullRequest };
                     }
                 }

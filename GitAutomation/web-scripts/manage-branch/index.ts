@@ -17,6 +17,7 @@ import {
   consolidateMerged,
   promoteServiceLine,
   deleteBranch,
+  deleteBranchByMode,
   detectUpstream,
   detectAllUpstream
 } from "../api/basics";
@@ -136,7 +137,22 @@ export const manage = (
 
         subscription.add(
           rxEvent({
-            target: actualBranchDisplay.map(fnSelect("a")),
+            target: actualBranchDisplay.map(
+              fnSelect(`a[data-locator="delete"]`)
+            ),
+            eventName: "click"
+          })
+            .switchMap(event =>
+              deleteBranchByMode(event.datum.name, "ActualBranchOnly")
+            )
+            .subscribe()
+        );
+
+        subscription.add(
+          rxEvent({
+            target: actualBranchDisplay.map(
+              fnSelect(`a[data-locator="check-up-to-date"]`)
+            ),
             eventName: "click"
           })
             .switchMap(event =>
@@ -364,6 +380,21 @@ export const manage = (
             .map(() => branchName)
             .take(1)
             .switchMap(deleteBranch)
+            .subscribe(response => {
+              state.navigate({ url: "/", replaceCurentHistory: false });
+            })
+        );
+
+        subscription.add(
+          rxEvent({
+            target: container.map(fnSelect(`[data-locator="delete-group"]`)),
+            eventName: "click"
+          })
+            .map(() => branchName)
+            .take(1)
+            .switchMap(branchName =>
+              deleteBranchByMode(branchName, "GroupOnly")
+            )
             .subscribe(response => {
               state.navigate({ url: "/", replaceCurentHistory: false });
             })
