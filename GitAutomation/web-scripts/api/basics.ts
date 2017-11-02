@@ -237,6 +237,14 @@ export const deleteBranch = (branchName: string) =>
     .delete("/api/management/branch/" + branchName)
     .map(response => response.response as null);
 
+export const deleteBranchByMode = (
+  branchName: string,
+  mode: "ActualBranchOnly" | "GroupOnly"
+) =>
+  Observable.ajax
+    .delete("/api/management/branch/" + branchName + "?mode=" + mode)
+    .map(response => response.response as null);
+
 export const recommendGroups = () =>
   Observable.ajax
     .get("/api/management/recommend-groups")

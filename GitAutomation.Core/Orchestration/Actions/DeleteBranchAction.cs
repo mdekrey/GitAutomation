@@ -23,17 +23,20 @@ namespace GitAutomation.Orchestration.Actions
     {
         private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
         private readonly string deletingBranch;
+        private readonly DeleteBranchMode mode;
 
         public string ActionType => "DeleteBranch";
 
-        public DeleteBranchAction(string deletingBranch)
+        public DeleteBranchAction(string deletingBranch, DeleteBranchMode mode)
         {
             this.deletingBranch = deletingBranch;
+            this.mode = mode;
         }
 
         public JToken Parameters => JToken.FromObject(new Dictionary<string, string>
             {
                 { "deletingBranch", deletingBranch },
+                { "mode", mode.ToString("g") },
             }.ToImmutableDictionary());
 
         public IObservable<OutputMessage> DeferredOutput => output;
@@ -52,21 +55,33 @@ namespace GitAutomation.Orchestration.Actions
                 disposable.Add(Observable.Concat(processes).Subscribe(observer));
                 disposable.Add(processes);
 
-                var details = await repository.GetBranchDetails(deletingBranch).FirstAsync();
-
-                using (var unitOfWork = unitOfWorkFactory.CreateUnitOfWork())
+                if (mode == DeleteBranchMode.ActualBranchOnly)
                 {
-                    settings.DeleteBranchSettings(deletingBranch, unitOfWork);
-
-                    await unitOfWork.CommitAsync();
-                }
-
-                foreach (var branch in details.Branches)
-                {
-                    var deleteBranch = Queueable(cli.DeleteRemote(branch.Name));
+                    var deleteBranch = Queueable(cli.DeleteRemote(deletingBranch));
                     processes.OnNext(deleteBranch);
                     await deleteBranch;
-                    repository.NotifyPushedRemoteBranch(branch.Name);
+                }
+                else
+                {
+                    var details = await repository.GetBranchDetails(deletingBranch).FirstAsync();
+
+                    using (var unitOfWork = unitOfWorkFactory.CreateUnitOfWork())
+                    {
+                        settings.DeleteBranchSettings(deletingBranch, unitOfWork);
+
+                        await unitOfWork.CommitAsync();
+                    }
+
+                    if (mode != DeleteBranchMode.GroupOnly)
+                    {
+                        foreach (var branch in details.Branches)
+                        {
+                            var deleteBranch = Queueable(cli.DeleteRemote(branch.Name));
+                            processes.OnNext(deleteBranch);
+                            await deleteBranch;
+                            repository.NotifyPushedRemoteBranch(branch.Name);
+                        }
+                    }
                 }
 
 
