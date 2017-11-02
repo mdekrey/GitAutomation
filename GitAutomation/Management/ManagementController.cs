@@ -48,34 +48,13 @@ namespace GitAutomation.Management
             return (await orchestration.ActionQueue.FirstAsync()).Select(action => new { ActionType = action.ActionType, Parameters = action.Parameters });
         }
         
-        [Authorize(Auth.PolicyNames.Read)]
-        [HttpGet("all-branches")]
-        public Task<ImmutableList<BranchGroupCompleteData>> AllBranches()
-        {
-            return repository.AllBranches().FirstAsync().ToTask();
-        }
-
-        [Authorize(Auth.PolicyNames.Read)]
-        [HttpGet("all-branches/hierarchy")]
-        public Task<ImmutableList<BranchGroupCompleteData>> AllBranchesHierarchy()
-        {
-            return repository.AllBranchesHierarchy().FirstAsync().ToTask();
-        }
-
         [Authorize(Auth.PolicyNames.Delete)]
         [HttpDelete("branch/{*branchName}")]
         public void DeleteBranch(string branchName, [FromQuery] DeleteBranchMode mode = DeleteBranchMode.BranchAndGroup)
         {
             repositoryState.DeleteBranch(branchName, mode);
         }
-
-        [Authorize(Auth.PolicyNames.Read)]
-        [HttpGet("details/{*branchName}")]
-        public Task<BranchGroupCompleteData> GetDetails(string branchName)
-        {
-            return repository.GetBranchDetails(branchName).FirstAsync().ToTask();
-        }
-
+        
         [Authorize(Auth.PolicyNames.Create)]
         [HttpPut("branch/create/{*branchName}")]
         public async Task<IActionResult> CreateBranch(string branchName, [FromBody] CreateBranchRequestBody requestBody)
