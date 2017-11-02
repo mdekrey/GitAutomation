@@ -95,9 +95,7 @@ And then to run it...
 
 # GraphQL
 
-Recommended testing local GraphQL via:
-
-    docker run --rm -p 30000:8080 -d -e GRAPHQL_SERVER=http://localhost:32768/api/graphql merapar/graphql-browser-docker
+There is a GraphiQL page set up at `/graphiql.html`. It uses CDN versions of the graphql-toolbox, so you will need public internet access to use it. (It's for debugging purposes only.)
 
 # SQL Server
 
