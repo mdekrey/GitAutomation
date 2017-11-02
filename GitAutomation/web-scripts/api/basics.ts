@@ -19,7 +19,7 @@ export const currentClaims = () =>
       }
     `,
     pollInterval: 60000
-  });
+  }).filter(v => Boolean(v && v.claims && v.roles));
 
 export const signOut = () =>
   Observable.ajax("/api/authentication/sign-out").map(
@@ -38,12 +38,14 @@ export const allUsers = () =>
         }
       }
     `
-  }).map(r =>
-    r.users.map(user => ({
-      username: user.username,
-      roles: user.roles.map(({ role }) => role)
-    }))
-  );
+  })
+    .filter(v => Boolean(v && v.users))
+    .map(r =>
+      r.users.map(user => ({
+        username: user.username,
+        roles: user.roles.map(({ role }) => role)
+      }))
+    );
 
 export const allRoles = () =>
   graphQl<{ roles: { role: string }[] }>({
@@ -55,7 +57,9 @@ export const allRoles = () =>
       }
     `,
     pollInterval: 0
-  }).map(r => r.roles);
+  })
+    .filter(v => Boolean(v && v.roles))
+    .map(r => r.roles);
 
 export const updateUser = (userName: string, body: IUpdateUserRequestBody) =>
   Observable.ajax
@@ -92,51 +96,53 @@ type AllBranchesQuery = {
   })[];
 };
 
-export const allBranchGroups = () => graphQl<AllBranchesQuery>({
-  query: gql`
-    {
-      allActualBranches {
-        name
-        commit
-      }
-      configuredBranchGroups {
-        groupName
-        branchType
-        directDownstream {
-          groupName
-        }
-        latestBranch {
-          name
-        }
-        branches {
+export const allBranchGroups = () =>
+  graphQl<AllBranchesQuery>({
+    query: gql`
+      {
+        allActualBranches {
           name
           commit
         }
+        configuredBranchGroups {
+          groupName
+          branchType
+          directDownstream {
+            groupName
+          }
+          latestBranch {
+            name
+          }
+          branches {
+            name
+            commit
+          }
+        }
       }
-    }
-  `
-})
-  .map(result => {
-    const configuredBranches = flatten<string>(
-      result.configuredBranchGroups.map(g => g.branches.map(b => b.name))
-    );
-    const nonConfiguredBranches = result.allActualBranches.filter(
-      b => configuredBranches.indexOf(b.name) === -1
-    );
-    return [
-      ...result.configuredBranchGroups,
-      ...nonConfiguredBranches.map(branch => ({
-        groupName: branch.name,
-        branchType: "Feature" as GitAutomationGQL.IBranchGroupTypeEnum,
-        latestBranch: { name: branch.name },
-        branches: [branch],
-        directDownstream: [] as Pick<
-          GitAutomationGQL.IBranchGroupDetails,
-          "groupName"
-        >[]
-      }))
-    ];
-  });
+    `
+  })
+    .filter(v => Boolean(v && v.allActualBranches && v.configuredBranchGroups))
+    .map(result => {
+      const configuredBranches = flatten<string>(
+        result.configuredBranchGroups.map(g => g.branches.map(b => b.name))
+      );
+      const nonConfiguredBranches = result.allActualBranches.filter(
+        b => configuredBranches.indexOf(b.name) === -1
+      );
+      return [
+        ...result.configuredBranchGroups,
+        ...nonConfiguredBranches.map(branch => ({
+          groupName: branch.name,
+          branchType: "Feature" as GitAutomationGQL.IBranchGroupTypeEnum,
+          latestBranch: { name: branch.name },
+          branches: [branch],
+          directDownstream: [] as Pick<
+            GitAutomationGQL.IBranchGroupDetails,
+            "groupName"
+          >[]
+        }))
+      ];
+    });
 
 interface TreeEntry {
   descendants: Set<string>;
@@ -248,7 +254,9 @@ export const branchDetails = (branchName: string) =>
     variables: {
       branchName
     }
-  }).map(g => g.branchGroup);
+  })
+    .filter(v => Boolean(v && v.branchGroup))
+    .map(g => g.branchGroup);
 
 export const detectUpstream = (branchName: string, asGroup: boolean) =>
   Observable.ajax(

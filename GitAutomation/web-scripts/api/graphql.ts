@@ -10,7 +10,12 @@ const client = new ApolloClient({
       credentials: "same-origin"
     }
   }),
-  cache: new InMemoryCache().restore({})
+  cache: new InMemoryCache().restore({}),
+  defaultOptions: {
+    watchQuery: {
+      fetchPolicy: "cache-and-network"
+    }
+  },
 });
 
 export class GraphQLError<T> extends Error {
