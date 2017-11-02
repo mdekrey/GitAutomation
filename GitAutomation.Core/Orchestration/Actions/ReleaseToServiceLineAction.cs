@@ -106,7 +106,7 @@ namespace GitAutomation.Orchestration.Actions
 
                     if (autoConsolidate)
                     {
-                        var consolidating = await repository.DetectUpstream(releaseCandidateBranch).FirstOrDefaultAsync();
+                        var consolidating = (await repository.GetBranchDetails(releaseCandidateBranch).FirstOrDefaultAsync()).UpstreamBranchGroups;
                         foreach (var upstreamServiceLine in upstreamLines)
                         {
                             var upstreamDetails = await repository.GetBranchDetails(upstreamServiceLine).FirstOrDefaultAsync();
