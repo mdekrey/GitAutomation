@@ -352,11 +352,11 @@ namespace GitAutomation.EFCore.BranchingModel
                                           select downstreamBranches.Key).ToArrayAsync())
                     .Distinct();
 
-                context.BranchStream.AddRange(
-                    newDownstream
-                        .Where(upstream => upstream != targetBranch)
-                        .Select(upstream => new BranchStream { DownstreamBranch = upstream, UpstreamBranch = targetBranch })
-                );
+                foreach (var upstream in newDownstream.Where(upstream => upstream != targetBranch))
+                {
+                    await context.BranchStream.AddIfNotExists(new BranchStream { DownstreamBranch = upstream, UpstreamBranch = targetBranch }, b => b.DownstreamBranch == upstream && b.UpstreamBranch == targetBranch);
+                }
+                
                 context.BranchStream.RemoveRange(await (from branch in context.BranchStream
                                                         where branchesToRemove.Contains(branch.UpstreamBranch)
                                                           || branchesToRemove.Contains(branch.DownstreamBranch)

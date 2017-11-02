@@ -57,8 +57,9 @@ namespace GitAutomation.Work
                         await portionOfWork.Commit();
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Console.WriteLine(ex);
                     foreach (var portionOfWork in values)
                     {
                         await portionOfWork.Rollback();

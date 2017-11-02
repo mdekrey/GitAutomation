@@ -51,6 +51,37 @@ namespace GitAutomation.Orchestration.Actions
         }
 
         [TestMethod]
+        public async Task FindParentConflictsOnCreate()
+        {
+            var setup = new Setup();
+            setup.repositoryMock.Setup(repository => repository.RemoteBranches()).Returns(Observable.Return(
+                new[]
+                {
+                    new GitRef
+                    {
+                        Name = "A",
+                        Commit = "0000000"
+                    },
+                    new GitRef
+                    {
+                        Name = "B",
+                        Commit = "1111111"
+                    },
+                }.ToImmutableList()
+            ));
+            setup.gitServiceApiMock.Setup(git => git.GetPullRequests(It.IsAny<PullRequestState?>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(ImmutableList<PullRequest>.Empty));
+            setup.settingsMock.Setup(settings => settings.GetUpstreamBranches(It.IsAny<string>())).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
+            setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("A", "B", It.IsAny<string>())).Returns(Task.FromResult(false));
+            setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("A", "C", It.IsAny<string>())).Returns(Task.FromResult(true));
+            setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("B", "C", It.IsAny<string>())).Returns(Task.FromResult(false));
+
+            var result = await setup.Target.FindConflicts("C", new[] { "A", "B" }, setup.AttemptMergeMock.Object.AttemptMergeDelegate);
+
+            Assert.IsFalse(result.HadPullRequest);
+            Assert.IsTrue(result.Conflicts.Any(a => a.BranchA.GroupName == "A" && a.BranchB.GroupName == "B"));
+        }
+
+        [TestMethod]
         public async Task FindParentConflicts()
         {
             var setup = new Setup();

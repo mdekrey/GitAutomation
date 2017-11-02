@@ -80,7 +80,7 @@ namespace GitAutomation.Orchestration.Actions
             // 2. Create integration branches for them
             // 3. Add the integration branch for ourselves
 
-            var result = await FindConflicts(downstreamDetails.LatestBranchName, initialUpstreamBranchGroups, doMerge);
+            var result = await FindConflicts(downstreamDetails.GroupName, initialUpstreamBranchGroups, doMerge);
 
             var addedIntegrationBranch = false;
             using (var work = workFactory.CreateUnitOfWork())
@@ -158,7 +158,7 @@ namespace GitAutomation.Orchestration.Actions
                 LatestBranchName = branchIteration.GetLatestBranchNameIteration(group, remoteBranches)
             };
 
-            var upstreamBranchListings = new Dictionary<string, ImmutableList<string>>
+            var upstreamBranchListings = new Dictionary<string, ImmutableList<string>>()
             {
                 { targetBranch, initialUpstreamBranchGroups.ToImmutableList() }
             };
@@ -167,6 +167,7 @@ namespace GitAutomation.Orchestration.Actions
             var unflippedConflicts = new HashSet<ConflictingBranches>();
             // Remove from `middleConflicts` if we find a deeper one that conflicts
             var middleConflicts = new HashSet<ConflictingBranches>();
+            var target = groupToLatest(targetBranch);
             var possibleConflicts = new Stack<PossibleConflictingBranches>(
                 (
                     from branchA in initialUpstreamBranchGroups.Select(groupToLatest)
@@ -175,7 +176,8 @@ namespace GitAutomation.Orchestration.Actions
                     select new PossibleConflictingBranches { BranchA = branchA, BranchB = branchB, ConflictWhenSuccess = null }
                 ).Concat(
                     from branch in initialUpstreamBranchGroups.Select(groupToLatest)
-                    select new PossibleConflictingBranches { BranchA = branch, BranchB = groupToLatest(targetBranch), ConflictWhenSuccess = null }
+                    where target.LatestBranchName != null
+                    select new PossibleConflictingBranches { BranchA = branch, BranchB = target, ConflictWhenSuccess = null }
                 )
             );
 
