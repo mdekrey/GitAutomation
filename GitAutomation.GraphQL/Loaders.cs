@@ -1,4 +1,5 @@
-﻿using GitAutomation.BranchSettings;
+﻿using DataLoader;
+using GitAutomation.BranchSettings;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -18,15 +19,17 @@ namespace GitAutomation.GraphQL
     public class Loaders
     {
         private readonly ILogger<Loaders> logger;
+        private readonly DataLoaderContext loadContext;
         private readonly IBranchSettingsAccessor branchSettings;
         private readonly IUserPermissionAccessor permissionAccessor;
         private readonly IRepositoryState repositoryState;
         private readonly IBranchIterationNamingConvention branchIteration;
         private readonly IGitServiceApi gitService;
 
-        public Loaders(IBranchSettingsAccessor branchSettings, IUserPermissionAccessor permissionAccessor, IRepositoryState repositoryState, IBranchIterationNamingConvention branchIteration, IGitServiceApi gitService, ILoggerFactory loggerFactory)
+        public Loaders(IDataLoaderContextAccessor loadContextAccessor, IBranchSettingsAccessor branchSettings, IUserPermissionAccessor permissionAccessor, IRepositoryState repositoryState, IBranchIterationNamingConvention branchIteration, IGitServiceApi gitService, ILoggerFactory loggerFactory)
         {
             this.logger = loggerFactory.CreateLogger<Loaders>();
+            this.loadContext = loadContextAccessor.LoadContext;
             this.branchSettings = branchSettings;
             this.permissionAccessor = permissionAccessor;
             this.repositoryState = repositoryState;
@@ -37,7 +40,12 @@ namespace GitAutomation.GraphQL
         public Task<BranchGroup> LoadBranchGroup(string name)
         {
             logger.LogInformation("Enqueue load branch group {0}", name);
-            return branchSettings.GetBranchGroups(name).ContinueWith(t => t.Result[name]);
+            return loadContext.Factory.GetOrCreateLoader<string, BranchGroup>("GetBranchGroup", async keys =>
+            {
+                logger.LogInformation("Loading {0} branch groups", keys.Count());
+                var result = await branchSettings.GetBranchGroups(keys.ToArray());
+                return result.ToDictionary(e => e.Key, e => e.Value);
+            }).LoadAsync(name);
         }
 
         internal async Task<string> GetMergeBaseOfCommitAndRemoteBranch(string commit, string branch)
@@ -63,12 +71,15 @@ namespace GitAutomation.GraphQL
             return repositoryState.MergeBaseBetweenCommits(commit1, commit2);
         }
 
-        public async Task<ImmutableList<string>> LoadBranchGroups()
+        public Task<ImmutableList<string>> LoadBranchGroups()
         {
             logger.LogInformation("Enqueue load all branch groups");
-            logger.LogInformation("Loading all branch groups");
-            var result = await branchSettings.GetAllBranchGroups();
-            return result.Select(group => group.GroupName).ToImmutableList();
+            return loadContext.Factory.GetOrCreateLoader("GetBranchGroups", async () =>
+            {
+                logger.LogInformation("Loading all branch groups");
+                var result = await branchSettings.GetAllBranchGroups();
+                return result.Select(group => group.GroupName).ToImmutableList();
+            }).LoadAsync();
         }
 
         internal Task<ImmutableList<PullRequest>> LoadPullRequests(string source, string target)
@@ -80,13 +91,23 @@ namespace GitAutomation.GraphQL
         internal Task<ImmutableList<string>> LoadDownstreamBranches(string name)
         {
             logger.LogInformation("Enqueue load downstream branches of {0}", name);
-            return branchSettings.GetDownstreamBranchGroups(name).ContinueWith(t => t.Result.ContainsKey(name) ? t.Result[name] : ImmutableList<string>.Empty);
+            return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetDownstreamBranchGroups", async keys =>
+            {
+                logger.LogInformation("Loading {0} branch group downstream", keys.Count());
+                var result = await branchSettings.GetDownstreamBranchGroups(keys.ToArray());
+                return keys.ToDictionary(k => k, key => result.ContainsKey(key) ? result[key] : ImmutableList<string>.Empty);
+            }).LoadAsync(name);
         }
 
         internal Task<ImmutableList<string>> LoadUpstreamBranches(string name)
         {
             logger.LogInformation("Enqueue load upstream branches of {0}", name);
-            return branchSettings.GetUpstreamBranchGroups(name).ContinueWith(t => t.Result.ContainsKey(name) ? t.Result[name] : ImmutableList<string>.Empty);
+            return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetUpstreamBranchGroups", async keys =>
+            {
+                logger.LogInformation("Loading {0} branch group upstream", keys.Count());
+                var result = await branchSettings.GetUpstreamBranchGroups(keys.ToArray());
+                return keys.ToDictionary(k => k, key => result.ContainsKey(key) ? result[key] : ImmutableList<string>.Empty);
+            }).LoadAsync(name);
         }
 
         internal Task<ImmutableList<CommitStatus>> LoadBranchStatus(string commitSha)
@@ -99,7 +120,11 @@ namespace GitAutomation.GraphQL
         internal Task<ImmutableList<GitRef>> LoadAllGitRefs()
         {
             logger.LogInformation("Enqueue load all git refs");
-            return repositoryState.RemoteBranches().FirstOrDefaultAsync().ToTask();
+            return loadContext.Factory.GetOrCreateLoader<ImmutableList<GitRef>>("GetAllGitRefs", async () =>
+            {
+                logger.LogInformation("Loading all git refs");
+                return await repositoryState.RemoteBranches().FirstOrDefaultAsync();
+            }).LoadAsync();
         }
 
         async internal Task<ImmutableList<GitRef>> LoadActualBranches(string name)
@@ -121,24 +146,30 @@ namespace GitAutomation.GraphQL
 
         internal Task<ImmutableList<string>> GetUsers()
         {
-            return permissionAccessor.GetUsers();
+            return loadContext.Factory.GetOrCreateLoader("GetAllUsers", () => permissionAccessor.GetUsers()).LoadAsync();
         }
 
-        internal async Task<ImmutableList<string>> LoadUsers(string role)
+        internal Task<ImmutableList<string>> LoadUsers(string role)
         {
-            var result = await permissionAccessor.GetUsersByRole(new[] { role });
-            return result.ContainsKey(role) ? result[role] : ImmutableList<string>.Empty;
+            return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetUsersByRole", async keys =>
+            {
+                var result = await permissionAccessor.GetUsersByRole(keys.ToArray());
+                return keys.ToDictionary(e => e, e => result.ContainsKey(e) ? result[e] : ImmutableList<string>.Empty);
+            }).LoadAsync(role);
         }
 
         internal Task<ImmutableList<string>> GetRoles()
         {
-            return permissionAccessor.GetRoles();
+            return loadContext.Factory.GetOrCreateLoader("GetAllRoles", () => permissionAccessor.GetRoles()).LoadAsync();
         }
 
-        internal async Task<ImmutableList<string>> LoadRoles(string username)
+        internal Task<ImmutableList<string>> LoadRoles(string username)
         {
-            var result = await permissionAccessor.GetRolesByUser(new[] { username });
-            return result.ContainsKey(username) ? result[username] : ImmutableList<string>.Empty;
+            return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetRolesByUser", async keys =>
+            {
+                var result = await permissionAccessor.GetRolesByUser(keys.ToArray());
+                return keys.ToDictionary(k => k, key => result.ContainsKey(key) ? result[key] : ImmutableList<string>.Empty);
+            }).LoadAsync(username);
         }
 
     }
