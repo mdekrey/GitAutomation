@@ -40,13 +40,6 @@ namespace GitAutomation.Management
         {
             return await orchestration.ProcessActionsLog.FirstAsync();
         }
-
-        [Authorize(Auth.PolicyNames.Read)]
-        [HttpGet("queue")]
-        public async Task<IEnumerable<Object>> Queue()
-        {
-            return (await orchestration.ActionQueue.FirstAsync()).Select(action => new { ActionType = action.ActionType, Parameters = action.Parameters });
-        }
         
         [Authorize(Auth.PolicyNames.Delete)]
         [HttpDelete("branch/{*branchName}")]

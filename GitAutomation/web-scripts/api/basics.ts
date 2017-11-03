@@ -18,7 +18,7 @@ export const currentClaims = () =>
         roles: currentRoles
       }
     `,
-    pollInterval: 60000
+    pollInterval: 300000
   }).filter(v => Boolean(v && v.claims && v.roles));
 
 export const signOut = () =>
@@ -81,10 +81,18 @@ export const updateUser = (userName: string, body: IUpdateUserRequestBody) =>
     .map(response => response.response as Record<string, string[]>);
 
 export const actionQueue = () =>
-  Observable.ajax("/api/management/queue").map(
-    response =>
-      response.response as { actionType: string; parameters: string[] }[]
-  );
+  graphQl<Pick<GitAutomationGQL.IQuery, "orchestrationQueue">>({
+    query: gql`
+      {
+        orchestrationQueue {
+          actionType
+          parameters
+        }
+      }
+    `
+  })
+    .filter(v => Boolean(v && v.orchestrationQueue))
+    .map(v => v.orchestrationQueue);
 
 type AllBranchesQuery = {
   allActualBranches: GitAutomationGQL.IGitRef[];
