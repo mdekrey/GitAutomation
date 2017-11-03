@@ -1,6 +1,5 @@
 import gql from "graphql-tag";
 import { Observable } from "../utils/rxjs";
-import { OutputMessage } from "./output-message";
 import { BranchGroupWithHierarchy } from "./basic-branch";
 import { ClaimDetails } from "./claim-details";
 import { IUpdateUserRequestBody } from "./update-user";
@@ -289,9 +288,19 @@ export const checkPullRequests = (branchName: string) =>
   );
 
 export const getLog = () =>
-  Observable.ajax("/api/management/log").map(
-    response => response.response as OutputMessage[]
-  );
+  graphQl<Pick<GitAutomationGQL.IQuery, "log">>({
+    query: gql`
+      {
+        log {
+          message
+          exitCode
+          channel
+        }
+      }
+    `
+  })
+    .filter(v => Boolean(v && v.log))
+    .map(g => g.log);
 
 export const fetch = () =>
   Observable.ajax

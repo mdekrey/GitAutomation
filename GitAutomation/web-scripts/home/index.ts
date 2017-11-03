@@ -173,6 +173,9 @@ export const homepage = (
             })
               .startWith(null)
               .switchMap(() => getLog())
+              .catch(() =>
+                Observable.empty<GitAutomationGQL.IOutputMessage[]>()
+              )
           )
             .bind(logPresentation)
             .subscribe()

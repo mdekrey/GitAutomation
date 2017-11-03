@@ -1,9 +1,8 @@
 import { IRxBindProps } from "../utils/presentation/d3-binding";
-import { OutputMessage, OutputMessageChannel } from "../api/output-message";
 
 export const logPresentation: IRxBindProps<
   HTMLLIElement,
-  OutputMessage,
+  GitAutomationGQL.IOutputMessage,
   HTMLUListElement,
   {}
 > = {
@@ -13,28 +12,24 @@ export const logPresentation: IRxBindProps<
     selection
       .style(
         "font-weight",
-        data =>
-          data.channel === OutputMessageChannel.Error ? "bold" : "normal"
+        data => (data.channel === "Error" ? "bold" : "normal")
       )
       .style(
         "font-style",
-        data =>
-          data.channel === OutputMessageChannel.StartInfo ? "italic" : "normal"
+        data => (data.channel === "StartInfo" ? "italic" : "normal")
       )
       .style(
         "color",
         data =>
-          data.channel === OutputMessageChannel.ExitCode && data.exitCode
-            ? "red"
-            : "initial"
+          data.channel === "ExitCode" && data.exitCode ? "red" : "initial"
       )
       .style(
         "margin-bottom",
-        data => (data.channel === OutputMessageChannel.ExitCode ? `10px` : null)
+        data => (data.channel === "ExitCode" ? `10px` : null)
       )
       .text(
         data =>
-          data.channel === OutputMessageChannel.ExitCode
+          data.channel === "ExitCode"
             ? `Exit code: ${data.exitCode}`
             : data.message
       );

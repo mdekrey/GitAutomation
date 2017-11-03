@@ -1,6 +1,7 @@
 ﻿using GitAutomation.BranchSettings;
 using GitAutomation.GraphQL.Utilities.Resolvers;
 using GitAutomation.Orchestration;
+using GitAutomation.Processes;
 using GitAutomation.Repository;
 using GraphQL;
 using GraphQL.Types;
@@ -28,6 +29,10 @@ namespace GitAutomation.GraphQL
             Field<NonNullGraphType<ListGraphType<OrchestrationActionInterface>>>()
                 .Name("orchestrationQueue")
                 .Resolve(this, nameof(OrchestrationQueue));
+
+            Field<NonNullGraphType<ListGraphType<OutputMessageInterface>>>()
+                .Name("log")
+                .Resolve(this, nameof(OrchestrationLog));
 
             Field<NonNullGraphType<BranchGroupDetailsInterface>>()
                 .Name("branchGroup")
@@ -73,6 +78,12 @@ namespace GitAutomation.GraphQL
         {
             await Authorize(authorizationService, httpContext, Auth.PolicyNames.Read);
             return await orchestration.ActionQueue.FirstAsync();
+        }
+
+        async Task<ImmutableList<OutputMessage>> OrchestrationLog([FromServices] IRepositoryOrchestration orchestration, [FromServices] IAuthorizationService authorizationService, [FromServices] IHttpContextAccessor httpContext)
+        {
+            await Authorize(authorizationService, httpContext, Auth.PolicyNames.Read);
+            return await orchestration.ProcessActionsLog.FirstAsync();
         }
 
         async Task<string> BranchByName([FromArgument] string name, [FromServices] IAuthorizationService authorizationService, [FromServices] IHttpContextAccessor httpContext)

@@ -33,13 +33,6 @@ namespace GitAutomation.Management
             this.unitOfWorkFactory = unitOfWorkFactory;
             this.orchestration = orchestration;
         }
-
-        [Authorize(Auth.PolicyNames.Read)]
-        [HttpGet("log")]
-        public async Task<ImmutableList<Processes.OutputMessage>> Log()
-        {
-            return await orchestration.ProcessActionsLog.FirstAsync();
-        }
         
         [Authorize(Auth.PolicyNames.Delete)]
         [HttpDelete("branch/{*branchName}")]
