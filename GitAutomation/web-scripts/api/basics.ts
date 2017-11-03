@@ -271,9 +271,26 @@ export const detectUpstream = (branchName: string, asGroup: boolean) =>
   ).map(response => response.response as string[]);
 
 export const detectAllUpstream = (branchName: string) =>
-  Observable.ajax("/api/management/detect-all-upstream/" + branchName).map(
-    response => response.response as string[]
-  );
+  graphQl<Pick<GitAutomationGQL.IQuery, "allActualBranches">>({
+    query: gql`
+      query($branchName: String!) {
+        allActualBranches {
+          name
+          commit
+          mergeBase(commitish: $branchName, kind: RemoteBranch)
+        }
+      }
+    `,
+    variables: {
+      branchName
+    }
+  })
+    .filter(v => Boolean(v && v.allActualBranches))
+    .map(g =>
+      g.allActualBranches
+        .filter(b => b.commit === b.mergeBase && b.name !== branchName)
+        .map(b => b.name)
+    );
 
 export const checkPullRequests = (branchName: string) =>
   Observable.ajax("/api/management/check-prs/" + branchName).map(
