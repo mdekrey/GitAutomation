@@ -293,16 +293,31 @@ export const detectAllUpstream = (branchName: string) =>
     );
 
 export const checkPullRequests = (branchName: string) =>
-  Observable.ajax("/api/management/check-prs/" + branchName).map(
-    response =>
-      response.response as {
-        reviews: { username: string; state: string[] }[];
-        state: string;
-        sourceBranch: string;
-        targetBranch: string;
-        id: string;
-      }[]
-  );
+  graphQl<Pick<GitAutomationGQL.IQuery, "branchGroup">>({
+    query: gql`
+      query($branchName: String!) {
+        branchGroup(name: $branchName) {
+          latestBranch {
+            pullRequestsFrom {
+              id
+              sourceBranch
+              targetBranch
+              state
+              reviews {
+                username
+                state
+              }
+            }
+          }
+        }
+      }
+    `,
+    variables: {
+      branchName
+    }
+  })
+    .filter(v => Boolean(v && v.branchGroup && v.branchGroup.latestBranch))
+    .map(g => g.branchGroup.latestBranch!.pullRequestsFrom);
 
 export const getLog = () =>
   graphQl<Pick<GitAutomationGQL.IQuery, "log">>({

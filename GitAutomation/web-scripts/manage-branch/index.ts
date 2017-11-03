@@ -288,7 +288,7 @@ export const manage = (
                       `[data-locator="upstream-branches"] [data-locator="pr-status"][data-branch="${pr.sourceBranch}"]`
                     )
                     .text(
-                      `Has PR: ${pr.state} (${pr.reviews
+                      `Has PR: ${pr.state} (${pr.reviews!
                         .map(review => `${review.username}: ${review.state}`)
                         .join(", ")})`
                     )

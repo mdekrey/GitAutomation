@@ -119,13 +119,6 @@ namespace GitAutomation.Management
         {
             return repository.DetectShallowUpstream(branchName, asGroup).FirstAsync().ToTask();
         }
-        
-        [Authorize(Auth.PolicyNames.Read)]
-        [HttpGet("check-prs/{*branchName}")]
-        public Task<ImmutableList<GitService.PullRequestWithReviews>> GetUpstreamPullRequests(string branchName)
-        {
-            return repository.GetUpstreamPullRequests(branchName).FirstAsync().ToTask();
-        }
 
         [Authorize(Auth.PolicyNames.Read)]
         [HttpGet("recommend-groups")]
