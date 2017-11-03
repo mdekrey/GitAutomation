@@ -6,6 +6,8 @@ node_modules
 *.dbmdl
 *.jfm
 .vscode
+.docker-yarn-cache
+linux-node-modules
 
 /git-credentials*.txt
 /configuration*.json

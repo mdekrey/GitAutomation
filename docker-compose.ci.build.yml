@@ -8,4 +8,6 @@ services:
       dockerfile: Dockerfile-ci
     volumes:
       - .:/src
+      - ./.docker-yarn-cache:/root/yarn-cache
+      - ./linux-node-modules:/src/GitAutomation/node_modules
     working_dir: /src
