@@ -38,6 +38,16 @@ namespace GitAutomation.Orchestration
             {
                 if (alteration.Kind == QueueAlterationKind.Append)
                 {
+                    if (alteration.Target is IUniqueAction uniqueAction)
+                    {
+                        var existingTarget = list.FirstOrDefault(entry => entry.ActionType == alteration.Target.ActionType && entry.Parameters.ToString() == alteration.Target.Parameters.ToString());
+                        if (existingTarget != null)
+                        {
+                            // TODO - should probably notify that the output is deferred. 
+                            uniqueAction.AbortAs(existingTarget.DeferredOutput);
+                            return list;
+                        }
+                    }
                     return list.Add(alteration.Target);
                 }
                 else if (alteration.Kind == QueueAlterationKind.Remove)
@@ -91,6 +101,5 @@ namespace GitAutomation.Orchestration
             this.queueAlterations.OnNext(new QueueAlteration { Kind = QueueAlterationKind.Append, Target = resetAction });
             return resetAction.DeferredOutput;
         }
-
     }
 }

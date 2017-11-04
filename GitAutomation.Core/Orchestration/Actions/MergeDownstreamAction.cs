@@ -21,7 +21,7 @@ using System.Threading.Tasks;
 
 namespace GitAutomation.Orchestration.Actions
 {
-    class MergeDownstreamAction : IRepositoryAction
+    class MergeDownstreamAction : IRepositoryAction, IUniqueAction
     {
         private enum MergeConflictResolution
         {
@@ -44,6 +44,7 @@ namespace GitAutomation.Orchestration.Actions
         }
 
         private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
+        private readonly ISubject<IObservable<OutputMessage>> outputStream;
         private readonly string downstreamBranch;
 
         public string ActionType => "MergeDownstream";
@@ -52,6 +53,7 @@ namespace GitAutomation.Orchestration.Actions
         public MergeDownstreamAction(string downstreamBranch)
         {
             this.downstreamBranch = downstreamBranch;
+            outputStream = new BehaviorSubject<IObservable<OutputMessage>>(output);
         }
 
         public JToken Parameters => JToken.FromObject(new Dictionary<string, string>
@@ -65,6 +67,12 @@ namespace GitAutomation.Orchestration.Actions
         {
             return ActivatorUtilities.CreateInstance<MergeDownstreamActionProcess>(serviceProvider, downstreamBranch).Process().Multicast(output).RefCount();
         }
+
+        public void AbortAs(IObservable<OutputMessage> otherStream)
+        {
+            outputStream.OnNext(otherStream);
+        }
+
 
         private class MergeDownstreamActionProcess : ComplexAction
         {
