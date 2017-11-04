@@ -40,13 +40,15 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
         const directDownstreamBranches = branchDetails.directDownstream.map(
           g => g.groupName
         );
-        const upstreamBranches =
-          hierarchyData[branchDetails.groupName].upstream;
+        const target = hierarchyData[branchDetails.groupName] || {
+          upstream: [],
+          downstream: []
+        };
+        const upstreamBranches = target.upstream;
         const directUpstreamBranches = branchDetails.directUpstream.map(
           g => g.groupName
         );
-        const downstreamBranches =
-          hierarchyData[branchDetails.groupName].downstream;
+        const downstreamBranches = target.downstream;
         return {
           branches: allBranches.map((group): IBranchData => ({
             ...group,
@@ -56,9 +58,7 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
               upstreamBranches.indexOf(group.groupName) == -1,
             isUpstream: directUpstreamBranches.indexOf(group.groupName) >= 0,
             isSomewhereUpstream: Boolean(
-              hierarchyData[branchDetails.groupName].upstream.find(
-                branch => branch === group.groupName
-              )
+              target.upstream.find(branch => branch === group.groupName)
             ),
             isUpstreamAllowed: downstreamBranches.indexOf(group.groupName) == -1
           })),
