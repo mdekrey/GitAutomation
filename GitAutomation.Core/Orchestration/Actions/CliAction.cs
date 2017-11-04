@@ -14,11 +14,9 @@ namespace GitAutomation.Orchestration.Actions
     abstract class CliAction : IRepositoryAction
     {
         private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
-        private readonly ISubject<IObservable<OutputMessage>> outputStream;
 
         public CliAction()
         {
-            outputStream = new BehaviorSubject<IObservable<OutputMessage>>(output);
         }
 
         public abstract string ActionType { get; }
@@ -27,7 +25,7 @@ namespace GitAutomation.Orchestration.Actions
             ImmutableDictionary<string, string>.Empty
         );
 
-        public IObservable<OutputMessage> DeferredOutput => outputStream.Switch();
+        public IObservable<OutputMessage> DeferredOutput => output;
 
         public virtual IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider)
         {
@@ -39,7 +37,7 @@ namespace GitAutomation.Orchestration.Actions
 
         protected void Abort(IObservable<OutputMessage> alternate)
         {
-            outputStream.OnNext(alternate);
+            alternate.Multicast(output).Connect();
         }
     }
 }

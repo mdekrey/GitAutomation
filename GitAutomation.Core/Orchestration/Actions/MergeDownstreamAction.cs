@@ -44,7 +44,6 @@ namespace GitAutomation.Orchestration.Actions
         }
 
         private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
-        private readonly ISubject<IObservable<OutputMessage>> outputStream;
         private readonly string downstreamBranch;
 
         public string ActionType => "MergeDownstream";
@@ -53,7 +52,6 @@ namespace GitAutomation.Orchestration.Actions
         public MergeDownstreamAction(string downstreamBranch)
         {
             this.downstreamBranch = downstreamBranch;
-            outputStream = new BehaviorSubject<IObservable<OutputMessage>>(output);
         }
 
         public JToken Parameters => JToken.FromObject(new Dictionary<string, string>
@@ -70,7 +68,7 @@ namespace GitAutomation.Orchestration.Actions
 
         public void AbortAs(IObservable<OutputMessage> otherStream)
         {
-            outputStream.OnNext(otherStream);
+            otherStream.Multicast(output).Connect();
         }
 
 
