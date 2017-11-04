@@ -21,7 +21,7 @@ import { setupWizard } from "./setup-wizard/index";
 
 const body = Observable.of(d3element(document.body));
 
-const claims = currentClaims().publishReplay(1);
+const claims = currentClaims.publishReplay(1);
 claims.connect();
 
 buildCascadingStrategy(windowHashStrategy)

@@ -54,12 +54,12 @@ namespace GitAutomation.GraphQL
                 });
         }
 
-        Task<BranchGroupType?> LoadBranchType([Source] string name, [FromServices] Loaders loaders)
+        Task<BranchGroupType> LoadBranchType([Source] string name, [FromServices] Loaders loaders)
         {
             return loaders.LoadBranchGroup(name)
                 .ContinueWith(r =>
                 {
-                    return r.Result?.BranchType;
+                    return r.Result?.BranchType ?? BranchGroupType.Feature;
                 });
         }
 

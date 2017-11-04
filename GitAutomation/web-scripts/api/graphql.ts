@@ -1,4 +1,4 @@
-import { Observable } from "../utils/rxjs";
+import { Observable, Observer } from "../utils/rxjs";
 import { ApolloClient, HttpLink, InMemoryCache } from "apollo-client-preset";
 import { ApolloQueryResult, WatchQueryOptions } from "apollo-client";
 import { DocumentNode } from "graphql";
@@ -15,7 +15,7 @@ const client = new ApolloClient({
     watchQuery: {
       fetchPolicy: "cache-and-network"
     }
-  },
+  }
 });
 
 export class GraphQLError<T> extends Error {
@@ -28,17 +28,23 @@ export class GraphQLError<T> extends Error {
 
 // TODO - provide "dataloader" like functionality on this side to combine queries
 export const graphQl = <TResult>(options: WatchQueryOptions) =>
-  Observable.from(
-    client.watchQuery<TResult>({
-      pollInterval: 60000,
-      ...options
-    })
-  ).map(response => {
-    if (!response.errors) {
-      return response.data;
-    }
-    throw new GraphQLError(response);
-  });
+  (Observable.create((observer: Observer<TResult>) =>
+    Observable.from(
+      client.watchQuery<TResult>({
+        pollInterval: 60000,
+        ...options
+      })
+    )
+      .map(response => {
+        if (!response.errors) {
+          return response.data;
+        }
+        throw new GraphQLError(response);
+      })
+      .subscribe(observer)
+  ) as Observable<TResult>)
+    .publishReplay(1)
+    .refCount();
 
 export const invalidateQuery = (query: DocumentNode) =>
   client.query({ query, fetchPolicy: "network-only" });

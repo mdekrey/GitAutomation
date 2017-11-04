@@ -15,7 +15,9 @@ import {
   fetch,
   actionQueue,
   signOut,
-  allBranchesHierarchy
+  allBranchesHierarchy,
+  forceRefreshBranchGroups,
+  forceRefreshLog
 } from "../api/basics";
 import { logPresentation } from "../logs/log.presentation";
 import { branchHierarchy } from "./branch-hierarchy";
@@ -38,15 +40,17 @@ export const homepage = (
               fnSelect<SVGSVGElement>(`svg[data-locator="hierarchy-container"]`)
             ),
             state,
-            data: rxEvent({
-              target: body.map(
-                fnSelect('[data-locator="remote-branch-hierarchy-refresh"]')
-              ),
-              eventName: "click"
-            })
-              .startWith(null)
-              .switchMap(allBranchesHierarchy)
+            data: allBranchesHierarchy
           }).subscribe()
+        );
+
+        subscription.add(
+          rxEvent({
+            target: body.map(
+              fnSelect('[data-locator="remote-branch-hierarchy-refresh"]')
+            ),
+            eventName: "click"
+          }).subscribe(v => forceRefreshBranchGroups.next(null))
         );
 
         // log out
@@ -84,7 +88,7 @@ export const homepage = (
               eventName: "click"
             })
               .startWith(null)
-              .switchMap(() => actionQueue())
+              .switchMap(() => actionQueue)
           )
             .bind<HTMLLIElement>({
               onCreate: target => target.append<HTMLLIElement>("li"),
@@ -106,14 +110,7 @@ export const homepage = (
             HTMLUListElement
           >(
             body.map(fnSelect(`[data-locator="remote-branches"]`)),
-            rxEvent({
-              target: body.map(
-                fnSelect('[data-locator="remote-branches-refresh"]')
-              ),
-              eventName: "click"
-            })
-              .startWith(null)
-              .switchMap(() => allBranchGroups())
+            allBranchGroups
           )
             .bind<HTMLLIElement>({
               onCreate: target =>
@@ -163,22 +160,32 @@ export const homepage = (
             .subscribe()
         );
 
+        subscription.add(
+          rxEvent({
+            target: body.map(
+              fnSelect('[data-locator="remote-branches-refresh"]')
+            ),
+            eventName: "click"
+          }).subscribe(v => forceRefreshBranchGroups.next(null))
+        );
+
         // display log
         subscription.add(
           rxData(
             body.map(fnSelect(`ul[data-locator="status"]`)),
-            rxEvent({
-              target: body.map(fnSelect('[data-locator="status-refresh"]')),
-              eventName: "click"
-            })
-              .startWith(null)
-              .switchMap(() => getLog())
-              .catch(() =>
-                Observable.empty<GitAutomationGQL.IOutputMessage[]>()
-              )
+            getLog.catch(() =>
+              Observable.empty<GitAutomationGQL.IOutputMessage[]>()
+            )
           )
             .bind(logPresentation)
             .subscribe()
+        );
+
+        subscription.add(
+          rxEvent({
+            target: body.map(fnSelect('[data-locator="status-refresh"]')),
+            eventName: "click"
+          }).subscribe(() => forceRefreshLog.next(null))
         );
 
         subscription.add(

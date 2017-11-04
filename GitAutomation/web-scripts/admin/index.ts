@@ -1,9 +1,4 @@
-import {
-  BehaviorSubject,
-  Observable,
-  Subject,
-  Subscription
-} from "../utils/rxjs";
+import { Observable, Subject, Subscription } from "../utils/rxjs";
 import { Selection, select as d3select } from "d3-selection";
 
 import {
@@ -14,15 +9,18 @@ import {
 } from "../utils/presentation/d3-binding";
 
 import { RoutingComponent } from "../utils/routing-component";
-import { allUsers, allRoles, updateUser } from "../api/basics";
+import {
+  allUsers,
+  allRoles,
+  updateUser,
+  forceRefreshUsers
+} from "../api/basics";
 import { IUpdateUserRequestBody } from "../api/update-user";
 
 const updateUserData = new Subject<
   { userName: string } & IUpdateUserRequestBody
 >();
-const freshUserData = new BehaviorSubject<null>(null);
-const userData = freshUserData.switchMap(v => allUsers());
-const permissions = allRoles().map(roles => roles.map(({ role }) => role));
+const permissions = allRoles.map(roles => roles.map(({ role }) => role));
 
 export const admin = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -40,7 +38,7 @@ export const admin = (
             .switchMap(({ userName, addRoles, removeRoles }) =>
               updateUser(userName, { addRoles, removeRoles })
             )
-            .subscribe(result => freshUserData.next(null))
+            .subscribe(result => forceRefreshUsers.next(null))
         );
 
         subscription.add(
@@ -65,7 +63,7 @@ export const admin = (
         subscription.add(
           rxData(
             body.map(fnSelect(`[data-locator="users"] tbody`)),
-            userData.map(users => users.concat([{ username: "", roles: [] }])),
+            allUsers.map(users => users.concat([{ username: "", roles: [] }])),
             data => data.username
           )
             .bind<HTMLTableRowElement>({

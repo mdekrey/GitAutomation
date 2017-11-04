@@ -34,9 +34,9 @@ export const newBranch = (
         subscription.add(
           rxData(
             container.map(fnSelect(`[data-locator="upstream-branches"]`)),
-            allBranchGroups().map(groups =>
-              groups.map(({ groupName }) => ({ groupName }))
-            )
+            allBranchGroups
+              .take(1)
+              .map(groups => groups.map(({ groupName }) => ({ groupName })))
           )
             .bind<HTMLLIElement>(buildBranchCheckListing())
             .subscribe()

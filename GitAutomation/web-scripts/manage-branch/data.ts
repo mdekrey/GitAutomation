@@ -32,10 +32,11 @@ export interface IBranchData {
 export const runBranchData = (branchName: string, reload: Observable<any>) => {
   const subscription = new Subscription();
 
-  const initializeBranchData = allBranchGroups()
+  const initializeBranchData = allBranchGroups
+    .take(1)
     .combineLatest(
       branchDetails(branchName),
-      allBranchesHierarchy(),
+      allBranchesHierarchy.take(1),
       (allBranches, branchDetails, hierarchyData) => {
         const directDownstreamBranches = branchDetails.directDownstream.map(
           g => g.groupName
@@ -51,7 +52,10 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
         const downstreamBranches = target.downstream;
         return {
           branches: allBranches.map((group): IBranchData => ({
-            ...group,
+            groupName: group.groupName,
+            branchType: group.branchType,
+            latestBranch: group.latestBranch,
+            branches: group.branches,
             isDownstream:
               directDownstreamBranches.indexOf(group.groupName) >= 0,
             isDownstreamAllowed:
@@ -97,6 +101,7 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
     latestBranchName: null
   })
     .concat(reload.startWith(null).switchMap(() => initializeBranchData))
+    .do(v => console.log(v))
     .publishReplay(1)
     .refCount();
 
