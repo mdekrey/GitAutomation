@@ -273,14 +273,15 @@ namespace GitAutomation.Orchestration.Actions
                     return;
                 }
 
-                // TODO - create the downstreamBranch based off an earlier commit, then migrate/close PRs, then push actual branch
-
-                await PushBranch(downstreamBranch);
+                var pushProcess = AppendProcess(Queueable(cli.Push(initialBranch.BranchName, downstreamBranch)));
+                await (from o in pushProcess where o.Channel == OutputChannel.ExitCode select o.ExitCode).FirstAsync();
 
                 if (LatestBranchName != null && LatestBranchName != downstreamBranch)
                 {
                     await gitServiceApi.MigrateOrClosePullRequests(fromBranch: LatestBranchName, toBranch: downstreamBranch);
                 }
+
+                await PushBranch(downstreamBranch);
             }
 
             private async Task PushBranch(string downstreamBranch)
