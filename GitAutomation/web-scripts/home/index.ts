@@ -145,7 +145,7 @@ export const homepage = (
               configuredBranches
                 .map(branch =>
                   branch
-                    .select(`[data-locator="actual-branches"]`)
+                    .select(`ul[data-locator="actual-branches"]`)
                     .selectAll(`li`)
                     .data(basicBranch => basicBranch.branches)
                 )
@@ -166,7 +166,7 @@ export const homepage = (
         // display log
         subscription.add(
           rxData(
-            body.map(fnSelect(`[data-locator="status"]`)),
+            body.map(fnSelect(`ul[data-locator="status"]`)),
             rxEvent({
               target: body.map(fnSelect('[data-locator="status-refresh"]')),
               eventName: "click"
