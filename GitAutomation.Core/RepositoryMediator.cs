@@ -315,5 +315,10 @@ namespace GitAutomation
                     }
                 );
         }
+
+        public void CheckForUpdates()
+        {
+            repositoryState.CheckForUpdates();
+        }
     }
 }

@@ -197,8 +197,8 @@ namespace GitAutomation.Orchestration.Actions
             setup.settingsMock.Setup(settings => settings.GetIntegrationBranch("B", "ServiceLine")).ReturnsAsync("Integ");
             setup.settingsMock.Setup(settings => settings.AddBranchPropagation("Integ", "B", It.IsAny<IUnitOfWork>())).Verifiable();
             setup.settingsMock.Setup(settings => settings.RemoveBranchPropagation("B", "Integ", It.IsAny<IUnitOfWork>())).Verifiable();
-            setup.orchestrationMock.Setup(orchestration => orchestration.EnqueueAction(It.Is<MergeDownstreamAction>(a => a.DownstreamBranch == "B"))).Verifiable();
-            setup.orchestrationMock.Setup(orchestration => orchestration.EnqueueAction(It.Is<ConsolidateMergedAction>(a => a.NewBaseBranch == "B" && a.OriginalBranches.Single() == "Integ"))).Verifiable();
+            setup.orchestrationMock.Setup(orchestration => orchestration.EnqueueAction(It.Is<MergeDownstreamAction>(a => a.DownstreamBranch == "B"), false)).Verifiable();
+            setup.orchestrationMock.Setup(orchestration => orchestration.EnqueueAction(It.Is<ConsolidateMergedAction>(a => a.NewBaseBranch == "B" && a.OriginalBranches.Single() == "Integ"), false)).Verifiable();
 
             var result = await setup.Target.FindAndCreateIntegrationBranches(new BranchGroupCompleteData
             {
@@ -212,8 +212,8 @@ namespace GitAutomation.Orchestration.Actions
             Assert.IsTrue(result.Conflicts.Any(a => a.BranchA.GroupName == "B" && a.BranchB.GroupName == "ServiceLine"));
             setup.settingsMock.Verify(settings => settings.AddBranchPropagation("Integ", "B", It.IsAny<IUnitOfWork>()), Times.Once());
             setup.settingsMock.Verify(settings => settings.RemoveBranchPropagation("B", "Integ", It.IsAny<IUnitOfWork>()), Times.Once());
-            setup.orchestrationMock.Verify(orchestration => orchestration.EnqueueAction(It.Is<MergeDownstreamAction>(a => a.DownstreamBranch == "B")), Times.Once());
-            setup.orchestrationMock.Verify(orchestration => orchestration.EnqueueAction(It.Is<ConsolidateMergedAction>(a => a.NewBaseBranch == "B" && a.OriginalBranches.Single() == "Integ")), Times.Once());
+            setup.orchestrationMock.Verify(orchestration => orchestration.EnqueueAction(It.Is<MergeDownstreamAction>(a => a.DownstreamBranch == "B"), false), Times.Once());
+            setup.orchestrationMock.Verify(orchestration => orchestration.EnqueueAction(It.Is<ConsolidateMergedAction>(a => a.NewBaseBranch == "B" && a.OriginalBranches.Single() == "Integ"), false), Times.Once());
         }
     }
 }

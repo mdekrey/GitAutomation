@@ -273,7 +273,7 @@ namespace GitAutomation.Orchestration.Actions
                     {
                         // abort, but queue another attempt
 #pragma warning disable CS4014
-                        orchestration.EnqueueAction(new MergeDownstreamAction(downstreamBranchGroup));
+                        orchestration.EnqueueAction(new MergeDownstreamAction(downstreamBranchGroup), skipDuplicateCheck: true);
 #pragma warning restore
                     }
                     return;
