@@ -14,7 +14,11 @@ namespace GitAutomation.Orchestration.Actions
     abstract class CliAction : IRepositoryAction
     {
         private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
-        
+
+        public CliAction()
+        {
+        }
+
         public abstract string ActionType { get; }
 
         public virtual JToken Parameters => JToken.FromObject(
@@ -25,10 +29,15 @@ namespace GitAutomation.Orchestration.Actions
 
         public virtual IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider)
         {
-            return GetCliAction(serviceProvider.GetRequiredService<GitCli>()).Output      
+            return GetCliAction(serviceProvider.GetRequiredService<GitCli>()).Output
                 .Multicast(output).ConnectFirst();
         }
 
         protected abstract IReactiveProcess GetCliAction(GitCli gitCli);
+
+        protected void Abort(IObservable<OutputMessage> alternate)
+        {
+            alternate.Multicast(output).Connect();
+        }
     }
 }

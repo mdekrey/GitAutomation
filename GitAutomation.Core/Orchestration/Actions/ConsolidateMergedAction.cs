@@ -98,6 +98,8 @@ namespace GitAutomation.Orchestration.Actions
                       from actualBranch in branch.Branches
                       from entry in AppendProcess(Queueable(cli.DeleteRemote(actualBranch.Name)))
                       select entry).StartWith(new OutputMessage());
+
+                repository.CheckForUpdates();
             }
 
             private IObservable<(BranchGroupCompleteData branch, string latestBranchName)> GetLatestBranchTuple(BranchGroupCompleteData branch)

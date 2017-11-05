@@ -21,7 +21,7 @@ using System.Threading.Tasks;
 
 namespace GitAutomation.Orchestration.Actions
 {
-    class MergeDownstreamAction : IRepositoryAction
+    class MergeDownstreamAction : IRepositoryAction, IUniqueAction
     {
         private enum MergeConflictResolution
         {
@@ -65,6 +65,12 @@ namespace GitAutomation.Orchestration.Actions
         {
             return ActivatorUtilities.CreateInstance<MergeDownstreamActionProcess>(serviceProvider, downstreamBranch).Process().Multicast(output).RefCount();
         }
+
+        public void AbortAs(IObservable<OutputMessage> otherStream)
+        {
+            otherStream.Multicast(output).Connect();
+        }
+
 
         private class MergeDownstreamActionProcess : ComplexAction
         {
@@ -267,7 +273,7 @@ namespace GitAutomation.Orchestration.Actions
                     {
                         // abort, but queue another attempt
 #pragma warning disable CS4014
-                        orchestration.EnqueueAction(new MergeDownstreamAction(downstreamBranchGroup));
+                        orchestration.EnqueueAction(new MergeDownstreamAction(downstreamBranchGroup), skipDuplicateCheck: true);
 #pragma warning restore
                     }
                     return;

@@ -11,6 +11,6 @@ namespace GitAutomation.Orchestration
         IObservable<ImmutableList<OutputMessage>> ProcessActionsLog { get; }
         IObservable<ImmutableList<IRepositoryAction>> ActionQueue { get; }
 
-        IObservable<OutputMessage> EnqueueAction(IRepositoryAction resetAction);
+        IObservable<OutputMessage> EnqueueAction(IRepositoryAction resetAction, bool skipDuplicateCheck = false);
     }
 }

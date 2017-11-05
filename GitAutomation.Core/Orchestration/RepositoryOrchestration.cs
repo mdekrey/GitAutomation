@@ -15,6 +15,7 @@ namespace GitAutomation.Orchestration
         {
             Remove,
             Append,
+            AppendNoDuplicateCheck,
         }
         struct QueueAlteration
         {
@@ -36,17 +37,26 @@ namespace GitAutomation.Orchestration
 
             var repositoryActions = queueAlterations.Scan(ImmutableList<IRepositoryAction>.Empty, (list, alteration) =>
             {
-                if (alteration.Kind == QueueAlterationKind.Append)
+                switch (alteration.Kind)
                 {
-                    return list.Add(alteration.Target);
-                }
-                else if (alteration.Kind == QueueAlterationKind.Remove)
-                {
-                    return list.Remove(alteration.Target);
-                }
-                else
-                {
-                    throw new NotSupportedException();
+                    case QueueAlterationKind.Append:
+                        if (alteration.Target is IUniqueAction uniqueAction)
+                        {
+                            var existingTarget = list.FirstOrDefault(entry => entry.ActionType == alteration.Target.ActionType && entry.Parameters.ToString() == alteration.Target.Parameters.ToString());
+                            if (existingTarget != null)
+                            {
+                                // TODO - should probably notify that the output is deferred. 
+                                uniqueAction.AbortAs(existingTarget.DeferredOutput);
+                                return list;
+                            }
+                        }
+                        return list.Add(alteration.Target);
+                    case QueueAlterationKind.AppendNoDuplicateCheck:
+                        return list.Add(alteration.Target);
+                    case QueueAlterationKind.Remove:
+                        return list.Remove(alteration.Target);
+                    default:
+                        throw new NotSupportedException();
                 }
             }).Replay(1);
             repositoryActions.Connect();
@@ -86,11 +96,14 @@ namespace GitAutomation.Orchestration
         public IObservable<ImmutableList<OutputMessage>> ProcessActionsLog => this.repositoryActionProcessorLog;
         public IObservable<ImmutableList<IRepositoryAction>> ActionQueue => this.repositoryActions;
 
-        public IObservable<OutputMessage> EnqueueAction(IRepositoryAction resetAction)
+        public IObservable<OutputMessage> EnqueueAction(IRepositoryAction resetAction, bool skipDuplicateCheck)
         {
-            this.queueAlterations.OnNext(new QueueAlteration { Kind = QueueAlterationKind.Append, Target = resetAction });
+            this.queueAlterations.OnNext(new QueueAlteration
+            {
+                Kind = skipDuplicateCheck ? QueueAlterationKind.AppendNoDuplicateCheck : QueueAlterationKind.Append,
+                Target = resetAction
+            });
             return resetAction.DeferredOutput;
         }
-
     }
 }

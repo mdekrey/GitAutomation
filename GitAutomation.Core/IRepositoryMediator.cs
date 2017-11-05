@@ -27,5 +27,6 @@ namespace GitAutomation
         void NotifyPushedRemoteBranch(string downstreamBranch);
         IObservable<ImmutableList<BranchGroup>> GetConfiguredBranchGroups();
         IObservable<ImmutableList<string>> RecommendNewGroups();
+        void CheckForUpdates();
     }
 }

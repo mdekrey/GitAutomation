@@ -10,9 +10,14 @@ using System.Text;
 
 namespace GitAutomation.Orchestration.Actions
 {
-    class UpdateAction : CliAction
+    class UpdateAction : CliAction, IUniqueAction
     {
         public override string ActionType => "Update";
+
+        public void AbortAs(IObservable<OutputMessage> otherStream)
+        {
+            this.Abort(otherStream);
+        }
 
         protected override IReactiveProcess GetCliAction(GitCli gitCli) =>
             gitCli.IsGitInitialized
