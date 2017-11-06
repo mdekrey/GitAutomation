@@ -45,12 +45,12 @@ namespace GitAutomation.GraphQL
                 .Resolve(this, nameof(LatestBranch));
         }
 
-        Task<bool?> LoadRecreateFromUpstream([Source] string name, [FromServices] Loaders loaders)
+        Task<bool> LoadRecreateFromUpstream([Source] string name, [FromServices] Loaders loaders)
         {
             return loaders.LoadBranchGroup(name)
                 .ContinueWith(r =>
                 {
-                    return r.Result?.RecreateFromUpstream;
+                    return r.Result?.RecreateFromUpstream ?? false;
                 });
         }
 
