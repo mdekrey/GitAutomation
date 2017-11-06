@@ -40,16 +40,17 @@ export function buildCascadingStrategy(
 
 export function route<T>(routes: Routes<T>) {
   const parsed = matchRoutes(routes);
-  return (strategy: Observable<ICascadingRoutingStrategy<any>>) =>
-    strategy.map((current): ICascadingRoutingStrategy<T> => {
-      const state = parsed(current.state);
-      return {
-        state: state as IConcreteRoutingState<T>,
-        navigate: ({ url, replaceCurentHistory }) =>
-          current.navigate({
-            url: buildPath(state.componentPath)(url),
-            replaceCurentHistory
-          })
-      };
-    });
+  return (
+    current: ICascadingRoutingStrategy<T>
+  ): ICascadingRoutingStrategy<T> => {
+    const state = parsed(current.state);
+    return {
+      state: state as IConcreteRoutingState<T>,
+      navigate: ({ url, replaceCurentHistory }) =>
+        current.navigate({
+          url: buildPath(state.componentPath)(url),
+          replaceCurentHistory
+        })
+    };
+  };
 }

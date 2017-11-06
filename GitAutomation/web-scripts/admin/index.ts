@@ -24,7 +24,7 @@ const permissions = allRoles.map(roles => roles.map(({ role }) => role));
 
 export const admin = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
-): RoutingComponent => state =>
+): RoutingComponent<never> => state =>
   container
     .do(elem => elem.html(require("./admin.layout.html")))
     .publishReplay(1)

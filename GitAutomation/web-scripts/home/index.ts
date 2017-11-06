@@ -25,7 +25,7 @@ import { branchNameDisplay } from "../branch-name-display";
 
 export const homepage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
-): RoutingComponent => state =>
+): RoutingComponent<never> => state =>
   container
     .do(elem => elem.html(require("./home.layout.html")))
     .publishReplay(1)
@@ -39,7 +39,7 @@ export const homepage = (
             target: body.map(
               fnSelect<SVGSVGElement>(`svg[data-locator="hierarchy-container"]`)
             ),
-            state,
+            navigate: state.navigate,
             data: allBranchesHierarchy
           }).subscribe()
         );

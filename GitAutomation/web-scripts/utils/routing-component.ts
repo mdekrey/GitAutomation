@@ -2,17 +2,20 @@ import { Observable } from "./rxjs";
 
 import { ICascadingRoutingStrategy } from "../routing/index";
 
-export type RoutingComponent = (
+export type RoutingComponent<T> = (
   state: ICascadingRoutingStrategy<any>
-) => Observable<any>;
+) => Observable<T>;
 
-export const renderRoute = (
-  target: Observable<ICascadingRoutingStrategy<RoutingComponent>>
-) =>
-  target.switchMap(routeState => {
-    const { route } = routeState.state;
-    if (route) {
-      return route.data(routeState);
-    }
-    return Observable.empty();
-  });
+export const renderRouteOnce = <T>(
+  routeState: ICascadingRoutingStrategy<RoutingComponent<T>>
+) => {
+  const { route } = routeState.state;
+  if (route) {
+    return route.data(routeState);
+  }
+  return Observable.empty<T>();
+};
+
+export const renderRoute = <T>(
+  target: Observable<ICascadingRoutingStrategy<RoutingComponent<T>>>
+) => target.switchMap(renderRouteOnce);

@@ -14,7 +14,7 @@ import { ClaimDetails } from "../api/claim-details";
 export const login = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>,
   claims: Observable<ClaimDetails>
-): RoutingComponent => state =>
+): RoutingComponent<never> => state =>
   container
     .do(elem => elem.html(require("./login.layout.html")))
     .publishReplay(1)

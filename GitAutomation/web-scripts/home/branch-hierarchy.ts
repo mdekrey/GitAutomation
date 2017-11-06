@@ -21,7 +21,7 @@ import {
 
 import { BranchGroupWithHierarchy } from "../api/basic-branch";
 import { branchTypeColors } from "../style/branch-colors";
-import { ICascadingRoutingStrategy } from "../routing/index";
+import { RoutingNavigate } from "../routing/index";
 import { BranchType } from "../api/basic-branch";
 
 import * as branchHierarchyHtml from "./branch-hierarchy.html";
@@ -44,11 +44,11 @@ const xOffset = 40;
 
 export function branchHierarchy({
   target,
-  state,
+  navigate,
   data: hierarchyData
 }: {
   target: Observable<Selection<SVGSVGElement, any, any, any>>;
-  state: ICascadingRoutingStrategy<any>;
+  navigate: RoutingNavigate;
   data: Observable<Record<string, BranchGroupWithHierarchy>>;
 }) {
   return Observable.create(() => {
@@ -205,7 +205,7 @@ export function branchHierarchy({
               y = d3mouse(this)[1] - height / 2;
             const clicked = simulation.find(x, y, 10);
             if (clicked) {
-              state.navigate({
+              navigate({
                 url: "/manage/" + clicked.groupName,
                 replaceCurentHistory: false
               });

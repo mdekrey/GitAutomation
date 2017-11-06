@@ -9,7 +9,7 @@ import { bindSaveButton } from "./bind-save-button";
 
 export const newBranch = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
-): RoutingComponent => state =>
+): RoutingComponent<never> => state =>
   container
     .do(elem => elem.html(require("./new-branch.layout.html")))
     .publishReplay(1)

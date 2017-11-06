@@ -24,7 +24,7 @@ import {
 
 export const manage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
-): RoutingComponent => state =>
+): RoutingComponent<never> => state =>
   container
     .do(elem => elem.html(require("./manage-branch.layout.html")))
     .publishReplay(1)

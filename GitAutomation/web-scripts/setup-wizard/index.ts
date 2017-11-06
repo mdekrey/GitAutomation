@@ -7,7 +7,7 @@ import { recommendGroups, updateBranch, detectUpstream } from "../api/basics";
 
 export const setupWizard = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
-): RoutingComponent => state =>
+): RoutingComponent<never> => state =>
   container
     .do(elem => elem.html(require("./setup-wizard.layout.html")))
     .publishReplay(1)
