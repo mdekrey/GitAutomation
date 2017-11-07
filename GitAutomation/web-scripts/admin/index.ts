@@ -1,12 +1,7 @@
 import { Observable, Subject, Subscription } from "../utils/rxjs";
 import { Selection, select as d3select } from "d3-selection";
 
-import {
-  rxData,
-  rxEvent,
-  fnSelect,
-  bind
-} from "../utils/presentation/d3-binding";
+import { rxData, fnSelect, bind } from "../utils/presentation/d3-binding";
 
 import { RoutingComponent } from "../utils/routing-component";
 import {
@@ -150,15 +145,6 @@ export const admin = (
               )
             )
             .subscribe()
-        );
-
-        subscription.add(
-          rxEvent({
-            target: body.map(fnSelect('[data-locator="home"]')),
-            eventName: "click"
-          }).subscribe(() =>
-            state.navigate({ url: "/", replaceCurentHistory: false })
-          )
         );
 
         return subscription;

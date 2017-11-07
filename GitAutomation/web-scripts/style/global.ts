@@ -1,4 +1,4 @@
-import { cssRule } from "typestyle";
+import { cssRule, types } from "typestyle";
 import { rgb } from "csx";
 
 const fontFamily = `Arial, Helvetica, sans-serif`;
@@ -8,8 +8,9 @@ cssRule("*", {
   fontFamily
 });
 
-cssRule("a", {
+export const linkStyle: types.NestedCSSProperties = {
   textDecoration: "underline",
   color: rgb(111, 206, 31).toString(),
   cursor: "pointer"
-});
+};
+cssRule("a", linkStyle);
