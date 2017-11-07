@@ -10,7 +10,7 @@ import {
 } from "./routing";
 import { windowHashStrategy } from "./routing/strategies/window-hash";
 import { RoutingComponent, renderRouteOnce } from "./utils/routing-component";
-import { homepage, standardMenu } from "./home/index";
+import { homepage } from "./home/index";
 import { manage } from "./manage-branch/index";
 import { newBranch } from "./new-branch/index";
 import { currentClaims } from "./api/basics";
@@ -19,6 +19,7 @@ import "./style/global";
 import { admin } from "./admin/index";
 import { setupWizard } from "./setup-wizard/index";
 import { scaffolding } from "./layout/scaffolding";
+import { standardMenu } from "./home/menu";
 
 const body = Observable.of(d3element(document.body));
 const bodyWithScaffolding = body.let(scaffolding);

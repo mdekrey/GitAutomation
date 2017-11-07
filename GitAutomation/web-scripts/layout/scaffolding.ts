@@ -3,6 +3,7 @@ import { Selection } from "d3-selection";
 import { fnSelect } from "../utils/presentation/d3-binding";
 import { style } from "typestyle";
 import { linkStyle } from "../style/global";
+import { classed } from "../style/style-binding";
 
 type ScaffoldingPart = Selection<HTMLElement, {}, null, undefined>;
 
@@ -11,12 +12,32 @@ const menuExpander = style({
   display: "none"
 });
 const menuStyle = {
+  header: style({
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "baseline",
+    $nest: {
+      "*": {
+        marginRight: 20
+      }
+    }
+  }),
+  menuContainer: style({
+    position: "relative"
+  }),
   menuExpander,
-  menuLink: style(linkStyle),
+  menuLink: style(linkStyle, {}),
   menuContents: style({
+    position: "absolute",
+    top: "100%",
+    left: 0,
     display: "none",
+    whiteSpace: "nowrap",
     $nest: {
       [`.${menuExpander}:checked ~ &`]: {
+        display: "block"
+      },
+      "> *": {
         display: "block"
       }
     }
@@ -27,25 +48,6 @@ export interface ScaffoldingResult {
   contents: ScaffoldingPart;
   menu: ScaffoldingPart;
 }
-
-const classed = function(styles: Record<string, string>) {
-  return function(
-    target: Observable<Selection<HTMLElement, {}, null, undefined>>
-  ): Observable<Selection<HTMLElement, {}, null, undefined>> {
-    return target.do(elem => {
-      elem.selectAll(`[data-class]`).each(function(this: HTMLElement) {
-        const classNames = this.getAttribute("data-class");
-        if (classNames !== null) {
-          this.className = classNames
-            .split(" ")
-            .map(className => styles[className])
-            .filter(Boolean)
-            .join(" ");
-        }
-      });
-    });
-  };
-};
 
 export const scaffolding = (
   body: Observable<Selection<HTMLElement, {}, null, undefined>>
