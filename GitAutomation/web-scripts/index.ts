@@ -54,26 +54,26 @@ function handleSecurity(strategy: Observable<ICascadingRoutingStrategy<any>>) {
     state: ICascadingRoutingStrategy<any>;
   }
   return strategy
-    .map(strat =>
+    .map(
       route<RoutingComponent<SecurityComponent>>({
         login: RouteConcrete<RoutingComponent<SecurityComponent>>(state =>
           claims.map(claims => ({
             redirectPath: claims.roles.length !== 0 ? "/" : null,
-            state: strat
+            state: state.parent!
           }))
         ),
         [wildcard]: RouteConcrete<RoutingComponent<SecurityComponent>>(state =>
           claims.map(claims => ({
             redirectPath: claims.roles.length === 0 ? "/login" : null,
-            state: strat
+            state: state.parent!
           }))
         )
-      })(strat)
+      })
     )
     .switchMap(renderRouteOnce)
     .do(v => {
       if (v.redirectPath) {
-        windowHashStrategy.navigate({
+        v.state.navigate({
           url: v.redirectPath,
           replaceCurentHistory: true
         });

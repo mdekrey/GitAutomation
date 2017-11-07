@@ -25,6 +25,7 @@ export interface IConcreteRoutingState<T> extends IRoutingState<T> {
 }
 
 export interface ICascadingRoutingStrategy<T> {
+  parent?: ICascadingRoutingStrategy<T>;
   state: IConcreteRoutingState<T>;
   navigate: RoutingNavigate;
 }
@@ -45,6 +46,7 @@ export function route<T>(routes: Routes<T>) {
   ): ICascadingRoutingStrategy<T> => {
     const state = parsed(current.state);
     return {
+      parent: current,
       state: state as IConcreteRoutingState<T>,
       navigate: ({ url, replaceCurentHistory }) =>
         current.navigate({
