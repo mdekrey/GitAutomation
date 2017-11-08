@@ -1,44 +1,87 @@
 import { Observable } from "../utils/rxjs";
 import { Selection } from "d3-selection";
 import { fnSelect } from "../utils/presentation/d3-binding";
-import { style } from "typestyle";
+import { style, types } from "typestyle";
 import { linkStyle } from "../style/global";
 import { classed } from "../style/style-binding";
+import { black } from "csx";
 
 type ScaffoldingPart = Selection<HTMLElement, {}, null, undefined>;
 
-const menuExpander = style({
-  $debugName: "menuExpander",
-  display: "none"
+const bodyStyle = style({
+  margin: 0,
+  display: "flex",
+  flexDirection: "column",
+  maxHeight: "100vh"
 });
+const headerBackground: types.NestedCSSProperties = {
+  backgroundColor: "#fff"
+};
+const headerBorder = `1px solid ${featureColors[0]}`;
+const headerShadow = `3px 3px 3px ${black.fadeOut(0.5).toRGBA()}`;
+
 const menuStyle = {
-  header: style({
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "baseline",
-    $nest: {
-      "*": {
-        marginRight: 20
-      }
-    }
+  header: style(
+    {
+      flexShrink: 0,
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "stretch",
+      boxShadow: headerShadow,
+      borderBottom: headerBorder,
+      $nest: {
+        "> *": {
+          padding: "10px",
+          margin: 0
+        }
+      },
+      zIndex: 1
+    },
+    headerBackground
+  ),
+  bodyContents: style({
+    padding: 10,
+    overflowY: "auto"
   }),
   menuContainer: style({
     position: "relative"
   }),
-  menuExpander,
-  menuLink: style(linkStyle, {}),
-  menuContents: style({
+  menuExpander: style({
+    $debugName: "menuExpander",
+    display: "none"
+  }),
+  menuLink: style(linkStyle, {
+    userSelect: "none",
+    backgroundImage: `url(${require(`./menu-icon.svg?fill=${featureColors[0]}`)})`,
+    backgroundSize: "contain",
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "center center",
+    color: "transparent",
+    display: "block",
+    width: 30,
+    height: 30,
+    fontSize: 30
+  }),
+  menuContents: style(headerBackground, {
+    boxShadow: headerShadow,
+    borderLeft: headerBorder,
+    borderRight: headerBorder,
     position: "absolute",
     top: "100%",
     left: 0,
-    display: "none",
+    display: "block",
     whiteSpace: "nowrap",
+    maxHeight: 0,
+    overflow: "hidden",
+    transition: "max-height 500ms",
     $nest: {
-      [`.${menuExpander}:checked ~ &`]: {
-        display: "block"
+      [`input[type="checkbox"]:checked ~ &`]: {
+        maxHeight: "100vh",
+        borderBottom: headerBorder
       },
       "> *": {
-        display: "block"
+        display: "block",
+        padding: "0 5px 5px 5px"
       }
     }
   })
@@ -53,7 +96,9 @@ export const scaffolding = (
   body: Observable<Selection<HTMLElement, {}, null, undefined>>
 ) =>
   body
-    .do(elem => elem.html(require("./scaffolding.layout.html")))
+    .do(elem =>
+      elem.html(require("./scaffolding.layout.html")).classed(bodyStyle, true)
+    )
     .let(classed(menuStyle))
     .publishReplay(1)
     .refCount()
