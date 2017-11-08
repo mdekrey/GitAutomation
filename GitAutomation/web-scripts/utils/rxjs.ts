@@ -9,6 +9,7 @@ import "rxjs/add/observable/combineLatest";
 import "rxjs/add/observable/concat";
 import "rxjs/add/observable/empty";
 import "rxjs/add/observable/from";
+import "rxjs/add/observable/interval";
 import "rxjs/add/observable/of";
 
 import "rxjs/add/operator/catch";

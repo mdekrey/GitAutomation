@@ -147,7 +147,9 @@ export function branchHierarchy({
       })
     );
 
-    const svgSize = target.map(target => target.node()!.getClientRects()[0]);
+    const svgSize = Observable.interval(100)
+      .switchMap(() => target.map(target => target.node()!.getClientRects()[0]))
+      .distinctUntilChanged(equals);
 
     subscription.add(
       rxDatum(svgSize)(
@@ -400,6 +402,26 @@ export function branchHierarchy({
           }
         })
         .subscribe()
+    );
+
+    subscription.add(
+      redraw.switchMap(v => target).subscribe(svg => {
+        const viewport = svg
+          .select<SVGGElement>(`[data-locator="viewport"]`)
+          .node();
+        if (viewport) {
+          const size = viewport.getClientRects()[0];
+          svg
+            .attr(
+              "height",
+              Math.max(Number(svg.attr("height")), Math.ceil(size.height))
+            )
+            .attr(
+              "width",
+              Math.max(Number(svg.attr("width")), Math.ceil(size.width))
+            );
+        }
+      })
     );
 
     return subscription;
