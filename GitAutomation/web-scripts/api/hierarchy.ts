@@ -1,4 +1,4 @@
-import { indexBy } from "../utils/ramda";
+import { indexBy, values, intersection } from "../utils/ramda";
 import { BranchGroupWithHierarchy } from "./basic-branch";
 import { BranchGroupWithDownstream } from "./types";
 import { Observable } from "../utils/rxjs";
@@ -48,10 +48,16 @@ const buildDescendantsTree = <T>(
   return result;
 };
 
-export const groupsToHierarchy = (
-  groups: Observable<BranchGroupWithDownstream[]>
-): Observable<Record<string, BranchGroupWithHierarchy>> =>
-  groups.map(branches => {
+export function groupsToHierarchy(
+  groups: Observable<
+    Pick<
+      BranchGroupWithDownstream,
+      "groupName" | "branchType" | "directDownstream"
+    >[]
+  >,
+  filter?: (group: BranchGroupWithHierarchy) => boolean
+): Observable<Record<string, BranchGroupWithHierarchy>> {
+  const firstPass = groups.map(branches => {
     const directUpstreamTree = indexBy(
       b => b.groupName,
       branches.map(b => ({
@@ -85,3 +91,24 @@ export const groupsToHierarchy = (
       }))
     );
   });
+
+  return filter
+    ? firstPass.switchMap(result => {
+        const filtered = values(result).filter(filter);
+        const filteredNames = filtered.map(g => g.groupName);
+        const resultFiltered = filtered.map(
+          ({ groupName, branchType, directDownstream }) => ({
+            groupName,
+            branchType,
+            directDownstream: intersection(
+              filteredNames,
+              directDownstream
+            ).map(b => ({
+              groupName: b
+            }))
+          })
+        );
+        return groupsToHierarchy(Observable.of(resultFiltered));
+      })
+    : firstPass;
+}

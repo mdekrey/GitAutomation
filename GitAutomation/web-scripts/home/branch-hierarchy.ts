@@ -292,11 +292,17 @@ export function branchHierarchy({
           onEnter: target => {
             target.transition("resize").attr("r", 5);
           },
-          onExit: target =>
-            target
-              .transition("resize")
-              .attr("r", 0)
-              .remove(),
+          onExit: target => {
+            target = target.filter(`:not([data-locator="dead-node"])`);
+            if (target.nodes().length) {
+              target
+                .attr("data-locator", "dead-node")
+                .transition("resize")
+                .duration(500)
+                .attr("r", 0)
+                .remove();
+            }
+          },
           onEach: target => {
             target
               .attr("transform", node => `translate(${node.x}, ${node.y})`)
@@ -466,5 +472,5 @@ export function branchHierarchy({
     );
 
     return subscription;
-  });
+  }) as Observable<never>;
 }

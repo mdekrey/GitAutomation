@@ -34,12 +34,14 @@ export const buildBranchCheckListing = (): IRxBindProps<
     branchNameDisplay(selection.select(`[data-locator="branch"]`));
     selection
       .select(`[data-locator="downstream-branches"] [data-locator="check"]`)
+      .attr("data-direction", "downstream")
       .attr("data-branch", data => data.groupName)
       .property("checked", downstreamRules.checked)
       .property("disabled", downstreamRules.disabled);
 
     selection
       .select(`[data-locator="upstream-branches"] [data-locator="check"]`)
+      .attr("data-direction", "upstream")
       .attr("data-branch", data => data.groupName)
       .property("checked", upstreamRules.checked)
       .property("disabled", upstreamRules.disabled);

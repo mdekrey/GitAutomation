@@ -100,7 +100,9 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
     actualBranches: [],
     latestBranchName: null
   })
-    .concat(reload.startWith(null).switchMap(() => initializeBranchData))
+    .concat(
+      reload.startWith(null).switchMap(() => initializeBranchData.take(1))
+    )
     .publishReplay(1)
     .refCount();
 

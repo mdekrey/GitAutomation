@@ -15,7 +15,12 @@
   </select>
 </label>
 <h3>Other Branches</h3>
-
+<section>
+  <h5>Current relevant branches</h5>
+  <svg data-locator="hierarchy-container" width="800" height="100" style="max-height: 70vh;"></svg>
+</section>
+<a data-locator="detect-upstream">Detect Upstream Branches</a>
+<a data-locator="check-prs">Check PRs</a>
 <table>
   <thead>
     <tr>
@@ -24,14 +29,16 @@
       <th>
         Upstream
         <br/>
-        <a data-locator="detect-upstream">Detect Upstream Branches</a>
-        <a data-locator="check-prs">Check PRs</a>
       </th>
     </tr>
   </thead>
   <tbody data-locator="other-branches">
   </tbody>
 </table>
+<section>
+  <h5>Preview graph</h5>
+  <svg data-locator="hierarchy-container-preview" width="800" height="100" style="max-height: 70vh;"></svg>
+</section>
 <button type="button" data-locator="reset">Reset</button>
 <button type="button" data-locator="home">Cancel</button>
 <button type="button" data-locator="save">Save</button>

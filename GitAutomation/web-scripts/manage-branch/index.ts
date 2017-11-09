@@ -19,8 +19,11 @@ import {
   deleteBranch,
   deleteBranchByMode,
   detectUpstream,
-  detectAllUpstream
+  detectAllUpstream,
+  allBranchGroups
 } from "../api/basics";
+import { branchHierarchy } from "../home/branch-hierarchy";
+import { groupsToHierarchy } from "../api/hierarchy";
 
 export const manage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -110,15 +113,100 @@ export const manage = (
             })
         );
 
-        // display downstream branches
         subscription.add(
-          rxData(
-            container.map(fnSelect(`[data-locator="other-branches"]`)),
-            branchList,
-            data => data.groupName
-          )
-            .bind(buildBranchCheckListing())
-            .subscribe()
+          branchHierarchy({
+            target: container.map(
+              fnSelect<SVGSVGElement>(`svg[data-locator="hierarchy-container"]`)
+            ),
+            navigate: state.navigate,
+            data: groupsToHierarchy(
+              allBranchGroups,
+              group =>
+                group.groupName === branchName ||
+                Boolean(group.upstream.find(v => v === branchName)) ||
+                Boolean(group.downstream.find(v => v === branchName))
+            )
+          }).subscribe()
+        );
+
+        const checkboxes = rxData(
+          container.map(fnSelect(`[data-locator="other-branches"]`)),
+          branchList,
+          data => data.groupName
+        )
+          .bind(buildBranchCheckListing())
+          .publishReplay(1)
+          .refCount();
+
+        // display downstream branches
+        subscription.add(checkboxes.subscribe());
+
+        subscription.add(
+          branchHierarchy({
+            target: container.map(
+              fnSelect<SVGSVGElement>(
+                `svg[data-locator="hierarchy-container-preview"]`
+              )
+            ),
+            navigate: state.navigate,
+            data: groupsToHierarchy(
+              rxEvent({
+                target: checkboxes.map(e =>
+                  e.selectAll(`[data-locator="other-branches"] input`)
+                ),
+                eventName: "change"
+              })
+                .merge(checkboxes.map(() => null))
+                .withLatestFrom(
+                  checkboxes.map(e =>
+                    e.selectAll<HTMLInputElement, any>(
+                      `[data-locator="other-branches"] input`
+                    )
+                  ),
+                  (_, inputs) => inputs
+                )
+                .map(inputs => {
+                  return {
+                    downstream: inputs
+                      .filter(`[data-direction="downstream"]:checked`)
+                      .nodes()
+                      .map(i => i.getAttribute("data-branch")!),
+                    upstream: inputs
+                      .filter(`[data-direction="upstream"]:checked`)
+                      .nodes()
+                      .map(i => i.getAttribute("data-branch")!)
+                  };
+                })
+                .withLatestFrom(allBranchGroups, (newStatus, groups) =>
+                  groups.map(
+                    group =>
+                      group.groupName === branchName
+                        ? {
+                            ...group,
+                            directDownstream: newStatus.downstream.map(
+                              groupName => ({ groupName })
+                            )
+                          }
+                        : {
+                            ...group,
+                            directDownstream: group.directDownstream
+                              .filter(g => g.groupName !== branchName)
+                              .concat(
+                                newStatus.upstream.find(
+                                  up => up === group.groupName
+                                )
+                                  ? [{ groupName: branchName }]
+                                  : []
+                              )
+                          }
+                  )
+                ),
+              group =>
+                group.groupName === branchName ||
+                Boolean(group.upstream.find(v => v === branchName)) ||
+                Boolean(group.downstream.find(v => v === branchName))
+            )
+          }).subscribe()
         );
 
         const actualBranchDisplay = rxData(
