@@ -3,7 +3,8 @@ type R = typeof R;
 export const any: R["any"] = require("ramda/src/any");
 export const difference: R["difference"] = require("ramda/src/difference");
 export const equals: R["equals"] = require("ramda/src/equals");
-export const flatten: R["flatten"] = require("ramda/src/flatten");
+export const flatten: (<T>(x: T[][]) => T[]) &
+  R["flatten"] = require("ramda/src/flatten");
 export const fromPairs: R["fromPairs"] = require("ramda/src/fromPairs");
 export const indexBy: {
   <T>(fn: (v: T) => string, input: T[]): Record<string, T>;

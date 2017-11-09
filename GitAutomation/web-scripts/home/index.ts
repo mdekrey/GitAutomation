@@ -1,12 +1,8 @@
 import { Observable, Subscription } from "../utils/rxjs";
 import { Selection } from "d3-selection";
+import { branchTypeColors } from "../style/branch-colors";
 
-import {
-  bind,
-  rxData,
-  rxEvent,
-  fnSelect
-} from "../utils/presentation/d3-binding";
+import { rxData, rxEvent, fnSelect } from "../utils/presentation/d3-binding";
 
 import { RoutingComponent } from "../utils/routing-component";
 import {
@@ -20,7 +16,29 @@ import {
 } from "../api/basics";
 import { logPresentation } from "../logs/log.presentation";
 import { branchHierarchy } from "./branch-hierarchy";
-import { branchNameDisplay } from "../branch-name-display";
+// import { branchNameDisplay } from "../branch-name-display";
+import { flatten, sortBy } from "../utils/ramda";
+
+import { style } from "typestyle";
+
+const remoteBranchesTableLayout = style({
+  borderCollapse: "collapse",
+  $nest: {
+    th: {
+      textAlign: "end",
+      verticalAlign: "top"
+    }
+  }
+});
+const groupTopRow = style({
+  $nest: {
+    "> *:before": {
+      content: "' '",
+      display: "block",
+      height: "0.25em"
+    }
+  }
+});
 
 export const homepage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -89,27 +107,66 @@ export const homepage = (
 
         // display branches
         subscription.add(
-          rxData<
-            Pick<
-              GitAutomationGQL.IBranchGroupDetails,
-              "groupName" | "branches"
-            >,
-            HTMLUListElement
-          >(
-            body.map(fnSelect(`[data-locator="remote-branches"]`)),
-            allBranchGroups
+          rxData(
+            body
+              .map(
+                fnSelect<HTMLTableElement>(`[data-locator="remote-branches"]`)
+              )
+              .do(e => e.classed(remoteBranchesTableLayout, true)),
+            allBranchGroups.map(groups =>
+              flatten(
+                sortBy(group => group.groupName, groups).map(group => {
+                  const atLeastOneRow: (GitAutomationGQL.IGitRef | null)[] =
+                    group.branches.length > 0 ? group.branches : [null];
+                  return atLeastOneRow.map(
+                    (branch: GitAutomationGQL.IGitRef | null) => ({
+                      branch: branch,
+                      ...group
+                    })
+                  );
+                })
+              )
+            )
           )
-            .bind<HTMLLIElement>({
+            .bind<HTMLTableRowElement>({
               onCreate: target =>
                 target
-                  .append<HTMLLIElement>("li")
+                  .append<HTMLTableRowElement>("tr")
                   .attr("data-locator", "remote-branch"),
-              onEnter: li => li.html(require("./home.branch-group.html")),
-              selector: `li[data-locator="remote-branch"]`,
+              onEnter: tr => tr.html(require("./home.branch-group.html")),
+              selector: `tr[data-locator="remote-branch"]`,
               onEach: selection => {
-                branchNameDisplay(
-                  selection.select('[data-locator="name-container"]')
+                selection.classed(
+                  groupTopRow,
+                  group =>
+                    group.branch === null ||
+                    group.branch.name === group.branches[0].name
                 );
+                selection
+                  .select('[data-locator="name-container"]')
+                  .attr("rowspan", group =>
+                    Math.max(1, group.branches.length).toFixed(0)
+                  )
+                  .style(
+                    "display",
+                    group =>
+                      group.branch === null ||
+                      group.branch.name === group.branches[0].name
+                        ? null
+                        : "none"
+                  )
+                  .style("color", group =>
+                    branchTypeColors[group.branchType][0].toHexString()
+                  )
+                  .text(group => group.groupName);
+                selection
+                  .select('[data-locator="actual-branch"]')
+                  .text(
+                    ({ branch: data }) =>
+                      data
+                        ? `${data.name} (${data.commit.substr(0, 7)})`
+                        : "(Branch not created)"
+                  );
                 subscription.add(
                   rxEvent({
                     target: Observable.of(
@@ -125,25 +182,6 @@ export const homepage = (
                 );
               }
             })
-            .let(configuredBranches =>
-              configuredBranches
-                .map(branch =>
-                  branch
-                    .select(`ul[data-locator="actual-branches"]`)
-                    .selectAll(`li`)
-                    .data(basicBranch => basicBranch.branches)
-                )
-                .map(target =>
-                  bind({
-                    target,
-                    onCreate: target => target.append("li"),
-                    onEach: target =>
-                      target.text(
-                        data => `${data.name} (${data.commit.substr(0, 7)})`
-                      )
-                  })
-                )
-            )
             .subscribe()
         );
 
@@ -173,15 +211,6 @@ export const homepage = (
             target: body.map(fnSelect('[data-locator="status-refresh"]')),
             eventName: "click"
           }).subscribe(() => forceRefreshLog.next(null))
-        );
-
-        subscription.add(
-          rxEvent({
-            target: body.map(fnSelect('[data-locator="new-branch"]')),
-            eventName: "click"
-          }).subscribe(() =>
-            state.navigate({ url: "/new-branch", replaceCurentHistory: false })
-          )
         );
 
         return subscription;

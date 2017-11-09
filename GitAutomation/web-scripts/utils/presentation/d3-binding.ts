@@ -190,6 +190,31 @@ export function rxEvent<GElement extends BaseType, TDatum>(params: {
   eventName: string;
   capture?: boolean;
 }): Observable<IEventOccurred<GElement, TDatum>>;
+export function rxEvent<EventName extends string, TResult>(params: {
+  target: Observable<{
+    on(
+      eventName: EventName,
+      fn: null | ((event: TResult) => void),
+      capture?: boolean
+    ): void;
+  }>;
+  eventName: EventName;
+  capture?: boolean;
+}): Observable<TResult>;
+export function rxEvent<EventName extends string, TEvent, TResult>(
+  params: {
+    target: Observable<{
+      on(
+        eventName: EventName,
+        fn: null | ((event: TEvent) => void),
+        capture?: boolean
+      ): void;
+    }>;
+    eventName: EventName;
+    capture?: boolean;
+  },
+  toResult: (event: TEvent) => TResult
+): Observable<TResult>;
 export function rxEvent<GElement extends BaseType, TDatum>(
   {
     target,

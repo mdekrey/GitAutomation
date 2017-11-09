@@ -58,6 +58,15 @@ export const standardMenu = (
           )
         );
 
+        subscription.add(
+          rxEvent({
+            target: body.map(fnSelect('[data-locator="new-branch"]')),
+            eventName: "click"
+          }).subscribe(() =>
+            state.navigate({ url: "/new-branch", replaceCurentHistory: false })
+          )
+        );
+
         return subscription;
       })
     );

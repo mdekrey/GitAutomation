@@ -73,9 +73,9 @@ const menuStyle = {
     whiteSpace: "nowrap",
     maxHeight: 0,
     overflow: "hidden",
-    transition: "max-height 500ms",
     $nest: {
       [`input[type="checkbox"]:checked ~ &`]: {
+        transition: "max-height 500ms",
         maxHeight: "100vh",
         borderBottom: headerBorder
       },
@@ -105,4 +105,5 @@ export const scaffolding = (
     .map((body): ScaffoldingResult => ({
       contents: fnSelect<HTMLElement>(`[data-locator="body-contents"]`)(body),
       menu: fnSelect<HTMLElement>(`[data-locator="menu-contents"]`)(body)
-    }));
+    }))
+    .do(({ contents }) => (contents.node()!.scrollTop = 0));

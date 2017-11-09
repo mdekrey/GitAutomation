@@ -6,7 +6,7 @@ import {
   forceSimulation,
   forceManyBody,
   forceX,
-  forceY,
+  // forceY,
   SimulationNodeDatum,
   SimulationLinkDatum
 } from "d3-force";
@@ -41,6 +41,44 @@ interface NodeLink extends AdditionalLinkData {
 }
 
 const xOffset = 40;
+
+/** Centers the graph vertically. Code adapted from `forceCenter`, which centers
+ * horizontally and vertically */
+function centerY(y) {
+  let nodes;
+
+  if (y == null) y = 0;
+
+  const force: (() => void) & {
+    y?: ((newY: number) => typeof force) | (() => number);
+    initialize?: (newNodes) => void;
+  } = function() {
+    let i,
+      n = nodes.length,
+      node,
+      sy = 0;
+
+    for (i = 0; i < n; ++i) {
+      node = nodes[i];
+      sy += node.y;
+    }
+
+    for (sy = sy / n - y, i = 0; i < n; ++i) {
+      node = nodes[i];
+      node.y -= sy;
+    }
+  };
+
+  force.initialize = function(_) {
+    nodes = _;
+  };
+
+  force.y = function(_) {
+    return arguments.length ? ((y = +_), force) : y;
+  };
+
+  return force;
+}
 
 export function branchHierarchy({
   target,
@@ -121,7 +159,16 @@ export function branchHierarchy({
       .distance(({ source, target }) => {
         return (target.hierarchyDepth - source.hierarchyDepth) * 30;
       })
-      .strength(link => link.linkIntensity);
+      .strength(link => {
+        return (
+          link.linkIntensity /
+          Math.max(
+            1,
+            link.source.directDownstream.length - 1,
+            link.target.directUpstream.length - 1
+          )
+        );
+      });
     const simulation = forceSimulation<NodeDatum>([])
       .force("link", linkForce)
       .force(
@@ -134,10 +181,7 @@ export function branchHierarchy({
         "x",
         forceX<NodeDatum>(branch => branch.hierarchyDepth * 40).strength(1)
       )
-      .force(
-        "y",
-        forceY<NodeDatum>(branch => branch.hierarchyDepth * 0).strength(0.1)
-      );
+      .force("y", centerY(0));
 
     subscription.add(
       data.subscribe(({ nodes, links }) => {
@@ -185,21 +229,18 @@ export function branchHierarchy({
             })
         );
 
-        let currentHover: NodeDatum | undefined = undefined;
+        let currentHover: NodeDatum | undefined | null = null;
         hitbox
           .on("pointermove", function({ width, height }) {
             const x = d3mouse(this)[0] - xOffset,
               y = d3mouse(this)[1] - height / 2;
             const newHover = simulation.find(x, y, 10);
+            simulation
+              .nodes()
+              .forEach(node => (node.showLabel = node === newHover));
             if (currentHover !== newHover) {
-              if (currentHover) {
-                currentHover.showLabel = false;
-              }
-              currentHover = newHover;
-              if (currentHover) {
-                currentHover.showLabel = true;
-              }
               updateDraw.next(null);
+              currentHover = newHover;
             }
           })
           .on("click", function({ width, height }) {
@@ -218,7 +259,7 @@ export function branchHierarchy({
 
     const redraw = rxEvent(
       {
-        target: Observable.of(simulation as any),
+        target: Observable.of(simulation),
         eventName: "tick"
       },
       () => null
@@ -249,11 +290,11 @@ export function branchHierarchy({
           selector: `circle`,
           onCreate: target => target.append<SVGCircleElement>("circle"),
           onEnter: target => {
-            target.transition().attr("r", 5);
+            target.transition("resize").attr("r", 5);
           },
           onExit: target =>
             target
-              .transition()
+              .transition("resize")
               .attr("r", 0)
               .remove(),
           onEach: target => {
@@ -337,7 +378,7 @@ export function branchHierarchy({
 
           onEach: target => {
             target
-              .transition()
+              .transition(`tooltip-${target.datum().groupName}`)
               .style("opacity", node => (node.showLabel ? 0.95 : 0));
           }
         })
