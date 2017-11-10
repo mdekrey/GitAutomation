@@ -29,6 +29,14 @@ import { classed } from "../style/style-binding";
 import { style } from "typestyle";
 
 const manageStyle = {
+  fieldSection: style({
+    marginTop: "0.5em"
+  }),
+  hint: style({
+    margin: 0,
+    padding: 0,
+    fontSize: "0.75em"
+  }),
   rotateHeader: style({
     height: "100px",
     whiteSpace: "nowrap",
