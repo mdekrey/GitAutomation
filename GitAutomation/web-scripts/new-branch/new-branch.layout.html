@@ -18,7 +18,30 @@
         <option value="Hotfix">Hotfix</option>
     </select>
 </label>
-<h3>Upstream Branches</h3>
-<ul data-locator="upstream-branches"></ul>
+<h3>Other Branches</h3>
+<table data-class="otherBranchTable">
+    <thead>
+        <tr>
+            <td></td>
+            <!-- <th data-class="rotateHeader">
+                <div>
+                    <span>Downstream</span>
+                </div>
+            </th> -->
+            <th data-class="rotateHeader">
+                <div>
+                    <span>Upstream</span>
+                </div>
+            </th>
+        </tr>
+    </thead>
+    <tbody data-locator="other-branches">
+    </tbody>
+</table>
+
+<section>
+    <h5>Preview graph</h5>
+    <svg data-locator="hierarchy-container-preview" width="800" height="100" style="max-height: 70vh;"></svg>
+</section>
 <button type="button" data-locator="home">Cancel</button>
 <button type="button" data-locator="save">Save</button>

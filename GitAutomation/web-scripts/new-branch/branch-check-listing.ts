@@ -1,22 +1,41 @@
 import { IRxBindProps } from "../utils/presentation/d3-binding";
 import { branchNameDisplay } from "../branch-name-display";
+import { applyStyles } from "../style/style-binding";
+import { branchTypeColors } from "../style/branch-colors";
 
-export const buildBranchCheckListing = (): IRxBindProps<
-  HTMLLIElement,
-  Pick<GitAutomationGQL.IBranchGroupDetails, "groupName">,
+export const buildBranchCheckListing = (
+  styles: Record<string, string>
+): IRxBindProps<
+  HTMLTableRowElement,
+  Pick<GitAutomationGQL.IBranchGroupDetails, "groupName" | "branchType">,
   any,
   any
 > => ({
   onCreate: target =>
-    target.append<HTMLLIElement>("li").attr("data-static-branch", ""),
-  selector: "li[data-static-branch]",
-  onEnter: li => {
-    li.html(require("./new-branch-check-listing.row.html"));
+    target.append<HTMLTableRowElement>("tr").attr("data-static-branch", ""),
+  selector: "tr[data-static-branch]",
+  onEnter: tr => {
+    tr.html(require("./new-branch-check-listing.row.html"));
+    applyStyles(styles)(tr);
   },
   onEach: selection => {
-    branchNameDisplay(selection.select(`[data-locator="branch"]`));
+    branchNameDisplay(
+      selection
+        .select(`[data-locator="branch"]`)
+        .style(
+          "color",
+          group =>
+            group.branchType
+              ? branchTypeColors[group.branchType][0].toHexString()
+              : null
+        )
+    );
+
     selection
-      .select(`[data-locator="check"]`)
+      .select(`[data-locator="upstream-branches"] [data-locator="check"]`)
+      .attr("data-direction", "upstream")
       .attr("data-branch", data => data.groupName);
+
+    selection.sort((a, b) => a.groupName.localeCompare(b.groupName));
   }
 });

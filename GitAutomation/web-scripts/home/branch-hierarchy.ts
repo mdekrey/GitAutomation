@@ -305,7 +305,12 @@ export function branchHierarchy({
           },
           onEach: target => {
             target
-              .attr("transform", node => `translate(${node.x}, ${node.y})`)
+              .attr(
+                "transform",
+                node =>
+                  `translate(${(node.x || 0).toFixed(6)}, ${(node.y || 0
+                  ).toFixed(6)})`
+              )
               .attr("fill", node => node.branchColor);
           }
         })
@@ -345,7 +350,13 @@ export function branchHierarchy({
             }
           },
           onEach: target => {
-            target.attr("transform", node => `translate(${node.x}, ${node.y})`);
+            target.attr(
+              "transform",
+              node =>
+                `translate(${(node.x || 0).toFixed(6)}, ${(node.y || 0).toFixed(
+                  6
+                )})`
+            );
             target
               .select<SVGRectElement>(`rect[data-locator="background"]`)
               .attr("stroke", node => node.branchColor)

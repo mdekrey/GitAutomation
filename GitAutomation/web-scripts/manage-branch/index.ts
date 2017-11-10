@@ -239,7 +239,7 @@ export const manage = (
                       .map(i => i.getAttribute("data-branch")!)
                   };
                 })
-                .withLatestFrom(allBranchGroups, (newStatus, groups) =>
+                .combineLatest(allBranchGroups, (newStatus, groups) =>
                   groups.map(
                     group =>
                       group.groupName === branchName
