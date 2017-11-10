@@ -20,16 +20,54 @@ import {
   deleteBranchByMode,
   detectUpstream,
   detectAllUpstream,
-  allBranchGroups
+  allBranchGroups,
+  forceRefreshBranchGroups
 } from "../api/basics";
 import { branchHierarchy } from "../home/branch-hierarchy";
 import { groupsToHierarchy } from "../api/hierarchy";
+import { classed } from "../style/style-binding";
+import { style } from "typestyle";
+
+const manageStyle = {
+  rotateHeader: style({
+    height: "100px",
+    whiteSpace: "nowrap",
+    width: "25px",
+    verticalAlign: "bottom",
+    padding: "0",
+    $nest: {
+      "> div": {
+        transformOrigin: "bottom left",
+        transform: "translate(26px, 0px) rotate(-60deg)",
+        width: "25px",
+        $nest: {
+          "> span": {
+            borderBottom: "1px solid #ccc",
+            padding: "0"
+          }
+        }
+      }
+    }
+  }),
+  otherBranchTable: style({
+    borderCollapse: "collapse"
+  }),
+  checkboxCell: style({
+    borderRight: "1px solid #ccc",
+    textAlign: "center"
+  }),
+  branchName: style({
+    textAlign: "right",
+    fontWeight: "bold"
+  })
+};
 
 export const manage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
 ): RoutingComponent<never> => state =>
   container
     .do(elem => elem.html(require("./manage-branch.layout.html")))
+    .let(classed(manageStyle))
     .publishReplay(1)
     .refCount()
     .let(container =>
@@ -37,6 +75,11 @@ export const manage = (
         const subscription = new Subscription();
         const branchName = state.state.remainingPath!;
         const reload = new Subject<null>();
+        let dataConnection: Subscription | null = null;
+
+        subscription.add(
+          reload.subscribe(() => forceRefreshBranchGroups.next(null))
+        );
 
         // go home
         subscription.add(
@@ -65,12 +108,24 @@ export const manage = (
         const branchData = runBranchData(branchName!, reload);
         subscription.add(branchData.subscription);
 
+        const branchDataState = branchData.state.publishReplay(1);
+        subscription.add(
+          reload
+            .merge(reset)
+            .startWith(null)
+            .subscribe(() => {
+              if (dataConnection === null) {
+                subscription.add((dataConnection = branchDataState.connect()));
+              }
+            })
+        );
+
         subscription.add(
           bindSaveButton(
             branchName,
             '[data-locator="save"]',
             container,
-            branchData.state,
+            branchDataState,
             () => reload.next(null)
           )
         );
@@ -83,7 +138,7 @@ export const manage = (
             .subscribe(target => target.text(data => data))
         );
 
-        const branchList = branchData.state
+        const branchList = branchDataState
           .map(state =>
             state.branches.filter(({ groupName }) => groupName !== branchName)
           )
@@ -93,7 +148,7 @@ export const manage = (
           container
             .map(e => e.select(`[data-locator="recreate-from-upstream"]`))
             .switchMap(e =>
-              branchData.state
+              branchDataState
                 .map(d => d.recreateFromUpstream)
                 .map(d => e.datum(d))
             )
@@ -106,7 +161,7 @@ export const manage = (
           container
             .map(e => e.select(`[data-locator="branch-type"]`))
             .switchMap(e =>
-              branchData.state.map(d => d.branchType).map(d => e.datum(d))
+              branchDataState.map(d => d.branchType).map(d => e.datum(d))
             )
             .subscribe(target => {
               target.property("value", value => value);
@@ -134,7 +189,7 @@ export const manage = (
           branchList,
           data => data.groupName
         )
-          .bind(buildBranchCheckListing())
+          .bind(buildBranchCheckListing(manageStyle))
           .publishReplay(1)
           .refCount();
 
@@ -156,6 +211,13 @@ export const manage = (
                 ),
                 eventName: "change"
               })
+                .do(() => {
+                  if (dataConnection !== null) {
+                    subscription.remove(dataConnection);
+                    dataConnection.unsubscribe();
+                    dataConnection = null;
+                  }
+                })
                 .merge(checkboxes.map(() => null))
                 .withLatestFrom(
                   checkboxes.map(e =>
@@ -211,7 +273,7 @@ export const manage = (
 
         const actualBranchDisplay = rxData(
           container.map(fnSelect(`[data-locator="grouped-branches"]`)),
-          branchData.state.map(branch => branch.actualBranches)
+          branchDataState.map(branch => branch.actualBranches)
         ).bind({
           selector: "li",
           onCreate: selection => selection.append<HTMLLIElement>("li"),
@@ -267,7 +329,7 @@ export const manage = (
         subscription.add(
           rxData(
             container.map(fnSelect(`[data-locator="approved-branch"]`)),
-            branchData.state.map(branch => branch.actualBranches)
+            branchDataState.map(branch => branch.actualBranches)
           )
             .bind({
               selector: "option",
@@ -282,7 +344,7 @@ export const manage = (
         );
 
         subscription.add(
-          rxDatum(branchData.state.map(branch => branch.latestBranchName))(
+          rxDatum(branchDataState.map(branch => branch.latestBranchName))(
             container.map(fnSelect(`[data-locator="approved-branch"]`))
           ).subscribe(selection => selection.property("value", d => d))
         );

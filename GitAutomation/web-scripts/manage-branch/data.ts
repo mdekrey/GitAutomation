@@ -33,7 +33,6 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
   const subscription = new Subscription();
 
   const initializeBranchData = allBranchGroups
-    .take(1)
     .combineLatest(
       branchDetails(branchName),
       allBranchesHierarchy.take(1),
@@ -100,9 +99,7 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
     actualBranches: [],
     latestBranchName: null
   })
-    .concat(
-      reload.startWith(null).switchMap(() => initializeBranchData.take(1))
-    )
+    .concat(reload.startWith(null).switchMap(() => initializeBranchData))
     .publishReplay(1)
     .refCount();
 

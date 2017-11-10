@@ -82,9 +82,6 @@ export const bindSaveButton = (
       .switchMap(requestBody =>
         updateBranch(branchName, requestBody).map(_ => branchName)
       )
-      .switchMap(branchName =>
-        checkDownstreamMerges(branchName).map(_ => branchName)
-      )
       .do(_ => onSaved())
       // TODO - success/error message
       .subscribe({

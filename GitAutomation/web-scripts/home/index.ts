@@ -170,7 +170,16 @@ export const homepage = (
                 subscription.add(
                   rxEvent({
                     target: Observable.of(
-                      selection.select('[data-locator="manage"]')
+                      selection
+                        .select('[data-locator="manage"]')
+                        .style(
+                          "display",
+                          group =>
+                            group.branch === null ||
+                            group.branch.name === group.branches[0].name
+                              ? null
+                              : "none"
+                        )
                     ),
                     eventName: "click"
                   }).subscribe(event =>
