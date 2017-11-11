@@ -1,5 +1,4 @@
 import { indexBy, values, intersection } from "../utils/ramda";
-import { BranchGroupWithHierarchy } from "./basic-branch";
 import { BranchGroupWithDownstream } from "./types";
 import { Observable } from "../utils/rxjs";
 
@@ -29,6 +28,9 @@ const buildDescendantsTree = <T>(
     enqueued.delete(next);
     const target = getOrCreate(next);
     getChildrenKeys(lookup[next]).forEach(childKey => {
+      if (!target.descendants.has(childKey)) {
+        addTo(enqueued)(childKey);
+      }
       target.descendants.add(childKey);
       const child = getOrCreate(childKey);
       child.descendants.forEach(addTo(target.descendants));
@@ -45,18 +47,30 @@ const buildDescendantsTree = <T>(
       target.descendants.forEach(addTo(enqueued));
     }
   }
+
   return result;
 };
 
-export function groupsToHierarchy(
-  groups: Observable<
-    Pick<
-      BranchGroupWithDownstream,
-      "groupName" | "branchType" | "directDownstream"
-    >[]
-  >,
-  filter?: (group: BranchGroupWithHierarchy) => boolean
-): Observable<Record<string, BranchGroupWithHierarchy>> {
+export interface BranchGroupInput {
+  groupName: BranchGroupWithDownstream["groupName"];
+  branchType: BranchGroupWithDownstream["branchType"];
+  directDownstream: BranchGroupWithDownstream["directDownstream"];
+}
+
+export interface BranchGroupHierarchy {
+  downstream: string[];
+  directUpstream: string[];
+  upstream: string[];
+}
+
+export interface BranchGroupHierarchyDepth extends BranchGroupHierarchy {
+  hierarchyDepth: number;
+}
+
+export function groupsToHierarchy<T extends BranchGroupInput>(
+  groups: Observable<T[]>,
+  filter?: (group: T & BranchGroupHierarchy) => boolean
+): Observable<Record<string, T & BranchGroupHierarchyDepth>> {
   const firstPass = groups.map(branches => {
     const directUpstreamTree = indexBy(
       b => b.groupName,
@@ -78,12 +92,8 @@ export function groupsToHierarchy(
 
     return indexBy(
       g => g.groupName,
-      branches.map((branch): BranchGroupWithHierarchy => ({
-        branchType: branch.branchType,
-        groupName: branch.groupName,
-        directDownstream: branch.directDownstream.map(
-          downstream => downstream.groupName
-        ),
+      branches.map((branch): T & BranchGroupHierarchyDepth => ({
+        ...(branch as any),
         downstream: Array.from(downstreamTree[branch.groupName].descendants),
         upstream: Array.from(downstreamTree[branch.groupName].ancestors),
         directUpstream: directUpstreamTree[branch.groupName].upstream,
@@ -96,18 +106,15 @@ export function groupsToHierarchy(
     ? firstPass.switchMap(result => {
         const filtered = values(result).filter(filter);
         const filteredNames = filtered.map(g => g.groupName);
-        const resultFiltered = filtered.map(
-          ({ groupName, branchType, directDownstream }) => ({
-            groupName,
-            branchType,
-            directDownstream: intersection(
-              filteredNames,
-              directDownstream
-            ).map(b => ({
-              groupName: b
-            }))
-          })
-        );
+        const resultFiltered = filtered.map(group => ({
+          ...(group as any),
+          directDownstream: intersection(
+            filteredNames,
+            group.directDownstream.map(b => b.groupName)
+          ).map(b => ({
+            groupName: b
+          }))
+        }));
         return groupsToHierarchy(Observable.of(resultFiltered));
       })
     : firstPass;

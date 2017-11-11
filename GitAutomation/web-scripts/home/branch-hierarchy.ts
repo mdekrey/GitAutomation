@@ -19,14 +19,17 @@ import {
   fnSelect
 } from "../utils/presentation/d3-binding";
 
-import { BranchGroupWithHierarchy } from "../api/basic-branch";
 import { branchTypeColors } from "../style/branch-colors";
 import { RoutingNavigate } from "../routing/index";
 import { BranchType } from "../api/basic-branch";
 
 import * as branchHierarchyHtml from "./branch-hierarchy.html";
+import { BranchGroupInput, BranchGroupHierarchyDepth } from "../api/hierarchy";
 
-interface NodeDatum extends BranchGroupWithHierarchy, SimulationNodeDatum {
+interface NodeDatum
+  extends BranchGroupInput,
+    BranchGroupHierarchyDepth,
+    SimulationNodeDatum {
   branchColor: string;
   showLabel?: boolean;
 }
@@ -87,7 +90,9 @@ export function branchHierarchy({
 }: {
   target: Observable<Selection<SVGSVGElement, any, any, any>>;
   navigate: RoutingNavigate;
-  data: Observable<Record<string, BranchGroupWithHierarchy>>;
+  data: Observable<
+    Record<string, BranchGroupInput & BranchGroupHierarchyDepth>
+  >;
 }) {
   return Observable.create(() => {
     const subscription = new Subscription();
@@ -129,7 +134,7 @@ export function branchHierarchy({
             AdditionalLinkData & SimulationLinkDatum<NodeDatum>
           >(
             values(allBranches).map((branch, source) =>
-              branch.directDownstream.map(downstream => ({
+              branch.directDownstream.map(d => d.groupName).map(downstream => ({
                 source,
                 target: nodes.find(branch => branch.groupName === downstream)!,
                 linkIntensity: any(

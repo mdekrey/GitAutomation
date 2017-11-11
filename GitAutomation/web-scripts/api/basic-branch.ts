@@ -22,13 +22,3 @@ export interface CommitRef {
   name: string;
   commit: string;
 }
-
-export interface BranchGroupWithHierarchy {
-  branchType: GitAutomationGQL.IBranchGroupTypeEnum;
-  groupName: string;
-  directDownstream: string[];
-  downstream: string[];
-  directUpstream: string[];
-  upstream: string[];
-  hierarchyDepth: number;
-}
