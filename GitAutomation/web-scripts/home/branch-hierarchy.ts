@@ -157,6 +157,7 @@ export function branchHierarchy({
           links: [] as (AdditionalLinkData & SimulationLinkDatum<NodeDatum>)[]
         }
       )
+      .distinctUntilChanged((a, b) => equals(a, b))
       .publishReplay(1)
       .refCount();
 
@@ -338,20 +339,24 @@ export function branchHierarchy({
               .attr("data-locator", "background")
               .attr("rx", 3)
               .attr("ry", 3)
-              .attr("fill", "white");
+              .attr("x", 6)
+              .attr("fill", "white")
+              .attr("fill-opacity", 0.83);
             const text = target
               .append<SVGTextElement>("text")
               .attr("data-locator", "foreground")
               .attr("stroke-width", 0)
-              .attr("dy", -6)
+              .attr("dy", -3)
               .attr("dx", 3)
+              .attr("x", 6)
               .text(node => node.groupName);
             const textNode = text.node();
             if (textNode) {
               const textSize = textNode.getClientRects()[0];
               rect
-                .attr("y", -textSize.height - 6)
+                .attr("y", -textSize.height / 2 - 3)
                 .attr("height", textSize.height + 6);
+              text.attr("y", textSize.height / 2);
             }
           },
           onEach: target => {
