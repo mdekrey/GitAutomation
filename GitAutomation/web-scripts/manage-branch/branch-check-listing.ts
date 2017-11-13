@@ -1,8 +1,10 @@
-import { IRxBindProps } from "../utils/presentation/d3-binding";
+import { IRxBindProps, rxEvent } from "../utils/presentation/d3-binding";
 import { IBranchData } from "./data";
 import { branchNameDisplay } from "../branch-name-display";
 import { applyStyles } from "../style/style-binding";
 import { branchTypeColors } from "../style/branch-colors";
+import { Observable } from "../utils/rxjs";
+import { Selection } from "d3-selection";
 
 type BranchPredicate = (data: IBranchData) => boolean;
 interface BranchTypeRules {
@@ -59,3 +61,41 @@ export const buildBranchCheckListing = (
     selection.sort((a, b) => a.groupName.localeCompare(b.groupName));
   }
 });
+
+export const checkedData = (
+  target: Observable<Selection<HTMLTableRowElement, any, any, any>>
+) =>
+  target
+    .map(e =>
+      e.selectAll<HTMLInputElement, any>(
+        `[data-locator="other-branches"] input`
+      )
+    )
+    .merge(
+      rxEvent({
+        target: target.map(e =>
+          e.selectAll(`[data-locator="other-branches"] input`)
+        ),
+        eventName: "change"
+      })
+    )
+    .withLatestFrom(
+      target.map(e =>
+        e.selectAll<HTMLInputElement, any>(
+          `[data-locator="other-branches"] input`
+        )
+      ),
+      (_, inputs) => inputs
+    )
+    .map(inputs => {
+      return {
+        downstream: inputs
+          .filter(`[data-direction="downstream"]:checked`)
+          .nodes()
+          .map(i => i.getAttribute("data-branch")!),
+        upstream: inputs
+          .filter(`[data-direction="upstream"]:checked`)
+          .nodes()
+          .map(i => i.getAttribute("data-branch")!)
+      };
+    });

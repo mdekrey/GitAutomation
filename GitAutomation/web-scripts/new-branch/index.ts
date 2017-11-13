@@ -4,7 +4,7 @@ import { Selection } from "d3-selection";
 import { RoutingComponent } from "../utils/routing-component";
 import { rxEvent, fnSelect, rxData } from "../utils/presentation/d3-binding";
 import { allBranchGroups } from "../api/basics";
-import { buildBranchCheckListing } from "./branch-check-listing";
+import { buildBranchCheckListing, checkedData } from "./branch-check-listing";
 import { bindSaveButton } from "./bind-save-button";
 import { style } from "typestyle";
 import { classed } from "../style/style-binding";
@@ -124,36 +124,7 @@ export const newBranch = (
           branchType
         }));
 
-        const checkboxData = rxEvent({
-          target: checkboxes.map(e =>
-            e.selectAll(`[data-locator="other-branches"] input`)
-          ),
-          eventName: "change"
-        })
-          .merge(checkboxes.map(() => null))
-          .withLatestFrom(
-            checkboxes.map(e =>
-              e.selectAll<HTMLInputElement, any>(
-                `[data-locator="other-branches"] input`
-              )
-            ),
-            (_, inputs) => inputs
-          )
-          .map(inputs => {
-            return {
-              downstream: inputs
-                .filter(`[data-direction="downstream"]:checked`)
-                .nodes()
-                .map(i => i.getAttribute("data-branch")!),
-              upstream: inputs
-                .filter(`[data-direction="upstream"]:checked`)
-                .nodes()
-                .map(i => i.getAttribute("data-branch")!)
-            };
-          })
-          .startWith({ downstream: [], upstream: [] });
-
-        const hierarchy$ = checkboxData
+        const hierarchy$ = checkedData(checkboxes)
           .combineLatest(
             allBranchGroups,
             data,

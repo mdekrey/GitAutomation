@@ -39,3 +39,5 @@ export const buildBranchCheckListing = (
     selection.sort((a, b) => a.groupName.localeCompare(b.groupName));
   }
 });
+
+export { checkedData } from "../manage-branch/branch-check-listing";

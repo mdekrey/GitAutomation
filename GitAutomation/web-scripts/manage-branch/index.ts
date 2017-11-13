@@ -10,7 +10,7 @@ import {
   d3element
 } from "../utils/presentation/d3-binding";
 import { runBranchData } from "./data";
-import { buildBranchCheckListing } from "./branch-check-listing";
+import { buildBranchCheckListing, checkedData } from "./branch-check-listing";
 import { bindSaveButton } from "./bind-save-button";
 import {
   checkPullRequests,
@@ -213,41 +213,9 @@ export const manage = (
             ),
             navigate: state.navigate,
             data: groupsToHierarchy(
-              rxEvent({
-                target: checkboxes.map(e =>
-                  e.selectAll(`[data-locator="other-branches"] input`)
-                ),
-                eventName: "change"
-              })
-                .do(() => {
-                  if (dataConnection !== null) {
-                    subscription.remove(dataConnection);
-                    dataConnection.unsubscribe();
-                    dataConnection = null;
-                  }
-                })
-                .merge(checkboxes.map(() => null))
-                .withLatestFrom(
-                  checkboxes.map(e =>
-                    e.selectAll<HTMLInputElement, any>(
-                      `[data-locator="other-branches"] input`
-                    )
-                  ),
-                  (_, inputs) => inputs
-                )
-                .map(inputs => {
-                  return {
-                    downstream: inputs
-                      .filter(`[data-direction="downstream"]:checked`)
-                      .nodes()
-                      .map(i => i.getAttribute("data-branch")!),
-                    upstream: inputs
-                      .filter(`[data-direction="upstream"]:checked`)
-                      .nodes()
-                      .map(i => i.getAttribute("data-branch")!)
-                  };
-                })
-                .combineLatest(allBranchGroups, (newStatus, groups) =>
+              checkedData(checkboxes).combineLatest(
+                allBranchGroups,
+                (newStatus, groups) =>
                   groups.map(
                     group =>
                       group.groupName === branchName
@@ -270,7 +238,7 @@ export const manage = (
                               )
                           }
                   )
-                ),
+              ),
               group =>
                 group.groupName === branchName ||
                 Boolean(group.upstream.find(v => v === branchName)) ||
