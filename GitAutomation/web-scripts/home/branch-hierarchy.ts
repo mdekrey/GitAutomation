@@ -1,6 +1,11 @@
 import { Observable, Subject, Subscription } from "../utils/rxjs";
 import { any, equals, flatten, values } from "../utils/ramda";
-import { Selection, event as d3event, mouse as d3mouse } from "d3-selection";
+import {
+  Selection,
+  event as d3event,
+  mouse as d3mouse,
+  select as d3select
+} from "d3-selection";
 import {
   forceLink,
   forceSimulation,
@@ -404,9 +409,11 @@ export function branchHierarchy({
           onCreate: target => target.append<SVGGElement>("g"),
 
           onEach: target => {
-            target
-              .transition(`tooltip-${target.datum().groupName}`)
-              .style("opacity", node => (node.showLabel ? 0.95 : 0));
+            target.each(function(this: SVGGElement, datum) {
+              d3select(this)
+                .transition(`tooltip-${datum.groupName}`)
+                .style("opacity", datum.showLabel ? 0.95 : 0);
+            });
           }
         })
         .subscribe()
