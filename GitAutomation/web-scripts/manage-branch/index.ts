@@ -197,7 +197,7 @@ export const manage = (
           branchList,
           data => data.groupName
         )
-          .bind(buildBranchCheckListing(manageStyle))
+          .bind(buildBranchCheckListing(manageStyle, state.navigate))
           .publishReplay(1)
           .refCount();
 

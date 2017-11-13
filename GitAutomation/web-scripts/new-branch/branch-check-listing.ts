@@ -2,9 +2,11 @@ import { IRxBindProps } from "../utils/presentation/d3-binding";
 import { branchNameDisplay } from "../branch-name-display";
 import { applyStyles } from "../style/style-binding";
 import { branchTypeColors } from "../style/branch-colors";
+import { RoutingNavigate } from "../routing";
 
 export const buildBranchCheckListing = (
-  styles: Record<string, string>
+  styles: Record<string, string>,
+  navigate: RoutingNavigate
 ): IRxBindProps<
   HTMLTableRowElement,
   Pick<GitAutomationGQL.IBranchGroupDetails, "groupName" | "branchType">,
@@ -28,7 +30,8 @@ export const buildBranchCheckListing = (
             group.branchType
               ? branchTypeColors[group.branchType][0].toHexString()
               : null
-        )
+        ),
+      navigate
     );
 
     selection

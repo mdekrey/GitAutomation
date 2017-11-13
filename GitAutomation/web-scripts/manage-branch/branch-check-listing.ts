@@ -5,6 +5,7 @@ import { applyStyles } from "../style/style-binding";
 import { branchTypeColors } from "../style/branch-colors";
 import { Observable } from "../utils/rxjs";
 import { Selection } from "d3-selection";
+import { RoutingNavigate } from "../routing";
 
 type BranchPredicate = (data: IBranchData) => boolean;
 interface BranchTypeRules {
@@ -23,7 +24,8 @@ const upstreamRules: BranchTypeRules = {
 };
 
 export const buildBranchCheckListing = (
-  styles: Record<string, string>
+  styles: Record<string, string>,
+  navigate: RoutingNavigate
 ): IRxBindProps<HTMLTableRowElement, IBranchData, any, any> => ({
   onCreate: target =>
     target.append<HTMLTableRowElement>("tr").attr("data-static-branch", ""),
@@ -38,7 +40,8 @@ export const buildBranchCheckListing = (
         .select(`[data-locator="branch"]`)
         .style("color", group =>
           branchTypeColors[group.branchType][0].toHexString()
-        )
+        ),
+      navigate
     );
     selection
       .select(`[data-locator="downstream-branches"] [data-locator="check"]`)

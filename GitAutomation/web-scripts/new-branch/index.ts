@@ -84,7 +84,9 @@ export const newBranch = (
             .take(1)
             .map(b => b as Partial<GitAutomationGQL.IBranchGroupDetails>[])
         )
-          .bind<HTMLTableRowElement>(buildBranchCheckListing(manageStyle))
+          .bind<HTMLTableRowElement>(
+            buildBranchCheckListing(manageStyle, state.navigate)
+          )
           .publishReplay(1)
           .refCount();
         subscription.add(checkboxes.subscribe());

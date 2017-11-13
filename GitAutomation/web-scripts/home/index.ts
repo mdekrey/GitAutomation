@@ -16,7 +16,6 @@ import {
 } from "../api/basics";
 import { logPresentation } from "../logs/log.presentation";
 import { branchHierarchy } from "./branch-hierarchy";
-// import { branchNameDisplay } from "../branch-name-display";
 import { flatten, sortBy } from "../utils/ramda";
 
 import { style } from "typestyle";
@@ -171,7 +170,7 @@ export const homepage = (
                   rxEvent({
                     target: Observable.of(
                       selection
-                        .select('[data-locator="manage"]')
+                        .select('[data-locator="name-container"]')
                         .style(
                           "display",
                           group =>

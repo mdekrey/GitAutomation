@@ -1,5 +1,6 @@
 import { Selection } from "d3-selection";
 import { bind } from "./utils/presentation/d3-binding";
+import { RoutingNavigate } from "./routing";
 
 export const branchNameDisplay = (
   target: Selection<
@@ -7,7 +8,8 @@ export const branchNameDisplay = (
     Pick<GitAutomationGQL.IBranchGroupDetails, "groupName">,
     any,
     any
-  >
+  >,
+  navigate?: RoutingNavigate
 ) =>
   bind({
     target: target
@@ -23,7 +25,16 @@ export const branchNameDisplay = (
     onEach: selection => {
       selection
         .select(`span[data-locator="name"]`)
-        .text(data => data.groupName);
+        .text(data => data.groupName)
+        .on(
+          "click",
+          data =>
+            navigate &&
+            navigate({
+              url: "/manage/" + data.groupName,
+              replaceCurentHistory: false
+            })
+        );
       // TODO - restore status
       // selection
       //   .select(`span[data-locator="status"]`)
