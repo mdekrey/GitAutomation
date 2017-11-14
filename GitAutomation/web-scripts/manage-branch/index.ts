@@ -154,12 +154,8 @@ export const manage = (
 
         subscription.add(
           container
-            .map(e => e.select(`[data-locator="recreate-from-upstream"]`))
-            .switchMap(e =>
-              branchDataState
-                .map(d => d.recreateFromUpstream)
-                .map(d => e.datum(d))
-            )
+            .map(fnSelect(`[data-locator="recreate-from-upstream"]`))
+            .let(rxDatum(branchDataState.map(d => d.recreateFromUpstream)))
             .subscribe(target => {
               target.property("checked", value => value);
             })
@@ -167,10 +163,8 @@ export const manage = (
 
         subscription.add(
           container
-            .map(e => e.select(`[data-locator="branch-type"]`))
-            .switchMap(e =>
-              branchDataState.map(d => d.branchType).map(d => e.datum(d))
-            )
+            .map(fnSelect(`[data-locator="branch-type"]`))
+            .let(rxDatum(branchDataState.map(d => d.branchType)))
             .subscribe(target => {
               target.property("value", value => value);
             })
