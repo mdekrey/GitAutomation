@@ -7,6 +7,21 @@ import { flatten } from "../utils/ramda";
 import { groupsToHierarchy } from "./hierarchy";
 import { BranchGroupWithDownstream } from "./types";
 
+export const application = graphQl<Pick<GitAutomationGQL.IQuery, "app">>({
+  query: gql`
+    {
+      app {
+        title
+      }
+    }
+  `,
+  pollInterval: 0
+})
+  .filter(v => Boolean(v))
+  .map(v => v.app)
+  .publishReplay(1);
+application.connect();
+
 export const currentClaims = graphQl<ClaimDetails>({
   query: gql`
     {

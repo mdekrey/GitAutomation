@@ -1,10 +1,11 @@
 import { Observable } from "../utils/rxjs";
 import { Selection } from "d3-selection";
-import { fnSelect } from "../utils/presentation/d3-binding";
+import { fnSelect, rxDatum } from "../utils/presentation/d3-binding";
 import { style, types } from "typestyle";
 import { linkStyle } from "../style/global";
 import { classed } from "../style/style-binding";
 import { black } from "csx";
+import { application } from "../api/basics";
 
 type ScaffoldingPart = Selection<HTMLElement, {}, null, undefined>;
 
@@ -98,10 +99,11 @@ export interface ScaffoldingResult {
 export const scaffolding = (
   body: Observable<Selection<HTMLElement, {}, null, undefined>>
 ) =>
-  body
+  rxDatum(application)(body)
     .do(elem =>
       elem.html(require("./scaffolding.layout.html")).classed(bodyStyle, true)
     )
+    .do(elem => elem.select(`[data-locator="title"]`).text(app => app.title))
     .let(classed(menuStyle))
     .publishReplay(1)
     .refCount()

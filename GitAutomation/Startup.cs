@@ -57,7 +57,7 @@ namespace GitAutomation
                 options.SerializerSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
             });
 
-            services.AddGitUtilities(Configuration.GetSection("persistence"), Configuration.GetSection("git"));
+            services.AddGitUtilities(Configuration.GetSection("persistence"), Configuration.GetSection("git"), Configuration.GetSection("app"));
             services.Configure<GitRepositoryOptions>(Configuration.GetSection("git"));
             services.Configure<PersistenceOptions>(Configuration.GetSection("persistence"));
             services.Configure<StaticFileOptions>(options =>

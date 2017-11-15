@@ -26,6 +26,10 @@ namespace GitAutomation.GraphQL
         {
             Name = "Query";
 
+            Field<NonNullGraphType<AppOptionsInterface>>()
+                .Name("app")
+                .Resolve(this, nameof(App));
+
             Field<NonNullGraphType<ListGraphType<OrchestrationActionInterface>>>()
                 .Name("orchestrationQueue")
                 .Resolve(this, nameof(OrchestrationQueue));
@@ -72,6 +76,11 @@ namespace GitAutomation.GraphQL
                 .Name("role")
                 .Argument<NonNullGraphType<StringGraphType>>("role", "role to retrieve")
                 .Resolve(this, nameof(GetRole));
+        }
+
+        Task<AppOptions> App([FromServices] AppOptions app)
+        {
+            return Task.FromResult(app);
         }
 
         async Task<ImmutableList<IRepositoryAction>> OrchestrationQueue([FromServices] IRepositoryOrchestration orchestration, [FromServices] IAuthorizationService authorizationService, [FromServices] IHttpContextAccessor httpContext)

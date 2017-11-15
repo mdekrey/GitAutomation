@@ -15,7 +15,7 @@ namespace Microsoft.Extensions.DependencyInjection
 {
     public static class AutomationCoreServiceCollectionExtensions
     {
-        public static IServiceCollection AddGitUtilities(this IServiceCollection services, IConfiguration persistenceConfiguration, IConfiguration repositoryConfiguration)
+        public static IServiceCollection AddGitUtilities(this IServiceCollection services, IConfiguration persistenceConfiguration, IConfiguration repositoryConfiguration, IConfiguration appConfiguration)
         {
             services.AddSingleton<IRepositoryMediator, RepositoryMediator>();
             services.AddSingleton<GitAutomation.Processes.IReactiveProcessFactory, GitAutomation.Processes.ReactiveProcessFactory>();
@@ -30,6 +30,8 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddSingleton<GitAutomation.Work.IUnitOfWorkFactory, GitAutomation.Work.UnitOfWorkFactory>();
 
             services.AddSingleton<IBranchSettingsNotifiers, BranchSettingsNotifiers>();
+
+            services.AddSingleton(appConfiguration.Get<AppOptions>() ?? new AppOptions());
 
             var persistenceOptions = persistenceConfiguration.Get<PersistenceOptions>();
             PluginActivator.GetPlugin<IRegisterBranchSettings>(
