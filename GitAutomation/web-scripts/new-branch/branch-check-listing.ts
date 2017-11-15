@@ -1,7 +1,6 @@
 import { IRxBindProps } from "../utils/presentation/d3-binding";
 import { branchNameDisplay } from "../branch-name-display";
 import { applyStyles } from "../style/style-binding";
-import { branchTypeColors } from "../style/branch-colors";
 import { RoutingNavigate } from "../routing";
 
 export const buildBranchCheckListing = (
@@ -21,18 +20,7 @@ export const buildBranchCheckListing = (
     applyStyles(styles)(tr);
   },
   onEach: selection => {
-    branchNameDisplay(
-      selection
-        .select(`[data-locator="branch"]`)
-        .style(
-          "color",
-          group =>
-            group.branchType
-              ? branchTypeColors[group.branchType][0].toHexString()
-              : null
-        ),
-      navigate
-    );
+    branchNameDisplay(selection.select(`[data-locator="branch"]`), navigate);
 
     selection
       .select(`[data-locator="upstream-branches"] [data-locator="check"]`)

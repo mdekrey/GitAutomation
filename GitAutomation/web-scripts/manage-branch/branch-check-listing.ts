@@ -2,7 +2,6 @@ import { IRxBindProps, rxEvent } from "../utils/presentation/d3-binding";
 import { IBranchData } from "./data";
 import { branchNameDisplay } from "../branch-name-display";
 import { applyStyles } from "../style/style-binding";
-import { branchTypeColors } from "../style/branch-colors";
 import { Observable } from "../utils/rxjs";
 import { Selection } from "d3-selection";
 import { RoutingNavigate } from "../routing";
@@ -35,14 +34,7 @@ export const buildBranchCheckListing = (
     applyStyles(styles)(tr);
   },
   onEach: selection => {
-    branchNameDisplay(
-      selection
-        .select(`[data-locator="branch"]`)
-        .style("color", group =>
-          branchTypeColors[group.branchType][0].toHexString()
-        ),
-      navigate
-    );
+    branchNameDisplay(selection.select(`[data-locator="branch"]`), navigate);
     selection
       .select(`[data-locator="downstream-branches"] [data-locator="check"]`)
       .attr("data-direction", "downstream")

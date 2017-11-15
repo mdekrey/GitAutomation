@@ -1,6 +1,5 @@
 import { Observable, Subscription } from "../utils/rxjs";
 import { Selection } from "d3-selection";
-import { branchTypeColors } from "../style/branch-colors";
 
 import { rxData, rxEvent, fnSelect } from "../utils/presentation/d3-binding";
 
@@ -19,6 +18,7 @@ import { branchHierarchy } from "./branch-hierarchy";
 import { flatten, sortBy } from "../utils/ramda";
 
 import { style } from "typestyle";
+import { branchNameDisplay } from "../branch-name-display";
 
 const remoteBranchesTableLayout = style({
   borderCollapse: "collapse",
@@ -141,23 +141,22 @@ export const homepage = (
                     group.branch === null ||
                     group.branch.name === group.branches[0].name
                 );
-                selection
-                  .select('[data-locator="name-container"]')
-                  .attr("rowspan", group =>
-                    Math.max(1, group.branches.length).toFixed(0)
-                  )
-                  .style(
-                    "display",
-                    group =>
-                      group.branch === null ||
-                      group.branch.name === group.branches[0].name
-                        ? null
-                        : "none"
-                  )
-                  .style("color", group =>
-                    branchTypeColors[group.branchType][0].toHexString()
-                  )
-                  .text(group => group.groupName);
+                branchNameDisplay(
+                  selection
+                    .select('[data-locator="name-container"]')
+                    .attr("rowspan", group =>
+                      Math.max(1, group.branches.length).toFixed(0)
+                    )
+                    .style(
+                      "display",
+                      group =>
+                        group.branch === null ||
+                        group.branch.name === group.branches[0].name
+                          ? null
+                          : "none"
+                    ),
+                  state.navigate
+                );
                 selection
                   .select('[data-locator="actual-branch"]')
                   .text(

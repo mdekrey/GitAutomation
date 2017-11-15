@@ -39,6 +39,9 @@ const menuStyle = {
     },
     headerBackground
   ),
+  title: style({
+    cursor: "pointer"
+  }),
   bodyContents: style({
     padding: 10,
     overflowY: "auto"

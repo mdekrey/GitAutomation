@@ -1,11 +1,15 @@
 import { Selection } from "d3-selection";
 import { bind } from "./utils/presentation/d3-binding";
 import { RoutingNavigate } from "./routing";
+import { branchTypeColors } from "./style/branch-colors";
 
 export const branchNameDisplay = (
   target: Selection<
     any,
-    Pick<GitAutomationGQL.IBranchGroupDetails, "groupName">,
+    {
+      groupName: string;
+      branchType?: GitAutomationGQL.IBranchGroupTypeEnum;
+    },
     any,
     any
   >,
@@ -26,6 +30,14 @@ export const branchNameDisplay = (
       selection
         .select(`span[data-locator="name"]`)
         .text(data => data.groupName)
+        .style(
+          "color",
+          data =>
+            data.branchType
+              ? branchTypeColors[data.branchType][0].toHexString()
+              : null
+        )
+        .style("cursor", "pointer")
         .on(
           "click",
           data =>
