@@ -27,7 +27,10 @@ export class GraphQLError<T> extends Error {
 }
 
 // TODO - provide "dataloader" like functionality on this side to combine queries
-export const graphQl = <TResult>(options: WatchQueryOptions) =>
+export const graphQl = <TResult>(
+  options: WatchQueryOptions,
+  { excludeErrors }: { excludeErrors: boolean }
+) =>
   (Observable.create((observer: Observer<TResult>) =>
     Observable.from(
       client.watchQuery<TResult>({
@@ -35,6 +38,7 @@ export const graphQl = <TResult>(options: WatchQueryOptions) =>
         ...options
       })
     )
+      .filter(response => !excludeErrors || !response.errors)
       .map(response => {
         if (!response.errors) {
           return response.data;

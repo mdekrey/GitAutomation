@@ -7,33 +7,39 @@ import { flatten } from "../utils/ramda";
 import { groupsToHierarchy } from "./hierarchy";
 import { BranchGroupWithDownstream } from "./types";
 
-export const application = graphQl<Pick<GitAutomationGQL.IQuery, "app">>({
-  query: gql`
-    {
-      app {
-        title
+export const application = graphQl<Pick<GitAutomationGQL.IQuery, "app">>(
+  {
+    query: gql`
+      {
+        app {
+          title
+        }
       }
-    }
-  `,
-  pollInterval: 0
-})
+    `,
+    pollInterval: 0
+  },
+  { excludeErrors: true }
+)
   .filter(v => Boolean(v))
   .map(v => v.app)
   .publishReplay(1);
 application.connect();
 
-export const currentClaims = graphQl<ClaimDetails>({
-  query: gql`
-    {
-      claims: currentClaims {
-        type
-        value
+export const currentClaims = graphQl<ClaimDetails>(
+  {
+    query: gql`
+      {
+        claims: currentClaims {
+          type
+          value
+        }
+        roles: currentRoles
       }
-      roles: currentRoles
-    }
-  `,
-  pollInterval: 300000
-}).filter(v => Boolean(v && v.claims && v.roles));
+    `,
+    pollInterval: 300000
+  },
+  { excludeErrors: true }
+).filter(v => Boolean(v && v.claims && v.roles));
 
 export const signOut = () =>
   Observable.ajax("/api/authentication/sign-out").map(
@@ -43,19 +49,22 @@ export const signOut = () =>
 export const forceRefreshUsers = new BehaviorSubject<null>(null);
 export const allUsers = forceRefreshUsers
   .switchMap(() =>
-    graphQl<Pick<GitAutomationGQL.IQuery, "users">>({
-      query: gql`
-        {
-          users {
-            username
-            roles {
-              role
+    graphQl<Pick<GitAutomationGQL.IQuery, "users">>(
+      {
+        query: gql`
+          {
+            users {
+              username
+              roles {
+                role
+              }
             }
           }
-        }
-      `,
-      pollInterval: 0
-    })
+        `,
+        pollInterval: 0
+      },
+      { excludeErrors: true }
+    )
   )
   .filter(v => Boolean(v && v.users))
   .map(r =>
@@ -68,16 +77,19 @@ export const allUsers = forceRefreshUsers
 export const forceRefreshRoles = new BehaviorSubject<null>(null);
 export const allRoles = forceRefreshRoles
   .switchMap(() =>
-    graphQl<{ roles: { role: string }[] }>({
-      query: gql`
-        {
-          roles {
-            role
+    graphQl<{ roles: { role: string }[] }>(
+      {
+        query: gql`
+          {
+            roles {
+              role
+            }
           }
-        }
-      `,
-      pollInterval: 0
-    })
+        `,
+        pollInterval: 0
+      },
+      { excludeErrors: true }
+    )
   )
   .filter(v => Boolean(v && v.roles))
   .map(r => r.roles);
@@ -103,16 +115,19 @@ export const updateUser = (userName: string, body: IUpdateUserRequestBody) =>
 
 export const actionQueue = graphQl<
   Pick<GitAutomationGQL.IQuery, "orchestrationQueue">
->({
-  query: gql`
-    {
-      orchestrationQueue {
-        actionType
-        parameters
+>(
+  {
+    query: gql`
+      {
+        orchestrationQueue {
+          actionType
+          parameters
+        }
       }
-    }
-  `
-})
+    `
+  },
+  { excludeErrors: true }
+)
   .filter(v => Boolean(v && v.orchestrationQueue))
   .map(v => v.orchestrationQueue);
 
@@ -129,30 +144,33 @@ interface AllBranchesQuery {
 export const forceRefreshBranchGroups = new BehaviorSubject<null>(null);
 export const allBranchGroups = forceRefreshBranchGroups
   .switchMap(() =>
-    graphQl<AllBranchesQuery>({
-      query: gql`
-        {
-          allActualBranches {
-            name
-            commit
-          }
-          configuredBranchGroups {
-            groupName
-            branchType
-            directDownstream {
-              groupName
-            }
-            latestBranch {
-              name
-            }
-            branches {
+    graphQl<AllBranchesQuery>(
+      {
+        query: gql`
+          {
+            allActualBranches {
               name
               commit
             }
+            configuredBranchGroups {
+              groupName
+              branchType
+              directDownstream {
+                groupName
+              }
+              latestBranch {
+                name
+              }
+              branches {
+                name
+                commit
+              }
+            }
           }
-        }
-      `
-    })
+        `
+      },
+      { excludeErrors: true }
+    )
   )
   .publishReplay(1)
   .refCount()
@@ -182,33 +200,36 @@ export const allBranchGroups = forceRefreshBranchGroups
 export const allBranchesHierarchy = allBranchGroups.let(groupsToHierarchy);
 
 export const branchDetails = (branchName: string) =>
-  graphQl<Pick<GitAutomationGQL.IQuery, "branchGroup">>({
-    query: gql`
-      query($branchName: String!) {
-        branchGroup(name: $branchName) {
-          groupName
-          recreateFromUpstream
-          branchType
-          directDownstream {
+  graphQl<Pick<GitAutomationGQL.IQuery, "branchGroup">>(
+    {
+      query: gql`
+        query($branchName: String!) {
+          branchGroup(name: $branchName) {
             groupName
-          }
-          directUpstream {
-            groupName
-          }
-          latestBranch {
-            name
-          }
-          branches {
-            name
-            commit
+            recreateFromUpstream
+            branchType
+            directDownstream {
+              groupName
+            }
+            directUpstream {
+              groupName
+            }
+            latestBranch {
+              name
+            }
+            branches {
+              name
+              commit
+            }
           }
         }
+      `,
+      variables: {
+        branchName
       }
-    `,
-    variables: {
-      branchName
-    }
-  })
+    },
+    { excludeErrors: true }
+  )
     .filter(v => Boolean(v && v.branchGroup))
     .map(g => g.branchGroup);
 
@@ -218,20 +239,23 @@ export const detectUpstream = (branchName: string, asGroup: boolean) =>
   ).map(response => response.response as string[]);
 
 export const detectAllUpstream = (branchName: string) =>
-  graphQl<Pick<GitAutomationGQL.IQuery, "allActualBranches">>({
-    query: gql`
-      query($branchName: String!) {
-        allActualBranches {
-          name
-          commit
-          mergeBase(commitish: $branchName, kind: RemoteBranch)
+  graphQl<Pick<GitAutomationGQL.IQuery, "allActualBranches">>(
+    {
+      query: gql`
+        query($branchName: String!) {
+          allActualBranches {
+            name
+            commit
+            mergeBase(commitish: $branchName, kind: RemoteBranch)
+          }
         }
+      `,
+      variables: {
+        branchName
       }
-    `,
-    variables: {
-      branchName
-    }
-  })
+    },
+    { excludeErrors: true }
+  )
     .filter(v => Boolean(v && v.allActualBranches))
     .map(g =>
       g.allActualBranches
@@ -240,46 +264,52 @@ export const detectAllUpstream = (branchName: string) =>
     );
 
 export const checkPullRequests = (branchName: string) =>
-  graphQl<Pick<GitAutomationGQL.IQuery, "branchGroup">>({
-    query: gql`
-      query($branchName: String!) {
-        branchGroup(name: $branchName) {
-          latestBranch {
-            pullRequestsFrom {
-              id
-              sourceBranch
-              targetBranch
-              state
-              reviews {
-                username
+  graphQl<Pick<GitAutomationGQL.IQuery, "branchGroup">>(
+    {
+      query: gql`
+        query($branchName: String!) {
+          branchGroup(name: $branchName) {
+            latestBranch {
+              pullRequestsFrom {
+                id
+                sourceBranch
+                targetBranch
                 state
+                reviews {
+                  username
+                  state
+                }
               }
             }
           }
         }
+      `,
+      variables: {
+        branchName
       }
-    `,
-    variables: {
-      branchName
-    }
-  })
+    },
+    { excludeErrors: true }
+  )
     .filter(v => Boolean(v && v.branchGroup && v.branchGroup.latestBranch))
     .map(g => g.branchGroup.latestBranch!.pullRequestsFrom);
 
 export const forceRefreshLog = new BehaviorSubject<null>(null);
 export const getLog = forceRefreshLog
   .switchMap(() =>
-    graphQl<Pick<GitAutomationGQL.IQuery, "log">>({
-      query: gql`
-        {
-          log {
-            message
-            exitCode
-            channel
+    graphQl<Pick<GitAutomationGQL.IQuery, "log">>(
+      {
+        query: gql`
+          {
+            log {
+              message
+              exitCode
+              channel
+            }
           }
-        }
-      `
-    })
+        `
+      },
+      { excludeErrors: true }
+    )
   )
   .filter(v => Boolean(v && v.log))
   .map(g => g.log);
