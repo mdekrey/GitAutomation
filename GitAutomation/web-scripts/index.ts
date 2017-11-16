@@ -3,7 +3,6 @@ import { Observable } from "./utils/rxjs";
 import { d3element } from "./utils/presentation/d3-binding";
 import {
   buildCascadingStrategy,
-  ICascadingRoutingStrategy,
   route,
   RouteConcrete,
   wildcard
@@ -20,7 +19,7 @@ import { admin } from "./admin/index";
 import { setupWizard } from "./setup-wizard/index";
 import { scaffolding } from "./layout/scaffolding";
 import { standardMenu } from "./home/menu";
-import { equals } from "./utils/ramda";
+import { handleSecurity } from "./security/app-access";
 
 const body = Observable.of(d3element(document.body));
 const bodyWithScaffolding = body.let(scaffolding);
@@ -31,7 +30,7 @@ const claims = currentClaims.publishReplay(1);
 claims.connect();
 
 const withSecurity = buildCascadingStrategy(windowHashStrategy).let(
-  handleSecurity
+  handleSecurity(claims)
 );
 
 withSecurity
@@ -70,39 +69,3 @@ withSecurity
       console.error(ex);
     }
   });
-
-function handleSecurity(strategy: Observable<ICascadingRoutingStrategy<any>>) {
-  interface SecurityComponent {
-    redirectPath: string | null;
-    state: ICascadingRoutingStrategy<any>;
-  }
-  return strategy
-    .map(
-      route<RoutingComponent<SecurityComponent>>({
-        login: RouteConcrete<RoutingComponent<SecurityComponent>>(state =>
-          claims.map(claims => ({
-            redirectPath: claims.roles.length !== 0 ? "/" : null,
-            state: state.parent!
-          }))
-        ),
-        [wildcard]: RouteConcrete<RoutingComponent<SecurityComponent>>(state =>
-          claims.map(claims => ({
-            redirectPath: claims.roles.length === 0 ? "/login" : null,
-            state: state.parent!
-          }))
-        )
-      })
-    )
-    .switchMap(renderRouteOnce)
-    .do(v => {
-      if (v.redirectPath) {
-        v.state.navigate({
-          url: v.redirectPath,
-          replaceCurentHistory: true
-        });
-      }
-    })
-    .filter(v => !v.redirectPath)
-    .map(v => v.state)
-    .distinctUntilChanged(equals);
-}
