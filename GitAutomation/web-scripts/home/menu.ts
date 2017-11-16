@@ -5,6 +5,7 @@ import { rxEvent, fnSelect } from "../utils/presentation/d3-binding";
 
 import { RoutingComponent } from "../utils/routing-component";
 import { signOut } from "../api/basics";
+import { secured } from "../security/security-binding";
 
 export const standardMenu = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -13,6 +14,7 @@ export const standardMenu = (
     .do(elem => elem.html(require("./menu.layout.html")))
     .publishReplay(1)
     .refCount()
+    .let(secured)
     .let(body =>
       Observable.create(() => {
         const subscription = new Subscription();

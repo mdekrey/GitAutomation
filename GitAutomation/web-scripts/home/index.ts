@@ -19,6 +19,7 @@ import { flatten, sortBy } from "../utils/ramda";
 
 import { style } from "typestyle";
 import { branchNameDisplay } from "../branch-name-display";
+import { secured } from "../security/security-binding";
 
 const remoteBranchesTableLayout = style({
   borderCollapse: "collapse",
@@ -46,6 +47,7 @@ export const homepage = (
     .do(elem => elem.html(require("./home.layout.html")))
     .publishReplay(1)
     .refCount()
+    .let(secured)
     .let(body =>
       Observable.create(() => {
         const subscription = new Subscription();

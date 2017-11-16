@@ -27,6 +27,7 @@ import { branchHierarchy } from "../home/branch-hierarchy";
 import { groupsToHierarchy } from "../api/hierarchy";
 import { classed } from "../style/style-binding";
 import { style } from "typestyle";
+import { secured } from "../security/security-binding";
 
 const manageStyle = {
   fieldSection: style({
@@ -78,6 +79,7 @@ export const manage = (
     .let(classed(manageStyle))
     .publishReplay(1)
     .refCount()
+    .let(secured)
     .let(container =>
       Observable.create(() => {
         const subscription = new Subscription();

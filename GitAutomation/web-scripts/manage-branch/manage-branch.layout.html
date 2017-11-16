@@ -53,7 +53,7 @@
 </section>
 <button type="button" data-locator="reset">Reset</button>
 <button type="button" data-locator="home">Cancel</button>
-<button type="button" data-locator="save">Save</button>
+<button type="button" data-locator="save" data-role="update administrate">Save</button>
 <table>
   <tr style="vertical-align: top;">
     <td>
@@ -65,34 +65,40 @@
   </tr>
 </table>
 
-<h3>Release to Service Line</h3>
-<label>
-  <span>Approved Branch</span>
-  <select data-locator="approved-branch"></select>
-</label>
-<label>
-  <span>Service Line Branch</span>
-  <input type="text" data-locator="service-line-branch" />
-</label>
-<label>
-  <span>Release Tag</span>
-  <input type="text" data-locator="release-tag" />
-</label>
-<label>
-  <input type="checkbox" data-locator="auto-consolidate" />
-  <span>Auto-consolidate</span>
-</label>
-<button type="button" data-locator="promote-service-line">Release to Service Line</button>
+<section data-role="approve administrate">
+  <h3>Release to Service Line</h3>
+  <label>
+    <span>Approved Branch</span>
+    <select data-locator="approved-branch"></select>
+  </label>
+  <label>
+    <span>Service Line Branch</span>
+    <input type="text" data-locator="service-line-branch" />
+  </label>
+  <label>
+    <span>Release Tag</span>
+    <input type="text" data-locator="release-tag" />
+  </label>
+  <label>
+    <input type="checkbox" data-locator="auto-consolidate" />
+    <span>Auto-consolidate</span>
+  </label>
+  <button type="button" data-locator="promote-service-line">Release to Service Line</button>
+</section>
 
-<h3>Consolidate Merged</h3>
-<label>
-  <span>Consolidate Into</span>
-  <select data-locator="consolidate-target-branch"></select>
-</label>
-<ul data-locator="consolidate-original-branches"></ul>
-<button type="button" data-locator="consolidate-branch">Consolidate Branch</button>
+<section data-role="approve administrate">
+  <h3>Consolidate Merged</h3>
+  <label>
+    <span>Consolidate Into</span>
+    <select data-locator="consolidate-target-branch"></select>
+  </label>
+  <ul data-locator="consolidate-original-branches"></ul>
+  <button type="button" data-locator="consolidate-branch">Consolidate Branch</button>
+</section>
 
-<h3>Delete Branch</h3>
-<p>This action cannot be undone.</p>
-<button type="button" data-locator="delete-branch">Delete</button>
-<button type="button" data-locator="delete-group">Delete Group</button>
+<section data-role="delete administrate">
+  <h3>Delete Branch</h3>
+  <p>This action cannot be undone.</p>
+  <button type="button" data-locator="delete-branch">Delete</button>
+  <button type="button" data-locator="delete-group">Delete Group</button>
+</section>
