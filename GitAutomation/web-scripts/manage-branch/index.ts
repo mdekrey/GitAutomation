@@ -86,6 +86,12 @@ export const manage = (
         const branchName = state.state.remainingPath!;
         const reload = new Subject<null>();
         let dataConnection: Subscription | null = null;
+        const disconnect = () => {
+          if (dataConnection) {
+            dataConnection.unsubscribe();
+            dataConnection = null;
+          }
+        };
 
         subscription.add(
           reload.subscribe(() => forceRefreshBranchGroups.next(null))
@@ -172,6 +178,25 @@ export const manage = (
             })
         );
 
+        const branchTypeData = rxEvent({
+          target: container.map(
+            fnSelect<HTMLSelectElement>(`[data-locator="branch-type"]`)
+          ),
+          eventName: "change"
+        }).map(v => v.target!.value as GitAutomationGQL.IBranchGroupTypeEnum);
+        // TODO - use branchTypeData to change preview graph color
+
+        subscription.add(branchTypeData.subscribe(disconnect));
+
+        subscription.add(
+          rxEvent({
+            target: container.map(
+              fnSelect(`[data-locator="recreate-from-upstream"]`)
+            ),
+            eventName: "change"
+          }).subscribe(disconnect)
+        );
+
         subscription.add(
           branchHierarchy({
             target: container.map(
@@ -199,6 +224,8 @@ export const manage = (
 
         // display downstream branches
         subscription.add(checkboxes.subscribe());
+
+        subscription.add(checkedData(checkboxes, true).subscribe(disconnect));
 
         subscription.add(
           branchHierarchy({
@@ -388,6 +415,11 @@ export const manage = (
                       `[data-locator="upstream-branches"] [data-locator="check"][data-branch="${upstreamBranchName}"]`
                     )
                     .property("checked", true)
+                    .each(function(this: Element) {
+                      const evt = document.createEvent("HTMLEvents");
+                      evt.initEvent("change", false, true);
+                      this.dispatchEvent(evt);
+                    })
                 )
               );
             })

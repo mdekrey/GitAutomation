@@ -58,7 +58,8 @@ export const buildBranchCheckListing = (
 });
 
 export const checkedData = (
-  target: Observable<Selection<HTMLTableRowElement, any, any, any>>
+  target: Observable<Selection<HTMLTableRowElement, any, any, any>>,
+  onlyOnChanged = false
 ) =>
   target
     .map(e =>
@@ -66,12 +67,13 @@ export const checkedData = (
         `[data-locator="other-branches"] input`
       )
     )
+    .filter(() => !onlyOnChanged)
     .merge(
       rxEvent({
         target: target.map(e =>
           e.selectAll(`[data-locator="other-branches"] input`)
         ),
-        eventName: "change"
+        eventName: `change.${Math.random()}`
       })
     )
     .withLatestFrom(
