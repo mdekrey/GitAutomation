@@ -20,6 +20,7 @@ import { admin } from "./admin/index";
 import { setupWizard } from "./setup-wizard/index";
 import { scaffolding } from "./layout/scaffolding";
 import { standardMenu } from "./home/menu";
+import { equals } from "./utils/ramda";
 
 const body = Observable.of(d3element(document.body));
 const bodyWithScaffolding = body.let(scaffolding);
@@ -102,5 +103,6 @@ function handleSecurity(strategy: Observable<ICascadingRoutingStrategy<any>>) {
       }
     })
     .filter(v => !v.redirectPath)
-    .map(v => v.state);
+    .map(v => v.state)
+    .distinctUntilChanged(equals);
 }
