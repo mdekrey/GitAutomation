@@ -3,7 +3,7 @@ import { Selection } from "d3-selection";
 
 import { RoutingComponent } from "../utils/routing-component";
 import {
-  rxEvent,
+  fnEvent,
   fnSelect,
   rxDatum,
   rxData,
@@ -11,7 +11,7 @@ import {
 } from "../utils/presentation/d3-binding";
 import { runBranchData } from "./data";
 import { buildBranchCheckListing, checkedData } from "./branch-check-listing";
-import { bindSaveButton } from "./bind-save-button";
+import { doSave } from "./bind-save-button";
 import {
   checkPullRequests,
   consolidateMerged,
@@ -28,6 +28,7 @@ import { groupsToHierarchy } from "../api/hierarchy";
 import { classed } from "../style/style-binding";
 import { style } from "typestyle";
 import { secured } from "../security/security-binding";
+import { inputValue, checkboxChecked } from "../utils/inputs";
 
 const manageStyle = {
   fieldSection: style({
@@ -99,23 +100,18 @@ export const manage = (
 
         // go home
         subscription.add(
-          rxEvent({
-            target: container.map(body =>
-              body.selectAll('[data-locator="home"]')
-            ),
-            eventName: "click"
-          }).subscribe(() =>
-            state.navigate({ url: "/", replaceCurentHistory: false })
-          )
+          container
+            .map(body => body.selectAll('[data-locator="home"]'))
+            .let(fnEvent("click"))
+            .subscribe(() =>
+              state.navigate({ url: "/", replaceCurentHistory: false })
+            )
         );
 
         // reset
-        const reset = rxEvent({
-          target: container.map(body =>
-            body.selectAll('[data-locator="reset"]')
-          ),
-          eventName: "click"
-        })
+        const reset = container
+          .map(body => body.selectAll('[data-locator="reset"]'))
+          .let(fnEvent("click"))
           .map(() => null)
           .publish()
           .refCount()
@@ -134,16 +130,6 @@ export const manage = (
                 subscription.add((dataConnection = branchDataState.connect()));
               }
             })
-        );
-
-        subscription.add(
-          bindSaveButton(
-            branchName,
-            '[data-locator="save"]',
-            container,
-            branchDataState,
-            () => reload.next(null)
-          )
         );
 
         // display branch name
@@ -178,23 +164,24 @@ export const manage = (
             })
         );
 
-        const branchTypeData = rxEvent({
-          target: container.map(
-            fnSelect<HTMLSelectElement>(`[data-locator="branch-type"]`)
-          ),
-          eventName: "change"
-        }).map(v => v.target!.value as GitAutomationGQL.IBranchGroupTypeEnum);
+        const branchTypeData = container
+          .map(fnSelect(`[data-locator="branch-type"]`))
+          .let(inputValue({ includeInitial: true }))
+          .map(v => v as GitAutomationGQL.IBranchGroupTypeEnum);
         // TODO - use branchTypeData to change preview graph color
 
-        subscription.add(branchTypeData.subscribe(disconnect));
+        subscription.add(
+          container
+            .map(fnSelect(`[data-locator="branch-type"]`))
+            .let(inputValue({ includeInitial: false }))
+            .subscribe(disconnect)
+        );
 
         subscription.add(
-          rxEvent({
-            target: container.map(
-              fnSelect(`[data-locator="recreate-from-upstream"]`)
-            ),
-            eventName: "change"
-          }).subscribe(disconnect)
+          container
+            .map(fnSelect(`[data-locator="recreate-from-upstream"]`))
+            .let(checkboxChecked({ includeInitial: false }))
+            .subscribe(disconnect)
         );
 
         subscription.add(
@@ -227,6 +214,31 @@ export const manage = (
 
         subscription.add(checkedData(checkboxes, true).subscribe(disconnect));
 
+        const data = checkedData(checkboxes).combineLatest(
+          branchTypeData,
+          container
+            .map(fnSelect(`[data-locator="recreate-from-upstream"]`))
+            .let(checkboxChecked({ includeInitial: true })),
+          (stream, branchType, recreateFromUpstream) => ({
+            ...stream,
+            branchType,
+            branchName,
+            recreateFromUpstream
+          })
+        );
+
+        subscription.add(
+          container
+            .map(fnSelect('[data-locator="save"]'))
+            .let(fnEvent("click"))
+            .switchMap(() => doSave(data, branchDataState))
+            .subscribe({
+              next: () => reload.next(null),
+              // TODO - error
+              error: err => console.error(err)
+            })
+        );
+
         subscription.add(
           branchHierarchy({
             target: container.map(
@@ -237,13 +249,15 @@ export const manage = (
             navigate: state.navigate,
             data: groupsToHierarchy(
               checkedData(checkboxes).combineLatest(
+                branchTypeData,
                 allBranchGroups,
-                (newStatus, groups) =>
+                (newStatus, branchType, groups) =>
                   groups.map(
                     group =>
                       group.groupName === branchName
                         ? {
                             ...group,
+                            branchType,
                             directDownstream: newStatus.downstream.map(
                               groupName => ({ groupName })
                             )
@@ -285,12 +299,9 @@ export const manage = (
         });
 
         subscription.add(
-          rxEvent({
-            target: actualBranchDisplay.map(
-              fnSelect(`a[data-locator="delete"]`)
-            ),
-            eventName: "click"
-          })
+          actualBranchDisplay
+            .map(fnSelect(`a[data-locator="delete"]`))
+            .let(fnEvent("click"))
             .switchMap(event =>
               deleteBranchByMode(event.datum.name, "ActualBranchOnly")
             )
@@ -298,12 +309,9 @@ export const manage = (
         );
 
         subscription.add(
-          rxEvent({
-            target: actualBranchDisplay.map(
-              fnSelect(`a[data-locator="check-up-to-date"]`)
-            ),
-            eventName: "click"
-          })
+          actualBranchDisplay
+            .map(fnSelect(`a[data-locator="check-up-to-date"]`))
+            .let(fnEvent("click"))
             .switchMap(event =>
               rxData(
                 container
@@ -399,10 +407,9 @@ export const manage = (
         );
 
         subscription.add(
-          rxEvent({
-            target: container.map(fnSelect(`[data-locator="detect-upstream"]`)),
-            eventName: "click"
-          })
+          container
+            .map(fnSelect(`[data-locator="detect-upstream"]`))
+            .let(fnEvent("click"))
             .withLatestFrom(
               container.map(fnSelect(`[data-locator="other-branches"]`)),
               (_, elem) => elem
@@ -426,10 +433,9 @@ export const manage = (
         );
 
         subscription.add(
-          rxEvent({
-            target: container.map(fnSelect(`[data-locator="check-prs"]`)),
-            eventName: "click"
-          })
+          container
+            .map(fnSelect(`[data-locator="check-prs"]`))
+            .let(fnEvent("click"))
             .withLatestFrom(
               container.map(fnSelect(`[data-locator="other-branches"]`)),
               (_, elem) => elem
@@ -452,12 +458,9 @@ export const manage = (
         );
 
         subscription.add(
-          rxEvent({
-            target: container.map(
-              fnSelect(`[data-locator="promote-service-line"]`)
-            ),
-            eventName: "click"
-          })
+          container
+            .map(fnSelect(`[data-locator="promote-service-line"]`))
+            .let(fnEvent("click"))
             .switchMap(_ =>
               Observable.combineLatest(
                 container
@@ -491,12 +494,9 @@ export const manage = (
         );
 
         subscription.add(
-          rxEvent({
-            target: container.map(
-              fnSelect(`[data-locator="consolidate-branch"]`)
-            ),
-            eventName: "click"
-          })
+          container
+            .map(fnSelect(`[data-locator="consolidate-branch"]`))
+            .let(fnEvent("click"))
             .switchMap(_ =>
               Observable.combineLatest(
                 container
@@ -527,10 +527,9 @@ export const manage = (
         );
 
         subscription.add(
-          rxEvent({
-            target: container.map(fnSelect(`[data-locator="delete-branch"]`)),
-            eventName: "click"
-          })
+          container
+            .map(fnSelect(`[data-locator="delete-branch"]`))
+            .let(fnEvent("click"))
             .map(() => branchName)
             .take(1)
             .switchMap(deleteBranch)
@@ -540,10 +539,9 @@ export const manage = (
         );
 
         subscription.add(
-          rxEvent({
-            target: container.map(fnSelect(`[data-locator="delete-group"]`)),
-            eventName: "click"
-          })
+          container
+            .map(fnSelect(`[data-locator="delete-group"]`))
+            .let(fnEvent("click"))
             .map(() => branchName)
             .take(1)
             .switchMap(branchName =>

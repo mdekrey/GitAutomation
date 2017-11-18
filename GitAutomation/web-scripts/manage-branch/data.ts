@@ -1,10 +1,7 @@
 import { Observable, Subscription } from "../utils/rxjs";
 
-import {
-  allBranchGroups,
-  branchDetails,
-  allBranchesHierarchy
-} from "../api/basics";
+import { allBranchGroups, branchDetails } from "../api/basics";
+import { groupsToHierarchy } from "../api/hierarchy";
 
 export interface IManageBranch {
   isLoading: boolean;
@@ -35,7 +32,7 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
   const initializeBranchData = allBranchGroups
     .combineLatest(
       branchDetails(branchName),
-      allBranchesHierarchy.take(1),
+      allBranchGroups.let(groupsToHierarchy),
       (allBranches, branchDetails, hierarchyData) => {
         const directDownstreamBranches = branchDetails.directDownstream.map(
           g => g.groupName
@@ -49,7 +46,7 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
           g => g.groupName
         );
         const downstreamBranches = target.downstream;
-        return {
+        const result = {
           branches: allBranches.map((group): IBranchData => ({
             groupName: group.groupName,
             branchType: group.branchType,
@@ -72,6 +69,8 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
             ? branchDetails.latestBranch.name
             : null
         };
+        console.log({ allBranches, branchDetails, hierarchyData, result });
+        return result;
       }
     )
     .map(

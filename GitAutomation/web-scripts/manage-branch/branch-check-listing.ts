@@ -1,10 +1,11 @@
-import { IRxBindProps, rxEvent } from "../utils/presentation/d3-binding";
+import { IRxBindProps } from "../utils/presentation/d3-binding";
 import { IBranchData } from "./data";
 import { branchNameDisplay } from "../branch-name-display";
 import { applyStyles } from "../style/style-binding";
 import { Observable } from "../utils/rxjs";
 import { Selection } from "d3-selection";
 import { RoutingNavigate } from "../routing";
+import { checkboxChecked } from "../utils/inputs";
 
 type BranchPredicate = (data: IBranchData) => boolean;
 interface BranchTypeRules {
@@ -58,31 +59,19 @@ export const buildBranchCheckListing = (
 });
 
 export const checkedData = (
-  target: Observable<Selection<HTMLTableRowElement, any, any, any>>,
+  table: Observable<Selection<HTMLTableRowElement, any, any, any>>,
   onlyOnChanged = false
-) =>
-  target
+) => {
+  return table
     .map(e =>
       e.selectAll<HTMLInputElement, any>(
         `[data-locator="other-branches"] input`
       )
     )
-    .filter(() => !onlyOnChanged)
-    .merge(
-      rxEvent({
-        target: target.map(e =>
-          e.selectAll(`[data-locator="other-branches"] input`)
-        ),
-        eventName: `change.${Math.random()}`
-      })
-    )
-    .withLatestFrom(
-      target.map(e =>
-        e.selectAll<HTMLInputElement, any>(
-          `[data-locator="other-branches"] input`
-        )
-      ),
-      (_, inputs) => inputs
+    .let(target =>
+      target
+        .let(checkboxChecked({ includeInitial: !onlyOnChanged }))
+        .withLatestFrom(target, (_, inputs) => inputs)
     )
     .map(inputs => {
       return {
@@ -96,3 +85,4 @@ export const checkedData = (
           .map(i => i.getAttribute("data-branch")!)
       };
     });
+};

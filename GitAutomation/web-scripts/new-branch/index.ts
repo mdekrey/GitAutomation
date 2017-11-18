@@ -2,15 +2,21 @@ import { Observable, Subscription } from "../utils/rxjs";
 import { Selection } from "d3-selection";
 
 import { RoutingComponent } from "../utils/routing-component";
-import { rxEvent, fnSelect, rxData } from "../utils/presentation/d3-binding";
+import {
+  rxEvent,
+  fnSelect,
+  rxData,
+  fnEvent
+} from "../utils/presentation/d3-binding";
 import { allBranchGroups } from "../api/basics";
 import { buildBranchCheckListing, checkedData } from "./branch-check-listing";
-import { bindSaveButton } from "./bind-save-button";
+import { doSave } from "./bind-save-button";
 import { style } from "typestyle";
 import { classed } from "../style/style-binding";
 import { branchHierarchy } from "../home/branch-hierarchy";
 import { groupsToHierarchy } from "../api/hierarchy";
 import { secured } from "../security/security-binding";
+import { inputValue, checkboxChecked } from "../utils/inputs";
 
 const manageStyle = {
   fieldSection: style({
@@ -95,86 +101,70 @@ export const newBranch = (
 
         // display preview
         const data = Observable.combineLatest(
-          rxEvent({
-            target: container.map(e =>
-              e.select<HTMLInputElement>(`[data-locator="branch-name"]`)
-            ),
-            eventName: "change"
-          })
-            .map(e => e.target.value)
-            .startWith("")
+          container
+            .map(fnSelect(`[data-locator="branch-name"]`))
+            .let(inputValue({ includeInitial: true }))
             .map(e => e || "New Branch"),
-          rxEvent({
-            target: container.map(e =>
-              e.select<HTMLInputElement>(
-                `[data-locator="recreate-from-upstream"]`
-              )
-            ),
-            eventName: "change"
+          container
+            .map(fnSelect(`[data-locator="recreate-from-upstream"]`))
+            .let(checkboxChecked({ includeInitial: true })),
+          container
+            .map(fnSelect(`[data-locator="branch-type"]`))
+            .let(inputValue({ includeInitial: true }))
+            .map(v => v as GitAutomationGQL.IBranchGroupTypeEnum),
+          checkedData(checkboxes)
+        ).map(
+          ([branchName, recreateFromUpstream, branchType, checkedData]) => ({
+            branchName,
+            recreateFromUpstream,
+            branchType,
+            ...checkedData
           })
-            .map(e => e.target.checked)
-            .startWith(false),
-          rxEvent({
-            target: container.map(e =>
-              e.select<HTMLInputElement>(`[data-locator="branch-type"]`)
-            ),
-            eventName: "change"
-          })
-            .map(e => e.target.value)
-            .startWith("Feature")
-        ).map(([branchName, recreateFromUpstream, branchType]) => ({
-          branchName,
-          recreateFromUpstream,
-          branchType
-        }));
+        );
 
-        const hierarchy$ = checkedData(checkboxes)
-          .combineLatest(
-            allBranchGroups,
-            data,
-            (newStatus, groups, { branchName, branchType }) => ({
-              groups: groups
-                .map(
-                  group =>
-                    group.groupName === branchName
-                      ? {
-                          ...group,
-                          directDownstream: newStatus.downstream.map(
-                            groupName => ({ groupName })
-                          )
-                        }
-                      : {
-                          ...group,
-                          directDownstream: group.directDownstream
-                            .filter(g => g.groupName !== branchName)
-                            .concat(
-                              newStatus.upstream.find(
-                                up => up === group.groupName
-                              )
-                                ? [{ groupName: branchName }]
-                                : []
+        const hierarchy$ = data
+          .combineLatest(allBranchGroups, (newStatus, groups) => ({
+            groups: groups
+              .map(
+                group =>
+                  group.groupName === newStatus.branchName
+                    ? {
+                        ...group,
+                        directDownstream: newStatus.downstream.map(
+                          groupName => ({ groupName })
+                        )
+                      }
+                    : {
+                        ...group,
+                        directDownstream: group.directDownstream
+                          .filter(g => g.groupName !== newStatus.branchName)
+                          .concat(
+                            newStatus.upstream.find(
+                              up => up === group.groupName
                             )
-                        }
-                )
-                .concat(
-                  groups.find(group => group.groupName === branchName)
-                    ? []
-                    : [
-                        {
-                          groupName: branchName,
-                          branchType: branchType as GitAutomationGQL.IBranchGroupTypeEnum,
-                          directDownstream: newStatus.downstream.map(
-                            groupName => ({ groupName })
-                          ),
-                          latestBranch: null,
-                          branches: []
-                        }
-                      ]
-                ),
-              branchName,
-              branchType: branchType as GitAutomationGQL.IBranchGroupTypeEnum
-            })
-          )
+                              ? [{ groupName: newStatus.branchName }]
+                              : []
+                          )
+                      }
+              )
+              .concat(
+                groups.find(group => group.groupName === newStatus.branchName)
+                  ? []
+                  : [
+                      {
+                        groupName: newStatus.branchName,
+                        branchType: newStatus.branchType as GitAutomationGQL.IBranchGroupTypeEnum,
+                        directDownstream: newStatus.downstream.map(
+                          groupName => ({ groupName })
+                        ),
+                        latestBranch: null,
+                        branches: []
+                      }
+                    ]
+              ),
+            branchName: newStatus.branchName,
+            branchType: newStatus.branchType as GitAutomationGQL.IBranchGroupTypeEnum
+          }))
           .switchMap(groupsData =>
             groupsToHierarchy(
               Observable.of(groupsData.groups),
@@ -200,12 +190,20 @@ export const newBranch = (
         );
 
         subscription.add(
-          bindSaveButton('[data-locator="save"]', container, branchName => {
-            state.navigate({
-              url: "/manage/" + branchName,
-              replaceCurentHistory: false
-            });
-          })
+          container
+            .map(fnSelect('[data-locator="save"]'))
+            .let(fnEvent("click"))
+            .switchMap(() => doSave(data))
+            // TODO - error message
+            .subscribe({
+              next: branchName => {
+                state.navigate({
+                  url: "/manage/" + branchName,
+                  replaceCurentHistory: false
+                });
+              },
+              error: _ => console.log(_)
+            })
         );
 
         return subscription;

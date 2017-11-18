@@ -177,6 +177,50 @@ function getEvent<GElement extends BaseType, TDatum>(
   };
 }
 
+export function fnEvent(
+  eventName: string,
+  capture?: boolean
+): <GElement extends BaseType, TDatum>(
+  target: Observable<Selection<GElement, TDatum, any, any>>
+) => Observable<IEventOccurred<GElement, TDatum>>;
+export function fnEvent<EventName extends string>(
+  eventName: EventName,
+  capture?: boolean
+): <TResult>(
+  target: Observable<{
+    on(
+      eventName: EventName,
+      fn: null | ((event: TResult) => void),
+      capture?: boolean
+    ): void;
+  }>
+) => Observable<TResult>;
+export function fnEvent<EventName extends string>(
+  eventName: EventName,
+  capture?: boolean
+): <GElement extends BaseType, TDatum, TResult>(
+  target: Observable<Selection<GElement, TDatum, any, any>>
+) => Observable<TResult> {
+  const finalToResult = getEvent;
+  return target =>
+    target.switchMap(
+      element =>
+        new Observable<any>(observer => {
+          element.on(
+            eventName,
+            function(datum, index, groups) {
+              observer.next(finalToResult(this, datum, index, groups));
+            },
+            capture
+          );
+
+          return () => {
+            element.on(eventName, null);
+          };
+        })
+    );
+}
+
 export function rxEvent<GElement extends BaseType, TDatum, TResult>(
   params: {
     target: Observable<Selection<GElement, TDatum, any, any>>;
