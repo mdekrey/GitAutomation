@@ -10,6 +10,7 @@ import {
 import { windowHashStrategy } from "./routing/strategies/window-hash";
 import { RoutingComponent, renderRouteOnce } from "./utils/routing-component";
 import { homepage } from "./home/index";
+import { debugPage } from "./debug/index";
 import { manage } from "./manage-branch/index";
 import { newBranch } from "./new-branch/index";
 import { login } from "./login/index";
@@ -37,6 +38,7 @@ withSecurity
       "new-branch": RouteConcrete(newBranch(scaffoldingContents)),
       "auto-wireup": RouteConcrete(setupWizard(scaffoldingContents)),
       admin: RouteConcrete(admin(scaffoldingContents)),
+      debug: RouteConcrete(debugPage(scaffoldingContents)),
       login: RouteConcrete(login(body, claims)),
       [wildcard]: RouteConcrete(() =>
         body

@@ -49,6 +49,15 @@ export const standardMenu = (
 
         subscription.add(
           body
+            .map(fnSelect('[data-locator="system-health"]'))
+            .let(fnEvent("click"))
+            .subscribe(() =>
+              state.navigate({ url: "/debug", replaceCurentHistory: false })
+            )
+        );
+
+        subscription.add(
+          body
             .map(fnSelect('[data-locator="auto-wireup"]'))
             .let(fnEvent("click"))
             .subscribe(() =>
