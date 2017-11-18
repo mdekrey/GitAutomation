@@ -231,9 +231,9 @@ namespace GitAutomation.Orchestration.Actions
                     .Select(items => items.ToImmutableList());
             }
             
-            private IObservable<bool> HasOutstandingCommits(string upstreamBranch)
+            private Task<bool> HasOutstandingCommits(string upstreamBranch)
             {
-                return repository.HasOutstandingCommits(upstreamBranch: upstreamBranch, downstreamBranch: LatestBranchName).Take(1);
+                return repository.HasOutstandingCommits(upstreamBranch: upstreamBranch, downstreamBranch: LatestBranchName);
             }
 
             private async Task CreateDownstreamBranch(IEnumerable<NeededMerge> allUpstreamBranches)

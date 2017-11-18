@@ -245,13 +245,11 @@ namespace GitAutomation
             repositoryState.RemoteBranches()
                 .Select(gitref => gitref.Exists(gr => gr.Name == branchName) ? gitref.Find(gr => gr.Name == branchName).Commit : null);
 
-        public IObservable<bool> HasOutstandingCommits(string upstreamBranch, string downstreamBranch)
+        public Task<bool> HasOutstandingCommits(string upstreamBranch, string downstreamBranch)
         {
-            return Observable.CombineLatest(
-                repositoryState.MergeBaseBetween(upstreamBranch, downstreamBranch),
-                GetBranchRef(upstreamBranch),
-                (mergeBaseResult, showRefResult) => mergeBaseResult != showRefResult
-            );
+            return (from showRefResult in GetBranchRef(upstreamBranch)
+                    from mergeBaseResult in repositoryState.MergeBaseBetween(upstreamBranch, downstreamBranch)
+                    select mergeBaseResult != showRefResult).FirstOrDefaultAsync().ToTask();
         }
 
         private async Task<IEnumerable<BranchGroupCompleteData>> GroupBranches(ImmutableList<BranchGroupCompleteData> settings, ImmutableList<GitRef> actualBranches, Func<string, Task<BranchGroupCompleteData>> factory)

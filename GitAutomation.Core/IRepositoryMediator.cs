@@ -23,7 +23,7 @@ namespace GitAutomation
         void ConsolidateBranches(IEnumerable<string> branchesToRemove, string targetBranch, IUnitOfWork unitOfWork);
         IObservable<ImmutableList<Repository.GitRef>> GetAllBranchRefs();
         IObservable<string> GetBranchRef(string branchName);
-        IObservable<bool> HasOutstandingCommits(string upstreamBranch, string downstreamBranch);
+        Task<bool> HasOutstandingCommits(string upstreamBranch, string downstreamBranch);
         void NotifyPushedRemoteBranch(string downstreamBranch);
         IObservable<ImmutableList<BranchGroup>> GetConfiguredBranchGroups();
         IObservable<ImmutableList<string>> RecommendNewGroups();

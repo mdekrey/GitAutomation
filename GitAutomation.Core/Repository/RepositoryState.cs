@@ -24,7 +24,6 @@ namespace GitAutomation.Repository
         private readonly IObservable<ImmutableList<GitRef>> remoteBranches;
         private readonly IRepositoryOrchestration orchestration;
         private readonly GitCli cli;
-        private readonly IObservable<ImmutableDictionary<Tuple<string, string>, LazyObservable<string>>> mergeBaseBranches;
         private readonly ConcurrentDictionary<Tuple<string, string>, Task<string>> mergeBaseCommits = new ConcurrentDictionary<Tuple<string, string>, Task<string>>();
 
         public event EventHandler Updated;
@@ -40,8 +39,6 @@ namespace GitAutomation.Repository
                 handler => this.Updated -= handler
             ).Select(_ => Unit.Default);
             this.remoteBranches = BuildRemoteBranches();
-
-            this.mergeBaseBranches = BuildMergeBases();
         }
 
         #region Reset
@@ -143,14 +140,20 @@ namespace GitAutomation.Repository
             );
         }
 
-        public IObservable<string> MergeBaseBetween(string branchName1, string branchName2)
+        public async Task<string> MergeBaseBetween(string branchName1, string branchName2)
         {
-            var key = branchName1.CompareTo(branchName2) < 0
-                ? Tuple.Create(branchName1, branchName2)
-                : Tuple.Create(branchName2, branchName1);
-            return this.mergeBaseBranches.SelectMany(bases => bases.ContainsKey(key)
-                ? bases[key]
-                : Observable.Return<string>(null));
+            var branches = await remoteBranches.Take(1).ToTask().ConfigureAwait(false);
+            var ref1 = branches.FirstOrDefault(b => b.Name == branchName1);
+            if (ref1.Name == null)
+            {
+                return null;
+            }
+            var ref2 = branches.FirstOrDefault(b => b.Name == branchName2);
+            if (ref2.Name == null)
+            {
+                return null;
+            }
+            return await MergeBaseBetweenCommits(ref1.Commit, ref2.Commit);
         }
 
         private IObservable<string> GetMergeBase(Tuple<string, string> commitPair)
@@ -172,7 +175,7 @@ namespace GitAutomation.Repository
                     
                     return (from remote in remotes.ToObservable()
                             where remote.Name != branchName
-                            from mergeBase in MergeBaseBetween(remote.Name, branchName).Take(1)
+                            from mergeBase in MergeBaseBetweenCommits(remote.Commit, currentCommitish)
                             select new
                             {
                                 remote,
