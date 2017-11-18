@@ -69,7 +69,6 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
             ? branchDetails.latestBranch.name
             : null
         };
-        console.log({ allBranches, branchDetails, hierarchyData, result });
         return result;
       }
     )

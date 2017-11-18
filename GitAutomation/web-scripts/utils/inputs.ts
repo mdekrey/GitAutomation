@@ -1,6 +1,6 @@
 import { Selection } from "d3-selection";
 import { Observable } from "./rxjs";
-import { rxEvent, IEventOccurred } from "./presentation/d3-binding";
+import { fnEvent, IEventOccurred } from "./presentation/d3-binding";
 
 export function inputChange<
   Elem extends HTMLInputElement | HTMLSelectElement,
@@ -29,15 +29,9 @@ export function inputChange<
   if (typeof input === "string" || input === undefined) {
     const eventNamespace = input;
     return target =>
-      rxEvent({
-        target,
-        eventName: `change.${eventNamespace || Math.random()}`
-      }).merge(
-        rxEvent({
-          target,
-          eventName: `input.${eventNamespace || Math.random()}`
-        })
-      );
+      target
+        .let(fnEvent(`change.${eventNamespace || Math.random()}`))
+        .merge(target.let(fnEvent(`input.${eventNamespace || Math.random()}`)));
   }
   return inputChange();
 }

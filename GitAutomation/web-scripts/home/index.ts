@@ -1,7 +1,7 @@
 import { Observable, Subscription } from "../utils/rxjs";
 import { Selection } from "d3-selection";
 
-import { rxData, rxEvent, fnSelect } from "../utils/presentation/d3-binding";
+import { rxData, fnSelect, fnEvent } from "../utils/presentation/d3-binding";
 
 import { RoutingComponent } from "../utils/routing-component";
 import {
@@ -63,20 +63,17 @@ export const homepage = (
         );
 
         subscription.add(
-          rxEvent({
-            target: body.map(
-              fnSelect('[data-locator="remote-branch-hierarchy-refresh"]')
-            ),
-            eventName: "click"
-          }).subscribe(v => forceRefreshBranchGroups.next(null))
+          body
+            .map(fnSelect('[data-locator="remote-branch-hierarchy-refresh"]'))
+            .let(fnEvent("click"))
+            .subscribe(v => forceRefreshBranchGroups.next(null))
         );
 
         // fetch from remote
         subscription.add(
-          rxEvent({
-            target: body.map(fnSelect('[data-locator="fetch-from-remote"]')),
-            eventName: "click"
-          })
+          body
+            .map(fnSelect('[data-locator="fetch-from-remote"]'))
+            .let(fnEvent("click"))
             .switchMap(() => fetch())
             .subscribe()
         );
@@ -87,12 +84,9 @@ export const homepage = (
             body.map(
               fnSelect<HTMLUListElement>(`[data-locator="action-queue"]`)
             ),
-            rxEvent({
-              target: body.map(
-                fnSelect('[data-locator="action-queue-refresh"]')
-              ),
-              eventName: "click"
-            })
+            body
+              .map(fnSelect('[data-locator="action-queue-refresh"]'))
+              .let(fnEvent("click"))
               .startWith(null)
               .switchMap(() => actionQueue)
           )
@@ -168,26 +162,25 @@ export const homepage = (
                         : "(Branch not created)"
                   );
                 subscription.add(
-                  rxEvent({
-                    target: Observable.of(
-                      selection
-                        .select('[data-locator="name-container"]')
-                        .style(
-                          "display",
-                          group =>
-                            group.branch === null ||
-                            group.branch.name === group.branches[0].name
-                              ? null
-                              : "none"
-                        )
-                    ),
-                    eventName: "click"
-                  }).subscribe(event =>
-                    state.navigate({
-                      url: "/manage/" + event.datum.groupName,
-                      replaceCurentHistory: false
-                    })
+                  Observable.of(
+                    selection
+                      .select('[data-locator="name-container"]')
+                      .style(
+                        "display",
+                        group =>
+                          group.branch === null ||
+                          group.branch.name === group.branches[0].name
+                            ? null
+                            : "none"
+                      )
                   )
+                    .let(fnEvent("click"))
+                    .subscribe(event =>
+                      state.navigate({
+                        url: "/manage/" + event.datum.groupName,
+                        replaceCurentHistory: false
+                      })
+                    )
                 );
               }
             })
@@ -195,12 +188,10 @@ export const homepage = (
         );
 
         subscription.add(
-          rxEvent({
-            target: body.map(
-              fnSelect('[data-locator="remote-branches-refresh"]')
-            ),
-            eventName: "click"
-          }).subscribe(v => forceRefreshBranchGroups.next(null))
+          body
+            .map(fnSelect('[data-locator="remote-branches-refresh"]'))
+            .let(fnEvent("click"))
+            .subscribe(v => forceRefreshBranchGroups.next(null))
         );
 
         // display log
@@ -216,10 +207,10 @@ export const homepage = (
         );
 
         subscription.add(
-          rxEvent({
-            target: body.map(fnSelect('[data-locator="status-refresh"]')),
-            eventName: "click"
-          }).subscribe(() => forceRefreshLog.next(null))
+          body
+            .map(fnSelect('[data-locator="status-refresh"]'))
+            .let(fnEvent("click"))
+            .subscribe(() => forceRefreshLog.next(null))
         );
 
         return subscription;

@@ -155,20 +155,18 @@ export const manage = (
             })
         );
 
-        subscription.add(
-          container
-            .map(fnSelect(`[data-locator="branch-type"]`))
-            .let(rxDatum(branchDataState.map(d => d.branchType)))
-            .subscribe(target => {
-              target.property("value", value => value);
-            })
-        );
-
         const branchTypeData = container
           .map(fnSelect(`[data-locator="branch-type"]`))
+          .let(rxDatum(branchDataState.map(d => d.branchType)))
+          .do(target => {
+            target.property("value", value => value);
+          })
+          .publishReplay(1)
+          .refCount()
           .let(inputValue({ includeInitial: true }))
           .map(v => v as GitAutomationGQL.IBranchGroupTypeEnum);
-        // TODO - use branchTypeData to change preview graph color
+
+        subscription.add(branchTypeData.subscribe());
 
         subscription.add(
           container

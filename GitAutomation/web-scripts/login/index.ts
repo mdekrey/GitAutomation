@@ -3,7 +3,7 @@ import { Selection } from "d3-selection";
 
 import {
   rxData,
-  rxEvent,
+  fnEvent,
   fnSelect,
   rxDatum
 } from "../utils/presentation/d3-binding";
@@ -25,12 +25,12 @@ export const login = (
 
         // begin the sign-in process
         subscription.add(
-          rxEvent({
-            target: body.map(fnSelect('[data-locator="log-in"]')),
-            eventName: "click"
-          }).subscribe(() => {
-            window.location.href = "/api/authentication/sign-in";
-          })
+          body
+            .map(fnSelect('[data-locator="log-in"]'))
+            .let(fnEvent("click"))
+            .subscribe(() => {
+              window.location.href = "/api/authentication/sign-in";
+            })
         );
 
         // display claims

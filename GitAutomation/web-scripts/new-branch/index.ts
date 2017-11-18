@@ -2,12 +2,7 @@ import { Observable, Subscription } from "../utils/rxjs";
 import { Selection } from "d3-selection";
 
 import { RoutingComponent } from "../utils/routing-component";
-import {
-  rxEvent,
-  fnSelect,
-  rxData,
-  fnEvent
-} from "../utils/presentation/d3-binding";
+import { fnSelect, rxData, fnEvent } from "../utils/presentation/d3-binding";
 import { allBranchGroups } from "../api/basics";
 import { buildBranchCheckListing, checkedData } from "./branch-check-listing";
 import { doSave } from "./bind-save-button";
@@ -75,14 +70,12 @@ export const newBranch = (
 
         // go home
         subscription.add(
-          rxEvent({
-            target: container.map(body =>
-              body.selectAll('[data-locator="home"]')
-            ),
-            eventName: "click"
-          }).subscribe(() =>
-            state.navigate({ url: "/", replaceCurentHistory: false })
-          )
+          container
+            .map(body => body.selectAll('[data-locator="home"]'))
+            .let(fnEvent("click"))
+            .subscribe(() =>
+              state.navigate({ url: "/", replaceCurentHistory: false })
+            )
         );
 
         // display upstream branches

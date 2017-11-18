@@ -2,7 +2,7 @@ import { Observable, Subscription } from "../utils/rxjs";
 import { Selection } from "d3-selection";
 
 import { RoutingComponent } from "../utils/routing-component";
-import { rxEvent, fnSelect, rxData } from "../utils/presentation/d3-binding";
+import { fnEvent, fnSelect, rxData } from "../utils/presentation/d3-binding";
 import { recommendGroups, updateBranch, detectUpstream } from "../api/basics";
 
 export const setupWizard = (
@@ -18,14 +18,12 @@ export const setupWizard = (
 
         // go home
         subscription.add(
-          rxEvent({
-            target: container.map(body =>
-              body.selectAll('[data-locator="home"]')
-            ),
-            eventName: "click"
-          }).subscribe(() =>
-            state.navigate({ url: "/", replaceCurentHistory: false })
-          )
+          container
+            .map(body => body.selectAll('[data-locator="home"]'))
+            .let(fnEvent("click"))
+            .subscribe(() =>
+              state.navigate({ url: "/", replaceCurentHistory: false })
+            )
         );
 
         const groupsList = container.map(
@@ -47,10 +45,9 @@ export const setupWizard = (
         );
 
         subscription.add(
-          rxEvent({
-            target: container.map(fnSelect('[data-locator="save"]')),
-            eventName: "click"
-          })
+          container
+            .map(fnSelect('[data-locator="save"]'))
+            .let(fnEvent("click"))
             .do(() => {
               container
                 .map(fnSelect('[data-locator="save"]'))

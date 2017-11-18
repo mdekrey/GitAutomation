@@ -18,7 +18,7 @@ import {
 import { drag, SubjectPosition } from "d3-drag";
 import "d3-transition";
 import {
-  rxEvent,
+  fnEvent,
   rxData,
   rxDatum,
   fnSelect
@@ -268,13 +268,8 @@ export function branchHierarchy({
       })
     );
 
-    const redraw = rxEvent(
-      {
-        target: Observable.of(simulation),
-        eventName: "tick"
-      },
-      () => null
-    )
+    const redraw = Observable.of(simulation)
+      .let(fnEvent("tick", { toResult: () => null }))
       .merge(updateDraw)
       .withLatestFrom(data, (_, d) => d)
       .publish()

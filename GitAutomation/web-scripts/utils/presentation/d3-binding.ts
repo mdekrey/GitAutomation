@@ -177,31 +177,39 @@ function getEvent<GElement extends BaseType, TDatum>(
   };
 }
 
-export function fnEvent(
-  eventName: string,
-  capture?: boolean
-): <GElement extends BaseType, TDatum>(
-  target: Observable<Selection<GElement, TDatum, any, any>>
-) => Observable<IEventOccurred<GElement, TDatum>>;
-export function fnEvent<EventName extends string>(
+export type IEventEmitter<EventName extends string, TResult> = {
+  on(eventName: EventName, fn: null | ((event: TResult) => void)): void;
+};
+
+export function fnEvent<EventName extends string, TDatum, TResult>(
   eventName: EventName,
-  capture?: boolean
-): <TResult>(
-  target: Observable<{
-    on(
-      eventName: EventName,
-      fn: null | ((event: TResult) => void),
-      capture?: boolean
-    ): void;
-  }>
+  params: {
+    toResult: (eventTarget: any, eventArg: TDatum) => TResult;
+  }
+): (
+  target: Observable<IEventEmitter<EventName, TDatum>>
 ) => Observable<TResult>;
 export function fnEvent<EventName extends string>(
   eventName: EventName,
-  capture?: boolean
-): <GElement extends BaseType, TDatum, TResult>(
+  params?: {
+    capture?: boolean;
+  }
+): <GElement extends BaseType, TDatum>(
   target: Observable<Selection<GElement, TDatum, any, any>>
-) => Observable<TResult> {
-  const finalToResult = getEvent;
+) => Observable<IEventOccurred<GElement, TDatum>>;
+export function fnEvent<
+  EventName extends string,
+  TDatum,
+  GElement extends BaseType,
+  TTarget extends Selection<GElement, TDatum, any, any>
+>(
+  eventName: EventName,
+  params?: {
+    capture?: boolean;
+    toResult?: (target: any, eventArg: TDatum, p2: any, p3: any) => any;
+  }
+): (target: Observable<TTarget>) => Observable<any> {
+  const { capture = undefined, toResult = getEvent } = params || {};
   return target =>
     target.switchMap(
       element =>
@@ -209,7 +217,7 @@ export function fnEvent<EventName extends string>(
           element.on(
             eventName,
             function(datum, index, groups) {
-              observer.next(finalToResult(this, datum, index, groups));
+              observer.next(toResult(this, datum, index, groups));
             },
             capture
           );
@@ -219,75 +227,6 @@ export function fnEvent<EventName extends string>(
           };
         })
     );
-}
-
-export function rxEvent<GElement extends BaseType, TDatum, TResult>(
-  params: {
-    target: Observable<Selection<GElement, TDatum, any, any>>;
-    eventName: string;
-    capture?: boolean;
-  },
-  toResult: GetEventFn<GElement, TDatum, TResult>
-): Observable<TResult>;
-export function rxEvent<GElement extends BaseType, TDatum>(params: {
-  target: Observable<Selection<GElement, TDatum, any, any>>;
-  eventName: string;
-  capture?: boolean;
-}): Observable<IEventOccurred<GElement, TDatum>>;
-export function rxEvent<EventName extends string, TResult>(params: {
-  target: Observable<{
-    on(
-      eventName: EventName,
-      fn: null | ((event: TResult) => void),
-      capture?: boolean
-    ): void;
-  }>;
-  eventName: EventName;
-  capture?: boolean;
-}): Observable<TResult>;
-export function rxEvent<EventName extends string, TEvent, TResult>(
-  params: {
-    target: Observable<{
-      on(
-        eventName: EventName,
-        fn: null | ((event: TEvent) => void),
-        capture?: boolean
-      ): void;
-    }>;
-    eventName: EventName;
-    capture?: boolean;
-  },
-  toResult: (event: TEvent) => TResult
-): Observable<TResult>;
-export function rxEvent<GElement extends BaseType, TDatum>(
-  {
-    target,
-    capture,
-    eventName
-  }: {
-    target: Observable<Selection<GElement, TDatum, any, any>>;
-    eventName: string;
-    capture?: boolean;
-  },
-  toResult?: GetEventFn<GElement, TDatum, any>
-) {
-  const finalToResult = toResult || getEvent;
-  return target.switchMap(
-    element =>
-      Observable.create((observer: Observer<any>) => {
-        element.on(
-          eventName,
-          function(datum, index, groups) {
-            observer.next(finalToResult(this, datum, index, groups));
-          },
-          capture
-        );
-
-        return () => {
-          element.on(eventName, null);
-        };
-      }) as Observable<any>
-  );
 }
 
 export function fnSelect<T extends BaseType>(query: string) {
