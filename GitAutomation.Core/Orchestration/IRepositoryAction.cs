@@ -22,13 +22,13 @@ namespace GitAutomation.Orchestration
         /// <summary>
         /// Gets the output for later execution
         /// </summary>
-        IObservable<OutputMessage> DeferredOutput { get; }
+        IObservable<IRepositoryActionEntry> ProcessStream { get; }
 
         /// <summary>
         /// Executes the action
         /// </summary>
         /// <param name="serviceProvider">The services to use to perform the action</param>
         /// <returns>Output of the action</returns>
-        IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider);
+        IObservable<IRepositoryActionEntry> PerformAction(IServiceProvider serviceProvider);
     }
 }

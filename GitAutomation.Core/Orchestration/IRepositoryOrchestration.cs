@@ -7,10 +7,10 @@ namespace GitAutomation.Orchestration
 {
     public interface IRepositoryOrchestration
     {
-        IObservable<OutputMessage> ProcessActions();
-        IObservable<ImmutableList<OutputMessage>> ProcessActionsLog { get; }
+        IObservable<IRepositoryActionEntry> ProcessActions();
+        IObservable<ImmutableList<IRepositoryActionEntry>> ProcessActionsLog { get; }
         IObservable<ImmutableList<IRepositoryAction>> ActionQueue { get; }
 
-        IObservable<OutputMessage> EnqueueAction(IRepositoryAction resetAction, bool skipDuplicateCheck = false);
+        IObservable<IRepositoryActionEntry> EnqueueAction(IRepositoryAction resetAction, bool skipDuplicateCheck = false);
     }
 }

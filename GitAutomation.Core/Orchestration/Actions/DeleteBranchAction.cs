@@ -19,13 +19,12 @@ using System.Threading.Tasks;
 
 namespace GitAutomation.Orchestration.Actions
 {
-    class DeleteBranchAction : IRepositoryAction
+    class DeleteBranchAction : ComplexAction<DeleteBranchAction.Internal>
     {
-        private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
         private readonly string deletingBranch;
         private readonly DeleteBranchMode mode;
 
-        public string ActionType => "DeleteBranch";
+        public override string ActionType => "DeleteBranch";
 
         public DeleteBranchAction(string deletingBranch, DeleteBranchMode mode)
         {
@@ -33,33 +32,44 @@ namespace GitAutomation.Orchestration.Actions
             this.mode = mode;
         }
 
-        public JToken Parameters => JToken.FromObject(new Dictionary<string, string>
+        public override JToken Parameters => JToken.FromObject(new Dictionary<string, string>
             {
                 { "deletingBranch", deletingBranch },
                 { "mode", mode.ToString("g") },
             }.ToImmutableDictionary());
 
-        public IObservable<OutputMessage> DeferredOutput => output;
-
-        public IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider)
+        internal override object[] GetExtraParameters()
         {
-            var cli = serviceProvider.GetRequiredService<GitCli>();
-            var settings = serviceProvider.GetRequiredService<IBranchSettings>();
-            var repository = serviceProvider.GetRequiredService<IRepositoryMediator>();
-            var unitOfWorkFactory = serviceProvider.GetRequiredService<IUnitOfWorkFactory>();
-            
-            return Observable.Create<OutputMessage>(async (observer, cancellationToken) =>
-            {
-                var disposable = new CompositeDisposable();
-                var processes = new Subject<IObservable<OutputMessage>>();
-                disposable.Add(Observable.Concat(processes).Subscribe(observer));
-                disposable.Add(processes);
+            return new object[] {
+                deletingBranch,
+                mode
+            };
+        }
 
+        public class Internal : ComplexActionInternal
+        {
+            private readonly GitCli cli;
+            private readonly IBranchSettings settings;
+            private readonly IRepositoryMediator repository;
+            private readonly IUnitOfWorkFactory unitOfWorkFactory;
+            private readonly string deletingBranch;
+            private readonly DeleteBranchMode mode;
+
+            public Internal(GitCli cli, IBranchSettings settings, IRepositoryMediator repository, IUnitOfWorkFactory unitOfWorkFactory, string deletingBranch, DeleteBranchMode mode)
+            {
+                this.cli = cli;
+                this.settings = settings;
+                this.repository = repository;
+                this.unitOfWorkFactory = unitOfWorkFactory;
+                this.deletingBranch = deletingBranch;
+                this.mode = mode;
+            }
+
+            protected override async Task RunProcess()
+            {
                 if (mode == DeleteBranchMode.ActualBranchOnly)
                 {
-                    var deleteBranch = Queueable(cli.DeleteRemote(deletingBranch));
-                    processes.OnNext(deleteBranch);
-                    await deleteBranch;
+                    await AppendProcess(cli.DeleteRemote(deletingBranch)).WaitUntilComplete();
                 }
                 else
                 {
@@ -76,24 +86,12 @@ namespace GitAutomation.Orchestration.Actions
                     {
                         foreach (var branch in details.Branches)
                         {
-                            var deleteBranch = Queueable(cli.DeleteRemote(branch.Name));
-                            processes.OnNext(deleteBranch);
-                            await deleteBranch;
+                            await AppendProcess(cli.DeleteRemote(branch.Name)).WaitUntilComplete();
                             repository.NotifyPushedRemoteBranch(branch.Name);
                         }
                     }
                 }
-
-
-                processes.OnCompleted();
-
-                return () =>
-                {
-                    disposable.Dispose();
-                };
-            }).Multicast(output).RefCount();
+            }
         }
-        
-        private IObservable<OutputMessage> Queueable(IReactiveProcess reactiveProcess) => reactiveProcess.Output.Replay().ConnectFirst();
     }
 }

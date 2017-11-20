@@ -7,6 +7,6 @@ namespace GitAutomation.Orchestration
 {
     public interface IUniqueAction : IRepositoryAction
     {
-        void AbortAs(IObservable<OutputMessage> otherStream);
+        void AbortAs(IObservable<IRepositoryActionEntry> otherStream);
     }
 }

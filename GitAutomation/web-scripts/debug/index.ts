@@ -45,12 +45,7 @@ export const debugPage = (
 
         // display log
         subscription.add(
-          rxData(
-            body.map(fnSelect(`ul[data-locator="status"]`)),
-            getLog.catch(() =>
-              Observable.empty<GitAutomationGQL.IOutputMessage[]>()
-            )
-          )
+          rxData(body.map(fnSelect(`ul[data-locator="status"]`)), getLog)
             .bind(logPresentation)
             .subscribe()
         );

@@ -3,14 +3,15 @@ using System;
 using System.Collections.Immutable;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using GitAutomation.Orchestration;
 
 namespace GitAutomation.Repository
 {
     public interface IRepositoryState
     {
-        IObservable<OutputMessage> DeleteBranch(string branchName, DeleteBranchMode mode);
-        IObservable<OutputMessage> DeleteRepository();
-        IObservable<OutputMessage> CheckForUpdates();
+        IObservable<IRepositoryActionEntry> DeleteBranch(string branchName, DeleteBranchMode mode);
+        IObservable<IRepositoryActionEntry> DeleteRepository();
+        IObservable<IRepositoryActionEntry> CheckForUpdates();
         
         IObservable<ImmutableList<GitRef>> RemoteBranches();
         IObservable<ImmutableList<GitRef>> DetectUpstream(string branchName, bool allowSame);

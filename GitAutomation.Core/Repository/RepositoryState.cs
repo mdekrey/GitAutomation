@@ -46,7 +46,7 @@ namespace GitAutomation.Repository
 
         #region Reset
 
-        public IObservable<OutputMessage> DeleteRepository()
+        public IObservable<IRepositoryActionEntry> DeleteRepository()
         {
             return orchestration.EnqueueAction(new ClearAction());
         }
@@ -60,7 +60,7 @@ namespace GitAutomation.Repository
             Updated?.Invoke(this, EventArgs.Empty);
         }
 
-        public IObservable<OutputMessage> CheckForUpdates()
+        public IObservable<IRepositoryActionEntry> CheckForUpdates()
         {
             return orchestration.EnqueueAction(new UpdateAction()).Finally(OnUpdated);
         }
@@ -84,7 +84,7 @@ namespace GitAutomation.Repository
                             await orchestration.EnqueueAction(new EnsureInitializedAction());
                         }
                         // Because listing remote branches doesn't affect the index, it doesn't need to be an action, but it does need to wait until initialization is ensured.
-                        return cli.GetRemoteBranches().Output;
+                        return cli.GetRemoteBranches().ActiveOutput;
                     })
                     .Select(GitCli.BranchListingToRefs)
             )
@@ -139,7 +139,7 @@ namespace GitAutomation.Repository
                 key: commit1.CompareTo(commit2) < 0
                     ? Tuple.Create(commit1, commit2)
                     : Tuple.Create(commit2, commit1),
-                valueFactory: key => cli.MergeBaseCommits(key.Item1, key.Item2).GetFirstOutput().ToTask()
+                valueFactory: key => cli.MergeBaseCommits(key.Item1, key.Item2).FirstOutputMessage().ToTask()
             );
         }
 
@@ -158,7 +158,7 @@ namespace GitAutomation.Repository
             return MergeBaseBetweenCommits(commitPair.Item1, commitPair.Item2).ToObservable();
         }
 
-        public IObservable<OutputMessage> DeleteBranch(string branchName, DeleteBranchMode mode)
+        public IObservable<IRepositoryActionEntry> DeleteBranch(string branchName, DeleteBranchMode mode)
         {
             return orchestration.EnqueueAction(new DeleteBranchAction(branchName, mode)).Finally(OnUpdated);
         }

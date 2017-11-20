@@ -14,7 +14,7 @@ namespace GitAutomation.Orchestration.Actions
     {
         public override string ActionType => "Update";
 
-        public void AbortAs(IObservable<OutputMessage> otherStream)
+        public void AbortAs(IObservable<IRepositoryActionEntry> otherStream)
         {
             this.Abort(otherStream);
         }

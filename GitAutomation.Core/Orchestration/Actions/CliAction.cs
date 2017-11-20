@@ -13,7 +13,7 @@ namespace GitAutomation.Orchestration.Actions
 {
     abstract class CliAction : IRepositoryAction
     {
-        private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
+        private readonly Subject<IRepositoryActionEntry> output = new Subject<IRepositoryActionEntry>();
 
         public CliAction()
         {
@@ -25,17 +25,17 @@ namespace GitAutomation.Orchestration.Actions
             ImmutableDictionary<string, string>.Empty
         );
 
-        public IObservable<OutputMessage> DeferredOutput => output;
+        public IObservable<IRepositoryActionEntry> ProcessStream => output;
 
-        public virtual IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider)
+        public virtual IObservable<IRepositoryActionEntry> PerformAction(IServiceProvider serviceProvider)
         {
-            return GetCliAction(serviceProvider.GetRequiredService<GitCli>()).Output
+            return Observable.Return(new RepositoryActionReactiveProcessEntry(GetCliAction(serviceProvider.GetRequiredService<GitCli>())))
                 .Multicast(output).ConnectFirst();
         }
 
         protected abstract IReactiveProcess GetCliAction(GitCli gitCli);
 
-        protected void Abort(IObservable<OutputMessage> alternate)
+        protected void Abort(IObservable<IRepositoryActionEntry> alternate)
         {
             alternate.Multicast(output).Connect();
         }

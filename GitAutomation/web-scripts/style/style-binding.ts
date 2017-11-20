@@ -2,7 +2,7 @@ import { Observable } from "../utils/rxjs";
 import { Selection } from "d3-selection";
 
 type StylableElement = HTMLElement | SVGElement;
-type StylableSelection = Selection<StylableElement, {}, null, undefined>;
+type StylableSelection = Selection<StylableElement, any, any, any>;
 
 export const applyStyles = (styles: Record<string, string>) => <
   T extends StylableSelection

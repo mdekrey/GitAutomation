@@ -18,13 +18,12 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 namespace GitAutomation.Orchestration.Actions
 {
-    class ConsolidateMergedAction : IRepositoryAction
+    class ConsolidateMergedAction : ComplexAction<ConsolidateMergedAction.ConsolidateMergedActionProcess>
     {
-        private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
         private readonly ImmutableHashSet<string> originalBranches;
         private readonly string newBaseBranch;
 
-        public string ActionType => "ConsolidateMerged";
+        public override string ActionType => "ConsolidateMerged";
 
         public ConsolidateMergedAction(IEnumerable<string> originalBranches, string newBaseBranch)
         {
@@ -32,24 +31,24 @@ namespace GitAutomation.Orchestration.Actions
             this.newBaseBranch = newBaseBranch;
         }
 
-        public JToken Parameters => JToken.FromObject(new
+        public override JToken Parameters => JToken.FromObject(new
         {
             originalBranches = originalBranches.ToArray(),
             newBaseBranch
         });
 
-        public IObservable<OutputMessage> DeferredOutput => output;
         public IEnumerable<string> OriginalBranches => originalBranches;
         public string NewBaseBranch => newBaseBranch;
 
-        public IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider)
+        internal override object[] GetExtraParameters()
         {
-            return ActivatorUtilities.CreateInstance<ConsolidateMergedActionProcess>(serviceProvider, originalBranches, newBaseBranch).Process().Multicast(output).RefCount();
+            return new object[] {
+                originalBranches,
+                newBaseBranch
+            };
         }
-
-        private IObservable<OutputMessage> Queueable(IReactiveProcess reactiveProcess) => reactiveProcess.Output.Replay().ConnectFirst();
-
-        private class ConsolidateMergedActionProcess : ComplexAction
+        
+        public class ConsolidateMergedActionProcess : ComplexActionInternal
         {
             private readonly GitCli cli;
             private readonly IRepositoryMediator repository;
@@ -95,9 +94,9 @@ namespace GitAutomation.Orchestration.Actions
                 }
 
                 await (from branch in branchesToRemove.ToObservable()
-                      from actualBranch in branch.Branches
-                      from entry in AppendProcess(Queueable(cli.DeleteRemote(actualBranch.Name)))
-                      select entry).StartWith(new OutputMessage());
+                       from actualBranch in branch.Branches
+                       from entry in AppendProcess(cli.DeleteRemote(actualBranch.Name)).WaitUntilComplete().ContinueWith<int>((t) => 0)
+                       select entry);
 
                 repository.CheckForUpdates();
             }
@@ -117,8 +116,6 @@ namespace GitAutomation.Orchestration.Actions
                     .ToArray()
                     .Select(items => items.ToImmutableList());
             }
-
-            private IObservable<OutputMessage> Queueable(IReactiveProcess reactiveProcess) => reactiveProcess.Output.Replay().ConnectFirst();
         }
     }
 }

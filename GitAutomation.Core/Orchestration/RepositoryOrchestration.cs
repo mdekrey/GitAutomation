@@ -26,8 +26,8 @@ namespace GitAutomation.Orchestration
         const int logLength = 300;
 
         private readonly IObservable<ImmutableList<IRepositoryAction>> repositoryActions;
-        private readonly IObservable<OutputMessage> repositoryActionProcessor;
-        private readonly IObservable<ImmutableList<OutputMessage>> repositoryActionProcessorLog;
+        private readonly IObservable<IRepositoryActionEntry> repositoryActionProcessor;
+        private readonly IObservable<ImmutableList<IRepositoryActionEntry>> repositoryActionProcessorLog;
         private readonly IObserver<QueueAlteration> queueAlterations;
 
         public RepositoryOrchestration(IServiceProvider serviceProvider)
@@ -46,7 +46,7 @@ namespace GitAutomation.Orchestration
                             if (existingTarget != null)
                             {
                                 // TODO - should probably notify that the output is deferred. 
-                                uniqueAction.AbortAs(existingTarget.DeferredOutput);
+                                uniqueAction.AbortAs(existingTarget.ProcessStream);
                                 return list;
                             }
                         }
@@ -64,11 +64,11 @@ namespace GitAutomation.Orchestration
 
             this.repositoryActionProcessor = repositoryActions.Select(action => action.FirstOrDefault()).DistinctUntilChanged()
                 .Select(action => action == null
-                    ? Observable.Empty<OutputMessage>()
-                    : action.PerformAction(serviceProvider).Catch<OutputMessage, Exception>(ex =>
+                    ? Observable.Empty<IRepositoryActionEntry>()
+                    : action.PerformAction(serviceProvider).Catch<IRepositoryActionEntry, Exception>(ex =>
                     {
                         // TODO - better logging
-                        return Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"Action {action.ActionType} encountered an exception: {ex.Message}" });
+                        return Observable.Return(new StaticRepositoryActionEntry($"Action {action.ActionType} encountered an exception: {ex.Message}\n\n{ex.ToString()}", isError: true));
                     }).Finally(() =>
                     {
                         this.queueAlterations.OnNext(new QueueAlteration { Kind = QueueAlterationKind.Remove, Target = action });
@@ -77,7 +77,7 @@ namespace GitAutomation.Orchestration
 
             var temp = repositoryActionProcessor
                 .Scan(
-                    ImmutableList<OutputMessage>.Empty,
+                    ImmutableList<IRepositoryActionEntry>.Empty,
                     (list, next) =>
                         (
                             list.Count >= logLength
@@ -89,21 +89,21 @@ namespace GitAutomation.Orchestration
             this.repositoryActionProcessorLog = temp;
         }
 
-        public IObservable<OutputMessage> ProcessActions()
+        public IObservable<IRepositoryActionEntry> ProcessActions()
         {
             return this.repositoryActionProcessor;
         }
-        public IObservable<ImmutableList<OutputMessage>> ProcessActionsLog => this.repositoryActionProcessorLog;
+        public IObservable<ImmutableList<IRepositoryActionEntry>> ProcessActionsLog => this.repositoryActionProcessorLog;
         public IObservable<ImmutableList<IRepositoryAction>> ActionQueue => this.repositoryActions;
 
-        public IObservable<OutputMessage> EnqueueAction(IRepositoryAction resetAction, bool skipDuplicateCheck)
+        public IObservable<IRepositoryActionEntry> EnqueueAction(IRepositoryAction resetAction, bool skipDuplicateCheck)
         {
             this.queueAlterations.OnNext(new QueueAlteration
             {
                 Kind = skipDuplicateCheck ? QueueAlterationKind.AppendNoDuplicateCheck : QueueAlterationKind.Append,
                 Target = resetAction
             });
-            return resetAction.DeferredOutput;
+            return resetAction.ProcessStream;
         }
     }
 }

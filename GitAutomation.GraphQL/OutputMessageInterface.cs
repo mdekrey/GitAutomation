@@ -10,7 +10,6 @@ namespace GitAutomation.GraphQL
             Field<StringGraphType>()
                 .Name(nameof(Processes.OutputMessage.Message))
                 .Resolve(a => a.Source.Message);
-            Field(a => a.ExitCode);
             Field<NonNullGraphType<OutputChannelEnumType>>()
                 .Name(nameof(Processes.OutputMessage.Channel))
                 .Resolve(a => a.Source.Channel);

@@ -10,33 +10,36 @@ using System.IO;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace GitAutomation.Orchestration.Actions
 {
-    class ClearAction : IRepositoryAction
+    class ClearAction : ComplexAction<ClearAction.Internal>
     {
-        private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
+        
+        public override string ActionType => "Clear";
 
-        public string ActionType => "Clear";
-
-        public JToken Parameters => JToken.FromObject(
+        public override JToken Parameters => JToken.FromObject(
             ImmutableDictionary<string, string>.Empty
         );
-
-        public IObservable<OutputMessage> DeferredOutput => output;
-
-        public IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider)
+        
+        public class Internal : ComplexActionInternal
         {
-            var checkoutPath = serviceProvider.GetRequiredService<IOptions<GitRepositoryOptions>>()
-                .Value.CheckoutPath;
-            if (Directory.Exists(checkoutPath))
+            private readonly string checkoutPath;
+
+            public Internal(IOptions<GitRepositoryOptions> options)
             {
-                // starting from an old system? maybe... but I don't want to handle that yet.
-                Directory.Delete(checkoutPath, true);
+                this.checkoutPath = options.Value.CheckoutPath;
             }
-            Observable.Empty<OutputMessage>()
-                .Multicast(output).Connect();
-            return output;
+            
+            protected override Task RunProcess()
+            {
+                if (Directory.Exists(checkoutPath))
+                {
+                    Directory.Delete(checkoutPath, true);
+                }
+                return Task.CompletedTask;
+            }
         }
     }
 }

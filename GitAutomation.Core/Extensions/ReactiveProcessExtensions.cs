@@ -9,7 +9,7 @@ namespace GitAutomation.Processes
     {
         public static IObservable<string> GetFirstOutput(this IReactiveProcess target)
         {
-            return (from o in target.Output
+            return (from o in target.ActiveOutput
                     where o.Channel == OutputChannel.Out
                     select o.Message).FirstOrDefaultAsync();
         }

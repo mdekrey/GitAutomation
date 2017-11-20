@@ -37,11 +37,6 @@ namespace GitAutomation.Orchestration
                 orchestration.ProcessActions().Subscribe(
                     onNext: _ =>
                     {
-                        try
-                        {
-                            Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(_));
-                        }
-                        catch { }
                     },
                     onCompleted: () =>
                     {

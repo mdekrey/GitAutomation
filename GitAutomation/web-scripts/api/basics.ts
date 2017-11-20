@@ -301,9 +301,20 @@ export const getLog = forceRefreshLog
         query: gql`
           {
             log {
-              message
-              exitCode
-              channel
+              __typename
+              ... on StaticRepositoryActionEntry {
+                isError
+                message
+              }
+              ... on ProcessRepositoryActionEntry {
+                startInfo
+                output {
+                  message
+                  channel
+                }
+                state
+                exitCode
+              }
             }
           }
         `

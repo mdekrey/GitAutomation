@@ -21,13 +21,11 @@ namespace GitAutomation.Processes
         {
             var target = factory.BuildProcess(new System.Diagnostics.ProcessStartInfo("cmd.exe", "/c \"echo 1\""));
 
-            var result = await target.Output.ToArray();
-            Assert.AreEqual(3, result.Length);
-            Assert.AreEqual(OutputChannel.StartInfo, result[0].Channel);
-            Assert.AreEqual(OutputChannel.Out, result[1].Channel);
-            Assert.AreEqual("1", result[1].Message);
-            Assert.AreEqual(OutputChannel.ExitCode, result[2].Channel);
-            Assert.AreEqual(0, result[2].ExitCode);
+            var result = await target.ActiveOutput.ToArray();
+            Assert.AreEqual(1, result.Length);
+            Assert.AreEqual(OutputChannel.Out, result[0].Channel);
+            Assert.AreEqual("1", result[0].Message);
+            Assert.AreEqual(0, target.ExitCode);
         }
 
         [TestMethod]
@@ -35,8 +33,8 @@ namespace GitAutomation.Processes
         {
             var target = factory.BuildProcess(new System.Diagnostics.ProcessStartInfo("cmd.exe", "/c \"echo 1\""));
 
-            var firstResult = await target.Output.ToArray();
-            var result = await target.Output.ToArray();
+            var firstResult = await target.ActiveOutput.ToArray();
+            var result = await target.ActiveOutput.ToArray();
             Assert.AreEqual(0, result.Length);
         }
     }

@@ -15,22 +15,22 @@ namespace GitAutomation.Orchestration
             this.orchestration = orchestration;
         }
 
-        public IObservable<OutputMessage> CheckDownstreamMerges(string downstreamBranch)
+        public IObservable<IRepositoryActionEntry> CheckDownstreamMerges(string downstreamBranch)
         {
             return orchestration.EnqueueAction(new MergeDownstreamAction(downstreamBranch: downstreamBranch));
         }
 
-        public IObservable<OutputMessage> ReleaseToServiceLine(string releaseCandidateBranch, string serviceLineBranch, string tagName, bool autoConsolidate)
+        public IObservable<IRepositoryActionEntry> ReleaseToServiceLine(string releaseCandidateBranch, string serviceLineBranch, string tagName, bool autoConsolidate)
         {
             return orchestration.EnqueueAction(new ReleaseToServiceLineAction(releaseCandidateBranch, serviceLineBranch, tagName, autoConsolidate));
         }
 
-        public IObservable<OutputMessage> ConsolidateMerged(IEnumerable<string> originalBranches, string newBaseBranch)
+        public IObservable<IRepositoryActionEntry> ConsolidateMerged(IEnumerable<string> originalBranches, string newBaseBranch)
         {
             return orchestration.EnqueueAction(new ConsolidateMergedAction(originalBranches, newBaseBranch));
         }
 
-        public IObservable<OutputMessage> Update()
+        public IObservable<IRepositoryActionEntry> Update()
         {
             return orchestration.EnqueueAction(new UpdateAction());
         }

@@ -10,42 +10,45 @@ using Microsoft.Extensions.Options;
 using System.IO;
 using GitAutomation.Repository;
 using Newtonsoft.Json.Linq;
+using System.Threading.Tasks;
 
 namespace GitAutomation.Orchestration.Actions
 {
-    class EnsureInitializedAction : IRepositoryAction
+    class EnsureInitializedAction : ComplexAction<EnsureInitializedAction.Internal>
     {
-        public string ActionType => "EnsureInitialized";
+        public override string ActionType => "EnsureInitialized";
 
-        private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
+        public override JToken Parameters => JToken.FromObject(ImmutableDictionary<string, string>.Empty);
 
-        public JToken Parameters => JToken.FromObject(ImmutableDictionary<string, string>.Empty);
-
-        public IObservable<OutputMessage> DeferredOutput => output;
-
-        public IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider)
+        public class Internal : ComplexActionInternal
         {
-            var cli = serviceProvider.GetRequiredService<GitCli>();
-            var gitOptions = serviceProvider.GetRequiredService<IOptions<GitRepositoryOptions>>().Value;
+            private readonly GitCli cli;
+            private readonly GitRepositoryOptions gitOptions;
 
-            if (cli.IsGitInitialized)
+            public Internal(GitCli cli, IOptions<GitRepositoryOptions> options)
             {
-                return Observable.Empty<OutputMessage>().Multicast(output).RefCount();
+                this.cli = cli;
+                this.gitOptions = options.Value;
             }
 
-            var checkoutPath = gitOptions.CheckoutPath;
-
-            if (!Directory.Exists(checkoutPath))
+            protected override async Task RunProcess()
             {
-                Directory.CreateDirectory(checkoutPath);
-            }
+                if (cli.IsGitInitialized)
+                {
+                    return;
+                }
 
-            return Queueable(cli.Clone())
-                .Concat(Queueable(cli.Config("user.name", gitOptions.UserName)))
-                .Concat(Queueable(cli.Config("user.email", gitOptions.UserEmail))).Multicast(output).RefCount();
+                var checkoutPath = gitOptions.CheckoutPath;
+
+                if (!Directory.Exists(checkoutPath))
+                {
+                    Directory.CreateDirectory(checkoutPath);
+                }
+
+                await AppendProcess(cli.Clone()).WaitUntilComplete();
+                await AppendProcess(cli.Config("user.name", gitOptions.UserName)).WaitUntilComplete();
+                await AppendProcess(cli.Config("user.email", gitOptions.UserEmail)).WaitUntilComplete();
+            }
         }
-
-        private IObservable<OutputMessage> Queueable(IReactiveProcess reactiveProcess) => reactiveProcess.Output.Replay().ConnectFirst();
-
     }
 }

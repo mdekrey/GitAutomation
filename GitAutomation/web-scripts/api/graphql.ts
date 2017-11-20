@@ -2,6 +2,11 @@ import { Observable, Observer } from "../utils/rxjs";
 import { ApolloClient, HttpLink, InMemoryCache } from "apollo-client-preset";
 import { ApolloQueryResult, WatchQueryOptions } from "apollo-client";
 import { DocumentNode } from "graphql";
+import { IntrospectionFragmentMatcher } from "apollo-cache-inmemory";
+
+const fm = new IntrospectionFragmentMatcher({
+  introspectionQueryResultData: require("../../generated/graphql.json").data
+});
 
 const client = new ApolloClient({
   link: new HttpLink({
@@ -10,7 +15,9 @@ const client = new ApolloClient({
       credentials: "same-origin"
     }
   }),
-  cache: new InMemoryCache().restore({}),
+  cache: new InMemoryCache({
+    fragmentMatcher: fm
+  }).restore({}),
   defaultOptions: {
     watchQuery: {
       fetchPolicy: "cache-and-network"

@@ -21,7 +21,7 @@ using System.Threading.Tasks;
 
 namespace GitAutomation.Orchestration.Actions
 {
-    class MergeDownstreamAction : IRepositoryAction, IUniqueAction
+    class MergeDownstreamAction : ComplexUniqueAction<MergeDownstreamAction.MergeDownstreamActionProcess>
     {
         private enum MergeConflictResolution
         {
@@ -43,10 +43,9 @@ namespace GitAutomation.Orchestration.Actions
             public string BranchName;
         }
 
-        private readonly Subject<OutputMessage> output = new Subject<OutputMessage>();
         private readonly string downstreamBranch;
 
-        public string ActionType => "MergeDownstream";
+        public override string ActionType => "MergeDownstream";
         public string DownstreamBranch => downstreamBranch;
 
         public MergeDownstreamAction(string downstreamBranch)
@@ -54,25 +53,18 @@ namespace GitAutomation.Orchestration.Actions
             this.downstreamBranch = downstreamBranch;
         }
 
-        public JToken Parameters => JToken.FromObject(new Dictionary<string, string>
+        public override JToken Parameters => JToken.FromObject(new Dictionary<string, string>
             {
                 { "downstreamBranch", downstreamBranch },
             }.ToImmutableDictionary());
 
-        public IObservable<OutputMessage> DeferredOutput => output;
-
-        public IObservable<OutputMessage> PerformAction(IServiceProvider serviceProvider)
+        internal override object[] GetExtraParameters()
         {
-            return ActivatorUtilities.CreateInstance<MergeDownstreamActionProcess>(serviceProvider, downstreamBranch).Process().Multicast(output).RefCount();
+            return new object[] { downstreamBranch };
         }
+        
 
-        public void AbortAs(IObservable<OutputMessage> otherStream)
-        {
-            otherStream.Multicast(output).Connect();
-        }
-
-
-        private class MergeDownstreamActionProcess : ComplexAction
+        public class MergeDownstreamActionProcess : ComplexActionInternal
         {
             private readonly GitCli cli;
             private readonly IGitServiceApi gitServiceApi;
@@ -176,14 +168,14 @@ namespace GitAutomation.Orchestration.Actions
 
                 if (needsCreate)
                 {
-                    await AppendProcess(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{Details.GroupName} needs to be created from {string.Join(",", neededUpstreamMerges.Select(up => up.GroupName))}" }));
+                    await AppendMessage($"{Details.GroupName} needs to be created from {string.Join(",", neededUpstreamMerges.Select(up => up.GroupName))}");
                     await CreateDownstreamBranch(upstreamBranches);
                 }
                 else if (neededUpstreamMerges.Any())
                 {
-                    await AppendProcess(Observable.Return(new OutputMessage { Channel = OutputChannel.Out, Message = $"{LatestBranchName} needs merges from {string.Join(",", neededUpstreamMerges.Select(up => up.GroupName))}" }));
+                    await AppendMessage($"{LatestBranchName} needs merges from {string.Join(",", neededUpstreamMerges.Select(up => up.GroupName))}");
 
-                    await AppendProcess(Queueable(cli.CheckoutRemote(LatestBranchName)));
+                    await AppendProcess(cli.CheckoutRemote(LatestBranchName));
 
                     var shouldPush = false;
                     foreach (var upstreamBranch in neededUpstreamMerges)
@@ -192,7 +184,7 @@ namespace GitAutomation.Orchestration.Actions
                         shouldPush = shouldPush || !result.HadConflicts;
                         if (result.HadConflicts)
                         {
-                            await AppendProcess(Queueable(cli.Checkout(LatestBranchName)));
+                            await AppendProcess(cli.Checkout(LatestBranchName));
 
                         }
                     }
@@ -248,16 +240,16 @@ namespace GitAutomation.Orchestration.Actions
                 // Basic process; should have checks on whether or not to create the branch
                 var initialBranch = validUpstream[0];
 
-                var checkout = Queueable(cli.CheckoutRemote(initialBranch.BranchName));
-                var checkoutError = await AppendProcess(checkout).FirstErrorMessage();
-                await checkout;
+                var checkout = cli.CheckoutRemote(initialBranch.BranchName);
+                var checkoutError = await checkout.FirstErrorMessage();
+                await AppendProcess(checkout);
                 if (!string.IsNullOrEmpty(checkoutError) && checkoutError.StartsWith("fatal"))
                 {
-                    await AppendProcess(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} unable to be branched from {initialBranch.BranchName}; aborting" }));
+                    await AppendMessage ( $"{downstreamBranch} unable to be branched from {initialBranch.BranchName}; aborting" );
                     return;
                 }
 
-                await AppendProcess(Queueable(cli.CheckoutNew(downstreamBranch)));
+                await AppendProcess(cli.CheckoutNew(downstreamBranch));
 
                 var shouldCancel = false;
                 var shouldRetry = false;
@@ -279,8 +271,9 @@ namespace GitAutomation.Orchestration.Actions
                     return;
                 }
 
-                var pushProcess = AppendProcess(Queueable(cli.Push(initialBranch.BranchName, downstreamBranch)));
-                await (from o in pushProcess where o.Channel == OutputChannel.ExitCode select o.ExitCode).FirstAsync();
+                var pushProcess = cli.Push(initialBranch.BranchName, downstreamBranch);
+                await pushProcess.ExitCode().FirstAsync();
+                await AppendProcess(pushProcess);
 
                 if (LatestBranchName != null && LatestBranchName != downstreamBranch)
                 {
@@ -292,8 +285,9 @@ namespace GitAutomation.Orchestration.Actions
 
             private async Task PushBranch(string downstreamBranch)
             {
-                var pushProcess = AppendProcess(Queueable(cli.Push(downstreamBranch)));
-                var pushExitCode = await (from o in pushProcess where o.Channel == OutputChannel.ExitCode select o.ExitCode).FirstAsync();
+                var pushProcess = cli.Push(downstreamBranch);
+                var pushExitCode = await pushProcess.ExitCode();
+                await AppendProcess(pushProcess);
                 if (pushExitCode == 0)
                 {
                     repository.NotifyPushedRemoteBranch(downstreamBranch);
@@ -312,7 +306,7 @@ namespace GitAutomation.Orchestration.Actions
                 }
 
                 // conflict!
-                await AppendProcess(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} conflicts with {upstreamBranch.GroupName}" }));
+                await AppendMessage($"{downstreamBranch} conflicts with {upstreamBranch.GroupName}", isError: true);
 
                 
 
@@ -362,7 +356,7 @@ namespace GitAutomation.Orchestration.Actions
                 }
                 else
                 {
-                    await AppendProcess(Observable.Return(new OutputMessage { Channel = OutputChannel.Error, Message = $"{downstreamBranch} had integration branches added." }));
+                    await AppendMessage ($"{downstreamBranch} had integration branches added.", isError: true);
                     return new MergeStatus {
                         HadConflicts = true,
                         Resolution = createdIntegrationBranch.Value.AddedNewIntegrationBranches ? MergeConflictResolution.AddIntegrationBranch : MergeConflictResolution.PendingIntegrationBranch
@@ -372,15 +366,15 @@ namespace GitAutomation.Orchestration.Actions
 
             private async Task CleanIndex()
             {
-                await AppendProcess(Queueable(cli.Reset()));
+                await AppendProcess(cli.Reset());
 
-                await AppendProcess(Queueable(cli.Clean()));
+                await AppendProcess(cli.Clean());
             }
 
 
             private async Task<bool> DoMergeWithCheckout(string upstreamBranch, string targetBranch, string message)
             {
-                await AppendProcess(Queueable(cli.CheckoutRemote(targetBranch)));
+                await AppendProcess(cli.CheckoutRemote(targetBranch));
 
                 return await DoMerge(upstreamBranch, targetBranch, message);
             }
@@ -388,21 +382,16 @@ namespace GitAutomation.Orchestration.Actions
 
             private async Task<bool> DoMerge(string upstreamBranch, string targetBranch, string message)
             {
-                var timestamps = await (from timestampMessage in cli.GetCommitTimestamps(cli.RemoteBranch(upstreamBranch), targetBranch).Output
+                var timestamps = (from timestampMessage in (await AppendProcess(cli.GetCommitTimestamps(cli.RemoteBranch(upstreamBranch), targetBranch))).Process.Output
                                         where timestampMessage.Channel == OutputChannel.Out
                                         select timestampMessage.Message).ToArray();
                 var timestamp = timestamps.Max();
 
-                var merge = Queueable(cli.MergeRemote(upstreamBranch, message, commitDate: timestamp));
-                var mergeProcess = AppendProcess(merge);
-                var mergeExitCode = await (from o in mergeProcess where o.Channel == OutputChannel.ExitCode select o.ExitCode).FirstAsync();
-                await mergeProcess;
+                var mergeExitCode = (await AppendProcess(cli.MergeRemote(upstreamBranch, message, commitDate: timestamp))).Process.ExitCode;
                 var isSuccessfulMerge = mergeExitCode == 0;
                 await CleanIndex();
                 return isSuccessfulMerge;
             }
-
-            private IObservable<OutputMessage> Queueable(IReactiveProcess reactiveProcess) => reactiveProcess.Output.Replay().ConnectFirst();
         }
     }
 }

@@ -34,7 +34,7 @@ namespace GitAutomation.GraphQL
                 .Name("orchestrationQueue")
                 .Resolve(this, nameof(OrchestrationQueue));
 
-            Field<NonNullGraphType<ListGraphType<OutputMessageInterface>>>()
+            Field<NonNullGraphType<ListGraphType<RepositoryActionEntryInterface>>>()
                 .Name("log")
                 .Resolve(this, nameof(OrchestrationLog));
 
@@ -89,7 +89,7 @@ namespace GitAutomation.GraphQL
             return await orchestration.ActionQueue.FirstAsync();
         }
 
-        async Task<ImmutableList<OutputMessage>> OrchestrationLog([FromServices] IRepositoryOrchestration orchestration, [FromServices] IAuthorizationService authorizationService, [FromServices] IHttpContextAccessor httpContext)
+        async Task<ImmutableList<IRepositoryActionEntry>> OrchestrationLog([FromServices] IRepositoryOrchestration orchestration, [FromServices] IAuthorizationService authorizationService, [FromServices] IHttpContextAccessor httpContext)
         {
             await Authorize(authorizationService, httpContext, Auth.PolicyNames.Read);
             return await orchestration.ProcessActionsLog.FirstAsync();
