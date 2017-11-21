@@ -94,7 +94,7 @@ export interface BindResult<TDatum, PElement extends BaseType> {
 export function rxData<TDatum, PElement extends BaseType>(
   target: Observable<Selection<PElement, any, any, any>>,
   data: Observable<TDatum[]>,
-  key?: (data: TDatum) => any
+  key?: (data: TDatum, index: number) => any
 ): BindResult<TDatum, PElement> {
   return {
     bind: <GElement extends BaseType>({

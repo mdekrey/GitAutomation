@@ -37,8 +37,9 @@ export const logPresentation: IRxBindProps<
   HTMLUListElement,
   {}
 > = {
-  onCreate: target => target.append<HTMLLIElement>("li"),
-  selector: "li",
+  onCreate: target =>
+    target.append<HTMLLIElement>("li").attr("data-locator", "log-entry"),
+  selector: `li[data-locator="log-entry"]`,
   onEach: selection => {
     filterType(
       selection,
@@ -65,8 +66,8 @@ export const logPresentation: IRxBindProps<
       target: processEntries
         .select(`[data-locator="output"]`)
         .selectAll(`li`)
-        .data(data => data.output),
-      onCreate: elem => elem.append<HTMLLIElement>("li"),
+        .data(data => data.output, (_, index) => `${index}`),
+      onCreate: elem => elem.append("li"),
       onEach: li =>
         li
           .style(

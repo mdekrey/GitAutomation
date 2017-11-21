@@ -45,7 +45,11 @@ export const debugPage = (
 
         // display log
         subscription.add(
-          rxData(body.map(fnSelect(`ul[data-locator="status"]`)), getLog)
+          rxData(
+            body.map(fnSelect(`ul[data-locator="status"]`)),
+            getLog,
+            (_, index) => index
+          )
             .bind(logPresentation)
             .subscribe()
         );
