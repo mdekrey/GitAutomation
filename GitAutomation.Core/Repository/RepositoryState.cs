@@ -81,7 +81,7 @@ namespace GitAutomation.Repository
                     {
                         if (!cli.IsGitInitialized)
                         {
-                            await orchestration.EnqueueAction(new EnsureInitializedAction());
+                            await orchestration.EnqueueAction(new EnsureInitializedAction()).DefaultIfEmpty();
                         }
                         // Because listing remote branches doesn't affect the index, it doesn't need to be an action, but it does need to wait until initialization is ensured.
                         return cli.GetRemoteBranches().ActiveOutput;
