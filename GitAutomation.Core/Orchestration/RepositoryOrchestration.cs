@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Reactive.Threading.Tasks;
 using System.Text;
 
 namespace GitAutomation.Orchestration
@@ -76,6 +77,7 @@ namespace GitAutomation.Orchestration
                 .Switch().Publish().RefCount();
 
             var temp = repositoryActionProcessor
+                .Do(entry => entry.WaitUntilComplete().ToObservable().Subscribe())
                 .Scan(
                     ImmutableList<IRepositoryActionEntry>.Empty,
                     (list, next) =>
