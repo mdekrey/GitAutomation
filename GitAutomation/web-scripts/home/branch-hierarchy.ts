@@ -52,40 +52,34 @@ const xOffset = 40;
 
 /** Centers the graph vertically. Code adapted from `forceCenter`, which centers
  * horizontally and vertically */
-function centerY(y) {
-  let nodes;
+function centerY(y: number = 0) {
+  interface Force {
+    (): void;
+    y(newY: number): this;
+    y(): number;
+    initialize: (newNodes: SimulationNodeDatum[]) => void;
+  }
+  let nodes: SimulationNodeDatum[];
 
-  if (y == null) y = 0;
-
-  const force: (() => void) & {
-    y?: ((newY: number) => typeof force) | (() => number);
-    initialize?: (newNodes) => void;
-  } = function() {
+  const force: Partial<Force> & (() => void) = function() {
     let i,
       n = nodes.length,
-      node,
       sy = 0;
 
     for (i = 0; i < n; ++i) {
-      node = nodes[i];
-      sy += node.y;
+      sy += nodes[i].y!;
     }
 
-    for (sy = sy / n - y, i = 0; i < n; ++i) {
-      node = nodes[i];
-      node.y -= sy;
+    sy = sy / n - y;
+    for (i = 0; i < n; ++i) {
+      nodes[i].y! -= sy;
     }
   };
+  force.initialize = (_: NodeDatum[]) => (nodes = _);
+  force.y = ((_?: number) =>
+    _ !== undefined ? ((y = +_), force) : y) as Force["y"];
 
-  force.initialize = function(_) {
-    nodes = _;
-  };
-
-  force.y = function(_) {
-    return arguments.length ? ((y = +_), force) : y;
-  };
-
-  return force;
+  return force as Force;
 }
 
 export function branchHierarchy({
