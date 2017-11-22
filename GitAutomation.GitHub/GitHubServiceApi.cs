@@ -288,7 +288,7 @@ query($owner: String!, $repository: String!, $id: Int!) {
             }
 
             var requests = string.Join("\n    ",
-                from sha in commitShas
+                from sha in commitShas.Distinct()
                 select $"_{sha}: object(oid: \"{sha}\") {{ ...commitStatus }}"
             );
 
@@ -317,7 +317,7 @@ fragment commitStatus on Commit {
                 repository
             }).ConfigureAwait(false);
 
-            var result = (from sha in commitShas
+            var result = (from sha in commitShas.Distinct()
                           select new
                           {
                               sha,

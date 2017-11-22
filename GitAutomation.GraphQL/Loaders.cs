@@ -42,8 +42,8 @@ namespace GitAutomation.GraphQL
             logger.LogInformation("Enqueue load branch group {0}", name);
             return loadContext.Factory.GetOrCreateLoader<string, BranchGroup>("GetBranchGroup", async keys =>
             {
-                logger.LogInformation("Loading {0} branch groups", keys.Count());
-                var result = await branchSettings.GetBranchGroups(keys.ToArray());
+                logger.LogInformation("Loading {0} branch groups", keys.Distinct().Count());
+                var result = await branchSettings.GetBranchGroups(keys.Distinct().ToArray());
                 return result.ToDictionary(e => e.Key, e => e.Value);
             }).LoadAsync(name);
         }
@@ -93,9 +93,9 @@ namespace GitAutomation.GraphQL
             logger.LogInformation("Enqueue load downstream branches of {0}", name);
             return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetDownstreamBranchGroups", async keys =>
             {
-                logger.LogInformation("Loading {0} branch group downstream", keys.Count());
-                var result = await branchSettings.GetDownstreamBranchGroups(keys.ToArray());
-                return keys.ToDictionary(k => k, key => result.ContainsKey(key) ? result[key] : ImmutableList<string>.Empty);
+                logger.LogInformation("Loading {0} branch group downstream", keys.Distinct().Count());
+                var result = await branchSettings.GetDownstreamBranchGroups(keys.Distinct().ToArray());
+                return keys.Distinct().ToDictionary(k => k, key => result.ContainsKey(key) ? result[key] : ImmutableList<string>.Empty);
             }).LoadAsync(name);
         }
 
@@ -104,9 +104,9 @@ namespace GitAutomation.GraphQL
             logger.LogInformation("Enqueue load upstream branches of {0}", name);
             return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetUpstreamBranchGroups", async keys =>
             {
-                logger.LogInformation("Loading {0} branch group upstream", keys.Count());
-                var result = await branchSettings.GetUpstreamBranchGroups(keys.ToArray());
-                return keys.ToDictionary(k => k, key => result.ContainsKey(key) ? result[key] : ImmutableList<string>.Empty);
+                logger.LogInformation("Loading {0} branch group upstream", keys.Distinct().Count());
+                var result = await branchSettings.GetUpstreamBranchGroups(keys.Distinct().ToArray());
+                return keys.Distinct().ToDictionary(k => k, key => result.ContainsKey(key) ? result[key] : ImmutableList<string>.Empty);
             }).LoadAsync(name);
         }
 
@@ -115,9 +115,9 @@ namespace GitAutomation.GraphQL
             logger.LogInformation("Load commit status of {0}", commitSha);
             return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<CommitStatus>>("GetUpstreamBranchGroups", async keys =>
             {
-                logger.LogInformation("Loading {0} branch group upstream", keys.Count());
-                var result = await gitService.GetCommitStatuses(keys.ToImmutableList());
-                return keys.ToDictionary(k => k, key => result.ContainsKey(key) ? result[key] : ImmutableList<CommitStatus>.Empty);
+                logger.LogInformation("Loading {0} branch group upstream", keys.Distinct().Count());
+                var result = await gitService.GetCommitStatuses(keys.Distinct().ToImmutableList());
+                return keys.Distinct().ToDictionary(k => k, key => result.ContainsKey(key) ? result[key] : ImmutableList<CommitStatus>.Empty);
             }).LoadAsync(commitSha);
         }
 
@@ -157,8 +157,8 @@ namespace GitAutomation.GraphQL
         {
             return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetUsersByRole", async keys =>
             {
-                var result = await permissionAccessor.GetUsersByRole(keys.ToArray());
-                return keys.ToDictionary(e => e, e => result.ContainsKey(e) ? result[e] : ImmutableList<string>.Empty);
+                var result = await permissionAccessor.GetUsersByRole(keys.Distinct().ToArray());
+                return keys.Distinct().ToDictionary(e => e, e => result.ContainsKey(e) ? result[e] : ImmutableList<string>.Empty);
             }).LoadAsync(role);
         }
 
@@ -171,8 +171,8 @@ namespace GitAutomation.GraphQL
         {
             return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<string>>("GetRolesByUser", async keys =>
             {
-                var result = await permissionAccessor.GetRolesByUser(keys.ToArray());
-                return keys.ToDictionary(k => k, key => result.ContainsKey(key) ? result[key] : ImmutableList<string>.Empty);
+                var result = await permissionAccessor.GetRolesByUser(keys.Distinct().ToArray());
+                return keys.Distinct().ToDictionary(k => k, key => result.ContainsKey(key) ? result[key] : ImmutableList<string>.Empty);
             }).LoadAsync(username);
         }
 
