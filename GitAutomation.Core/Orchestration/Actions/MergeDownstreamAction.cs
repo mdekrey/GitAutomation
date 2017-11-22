@@ -276,7 +276,8 @@ namespace GitAutomation.Orchestration.Actions
                     return;
                 }
 
-                var pushProcess = cli.Push(initialBranch.BranchName, downstreamBranch);
+                // Explicitly push the commit _before_ the initial branch, allowing us to migrate PRs.
+                var pushProcess = cli.Push(initialBranch.BranchName + "^1", "refs/heads/" + downstreamBranch);
                 await pushProcess.ExitCode().FirstAsync();
                 await AppendProcess(pushProcess);
 
