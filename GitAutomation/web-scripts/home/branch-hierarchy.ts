@@ -314,7 +314,8 @@ export function branchHierarchy({
               .attr(
                 "transform",
                 node =>
-                  `translate(${(node.x || 0).toFixed(6)}, ${(node.y || 0
+                  `translate(${(node.x || 0).toFixed(6)}, ${(
+                    node.y || 0
                   ).toFixed(6)})`
               )
               .attr("fill", node => node.branchColor);
@@ -480,11 +481,16 @@ export function branchHierarchy({
           .select<SVGGElement>(`[data-locator="viewport"]`)
           .node();
         if (viewport) {
+          const outerSize = svg.node()!.getClientRects()[0];
           const size = viewport.getClientRects()[0];
+          const topOffset = Math.max(0, outerSize.top - size.top);
           svg
             .attr(
               "height",
-              Math.max(Number(svg.attr("height")), Math.ceil(size.height))
+              Math.max(
+                Number(svg.attr("height")),
+                Math.ceil(size.height + topOffset)
+              )
             )
             .attr(
               "width",
