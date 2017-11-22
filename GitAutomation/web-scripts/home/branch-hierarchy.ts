@@ -11,7 +11,7 @@ import {
   forceSimulation,
   forceManyBody,
   forceX,
-  // forceY,
+  forceY,
   SimulationNodeDatum,
   SimulationLinkDatum
 } from "d3-force";
@@ -64,15 +64,15 @@ function centerY(y: number = 0) {
   const force: Partial<Force> & (() => void) = function() {
     let i,
       n = nodes.length,
-      sy = 0;
+      sY = 0;
 
     for (i = 0; i < n; ++i) {
-      sy += nodes[i].y!;
+      sY += nodes[i].y!;
     }
 
-    sy = sy / n - y;
+    sY = sY / n - y;
     for (i = 0; i < n; ++i) {
-      nodes[i].y! -= sy;
+      nodes[i].y! -= sY;
     }
   };
   force.initialize = (_: NodeDatum[]) => (nodes = _);
@@ -174,6 +174,7 @@ export function branchHierarchy({
           )
         );
       });
+    const yForce = forceY<NodeDatum>().strength(0);
     const simulation = forceSimulation<NodeDatum>([])
       .force("link", linkForce)
       .force(
@@ -186,7 +187,8 @@ export function branchHierarchy({
         "x",
         forceX<NodeDatum>(branch => branch.hierarchyDepth * 40).strength(1)
       )
-      .force("y", centerY(0));
+      .force("y", centerY(0))
+      .force("y2", yForce);
 
     subscription.add(
       data.subscribe(({ nodes, links }) => {
@@ -478,6 +480,11 @@ export function branchHierarchy({
           const outerSize = svg.node()!.getClientRects()[0];
           const size = viewport.getClientRects()[0];
           const topOffset = Math.max(0, outerSize.top - size.top);
+          // Makes an exponentially increasing "gravity" to hold everything
+          // within view of the SVG
+          yForce.strength(d =>
+            Math.min(1, (Math.abs(d.y!) / (outerSize.height / 1.5)) ** 5)
+          );
           svg
             .attr(
               "height",
