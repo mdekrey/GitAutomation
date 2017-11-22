@@ -14,5 +14,6 @@ namespace GitAutomation.GitService
         Task MigrateOrClosePullRequests(string fromBranch, string toBranch);
 
         Task<ImmutableDictionary<string, ImmutableList<CommitStatus>>> GetCommitStatuses(ImmutableList<string> commitSha);
+        Task<string> GetBranchUrl(string name);
     }
 }

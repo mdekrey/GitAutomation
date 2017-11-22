@@ -170,6 +170,7 @@ export const allBranchGroups = forceRefreshBranchGroups
               branches {
                 name
                 commit
+                url
                 statuses {
                   state
                   description

@@ -460,7 +460,11 @@ export const manage = (
                       .select(`[data-locator="reviews"]`)
                       .selectAll("a")
                       .data(pr.reviews || []),
-                    onCreate: e => e.append("a").attr("target", "_blank"),
+                    onCreate: e =>
+                      e
+                        .append("a")
+                        .attr("target", "_blank")
+                        .classed("normal", true),
                     onEach: e =>
                       e
                         .attr("href", review => review.url)

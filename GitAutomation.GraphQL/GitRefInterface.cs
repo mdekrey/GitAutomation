@@ -1,4 +1,5 @@
-﻿using GitAutomation.GraphQL.Utilities.Resolvers;
+﻿using GitAutomation.GitService;
+using GitAutomation.GraphQL.Utilities.Resolvers;
 using GitAutomation.Repository;
 using GraphQL.Types;
 using System;
@@ -17,6 +18,9 @@ namespace GitAutomation.GraphQL
 
             Field(r => r.Name);
             Field(r => r.Commit);
+            Field<StringGraphType>()
+                .Name("url")
+                .Resolve(this, nameof(BranchUrl));
 
             Field<NonNullGraphType<StringGraphType>>()
                 .Name("mergeBase")
@@ -52,6 +56,11 @@ namespace GitAutomation.GraphQL
                 default:
                     return Task.FromResult<string>(null);
             }
+        }
+
+        private Task<string> BranchUrl([Source] GitRef gitRef, [FromServices] IGitServiceApi gitApi)
+        {
+            return gitApi.GetBranchUrl(gitRef.Name);
         }
 
         private Task<ImmutableList<GitService.CommitStatus>> GetStatuses([Source] GitRef gitRef, [FromServices] Loaders loaders)

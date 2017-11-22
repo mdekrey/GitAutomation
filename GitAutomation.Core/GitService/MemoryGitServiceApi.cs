@@ -10,7 +10,12 @@ namespace GitAutomation.GitService
     class MemoryGitServiceApi : IGitServiceApi
     {
         readonly Dictionary<Tuple<string, string>, PullRequest> pullRequests = new Dictionary<Tuple<string, string>, PullRequest>();
-        
+
+        public Task<string> GetBranchUrl(string name)
+        {
+            return Task.FromResult<string>(null);
+        }
+
         public Task<ImmutableDictionary<string, ImmutableList<CommitStatus>>> GetCommitStatuses(ImmutableList<string> commitSha)
         {
             return Task.FromResult(ImmutableDictionary<string, ImmutableList<CommitStatus>>.Empty);

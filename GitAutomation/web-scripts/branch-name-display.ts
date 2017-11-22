@@ -1,4 +1,4 @@
-import { Selection } from "d3-selection";
+import { Selection, event as d3event } from "d3-selection";
 import { bind } from "./utils/presentation/d3-binding";
 import { RoutingNavigate } from "./routing";
 import { branchTypeColors } from "./style/branch-colors";
@@ -10,21 +10,32 @@ export interface DisplayableBranch {
   latestBranch?: ({ name: string } & Partial<GitAutomationGQL.IGitRef>) | null;
 }
 
-function findStatuses(data: DisplayableBranch) {
+function findActualBranch<P extends keyof GitAutomationGQL.IGitRef>(
+  data: DisplayableBranch,
+  targetKey: P
+) {
   if (data.latestBranch) {
     const latest = data.latestBranch;
-    if (latest.statuses) {
-      return latest.statuses;
+    if (latest[targetKey]) {
+      return latest[targetKey];
     }
 
     if (data.branches) {
       const found = data.branches.find(b => b.name === latest.name);
-      if (found && found.statuses) {
-        return found.statuses;
+      if (found && found[targetKey]) {
+        return found[targetKey];
       }
     }
   }
-  return [];
+  return undefined;
+}
+
+function findStatuses(data: DisplayableBranch) {
+  return findActualBranch(data, "statuses") || [];
+}
+
+function stopPropagation() {
+  d3event.stopPropagation();
 }
 
 export const branchNameDisplay = (
@@ -63,6 +74,12 @@ export const branchNameDisplay = (
               replaceCurentHistory: false
             })
         );
+      selection
+        .select(`a[data-locator="external-link"]`)
+        .datum(data => findActualBranch(data, "url"))
+        .style("display", url => (url ? "inline" : "none"))
+        .attr("href", url => url || "")
+        .on("click", stopPropagation);
       bind({
         target: selection
           .select(`span[data-locator="status"]`)
@@ -72,7 +89,9 @@ export const branchNameDisplay = (
           e
             .append("a")
             .attr("data-locator", "status-entry")
-            .attr("target", "_blank"),
+            .classed("normal", true)
+            .attr("target", "_blank")
+            .on("click", stopPropagation),
         onEach: e =>
           e
             .html(

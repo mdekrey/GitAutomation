@@ -212,6 +212,11 @@ query($owner: String!, $repository: String!, $id: Int!) {
                     }).ToImmutableList();
         }
 
+        public Task<string> GetBranchUrl(string name)
+        {
+            return Task.FromResult<string>(ResourcePathToUrl($"/mdekrey/GitAutomation-Testing/tree/{name}"));
+        }
+
         private string ResourcePathToUrl(string v)
         {
             return "https://www.github.com" + v;

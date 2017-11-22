@@ -12,7 +12,14 @@ export const linkStyle: types.NestedCSSProperties = {
   color: serviceLineColors[3],
   cursor: "pointer"
 };
-cssRule("a", linkStyle);
+cssRule("a:not(.normal)", linkStyle);
+
+export const normalLinkStyle: types.NestedCSSProperties = {
+  textDecoration: "none",
+  color: "currentColor",
+  cursor: "pointer"
+};
+cssRule("a.normal", normalLinkStyle);
 
 cssRule("button", {
   color: serviceLineColors[3],
