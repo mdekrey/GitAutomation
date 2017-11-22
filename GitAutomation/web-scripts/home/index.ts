@@ -47,10 +47,6 @@ export const homepage = (
     .let(body =>
       Observable.create(() => {
         const subscription = new Subscription();
-        console.log("here");
-        subscription.add(() => {
-          console.log("unsubscribe");
-        });
 
         subscription.add(
           branchHierarchy({
@@ -59,13 +55,7 @@ export const homepage = (
             ),
             navigate: state.navigate,
             data: allBranchesHierarchy
-          })
-            .do(
-              v => console.log(v),
-              err => console.log(err),
-              () => console.log("completed?")
-            )
-            .subscribe()
+          }).subscribe()
         );
 
         subscription.add(
