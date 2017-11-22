@@ -92,7 +92,7 @@ namespace GitAutomation.Management
             }
         }
 
-        [Authorize(Auth.PolicyNames.Update)]
+        [Authorize(Auth.PolicyNames.Read)]
         [HttpPut("branch/check-upstream/{*branchName}")]
         public void CheckDownstreamMerges(string branchName, [FromServices] IOrchestrationActions orchestrationActions)
         {

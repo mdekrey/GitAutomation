@@ -2,7 +2,7 @@ import { difference, intersection } from "../utils/ramda";
 import { Observable } from "../utils/rxjs";
 
 import { IManageBranch } from "./data";
-import { checkDownstreamMerges, updateBranch } from "../api/basics";
+import { updateBranch } from "../api/basics";
 
 export interface ISaveData {
   downstream: string[];
@@ -48,7 +48,4 @@ export const doSave = (
     )
     .switchMap(({ branchName, ...requestBody }) =>
       updateBranch(branchName, requestBody).map(_ => branchName)
-    )
-    .switchMap(branchName =>
-      checkDownstreamMerges(branchName).map(_ => branchName)
     );
