@@ -120,9 +120,7 @@ namespace GitAutomation.Processes
                         select new OutputMessage { Message = e.EventArgs.Data, Channel = OutputChannel.Error }
                     ).TakeWhile(msg => msg.Message != null)
                 )
-                .Do(message => Output = Output.Add(message), onCompleted: () => {
-                    Console.WriteLine("Completed");
-                })
+                .Do(message => Output = Output.Add(message))
                 .Publish();
             output.Connect();
 
