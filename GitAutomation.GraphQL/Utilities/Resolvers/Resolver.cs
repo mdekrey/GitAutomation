@@ -102,6 +102,10 @@ namespace GitAutomation.GraphQL.Utilities.Resolvers
                     );
 
                 default:
+                    if (param.ParameterType == contextParameter.Type)
+                    {
+                        return contextParameter;
+                    }
                     throw new ArgumentException("Invalid argument; parameter must have a ResolverAttribute.", param.Name);
             }
 

@@ -9,7 +9,7 @@ namespace GitAutomation.GitService
     {
         public static Task<bool> HasOpenPullRequest(this IGitServiceApi api, string targetBranch = null, string sourceBranch = null)
         {
-            return api.GetPullRequests(targetBranch: targetBranch, sourceBranch: sourceBranch).ContinueWith(t => t.Result.Count > 0);
+            return api.GetPullRequests(state: PullRequestState.Open, targetBranch: targetBranch, sourceBranch: sourceBranch).ContinueWith(t => t.Result.Count > 0);
         }
     }
 }

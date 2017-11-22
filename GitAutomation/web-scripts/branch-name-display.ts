@@ -3,16 +3,32 @@ import { bind } from "./utils/presentation/d3-binding";
 import { RoutingNavigate } from "./routing";
 import { branchTypeColors } from "./style/branch-colors";
 
+export interface DisplayableBranch {
+  groupName: string;
+  branchType?: GitAutomationGQL.IBranchGroupTypeEnum;
+  branches?: Array<Partial<GitAutomationGQL.IGitRef>>;
+  latestBranch?: ({ name: string } & Partial<GitAutomationGQL.IGitRef>) | null;
+}
+
+function findStatuses(data: DisplayableBranch) {
+  if (data.latestBranch) {
+    const latest = data.latestBranch;
+    if (latest.statuses) {
+      return latest.statuses;
+    }
+
+    if (data.branches) {
+      const found = data.branches.find(b => b.name === latest.name);
+      if (found && found.statuses) {
+        return found.statuses;
+      }
+    }
+  }
+  return [];
+}
+
 export const branchNameDisplay = (
-  target: Selection<
-    any,
-    {
-      groupName: string;
-      branchType?: GitAutomationGQL.IBranchGroupTypeEnum;
-    },
-    any,
-    any
-  >,
+  target: Selection<any, DisplayableBranch, any, any>,
   navigate?: RoutingNavigate
 ) =>
   bind({
@@ -47,15 +63,24 @@ export const branchNameDisplay = (
               replaceCurentHistory: false
             })
         );
-      // TODO - restore status
-      // selection
-      //   .select(`span[data-locator="status"]`)
-      //   // TODO - styling around this
-      //   .text(
-      //     data =>
-      //       (data.statuses || []).length
-      //         ? `(${data.statuses[0].state})`
-      //         : "(No status)"
-      //   );
+      bind({
+        target: selection
+          .select(`span[data-locator="status"]`)
+          .selectAll(`a[data-locator="status-entry"]`)
+          .data(data => findStatuses(data)),
+        onCreate: e =>
+          e
+            .append("a")
+            .attr("data-locator", "status-entry")
+            .attr("target", "_blank"),
+        onEach: e =>
+          e
+            .html(
+              s =>
+                s.state === "Success" ? "✔️" : s.state === "Error" ? "❌" : "❔"
+            )
+            .attr("href", s => s.url)
+            .attr("title", s => `${s.key} - ${s.description}`)
+      });
     }
   });

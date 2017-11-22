@@ -69,7 +69,7 @@ namespace GitAutomation.Orchestration.Actions
                     },
                 }.ToImmutableList()
             ));
-            setup.gitServiceApiMock.Setup(git => git.GetPullRequests(It.IsAny<PullRequestState?>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(ImmutableList<PullRequest>.Empty));
+            setup.gitServiceApiMock.Setup(git => git.GetPullRequests(It.IsAny<PullRequestState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>())).Returns(Task.FromResult(ImmutableList<PullRequest>.Empty));
             setup.settingsMock.Setup(settings => settings.GetUpstreamBranches(It.IsAny<string>())).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
             setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("A", "B", It.IsAny<string>())).Returns(Task.FromResult(false));
             setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("A", "C", It.IsAny<string>())).Returns(Task.FromResult(true));
@@ -105,7 +105,7 @@ namespace GitAutomation.Orchestration.Actions
                     },
                 }.ToImmutableList()
             ));
-            setup.gitServiceApiMock.Setup(git => git.GetPullRequests(It.IsAny<PullRequestState?>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(ImmutableList<PullRequest>.Empty));
+            setup.gitServiceApiMock.Setup(git => git.GetPullRequests(It.IsAny<PullRequestState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>())).Returns(Task.FromResult(ImmutableList<PullRequest>.Empty));
             setup.settingsMock.Setup(settings => settings.GetUpstreamBranches(It.IsAny<string>())).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
             setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("A", "B", It.IsAny<string>())).Returns(Task.FromResult(false));
             setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("A", "C", It.IsAny<string>())).Returns(Task.FromResult(true));
@@ -146,7 +146,7 @@ namespace GitAutomation.Orchestration.Actions
                     },
                 }.ToImmutableList()
             ));
-            setup.gitServiceApiMock.Setup(git => git.GetPullRequests(It.IsAny<PullRequestState?>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(ImmutableList<PullRequest>.Empty));
+            setup.gitServiceApiMock.Setup(git => git.GetPullRequests(It.IsAny<PullRequestState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>())).Returns(Task.FromResult(ImmutableList<PullRequest>.Empty));
             var serviceLineGroups = Observable.Return(new [] { new BranchGroup { GroupName = "ServiceLine", BranchType = BranchGroupType.ServiceLine, RecreateFromUpstream = false } }.ToImmutableList());
             setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("A")).Returns(serviceLineGroups);
             setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("B")).Returns(serviceLineGroups);
@@ -188,7 +188,7 @@ namespace GitAutomation.Orchestration.Actions
                     },
                 }.ToImmutableList()
             ));
-            setup.gitServiceApiMock.Setup(git => git.GetPullRequests(It.IsAny<PullRequestState?>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(ImmutableList<PullRequest>.Empty));
+            setup.gitServiceApiMock.Setup(git => git.GetPullRequests(It.IsAny<PullRequestState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>())).Returns(Task.FromResult(ImmutableList<PullRequest>.Empty));
             var serviceLineGroups = Observable.Return(
                 new [] { new BranchGroup { GroupName = "ServiceLine", BranchType = BranchGroupType.ServiceLine, RecreateFromUpstream = false } }.ToImmutableList()
             );

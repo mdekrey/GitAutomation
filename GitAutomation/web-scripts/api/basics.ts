@@ -151,6 +151,12 @@ export const allBranchGroups = forceRefreshBranchGroups
             allActualBranches {
               name
               commit
+              statuses {
+                state
+                description
+                key
+                url
+              }
             }
             configuredBranchGroups {
               groupName
@@ -164,6 +170,12 @@ export const allBranchGroups = forceRefreshBranchGroups
               branches {
                 name
                 commit
+                statuses {
+                  state
+                  description
+                  key
+                  url
+                }
               }
             }
           }
@@ -275,9 +287,12 @@ export const checkPullRequests = (branchName: string) =>
                 sourceBranch
                 targetBranch
                 state
+                author
+                url
                 reviews {
-                  username
+                  author
                   state
+                  url
                 }
               }
             }

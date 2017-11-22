@@ -13,10 +13,11 @@ namespace GitAutomation.GraphQL
             Field(r => r.Id);
             Field(r => r.SourceBranch);
             Field(r => r.TargetBranch);
+            Field(r => r.Url);
+            Field(r => r.Author);
             Field<NonNullGraphType<ListGraphType<NonNullGraphType<PullRequestReviewInterface>>>>()
                 .Name("Reviews")
-                // TODO - add resolver
-                .Resolve(ctx => ImmutableList<PullRequestReview>.Empty);
+                .Resolve(ctx => ctx.Source.Reviews);
 
             Field<PullRequestStateTypeEnum>()
                 .Name(nameof(PullRequest.State))

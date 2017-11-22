@@ -171,21 +171,13 @@ namespace GitAutomation
                 }).Switch();
         }
 
-        public IObservable<ImmutableList<PullRequestWithReviews>> GetUpstreamPullRequests(string branchName)
+        public IObservable<ImmutableList<PullRequest>> GetUpstreamPullRequests(string branchName)
         {
             return repositoryState.RemoteBranches()
                 .Select(remoteBranches =>
                 {
                     var branch = branchIteration.GetLatestBranchNameIteration(branchName, remoteBranches.Select(b => b.Name).Where(candidate => branchIteration.IsBranchIteration(branchName, candidate)));
-                    return gitApi.GetPullRequests(state: null, targetBranch: branch).ToObservable()
-                        .SelectMany(pullRequests =>
-                            pullRequests.GroupBy(pr => pr.SourceBranch).Select(prGroup => prGroup.First()).ToObservable()
-                                .SelectMany(pullRequest => gitApi.GetPullRequestReviews(pullRequest.Id)
-                                    .ContinueWith(reviews => new PullRequestWithReviews(pullRequest) { Reviews = reviews.Result })
-                                )
-                                .ToArray()
-                                .Select(a => a.ToImmutableList())
-                        );
+                    return gitApi.GetPullRequests(state: null, targetBranch: branch, includeReviews: true);
                 }).Switch();
         }
 
@@ -258,6 +250,7 @@ namespace GitAutomation
         {
             var nonconfiguredBranches = new HashSet<GitRef>();
             var configuredBranches = settings.ToDictionary(b => b.GroupName);
+            var statuses = await gitApi.GetCommitStatuses(actualBranches.Select(b => b.Commit).ToImmutableList());
             foreach (var actualBranch in actualBranches) {
                 var configured = false;
                 foreach (var configuredBranch in configuredBranches.Values)
@@ -265,7 +258,7 @@ namespace GitAutomation
                     if (branchIteration.IsBranchIteration(configuredBranch.GroupName, actualBranch.Name))
                     {
                         configuredBranch.Branches = configuredBranch.Branches?.Add(actualBranch) ?? Enumerable.Repeat(actualBranch, 1).ToImmutableList();
-                        configuredBranch.Statuses = await gitApi.GetCommitStatus(actualBranch.Name);
+                        configuredBranch.Statuses = statuses[actualBranch.Commit];
                         configured = true;
                         break;
                     }

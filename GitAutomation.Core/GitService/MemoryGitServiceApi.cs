@@ -10,10 +10,10 @@ namespace GitAutomation.GitService
     class MemoryGitServiceApi : IGitServiceApi
     {
         readonly Dictionary<Tuple<string, string>, PullRequest> pullRequests = new Dictionary<Tuple<string, string>, PullRequest>();
-
-        public Task<ImmutableList<CommitStatus>> GetCommitStatus(string commitSha)
+        
+        public Task<ImmutableDictionary<string, ImmutableList<CommitStatus>>> GetCommitStatuses(ImmutableList<string> commitSha)
         {
-            return Task.FromResult(ImmutableList<CommitStatus>.Empty);
+            return Task.FromResult(ImmutableDictionary<string, ImmutableList<CommitStatus>>.Empty);
         }
 
         public Task<ImmutableList<PullRequestReview>> GetPullRequestReviews(string targetBranch)
@@ -21,7 +21,7 @@ namespace GitAutomation.GitService
             return Task.FromResult(ImmutableList<PullRequestReview>.Empty);
         }
 
-        public Task<ImmutableList<PullRequest>> GetPullRequests(PullRequestState? state = PullRequestState.Open, string targetBranch = null, string sourceBranch = null)
+        public Task<ImmutableList<PullRequest>> GetPullRequests(PullRequestState? state = PullRequestState.Open, string targetBranch = null, string sourceBranch = null, bool includeReviews = false)
         {
             return Task.FromResult(
                 pullRequests.Values
@@ -41,7 +41,7 @@ namespace GitAutomation.GitService
             {
                 pullRequests.Add(
                     new Tuple<string, string>(targetBranch, sourceBranch), 
-                    new PullRequest { TargetBranch = targetBranch, SourceBranch = sourceBranch }
+                    new PullRequest { TargetBranch = targetBranch, SourceBranch = sourceBranch, Reviews = ImmutableList<PullRequestReview>.Empty }
                 );
             }
             return Task.FromResult(true);

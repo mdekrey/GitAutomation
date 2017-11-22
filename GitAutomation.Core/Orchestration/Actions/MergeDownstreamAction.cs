@@ -232,8 +232,13 @@ namespace GitAutomation.Orchestration.Actions
             {
                 var downstreamBranch = await repository.GetNextCandidateBranch(Details, shouldMutate: true).FirstOrDefaultAsync();
                 var validUpstream = allUpstreamBranches.ToImmutableList();
-                if (validUpstream.Count == 0)
+                if (validUpstream.Count == 0 || validUpstream.Any(t => t.BranchName == null))
                 {
+                    if (validUpstream.Any(t => t.BranchName != null))
+                    {
+                        await AppendMessage($"{validUpstream.First(t => t.BranchName == null).GroupName} did not have current branch; aborting", isError: true);
+                    }
+
                     return;
                 }
 
@@ -343,6 +348,8 @@ namespace GitAutomation.Orchestration.Actions
 
     git checkout -B " + downstreamBranch + @" --track origin/" + downstreamBranch + @"
     git merge origin/" + upstreamBranch.BranchName + @"
+
+This will cause the relevant conflicts to be able to resolved in your editor of choice. Once you have resolved, make sure you add them to the index, commit and push.
 ");
                         return new MergeStatus { HadConflicts = true, Resolution = MergeConflictResolution.PullRequest };
                     }

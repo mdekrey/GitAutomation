@@ -7,7 +7,8 @@ namespace GitAutomation.GraphQL
     {
         public PullRequestReviewInterface()
         {
-            Field(v => v.Username);
+            Field(v => v.Author);
+            Field(r => r.Url);
             Field<PullRequestReviewApprovalStateEnum>()
                 .Name(nameof(PullRequestReview.State))
                 .Resolve(ctx => ctx.Source.State);

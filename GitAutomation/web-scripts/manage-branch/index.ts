@@ -7,7 +7,8 @@ import {
   fnSelect,
   rxDatum,
   rxData,
-  d3element
+  d3element,
+  bind
 } from "../utils/presentation/d3-binding";
 import { runBranchData } from "./data";
 import { buildBranchCheckListing, checkedData } from "./branch-check-listing";
@@ -417,7 +418,9 @@ export const manage = (
                 branchNames.forEach(upstreamBranchName =>
                   elements
                     .select(
-                      `[data-locator="upstream-branches"] [data-locator="check"][data-branch="${upstreamBranchName}"]`
+                      `[data-locator="upstream-branches"] [data-locator="check"][data-branch="${
+                        upstreamBranchName
+                      }"]`
                     )
                     .property("checked", true)
                     .each(function(this: Element) {
@@ -440,17 +443,39 @@ export const manage = (
             )
             .subscribe(elements => {
               checkPullRequests(branchName).subscribe(pullRequests =>
-                pullRequests.forEach(pr =>
-                  elements
+                pullRequests.forEach(pr => {
+                  const target = elements
                     .select(
-                      `[data-locator="upstream-branches"] [data-locator="pr-status"][data-branch="${pr.sourceBranch}"]`
+                      `[data-locator="pr-status"][data-branch="${
+                        pr.sourceBranch
+                      }"]`
                     )
-                    .text(
-                      `Has PR: ${pr.state} (${pr.reviews!
-                        .map(review => `${review.username}: ${review.state}`)
-                        .join(", ")})`
-                    )
-                )
+                    .html(require("./pr-display.html"));
+                  target
+                    .select(`[data-locator="status"]`)
+                    .attr("href", pr.url)
+                    .text(`PR ${pr.state}`);
+                  bind({
+                    target: target
+                      .select(`[data-locator="reviews"]`)
+                      .selectAll("a")
+                      .data(pr.reviews || []),
+                    onCreate: e => e.append("a").attr("target", "_blank"),
+                    onEach: e =>
+                      e
+                        .attr("href", review => review.url)
+                        .text(
+                          review =>
+                            review.author +
+                            ": " +
+                            (review.state === "Approved"
+                              ? "✔️"
+                              : review.state === "ChangesRequested"
+                                ? "❌"
+                                : "❔")
+                        )
+                  });
+                })
               );
             })
         );

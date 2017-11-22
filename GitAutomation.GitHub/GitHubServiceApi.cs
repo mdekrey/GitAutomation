@@ -19,6 +19,44 @@ namespace GitAutomation.GitHub
 {
     class GitHubServiceApi : IGitServiceApi
     {
+        private const string rateLimitFragment = @"
+fragment rateLimit on Query {
+    rateLimit {
+        cost
+        limit
+        nodeCount
+        remaining
+        resetAt
+    }
+}";
+        private const string pullRequestFragment = @"
+fragment pullRequest on PullRequest {
+  number
+  title
+  author {
+    ...user
+  }
+  state
+  mergeable
+  baseRefName
+  headRefName
+  resourcePath
+}";
+        private const string reviewFragment = @"
+fragment review on PullRequestReview {
+  author {
+    ...user
+  }
+  state
+  resourcePath
+  createdAt
+}";
+        private const string userFragment = @"
+fragment user on User {
+  login
+  avatarUrl
+}";
+
         private static Regex githubUrlParse = new Regex(@"^/?(?<owner>[^/]+)/(?<repository>[^/]+)");
 
         private readonly GitRepositoryOptions repositoryOptions;
@@ -28,6 +66,7 @@ namespace GitAutomation.GitHub
         private readonly string repository;
         private readonly string username;
         private readonly HttpClient client;
+        private readonly GraphQLClient graphqlClient;
 
         public GitHubServiceApi(IOptions<GitRepositoryOptions> options, IOptions<GithubServiceApiOptions> serviceOptions, Func<HttpClient> clientFactory)
         {
@@ -40,6 +79,7 @@ namespace GitAutomation.GitHub
             this.owner = match.Groups["owner"].Value;
             this.repository = match.Groups["repository"].Value;
             this.client = BuildHttpClient(clientFactory);
+            this.graphqlClient = BuildGraphqlClient(clientFactory);
         }
 
         async Task<bool> IGitServiceApi.OpenPullRequest(string title, string targetBranch, string sourceBranch, string body)
@@ -69,37 +109,57 @@ namespace GitAutomation.GitHub
                 return true;
             }
         }
-        
-        public async Task<ImmutableList<PullRequest>> GetPullRequests(PullRequestState? state = PullRequestState.Open, string targetBranch = null, string sourceBranch = null)
+
+        public async Task<ImmutableList<PullRequest>> GetPullRequests(PullRequestState? state = PullRequestState.Open, string targetBranch = null, string sourceBranch = null, bool includeReviews = false)
         {
-            var nvc = new NameValueCollection();
-            nvc.Add("state", 
-                state == null ? "all"
-                : state == PullRequestState.Open ? "open" 
-                : "closed"
-            );
-            if (sourceBranch != null)
+            var data = await graphqlClient.Query(@"
+query($owner: String!, $repository: String!, $states: [PullRequestState!], $targetBranch: String, $sourceBranch: String, $includeReviews: Boolean!) {
+  repository(owner: $owner, name: $repository) {
+    pullRequests(
+      first: 100,
+      states: $states,
+      orderBy: { field: CREATED_AT, direction: DESC },
+      baseRefName: $targetBranch,
+      headRefName: $sourceBranch
+    ) {
+      nodes {
+        ...pullRequest
+        reviews(first: 10) @include(if: $includeReviews) {
+          nodes {
+        	...review
+          }
+        }
+      }
+    }
+  }
+  ...rateLimit
+}" + rateLimitFragment + pullRequestFragment + reviewFragment + userFragment, new
             {
-                nvc.Add("head", FullBranchRef(sourceBranch));
-            }
-            if (targetBranch != null)
-            {
-                nvc.Add("base", targetBranch);
-            }
-            using (var response = await client.GetAsync($"/repos/{owner}/{repository}/pulls{ToQueryString(nvc)}"))
-            {
-                await EnsureSuccessStatusCode(response);
-                var responseString = await response.Content.ReadAsStringAsync();
-                var token = JArray.Parse(responseString);
-                return (from entry in token
-                        select new PullRequest
-                        {
-                            Id = entry["number"].ToString(),
-                            State = entry["state"].ToString() == "open" ? PullRequestState.Open : PullRequestState.Closed,
-                            TargetBranch = entry["base"]["ref"].ToString(),
-                            SourceBranch = entry["head"]["ref"].ToString(),
-                        }).ToImmutableList();
-            }
+                owner,
+                repository,
+                states =
+                    state == null ? new[] { "CLOSED", "OPEN", "MERGED" }
+                    : state == PullRequestState.Open ? new[] { "OPEN" }
+                    : new[] { "CLOSED", "MERGED" },
+                targetBranch,
+                sourceBranch,
+                includeReviews = includeReviews && serviceOptions.CheckPullRequestReviews
+            });
+
+            return (from entry in data["repository"]["pullRequests"]["nodes"] as JArray
+                    select new PullRequest
+                    {
+                        Id = entry["number"].ToString(),
+                        Author = entry["author"]["login"].ToString(),
+                        State = entry["state"].ToString() == "OPEN" ? PullRequestState.Open : PullRequestState.Closed,
+                        TargetBranch = entry["baseRefName"].ToString(),
+                        SourceBranch = entry["headRefName"].ToString(),
+                        Url = ResourcePathToUrl(entry["resourcePath"].ToString()),
+                        Reviews = includeReviews && serviceOptions.CheckPullRequestReviews
+                            ? ToPullRequestReviews(entry["reviews"]["nodes"] as JArray)
+                            : includeReviews ? ImmutableList<PullRequestReview>.Empty
+                            : null
+                    }).ToImmutableList();
         }
 
         public async Task<ImmutableList<PullRequestReview>> GetPullRequestReviews(string id)
@@ -109,22 +169,52 @@ namespace GitAutomation.GitHub
                 return ImmutableList<PullRequestReview>.Empty;
             }
 
-            using (var response = await client.GetAsync($"/repos/{owner}/{repository}/pulls/{id}/reviews"))
+            var data = await graphqlClient.Query(@"
+query($owner: String!, $repository: String!, $id: Int!) {
+  repository(owner: $owner, name: $repository) {
+    pullRequest(number: $id) {
+      reviews(first: 10) {
+        nodes {
+          ...review
+        }
+      }
+    }
+  }
+  ...rateLimit
+}" + rateLimitFragment + reviewFragment + userFragment, new
             {
-                await EnsureSuccessStatusCode(response);
-                var responseString = await response.Content.ReadAsStringAsync();
-                var token = JArray.Parse(responseString);
-                return (from entry in token
-                        let state = ToApprovalState(entry["state"].ToString())
-                        let user = entry["user"]["login"].ToString()
-                        where state.HasValue
-                        group state.Value by user into states
-                        select new PullRequestReview
-                        {
-                            State = states.Last(),
-                            Username = states.Key,
-                        }).ToImmutableList();
-            }
+                owner,
+                repository,
+                id = Convert.ToInt32(id)
+            });
+
+            return ToPullRequestReviews(data["repository"]["pullRequest"]["reviews"]["nodes"] as JArray);
+        }
+
+        private ImmutableList<PullRequestReview> ToPullRequestReviews(JArray data)
+        {
+            return (from entry in data
+                    let user = entry["author"]["login"].ToString()
+                    let state = ToApprovalState(entry["state"].ToString())
+                    where state.HasValue
+                    group new
+                    {
+                        state = state.Value,
+                        createdAt = entry["createdAt"].ToString(),
+                        resourcePath = entry["resourcePath"].ToString()
+                    } by user into states
+                    let target = states.OrderByDescending(t => t.createdAt).Last()
+                    select new PullRequestReview
+                    {
+                        State = target.state,
+                        Url = ResourcePathToUrl(target.resourcePath.ToString()),
+                        Author = states.Key,
+                    }).ToImmutableList();
+        }
+
+        private string ResourcePathToUrl(string v)
+        {
+            return "https://www.github.com" + v;
         }
 
         private PullRequestReview.ApprovalState? ToApprovalState(string state)
@@ -190,39 +280,65 @@ namespace GitAutomation.GitHub
             }
         }
 
-        public async Task<ImmutableList<CommitStatus>> GetCommitStatus(string commitSha)
+        public async Task<ImmutableDictionary<string, ImmutableList<CommitStatus>>> GetCommitStatuses(ImmutableList<string> commitShas)
         {
             if (!serviceOptions.CheckStatus)
             {
-                return ImmutableList<CommitStatus>.Empty;
+                return ImmutableDictionary<string, ImmutableList<CommitStatus>>.Empty;
             }
 
-            var nvc = new NameValueCollection
+            var requests = string.Join("\n    ",
+                from sha in commitShas
+                select $"_{sha}: object(oid: \"{sha}\") {{ ...commitStatus }}"
+            );
+
+            var data = await graphqlClient.Query(@"
+query($owner: String!, $repository: String!) {
+  repository(owner: $owner, name: $repository) {
+    " + requests + @"
+  }
+  ...rateLimit
+}
+
+fragment commitStatus on Commit {
+  status {
+    contexts {
+      context
+      targetUrl
+      description
+      state
+    }
+    state
+  }
+}
+" + rateLimitFragment, new
             {
-                { "state", "open" }
-            };
-            using (var response = await client.GetAsync($"/repos/{owner}/{repository}/commits/{commitSha}/status"))
-            {
-                await EnsureSuccessStatusCode(response);
-                var responseString = await response.Content.ReadAsStringAsync();
-                var token = JToken.Parse(responseString);
-                return (from status in token["statuses"] as JArray
-                        select new CommitStatus
-                        {
-                            Key = status["context"].ToString(),
-                            Url = status["url"].ToString(),
-                            Description = status["description"].ToString(),
-                            State = ToCommitState(status["state"].ToString())
-                        }).ToImmutableList();
-            }
+                owner,
+                repository
+            }).ConfigureAwait(false);
+
+            var result = (from sha in commitShas
+                          select new
+                          {
+                              sha,
+                              result = from entry in data["repository"]["_" + sha]["status"]["contexts"] as JArray
+                                       select new CommitStatus
+                                       {
+                                           Key = entry["context"].ToString(),
+                                           Url = entry["targetUrl"].ToString(),
+                                           Description = entry["description"].ToString(),
+                                           State = ToCommitState(entry["state"].ToString())
+                                       }
+                          }).ToImmutableDictionary(v => v.sha, v => v.result.ToImmutableList());
+            return result;
         }
 
         private CommitStatus.StatusState ToCommitState(string value)
         {
             switch (value)
             {
-                case "success": return CommitStatus.StatusState.Success;
-                case "pending": return CommitStatus.StatusState.Pending;
+                case "SUCCESS": case "EXPECTED": return CommitStatus.StatusState.Success;
+                case "PENDING": return CommitStatus.StatusState.Pending;
                 default: return CommitStatus.StatusState.Error;
             }
         }
@@ -247,15 +363,19 @@ namespace GitAutomation.GitHub
             return client;
         }
 
-
-        private string ToQueryString(NameValueCollection nvc)
+        private GraphQLClient BuildGraphqlClient(Func<HttpClient> clientFactory)
         {
-            var array = (from key in nvc.AllKeys
-                         from value in nvc.GetValues(key)
-                         select string.Format("{0}={1}", WebUtility.UrlEncode(key), WebUtility.UrlEncode(value)))
-                .ToArray();
-            return "?" + string.Join("&", array);
+            var client = clientFactory();
+            client.BaseAddress = new Uri("https://api.github.com/graphql");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                "Basic",
+                Convert.ToBase64String(Encoding.ASCII.GetBytes($"{this.username}:{this.serviceOptions.Password}"))
+            );
+            client.DefaultRequestHeaders.UserAgent.Clear();
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "mdekrey-GitAutomation");
+            return new GraphQLClient(client);
         }
+
 
         public static HttpContent JsonContent<TModel>(TModel model)
         {

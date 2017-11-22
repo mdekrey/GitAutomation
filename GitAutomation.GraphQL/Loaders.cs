@@ -82,10 +82,10 @@ namespace GitAutomation.GraphQL
             }).LoadAsync();
         }
 
-        internal Task<ImmutableList<PullRequest>> LoadPullRequests(string source, string target)
+        internal Task<ImmutableList<PullRequest>> LoadPullRequests(string source, string target, bool includeReviews)
         {
             // TODO - GraphQL to GitHub and pass through?
-            return gitService.GetPullRequests(targetBranch: target, sourceBranch: source);
+            return gitService.GetPullRequests(targetBranch: target, sourceBranch: source, includeReviews: includeReviews);
         }
 
         internal Task<ImmutableList<string>> LoadDownstreamBranches(string name)
@@ -113,8 +113,12 @@ namespace GitAutomation.GraphQL
         internal Task<ImmutableList<CommitStatus>> LoadBranchStatus(string commitSha)
         {
             logger.LogInformation("Load commit status of {0}", commitSha);
-            // TODO - GraphQL to GitHub and pass through?
-            return gitService.GetCommitStatus(commitSha);
+            return loadContext.Factory.GetOrCreateLoader<string, ImmutableList<CommitStatus>>("GetUpstreamBranchGroups", async keys =>
+            {
+                logger.LogInformation("Loading {0} branch group upstream", keys.Count());
+                var result = await gitService.GetCommitStatuses(keys.ToImmutableList());
+                return keys.ToDictionary(k => k, key => result.ContainsKey(key) ? result[key] : ImmutableList<CommitStatus>.Empty);
+            }).LoadAsync(commitSha);
         }
 
         internal Task<ImmutableList<GitRef>> LoadAllGitRefs()

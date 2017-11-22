@@ -59,14 +59,15 @@ namespace GitAutomation.GraphQL
             return loaders.LoadBranchStatus(gitRef.Commit);
         }
 
-        private Task<ImmutableList<GitService.PullRequest>> PullRequestsInto([Source] GitRef gitRef, [FromArgument] string target, [FromServices] Loaders loaders)
+        private Task<ImmutableList<GitService.PullRequest>> PullRequestsInto([Source] GitRef gitRef, [FromArgument] string target, [FromServices] Loaders loaders, ResolveFieldContext resolveContext)
         {
-            return loaders.LoadPullRequests(source: gitRef.Name, target: target);
+            
+            return loaders.LoadPullRequests(source: gitRef.Name, target: target, includeReviews: resolveContext.FieldAst.SelectionSet.Selections.OfType<global::GraphQL.Language.AST.Field>().Any(field => field.Name == "reviews"));
         }
 
-        private Task<ImmutableList<GitService.PullRequest>> PullRequestsFrom([Source] GitRef gitRef, [FromArgument] string source, [FromServices] Loaders loaders)
+        private Task<ImmutableList<GitService.PullRequest>> PullRequestsFrom([Source] GitRef gitRef, [FromArgument] string source, [FromServices] Loaders loaders, ResolveFieldContext resolveContext)
         {
-            return loaders.LoadPullRequests(source: source, target: gitRef.Name);
+            return loaders.LoadPullRequests(source: source, target: gitRef.Name, includeReviews: resolveContext.FieldAst.SelectionSet.Selections.OfType<global::GraphQL.Language.AST.Field>().Any(field => field.Name == "reviews"));
         }
     }
 }

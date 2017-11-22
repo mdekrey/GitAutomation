@@ -2,8 +2,9 @@
 {
     public class PullRequestReview
     {
-        public string Username { get; set; }
+        public string Author { get; set; }
         public ApprovalState State { get; set; }
+        public string Url { get; set; }
 
         public enum ApprovalState
         {

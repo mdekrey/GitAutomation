@@ -51,7 +51,7 @@ export const buildBranchCheckListing = (
       .property("disabled", upstreamRules.disabled);
 
     selection
-      .select(`[data-locator="upstream-branches"] [data-locator="pr-status"]`)
+      .select(`[data-locator="pr-status"]`)
       .attr("data-branch", data => data.groupName);
 
     selection.sort((a, b) => a.groupName.localeCompare(b.groupName));
