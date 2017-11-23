@@ -15,7 +15,7 @@ function findActualBranch<P extends keyof GitAutomationGQL.IGitRef>(
   targetKey: P
 ) {
   if (data.latestBranch) {
-    const latest = data.latestBranch;
+    const latest: Partial<GitAutomationGQL.IGitRef> = data.latestBranch;
     if (latest[targetKey]) {
       return latest[targetKey];
     }
