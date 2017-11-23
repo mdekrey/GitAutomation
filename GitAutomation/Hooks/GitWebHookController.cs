@@ -1,6 +1,7 @@
 ﻿using GitAutomation.BranchSettings;
 using GitAutomation.Repository;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,7 +16,7 @@ namespace GitAutomation.Hooks
     public class GitWebHookController : Controller
     {
         [HttpPost]
-        public void Post([FromServices] IRepositoryState repositoryState, [FromServices] IBranchSettings branchSettings)
+        public void Post([FromServices] IRepositoryState repositoryState)
         {
             repositoryState.CheckForUpdates()
                 .Subscribe(onNext: _ => { }, onError: (ex) =>

@@ -13,10 +13,11 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using Newtonsoft.Json.Linq;
 using GitAutomation.Auth;
+using GitAutomation.Mvc;
 
 namespace GitAutomation.GitHub
 {
-    public class RegisterGitHub : IRegisterGitServiceApi, IRegisterAuthentication
+    public class RegisterGitHub : IRegisterGitServiceApi, IRegisterAuthentication, IMvcExtension
     {
         public void RegisterAuthentication(IServiceCollection services, AuthenticationBuilder authBuilder, IConfiguration configuration)
         {
@@ -58,6 +59,11 @@ namespace GitAutomation.GitHub
         {
             services.AddSingleton<IGitServiceApi, GitHubServiceApi>();
             services.Configure<GithubServiceApiOptions>(configuration.GetSection("github"));
+        }
+
+        void IMvcExtension.RegisterAdditionalMvc(IServiceCollection services, IConfiguration mvcSection, IMvcBuilder mvcBuilder)
+        {
+            mvcBuilder.AddApplicationPart(this.GetType().Assembly);
         }
     }
 }

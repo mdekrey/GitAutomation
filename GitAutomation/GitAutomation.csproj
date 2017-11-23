@@ -41,6 +41,7 @@
     <ProjectReference Include="..\GitAutomation.Auth\GitAutomation.Auth.csproj" />
     <ProjectReference Include="..\GitAutomation.Core\GitAutomation.Core.csproj" />
     <ProjectReference Include="..\GitAutomation.GraphQL\GitAutomation.GraphQL.csproj" />
+    <ProjectReference Include="..\GitAutomation.Mvc\GitAutomation.Mvc.csproj" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <ProjectReference Include="..\GitAutomation.AllAddons\GitAutomation.AllAddons.csproj" />

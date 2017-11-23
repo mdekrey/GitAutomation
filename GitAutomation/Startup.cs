@@ -51,11 +51,11 @@ namespace GitAutomation
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            // Add framework services.
-            services.AddMvc().AddJsonOptions(options =>
+            var mvcBuilder = services.AddMvc().AddJsonOptions(options =>
             {
                 options.SerializerSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
             });
+            services.AddMvcExtensions(Configuration.GetSection("mvcExtensions"), mvcBuilder);
 
             services.AddGitUtilities(Configuration.GetSection("persistence"), Configuration.GetSection("git"), Configuration.GetSection("app"));
             services.Configure<GitRepositoryOptions>(Configuration.GetSection("git"));
