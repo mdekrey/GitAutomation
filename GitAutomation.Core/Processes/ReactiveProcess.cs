@@ -62,6 +62,7 @@ namespace GitAutomation.Processes
                 observer.OnNext(ProcessState.NotStarted);
                 process.Exited += delegate
                 {
+                    exitCode = process.ExitCode;
                     observer.OnNext(ProcessState.Exited);
                     observer.OnCompleted();
                 };
