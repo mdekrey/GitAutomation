@@ -18,5 +18,20 @@ namespace GitAutomation.GitHub
             }
         }
 
+        public static PullRequestReview.ApprovalState? ToApprovalState(string state)
+        {
+            switch (state.ToUpper())
+            {
+                case "APPROVED":
+                    return PullRequestReview.ApprovalState.Approved;
+                case "COMMENTED":
+                case "DISMISSED":
+                    return null;
+                case "CHANGES_REQUESTED":
+                    return PullRequestReview.ApprovalState.ChangesRequested;
+                default:
+                    return PullRequestReview.ApprovalState.Pending;
+            }
+        }
     }
 }

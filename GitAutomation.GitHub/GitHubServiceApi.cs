@@ -209,7 +209,7 @@ query($owner: String!, $repository: String!, $states: [PullRequestState!], $targ
         {
             return (from entry in data
                     let user = entry["author"]["login"].ToString()
-                    let state = ToApprovalState(entry["state"].ToString())
+                    let state = GitHubConverters.ToApprovalState(entry["state"].ToString())
                     where state.HasValue
                     group new
                     {
@@ -221,6 +221,7 @@ query($owner: String!, $repository: String!, $states: [PullRequestState!], $targ
                     select new PullRequestReview
                     {
                         State = target.state,
+                        SubmittedDate = target.createdAt,
                         Url = ResourcePathToUrl(target.resourcePath.ToString()),
                         Author = states.Key,
                     }).ToImmutableList();
@@ -234,22 +235,6 @@ query($owner: String!, $repository: String!, $states: [PullRequestState!], $targ
         private string ResourcePathToUrl(string v)
         {
             return "https://www.github.com" + v;
-        }
-
-        private PullRequestReview.ApprovalState? ToApprovalState(string state)
-        {
-            switch (state)
-            {
-                case "APPROVED":
-                    return PullRequestReview.ApprovalState.Approved;
-                case "COMMENTED":
-                case "DISMISSED":
-                    return null;
-                case "CHANGES_REQUESTED":
-                    return PullRequestReview.ApprovalState.ChangesRequested;
-                default:
-                    return PullRequestReview.ApprovalState.Pending;
-            }
         }
 
         public async Task MigrateOrClosePullRequests(string fromBranch, string toBranch)
@@ -432,6 +417,8 @@ fragment commitStatus on Commit {
 
         #endregion
 
+        #region PRs
+
         public async void ReceivePullRequestUpdate(PullRequest pullRequest)
         {
             var target = await pullRequests.Value;
@@ -443,6 +430,22 @@ fragment commitStatus on Commit {
                 return pullRequest;
             });
         }
+        public async void ReceivePullRequestReview(string id, PullRequestReview review, bool remove)
+        {
+            var target = await pullRequests.Value;
 
+            if (target.ContainsKey(id))
+            {
+                target.AddOrUpdate(id, addValue: null, updateValueFactory: (_, oldValue) =>
+                {
+                    oldValue.Reviews = oldValue.Reviews
+                        .RemoveAll(oldReview => oldReview.Author == review.Author && oldReview.SubmittedDate.CompareTo(review.SubmittedDate) <= 0)
+                        .AddRange(remove ? new PullRequestReview[0] : new[] { review });
+                    return oldValue;
+                });
+            }
+        }
+
+        #endregion
     }
 }

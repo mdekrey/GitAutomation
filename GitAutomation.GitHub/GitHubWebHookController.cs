@@ -97,7 +97,19 @@ namespace GitAutomation.GitHub
 
         private void UpdatePullRequestReview(JObject contents, IGitHubPullRequestChanges gitHubPullRequestChanges)
         {
-            throw new NotImplementedException();
+            var targetPrId = contents["pull_request"]["number"].ToString();
+            var state = GitHubConverters.ToApprovalState(contents["review"]["state"].ToString());
+            if (state.HasValue)
+            {
+                gitHubPullRequestChanges.ReceivePullRequestReview(id: targetPrId, review: new GitService.PullRequestReview
+                {
+                    Author = contents["review"]["user"]["login"].ToString(),
+                    State = state.Value,
+                    SubmittedDate = contents["review"].Value<DateTimeOffset>("submitted_at").ToString("s", System.Globalization.CultureInfo.InvariantCulture),
+                    Url = contents["review"]["_links"]["html"]["href"].ToString()
+
+                }, remove: contents["action"].ToString() == "dismissed");
+            }
         }
 
     }
