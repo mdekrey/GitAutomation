@@ -14,11 +14,23 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Collections.Immutable;
 using Newtonsoft.Json.Linq;
+using System.Collections.Concurrent;
+using System.Threading;
 
 namespace GitAutomation.GitHub
 {
-    class GitHubServiceApi : IGitServiceApi
+    class GitHubServiceApi : IGitServiceApi, IGitHubPullRequestChanges, IGitHubStatusChanges
     {
+        struct AsyncData<T>
+        {
+
+        }
+
+        private const string pageInfoFragment = @"
+fragment pageInfo on PageInfo {
+  hasNextPage
+  endCursor
+}";
         private const string rateLimitFragment = @"
 fragment rateLimit on Query {
     rateLimit {
@@ -58,6 +70,8 @@ fragment user on User {
 }";
 
         private static Regex githubUrlParse = new Regex(@"^/?(?<owner>[^/]+)/(?<repository>[^/]+)");
+
+        private readonly ConcurrentDictionary<string, ImmutableList<CommitStatus>> commitStatus = new ConcurrentDictionary<string, ImmutableList<CommitStatus>>();
 
         private readonly GitRepositoryOptions repositoryOptions;
         private readonly GithubServiceApiOptions serviceOptions;
@@ -113,15 +127,19 @@ fragment user on User {
         public async Task<ImmutableList<PullRequest>> GetPullRequests(PullRequestState? state = PullRequestState.Open, string targetBranch = null, string sourceBranch = null, bool includeReviews = false)
         {
             var data = await graphqlClient.Query(@"
-query($owner: String!, $repository: String!, $states: [PullRequestState!], $targetBranch: String, $sourceBranch: String, $includeReviews: Boolean!) {
+query($owner: String!, $repository: String!, $states: [PullRequestState!], $targetBranch: String, $sourceBranch: String, $includeReviews: Boolean!, $after: String) {
   repository(owner: $owner, name: $repository) {
     pullRequests(
       first: 100,
+      after: $after,
       states: $states,
       orderBy: { field: CREATED_AT, direction: DESC },
       baseRefName: $targetBranch,
       headRefName: $sourceBranch
     ) {
+      pageInfo {
+        ...pageInfo
+      }
       nodes {
         ...pullRequest
         reviews(first: 10) @include(if: $includeReviews) {
@@ -133,7 +151,7 @@ query($owner: String!, $repository: String!, $states: [PullRequestState!], $targ
     }
   }
   ...rateLimit
-}" + rateLimitFragment + pullRequestFragment + reviewFragment + userFragment, new
+}" + pageInfoFragment + rateLimitFragment + pullRequestFragment + reviewFragment + userFragment, new
             {
                 owner,
                 repository,
@@ -256,69 +274,6 @@ query($owner: String!, $repository: String!, $states: [PullRequestState!], $targ
             }
         }
 
-        public async Task<ImmutableDictionary<string, ImmutableList<CommitStatus>>> GetCommitStatuses(ImmutableList<string> commitShas)
-        {
-            if (!serviceOptions.CheckStatus)
-            {
-                return ImmutableDictionary<string, ImmutableList<CommitStatus>>.Empty;
-            }
-
-            var requests = string.Join("\n    ",
-                from sha in commitShas.Distinct()
-                select $"_{sha}: object(oid: \"{sha}\") {{ ...commitStatus }}"
-            );
-
-            var data = await graphqlClient.Query(@"
-query($owner: String!, $repository: String!) {
-  repository(owner: $owner, name: $repository) {
-    " + requests + @"
-  }
-  ...rateLimit
-}
-
-fragment commitStatus on Commit {
-  status {
-    contexts {
-      context
-      targetUrl
-      description
-      state
-    }
-    state
-  }
-}
-" + rateLimitFragment, new
-            {
-                owner,
-                repository
-            }).ConfigureAwait(false);
-
-            var result = (from sha in commitShas.Distinct()
-                          select new
-                          {
-                              sha,
-                              result = from entry in data["repository"]["_" + sha]["status"]["contexts"] as JArray
-                                       select new CommitStatus
-                                       {
-                                           Key = entry["context"].ToString(),
-                                           Url = entry["targetUrl"].ToString(),
-                                           Description = entry["description"].ToString(),
-                                           State = ToCommitState(entry["state"].ToString())
-                                       }
-                          }).ToImmutableDictionary(v => v.sha, v => v.result.ToImmutableList());
-            return result;
-        }
-
-        private CommitStatus.StatusState ToCommitState(string value)
-        {
-            switch (value)
-            {
-                case "SUCCESS": case "EXPECTED": return CommitStatus.StatusState.Success;
-                case "PENDING": return CommitStatus.StatusState.Pending;
-                default: return CommitStatus.StatusState.Error;
-            }
-        }
-
         #region Utilities
 
         private string FullBranchRef(string branchName) =>
@@ -368,6 +323,88 @@ fragment commitStatus on Commit {
                 {
                     Data = { { "Response", JsonConvert.DeserializeObject(content) } }
                 };
+            }
+        }
+
+        #endregion
+
+        #region Status
+
+        public async Task<ImmutableDictionary<string, ImmutableList<CommitStatus>>> GetCommitStatuses(ImmutableList<string> commitShas)
+        {
+            if (!serviceOptions.CheckStatus)
+            {
+                return commitShas.Distinct().ToImmutableDictionary(sha => sha, _ => ImmutableList<CommitStatus>.Empty);
+            }
+
+            var needed = commitShas.Where(sha => !commitStatus.ContainsKey(sha)).ToHashSet();
+
+            if (needed.Count > 0)
+            {
+                var requests = string.Join("\n    ",
+                    from sha in needed.Distinct()
+                    select $"_{sha}: object(oid: \"{sha}\") {{ ...commitStatus }}"
+                );
+
+                var data = await graphqlClient.Query(@"
+query($owner: String!, $repository: String!) {
+  repository(owner: $owner, name: $repository) {
+    " + requests + @"
+  }
+  ...rateLimit
+}
+
+fragment commitStatus on Commit {
+  status {
+    contexts {
+      context
+      targetUrl
+      description
+      state
+    }
+    state
+  }
+}
+" + rateLimitFragment, new
+                {
+                    owner,
+                    repository
+                }).ConfigureAwait(false);
+
+                var result = (from sha in commitShas.Distinct()
+                              select new
+                              {
+                                  sha,
+                                  result = from entry in data["repository"]["_" + sha]["status"]["contexts"] as JArray
+                                           select new CommitStatus
+                                           {
+                                               Key = entry["context"].ToString(),
+                                               Url = entry["targetUrl"].ToString(),
+                                               Description = entry["description"].ToString(),
+                                               State = GitHubConverters.ToCommitState(entry["state"].ToString())
+                                           }
+                              }).ToImmutableDictionary(v => v.sha, v => v.result.ToImmutableList());
+
+                foreach (var entry in needed)
+                {
+                    commitStatus.TryAdd(entry, result[entry]);
+                }
+            }
+            return commitShas.Distinct().ToImmutableDictionary(sha => sha, sha => commitStatus[sha]);
+        }
+
+        public void ReceiveCommitStatus(string commitSha, CommitStatus status)
+        {
+            if (commitStatus.ContainsKey(commitSha))
+            {
+                // FIXME - this should run through a single threaded dispatcher to be more efficient
+                bool updated = false;
+                do
+                {
+                    var oldValue = commitStatus[commitSha];
+                    var newValue = oldValue.Where(s => s.Key != status.Key).Append(status).ToImmutableList();
+                    updated = commitStatus.TryUpdate(commitSha, newValue, oldValue);
+                } while (!updated);
             }
         }
 

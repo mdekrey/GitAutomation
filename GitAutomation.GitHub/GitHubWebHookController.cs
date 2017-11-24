@@ -1,5 +1,6 @@
 ﻿using GitAutomation.Repository;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -16,7 +17,7 @@ namespace GitAutomation.GitHub
         const string refPrefix = "refs/heads/";
 
         [HttpPost]
-        public void Post([FromBody] JObject contents, [FromServices] IGitCli cli, [FromServices] IRemoteRepositoryState repositoryState)
+        public void Post([FromBody] JObject contents, [FromServices] IServiceProvider serviceProvider)
         {
             // TODO - add support to verify signature
             switch (Request.Headers["X-GitHub-Event"])
@@ -25,7 +26,7 @@ namespace GitAutomation.GitHub
                 case "delete":
                 case "push":
                     // refs updated
-                    UpdateRef(contents, cli, repositoryState);
+                    UpdateRef(contents, serviceProvider.GetRequiredService<IGitCli>(), serviceProvider.GetRequiredService<IRemoteRepositoryState>());
                     break;
                 case "pull_request":
                 case "pull_request_review":
@@ -34,9 +35,21 @@ namespace GitAutomation.GitHub
                     break;
                 case "status":
                     // status checks
-                    // TODO
+                    UpdateStatus(contents, serviceProvider.GetRequiredService<IGitHubStatusChanges>());
                     break;
             }
+        }
+
+        private void UpdateStatus(JObject contents, IGitHubStatusChanges gitHubStatusChanges)
+        {
+            gitHubStatusChanges.ReceiveCommitStatus(contents["sha"].ToString(),
+                new GitService.CommitStatus
+                {
+                    Key = contents["context"].ToString(),
+                    Description = contents["description"].ToString(),
+                    Url = contents["target_url"].ToString(),
+                    State = GitHubConverters.ToCommitState(contents["state"].ToString()),
+                });
         }
 
         private async void UpdateRef(JObject contents, IGitCli cli, IRemoteRepositoryState repositoryState)
