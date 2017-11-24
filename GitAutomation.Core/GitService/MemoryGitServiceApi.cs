@@ -20,12 +20,7 @@ namespace GitAutomation.GitService
         {
             return Task.FromResult(commitSha.Distinct().ToImmutableDictionary(k => k, _ => ImmutableList<CommitStatus>.Empty));
         }
-
-        public Task<ImmutableList<PullRequestReview>> GetPullRequestReviews(string targetBranch)
-        {
-            return Task.FromResult(ImmutableList<PullRequestReview>.Empty);
-        }
-
+        
         public Task<ImmutableList<PullRequest>> GetPullRequests(PullRequestState? state = PullRequestState.Open, string targetBranch = null, string sourceBranch = null, bool includeReviews = false)
         {
             return Task.FromResult(

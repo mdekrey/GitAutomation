@@ -10,7 +10,6 @@ namespace GitAutomation.GitService
     {
         Task<bool> OpenPullRequest(string title, string targetBranch, string sourceBranch, string body = null);
         Task<ImmutableList<PullRequest>> GetPullRequests(PullRequestState? state = PullRequestState.Open, string targetBranch = null, string sourceBranch = null, bool includeReviews = false);
-        Task<ImmutableList<PullRequestReview>> GetPullRequestReviews(string id);
         Task MigrateOrClosePullRequests(string fromBranch, string toBranch);
 
         Task<ImmutableDictionary<string, ImmutableList<CommitStatus>>> GetCommitStatuses(ImmutableList<string> commitSha);

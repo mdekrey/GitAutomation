@@ -177,7 +177,7 @@ namespace GitAutomation
                 .Select(remoteBranches =>
                 {
                     var branch = branchIteration.GetLatestBranchNameIteration(branchName, remoteBranches.Select(b => b.Name).Where(candidate => branchIteration.IsBranchIteration(branchName, candidate)));
-                    return gitApi.GetPullRequests(state: null, targetBranch: branch, includeReviews: true);
+                    return gitApi.GetPullRequests(state: PullRequestState.Open, targetBranch: branch, includeReviews: true);
                 }).Switch();
         }
 

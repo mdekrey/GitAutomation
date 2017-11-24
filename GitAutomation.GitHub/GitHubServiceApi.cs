@@ -162,35 +162,6 @@ query($owner: String!, $repository: String!, $states: [PullRequestState!], $targ
                     }).ToImmutableList();
         }
 
-        public async Task<ImmutableList<PullRequestReview>> GetPullRequestReviews(string id)
-        {
-            if (!serviceOptions.CheckPullRequestReviews)
-            {
-                return ImmutableList<PullRequestReview>.Empty;
-            }
-
-            var data = await graphqlClient.Query(@"
-query($owner: String!, $repository: String!, $id: Int!) {
-  repository(owner: $owner, name: $repository) {
-    pullRequest(number: $id) {
-      reviews(first: 10) {
-        nodes {
-          ...review
-        }
-      }
-    }
-  }
-  ...rateLimit
-}" + rateLimitFragment + reviewFragment + userFragment, new
-            {
-                owner,
-                repository,
-                id = Convert.ToInt32(id)
-            });
-
-            return ToPullRequestReviews(data["repository"]["pullRequest"]["reviews"]["nodes"] as JArray);
-        }
-
         private ImmutableList<PullRequestReview> ToPullRequestReviews(JArray data)
         {
             return (from entry in data
