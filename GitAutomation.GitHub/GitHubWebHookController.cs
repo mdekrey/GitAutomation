@@ -1,4 +1,5 @@
-﻿using GitAutomation.Repository;
+﻿using GitAutomation.GitService;
+using GitAutomation.Repository;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
@@ -29,27 +30,16 @@ namespace GitAutomation.GitHub
                     UpdateRef(contents, serviceProvider.GetRequiredService<IGitCli>(), serviceProvider.GetRequiredService<IRemoteRepositoryState>());
                     break;
                 case "pull_request":
+                    UpdatePullRequest(contents, serviceProvider.GetRequiredService<IGitHubPullRequestChanges>());
+                    break;
                 case "pull_request_review":
-                    // pull request updates
-                    // TODO
+                    UpdatePullRequestReview(contents, serviceProvider.GetRequiredService<IGitHubPullRequestChanges>());
                     break;
                 case "status":
                     // status checks
                     UpdateStatus(contents, serviceProvider.GetRequiredService<IGitHubStatusChanges>());
                     break;
             }
-        }
-
-        private void UpdateStatus(JObject contents, IGitHubStatusChanges gitHubStatusChanges)
-        {
-            gitHubStatusChanges.ReceiveCommitStatus(contents["sha"].ToString(),
-                new GitService.CommitStatus
-                {
-                    Key = contents["context"].ToString(),
-                    Description = contents["description"].ToString(),
-                    Url = contents["target_url"].ToString(),
-                    State = GitHubConverters.ToCommitState(contents["state"].ToString()),
-                });
         }
 
         private async void UpdateRef(JObject contents, IGitCli cli, IRemoteRepositoryState repositoryState)
@@ -74,5 +64,41 @@ namespace GitAutomation.GitHub
             await cli.Fetch(branchName).ActiveState;
             return (await cli.ShowRef(branchName).ActiveOutput.FirstOrDefaultAsync()).Message;
         }
+
+
+        private void UpdateStatus(JObject contents, IGitHubStatusChanges gitHubStatusChanges)
+        {
+            gitHubStatusChanges.ReceiveCommitStatus(contents["sha"].ToString(),
+                new GitService.CommitStatus
+                {
+                    Key = contents["context"].ToString(),
+                    Description = contents["description"].ToString(),
+                    Url = contents["target_url"].ToString(),
+                    State = GitHubConverters.ToCommitState(contents["state"].ToString()),
+                });
+        }
+
+
+        private void UpdatePullRequest(JObject contents, IGitHubPullRequestChanges gitHubPullRequestChanges)
+        {
+            var entry = contents["pull_request"];
+            gitHubPullRequestChanges.ReceivePullRequestUpdate(new GitService.PullRequest
+            {
+                Id = entry["number"].ToString(),
+                Created = entry["created_at"].Value<DateTimeOffset>().ToString("s", System.Globalization.CultureInfo.InvariantCulture),
+                Author = entry["user"]["login"].ToString(),
+                State = entry["state"].ToString().ToUpper() == "OPEN" ? PullRequestState.Open : PullRequestState.Closed,
+                TargetBranch = entry["base"]["ref"].ToString(),
+                SourceBranch = entry["head"]["ref"].ToString(),
+                Url = entry["_links"]["html"]["href"].ToString(),
+                Reviews = null
+            });
+        }
+
+        private void UpdatePullRequestReview(JObject contents, IGitHubPullRequestChanges gitHubPullRequestChanges)
+        {
+            throw new NotImplementedException();
+        }
+
     }
 }

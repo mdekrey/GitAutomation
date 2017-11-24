@@ -53,6 +53,7 @@ namespace GitAutomation
         {
             var mvcBuilder = services.AddMvc().AddJsonOptions(options =>
             {
+                options.SerializerSettings.DateParseHandling = Newtonsoft.Json.DateParseHandling.DateTimeOffset;
                 options.SerializerSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
             });
             services.AddMvcExtensions(Configuration.GetSection("mvcExtensions"), mvcBuilder);

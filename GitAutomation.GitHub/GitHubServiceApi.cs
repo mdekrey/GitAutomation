@@ -44,6 +44,7 @@ fragment rateLimit on Query {
         private const string pullRequestFragment = @"
 fragment pullRequest on PullRequest {
   number
+  createdAt
   title
   author {
     ...user
@@ -72,6 +73,7 @@ fragment user on User {
         private static Regex githubUrlParse = new Regex(@"^/?(?<owner>[^/]+)/(?<repository>[^/]+)");
 
         private readonly ConcurrentDictionary<string, ImmutableList<CommitStatus>> commitStatus = new ConcurrentDictionary<string, ImmutableList<CommitStatus>>();
+        private readonly AsyncLazy<ConcurrentDictionary<string, PullRequest>> pullRequests;
 
         private readonly GitRepositoryOptions repositoryOptions;
         private readonly GithubServiceApiOptions serviceOptions;
@@ -94,6 +96,75 @@ fragment user on User {
             this.repository = match.Groups["repository"].Value;
             this.client = BuildHttpClient(clientFactory);
             this.graphqlClient = BuildGraphqlClient(clientFactory);
+            pullRequests = new AsyncLazy<ConcurrentDictionary<string, PullRequest>>(async () => await PullRequests());
+        }
+
+        async Task<ConcurrentDictionary<string, PullRequest>> PullRequests()
+        {
+            var query = @"
+query($owner: String!, $repository: String!, $states: [PullRequestState!], $targetBranch: String, $sourceBranch: String, $includeReviews: Boolean!, $after: String) {
+  repository(owner: $owner, name: $repository) {
+    pullRequests(
+      first: 100,
+      after: $after,
+      states: $states,
+      orderBy: { field: CREATED_AT, direction: DESC },
+      baseRefName: $targetBranch,
+      headRefName: $sourceBranch
+    ) {
+      pageInfo {
+        ...pageInfo
+      }
+      nodes {
+        ...pullRequest
+        reviews(first: 10) @include(if: $includeReviews) {
+          nodes {
+        	...review
+          }
+        }
+      }
+    }
+  }
+  ...rateLimit
+}" + pageInfoFragment + rateLimitFragment + pullRequestFragment + reviewFragment + userFragment;
+            var pullRequests = new List<PullRequest>();
+
+            string after = null;
+
+            do
+            {
+
+                var data = await graphqlClient.Query(query, new
+                {
+                    owner,
+                    repository,
+                    after,
+                    states = new[] { "CLOSED", "OPEN", "MERGED" },
+                    includeReviews = true
+                });
+
+                pullRequests.AddRange(
+                    from entry in data["repository"]["pullRequests"]["nodes"] as JArray
+                    select new PullRequest
+                    {
+                        Id = entry["number"].ToString(),
+                        Created = entry["createdAt"].ToString(),
+                        Author = entry["author"]["login"].ToString(),
+                        State = entry["state"].ToString() == "OPEN" ? PullRequestState.Open : PullRequestState.Closed,
+                        TargetBranch = entry["baseRefName"].ToString(),
+                        SourceBranch = entry["headRefName"].ToString(),
+                        Url = ResourcePathToUrl(entry["resourcePath"].ToString()),
+                        Reviews = serviceOptions.CheckPullRequestReviews
+                        ? ToPullRequestReviews(entry["reviews"]["nodes"] as JArray)
+                        : ImmutableList<PullRequestReview>.Empty
+                    });
+
+                after = data["repository"]["pullRequests"]["pageInfo"].Value<bool>("hasNextPage")
+                    ? data["repository"]["pullRequests"]["pageInfo"]["endCursor"].ToString()
+                    : null;
+            } while (after != null);
+
+            return new ConcurrentDictionary<string, PullRequest>(pullRequests.ToDictionary(pr => pr.Id, pr => pr));
         }
 
         async Task<bool> IGitServiceApi.OpenPullRequest(string title, string targetBranch, string sourceBranch, string body)
@@ -126,58 +197,12 @@ fragment user on User {
 
         public async Task<ImmutableList<PullRequest>> GetPullRequests(PullRequestState? state = PullRequestState.Open, string targetBranch = null, string sourceBranch = null, bool includeReviews = false)
         {
-            var data = await graphqlClient.Query(@"
-query($owner: String!, $repository: String!, $states: [PullRequestState!], $targetBranch: String, $sourceBranch: String, $includeReviews: Boolean!, $after: String) {
-  repository(owner: $owner, name: $repository) {
-    pullRequests(
-      first: 100,
-      after: $after,
-      states: $states,
-      orderBy: { field: CREATED_AT, direction: DESC },
-      baseRefName: $targetBranch,
-      headRefName: $sourceBranch
-    ) {
-      pageInfo {
-        ...pageInfo
-      }
-      nodes {
-        ...pullRequest
-        reviews(first: 10) @include(if: $includeReviews) {
-          nodes {
-        	...review
-          }
-        }
-      }
-    }
-  }
-  ...rateLimit
-}" + pageInfoFragment + rateLimitFragment + pullRequestFragment + reviewFragment + userFragment, new
-            {
-                owner,
-                repository,
-                states =
-                    state == null ? new[] { "CLOSED", "OPEN", "MERGED" }
-                    : state == PullRequestState.Open ? new[] { "OPEN" }
-                    : new[] { "CLOSED", "MERGED" },
-                targetBranch,
-                sourceBranch,
-                includeReviews = includeReviews && serviceOptions.CheckPullRequestReviews
-            });
-
-            return (from entry in data["repository"]["pullRequests"]["nodes"] as JArray
-                    select new PullRequest
-                    {
-                        Id = entry["number"].ToString(),
-                        Author = entry["author"]["login"].ToString(),
-                        State = entry["state"].ToString() == "OPEN" ? PullRequestState.Open : PullRequestState.Closed,
-                        TargetBranch = entry["baseRefName"].ToString(),
-                        SourceBranch = entry["headRefName"].ToString(),
-                        Url = ResourcePathToUrl(entry["resourcePath"].ToString()),
-                        Reviews = includeReviews && serviceOptions.CheckPullRequestReviews
-                            ? ToPullRequestReviews(entry["reviews"]["nodes"] as JArray)
-                            : includeReviews ? ImmutableList<PullRequestReview>.Empty
-                            : null
-                    }).ToImmutableList();
+            return (from pr in (await pullRequests.Value).Values
+                    where pr.State == (state ?? pr.State)
+                    where pr.TargetBranch == (targetBranch ?? pr.TargetBranch)
+                    where pr.SourceBranch == (sourceBranch ?? pr.SourceBranch)
+                    orderby pr.Created descending
+                    select pr).ToImmutableList();
         }
 
         private ImmutableList<PullRequestReview> ToPullRequestReviews(JArray data)
@@ -375,14 +400,16 @@ fragment commitStatus on Commit {
                               select new
                               {
                                   sha,
-                                  result = from entry in data["repository"]["_" + sha]["status"]["contexts"] as JArray
-                                           select new CommitStatus
-                                           {
-                                               Key = entry["context"].ToString(),
-                                               Url = entry["targetUrl"].ToString(),
-                                               Description = entry["description"].ToString(),
-                                               State = GitHubConverters.ToCommitState(entry["state"].ToString())
-                                           }
+                                  result = data["repository"]["_" + sha] != null
+                                            ? from entry in data["repository"]["_" + sha]["status"]["contexts"] as JArray
+                                              select new CommitStatus
+                                              {
+                                                  Key = entry["context"].ToString(),
+                                                  Url = entry["targetUrl"].ToString(),
+                                                  Description = entry["description"].ToString(),
+                                                  State = GitHubConverters.ToCommitState(entry["state"].ToString())
+                                              }
+                                            : Enumerable.Empty<CommitStatus>()
                               }).ToImmutableDictionary(v => v.sha, v => v.result.ToImmutableList());
 
                 foreach (var entry in needed)
@@ -397,17 +424,25 @@ fragment commitStatus on Commit {
         {
             if (commitStatus.ContainsKey(commitSha))
             {
-                // FIXME - this should run through a single threaded dispatcher to be more efficient
-                bool updated = false;
-                do
-                {
-                    var oldValue = commitStatus[commitSha];
-                    var newValue = oldValue.Where(s => s.Key != status.Key).Append(status).ToImmutableList();
-                    updated = commitStatus.TryUpdate(commitSha, newValue, oldValue);
-                } while (!updated);
+                commitStatus.AddOrUpdate(commitSha, 
+                    ImmutableList<CommitStatus>.Empty, // We already checked the key; should not hit this "add".
+                    (_, oldValue) => oldValue.Where(s => s.Key != status.Key).Append(status).ToImmutableList());
             }
         }
 
         #endregion
+
+        public async void ReceivePullRequestUpdate(PullRequest pullRequest)
+        {
+            var target = await pullRequests.Value;
+
+            pullRequest.Reviews = ImmutableList<PullRequestReview>.Empty;
+            target.AddOrUpdate(pullRequest.Id, pullRequest, (id, original) =>
+            {
+                pullRequest.Reviews = original.Reviews;
+                return pullRequest;
+            });
+        }
+
     }
 }

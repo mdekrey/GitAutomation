@@ -17,6 +17,7 @@ namespace GitAutomation.GitService
         }
 
         public string Id { get; set; }
+        public string Created { get; set; }
         public string Author { get; set; }
         public PullRequestState State { get; set; }
         public string SourceBranch { get; set; }
