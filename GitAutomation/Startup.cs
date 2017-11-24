@@ -100,8 +100,8 @@ namespace GitAutomation
 
             if (env.IsDevelopment())
             {
-                var repositoryState = app.ApplicationServices.GetRequiredService<IRepositoryState>();
-                repositoryState.DeleteRepository();
+                var actions = app.ApplicationServices.GetRequiredService<IOrchestrationActions>();
+                actions.DeleteRepository();
 
                 app.UseDeveloperExceptionPage();
                 app.UseCors("Allow");

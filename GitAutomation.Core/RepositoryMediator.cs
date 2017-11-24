@@ -11,6 +11,7 @@ using GitAutomation.GitService;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using System.Reactive.Threading.Tasks;
+using GitAutomation.Orchestration;
 
 namespace GitAutomation
 {
@@ -20,13 +21,15 @@ namespace GitAutomation
         private readonly IBranchSettings branchSettings;
         private readonly IBranchIterationMediator branchIteration;
         private readonly IGitServiceApi gitApi;
+        private readonly IOrchestrationActions actions;
 
-        public RepositoryMediator(IRepositoryState repositoryState, IBranchSettings branchSettings, IBranchIterationMediator branchIteration, IGitServiceApi gitApi)
+        public RepositoryMediator(IRepositoryState repositoryState, IBranchSettings branchSettings, IBranchIterationMediator branchIteration, IGitServiceApi gitApi, IOrchestrationActions actions)
         {
             this.repositoryState = repositoryState;
             this.branchSettings = branchSettings;
             this.branchIteration = branchIteration;
             this.gitApi = gitApi;
+            this.actions = actions;
         }
 
         public IObservable<ImmutableList<BranchGroupCompleteData>> AllBranches()
@@ -311,7 +314,7 @@ namespace GitAutomation
 
         public void CheckForUpdates()
         {
-            repositoryState.CheckForUpdates();
+            actions.CheckForUpdates();
         }
     }
 }

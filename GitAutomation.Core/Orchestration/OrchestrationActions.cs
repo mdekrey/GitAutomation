@@ -1,5 +1,6 @@
 ﻿using GitAutomation.Orchestration.Actions;
 using GitAutomation.Processes;
+using GitAutomation.Repository;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -13,6 +14,26 @@ namespace GitAutomation.Orchestration
         public OrchestrationActions(IRepositoryOrchestration orchestration)
         {
             this.orchestration = orchestration;
+        }
+
+        #region Reset
+
+        public IObservable<IRepositoryActionEntry> DeleteRepository()
+        {
+            return orchestration.EnqueueAction(new ClearAction());
+        }
+
+        #endregion
+
+
+        public IObservable<IRepositoryActionEntry> CheckForUpdates()
+        {
+            return orchestration.EnqueueAction(new UpdateAction());
+        }
+
+        public IObservable<IRepositoryActionEntry> DeleteBranch(string branchName, DeleteBranchMode mode)
+        {
+            return orchestration.EnqueueAction(new DeleteBranchAction(branchName, mode));
         }
 
         public IObservable<IRepositoryActionEntry> CheckDownstreamMerges(string downstreamBranch)

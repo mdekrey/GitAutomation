@@ -16,13 +16,9 @@ namespace GitAutomation.Hooks
     public class GitWebHookController : Controller
     {
         [HttpPost]
-        public void Post([FromServices] IRepositoryState repositoryState)
+        public void Post([FromServices] IRepositoryMediator repository)
         {
-            repositoryState.CheckForUpdates()
-                .Subscribe(onNext: _ => { }, onError: (ex) =>
-                {
-                    Console.WriteLine(ex);
-                });
+            repository.CheckForUpdates();
         }
     }
 }

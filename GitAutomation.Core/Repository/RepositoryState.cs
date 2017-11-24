@@ -44,15 +44,6 @@ namespace GitAutomation.Repository
             this.mergeBaseBranches = BuildMergeBases();
         }
 
-        #region Reset
-
-        public IObservable<IRepositoryActionEntry> DeleteRepository()
-        {
-            return orchestration.EnqueueAction(new ClearAction());
-        }
-        
-        #endregion
-
         #region Updates
 
         protected virtual void OnUpdated()
@@ -60,9 +51,9 @@ namespace GitAutomation.Repository
             Updated?.Invoke(this, EventArgs.Empty);
         }
 
-        public IObservable<IRepositoryActionEntry> CheckForUpdates()
+        public void NotifyUpdated()
         {
-            return orchestration.EnqueueAction(new UpdateAction()).Finally(OnUpdated);
+            Updated?.Invoke(this, EventArgs.Empty);
         }
 
         public void NotifyPushedRemoteBranch(string downstreamBranch)
@@ -156,11 +147,6 @@ namespace GitAutomation.Repository
         private IObservable<string> GetMergeBase(Tuple<string, string> commitPair)
         {
             return MergeBaseBetweenCommits(commitPair.Item1, commitPair.Item2).ToObservable();
-        }
-
-        public IObservable<IRepositoryActionEntry> DeleteBranch(string branchName, DeleteBranchMode mode)
-        {
-            return orchestration.EnqueueAction(new DeleteBranchAction(branchName, mode)).Finally(OnUpdated);
         }
 
         public IObservable<ImmutableList<GitRef>> DetectUpstream(string branchName, bool allowSame)

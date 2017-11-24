@@ -23,22 +23,20 @@ namespace GitAutomation.Management
         private readonly IRepositoryState repositoryState;
         private readonly IBranchSettings branchSettings;
         private readonly IUnitOfWorkFactory unitOfWorkFactory;
-        private readonly IRepositoryOrchestration orchestration;
 
-        public ManagementController(IRepositoryMediator repository, IRepositoryState repositoryState, IBranchSettings branchSettings, IUnitOfWorkFactory unitOfWorkFactory, IRepositoryOrchestration orchestration)
+        public ManagementController(IRepositoryMediator repository, IRepositoryState repositoryState, IBranchSettings branchSettings, IUnitOfWorkFactory unitOfWorkFactory)
         {
             this.repository = repository;
             this.repositoryState = repositoryState;
             this.branchSettings = branchSettings;
             this.unitOfWorkFactory = unitOfWorkFactory;
-            this.orchestration = orchestration;
         }
         
         [Authorize(Auth.PolicyNames.Delete)]
         [HttpDelete("branch/{*branchName}")]
-        public void DeleteBranch(string branchName, [FromQuery] DeleteBranchMode mode = DeleteBranchMode.BranchAndGroup)
+        public void DeleteBranch(string branchName, [FromServices] IOrchestrationActions orchestrationActions, [FromQuery] DeleteBranchMode mode = DeleteBranchMode.BranchAndGroup)
         {
-            repositoryState.DeleteBranch(branchName, mode);
+            orchestrationActions.DeleteBranch(branchName, mode);
         }
         
         [Authorize(Auth.PolicyNames.Create)]
