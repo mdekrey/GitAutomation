@@ -86,7 +86,7 @@ namespace GitAutomation.Orchestration
                                 ? list.RemoveRange(0, list.Count - (logLength - 1))
                                 : list
                         ).Add(next)
-                ).Replay(1);
+                ).StartWith(ImmutableList<IRepositoryActionEntry>.Empty).Replay(1);
             temp.Connect();
             this.repositoryActionProcessorLog = temp;
         }

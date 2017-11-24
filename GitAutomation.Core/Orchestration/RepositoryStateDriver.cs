@@ -51,8 +51,8 @@ namespace GitAutomation.Orchestration
                 repositoryState
                     .RemoteBranches()
                     .Where(branches => branches.Count > 0)
-                    .Do(_ => orchestrationActions.Update())
                     .Subscribe(allBranches =>
+                        // TODO - only push to branches that changed
                         branchSettings.GetAllDownstreamBranches()
                             .SelectMany(all => all.Select(each => each.GroupName).ToObservable())
                             .SelectMany(downstreamBranch => orchestrationActions.CheckDownstreamMerges(downstreamBranch))

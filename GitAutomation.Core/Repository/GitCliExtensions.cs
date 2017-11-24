@@ -3,8 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace GitAutomation.Repository
 {
@@ -20,9 +22,8 @@ namespace GitAutomation.Repository
                     );
 
 
-        public static IObservable<ImmutableList<GitRef>> BranchListingToRefs(IObservable<OutputMessage> refListing)
+        public static Task<ImmutableList<GitRef>> BranchListingToRefs(IObservable<OutputMessage> refListing)
         {
-
             return (
                 from output in refListing
                 where output.Channel == OutputChannel.Out
@@ -31,7 +32,8 @@ namespace GitAutomation.Repository
                 where remoteBranch.Success
                 select new GitRef { Commit = remoteBranch.Groups["commit"].Value, Name = remoteBranch.Groups["branch"].Value }
             )
-                .Aggregate(ImmutableList<GitRef>.Empty, (list, next) => list.Add(next));
+                .Aggregate(ImmutableList<GitRef>.Empty, (list, next) => list.Add(next))
+                .FirstOrDefaultAsync().ToTask();
         }
 
     }

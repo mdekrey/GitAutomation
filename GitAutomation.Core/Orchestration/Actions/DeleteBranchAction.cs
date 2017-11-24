@@ -70,6 +70,7 @@ namespace GitAutomation.Orchestration.Actions
                 if (mode == DeleteBranchMode.ActualBranchOnly)
                 {
                     await AppendProcess(cli.DeleteRemote(deletingBranch)).WaitUntilComplete();
+                    repository.BranchUpdated(deletingBranch, null);
                 }
                 else
                 {
@@ -87,7 +88,7 @@ namespace GitAutomation.Orchestration.Actions
                         foreach (var branch in details.Branches)
                         {
                             await AppendProcess(cli.DeleteRemote(branch.Name)).WaitUntilComplete();
-                            repository.NotifyPushedRemoteBranch(branch.Name);
+                            repository.BranchUpdated(branch.Name, null);
                         }
                     }
                 }

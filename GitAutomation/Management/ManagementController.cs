@@ -64,39 +64,44 @@ namespace GitAutomation.Management
 
         [Authorize(Auth.PolicyNames.Update)]
         [HttpPut("branch/propagation/{*branchName}")]
-        public async Task UpdateBranch(string branchName, [FromBody] UpdateBranchRequestBody requestBody)
+        public async Task UpdateBranch(string branchName, [FromBody] UpdateBranchRequestBody requestBody, [FromServices] IOrchestrationActions orchestrationActions)
         {
+            var branchesToCheck = new HashSet<string>();
+            branchesToCheck.Add(branchName);
             using (var unitOfWork = unitOfWorkFactory.CreateUnitOfWork())
             {
                 foreach (var addedUpstream in requestBody.AddUpstream)
                 {
                     branchSettings.AddBranchPropagation(addedUpstream, branchName, unitOfWork);
+                    branchesToCheck.Add(addedUpstream);
                 }
                 foreach (var addedDownstream in requestBody.AddDownstream)
                 {
                     branchSettings.AddBranchPropagation(branchName, addedDownstream, unitOfWork);
+                    branchesToCheck.Add(addedDownstream);
                 }
                 foreach (var removeUpstream in requestBody.RemoveUpstream)
                 {
                     branchSettings.RemoveBranchPropagation(removeUpstream, branchName, unitOfWork);
+                    branchesToCheck.Add(removeUpstream);
                 }
                 foreach (var removeDownstream in requestBody.RemoveDownstream)
                 {
                     branchSettings.RemoveBranchPropagation(branchName, removeDownstream, unitOfWork);
+                    branchesToCheck.Add(removeDownstream);
                 }
                 branchSettings.UpdateBranchSetting(branchName, requestBody.RecreateFromUpstream, requestBody.BranchType, unitOfWork);
 
                 await unitOfWork.CommitAsync();
             }
+            foreach (var branch in branchesToCheck)
+            {
+#pragma warning disable CS4014
+                orchestrationActions.CheckDownstreamMerges(branch);
+#pragma warning restore CS4014
+            }
         }
-
-        [Authorize(Auth.PolicyNames.Update)]
-        [HttpPut("branch/check-upstream/{*branchName}")]
-        public void CheckDownstreamMerges(string branchName, [FromServices] IOrchestrationActions orchestrationActions)
-        {
-            orchestrationActions.CheckDownstreamMerges(branchName);
-        }
-
+        
         [Authorize(Auth.PolicyNames.Approve)]
         [HttpPut("branch/promote")]
         public void PromoteServiceLine([FromBody] PromoteServiceLineBody requestBody, [FromServices] IOrchestrationActions orchestrationActions)

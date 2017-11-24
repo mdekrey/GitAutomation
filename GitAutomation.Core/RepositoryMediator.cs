@@ -283,9 +283,9 @@ namespace GitAutomation
                 .Concat(nonconfiguredBranchesResult);
         }
 
-        public void NotifyPushedRemoteBranch(string downstreamBranch)
+        public void BranchUpdated(string downstreamBranch, string newRef)
         {
-            repositoryState.NotifyPushedRemoteBranch(downstreamBranch);
+            repositoryState.BranchUpdated(downstreamBranch, newRef);
         }
 
         public IObservable<ImmutableList<string>> RecommendNewGroups()

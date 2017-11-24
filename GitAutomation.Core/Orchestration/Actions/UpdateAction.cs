@@ -35,7 +35,7 @@ namespace GitAutomation.Orchestration.Actions
                     ? cli.Fetch()
                     : cli.Clone());
 
-                repositoryState.NotifyUpdated();
+                repositoryState.RefreshAll();
             }
         }
     }

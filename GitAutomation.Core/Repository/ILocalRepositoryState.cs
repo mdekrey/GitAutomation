@@ -15,15 +15,15 @@ namespace GitAutomation.Repository
         Task<string> MergeBaseBetween(string branchName1, string branchName2);
 
         /// <summary>
-        /// Informs the local repository that it should fetch from the remote. If a specificRef is provided, fetch only that ref.
+        /// Dump internal cache and fetch from remote
         /// </summary>
-        /// <param name="specificRef">If provided, the ref to fetch.</param>
-        void ShouldFetch(string specificRef = null);
+        void RefreshAll();
         /// <summary>
-        /// Informs the local repository that a remote branch no longer exists
+        /// Informs the local repository that a branch was known to update to a specific revision
         /// </summary>
-        /// <param name="remoteBranch">The name of the remote branch that was removed</param>
-        void NotifyRemoved(string remoteBranch);
+        /// <param name="branchName">The branch that was updated. Should not be null.</param>
+        /// <param name="revision">The new revision. If null, the branch was deleted.</param>
+        void BranchUpdated(string branchName, string revision);
 
         IGitCli Cli { get; }
     }

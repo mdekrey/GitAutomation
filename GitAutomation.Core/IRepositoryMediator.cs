@@ -24,7 +24,7 @@ namespace GitAutomation
         IObservable<ImmutableList<Repository.GitRef>> GetAllBranchRefs();
         IObservable<string> GetBranchRef(string branchName);
         Task<bool> HasOutstandingCommits(string upstreamBranch, string downstreamBranch);
-        void NotifyPushedRemoteBranch(string downstreamBranch);
+        void BranchUpdated(string downstreamBranch, string newValue);
         IObservable<ImmutableList<BranchGroup>> GetConfiguredBranchGroups();
         IObservable<ImmutableList<string>> RecommendNewGroups();
         void CheckForUpdates();

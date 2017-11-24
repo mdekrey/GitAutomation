@@ -28,19 +28,19 @@ namespace GitAutomation.Repository
 
         #region Updates
         
-        public void NotifyUpdated()
+        public void RefreshAll()
         {
             foreach (var local in localRepositories)
             {
-                local.ShouldFetch();
+                local.RefreshAll();
             }
         }
 
-        public void NotifyPushedRemoteBranch(string downstreamBranch)
+        public void BranchUpdated(string branchName, string revision)
         {
             foreach (var local in localRepositories)
             {
-                local.ShouldFetch();
+                local.BranchUpdated(branchName, revision);
             }
         }
 

@@ -18,7 +18,7 @@ namespace GitAutomation.GitService
 
         public Task<ImmutableDictionary<string, ImmutableList<CommitStatus>>> GetCommitStatuses(ImmutableList<string> commitSha)
         {
-            return Task.FromResult(ImmutableDictionary<string, ImmutableList<CommitStatus>>.Empty);
+            return Task.FromResult(commitSha.Distinct().ToImmutableDictionary(k => k, _ => ImmutableList<CommitStatus>.Empty));
         }
 
         public Task<ImmutableList<PullRequestReview>> GetPullRequestReviews(string targetBranch)

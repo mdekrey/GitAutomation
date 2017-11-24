@@ -1,6 +1,6 @@
 import { Observable } from "../utils/rxjs";
 
-import { checkDownstreamMerges, createBranch } from "../api/basics";
+import { checkRelatedMerges, createBranch } from "../api/basics";
 
 export interface ISaveData {
   downstream: string[];
@@ -28,6 +28,6 @@ export const doSave = (data: Observable<ISaveData>) => {
       createBranch(branchName, requestBody).map(_ => branchName)
     )
     .switchMap(branchName =>
-      checkDownstreamMerges(branchName).map(_ => branchName)
+      checkRelatedMerges(branchName).map(_ => branchName)
     );
 };

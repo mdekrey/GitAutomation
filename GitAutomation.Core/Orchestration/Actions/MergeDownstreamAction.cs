@@ -296,7 +296,8 @@ namespace GitAutomation.Orchestration.Actions
                 await AppendProcess(pushProcess);
                 if (pushExitCode == 0)
                 {
-                    repository.NotifyPushedRemoteBranch(downstreamBranch);
+                    var newValue = await cli.ShowRef(downstreamBranch).FirstOutputMessage();
+                    repository.BranchUpdated(downstreamBranch, newValue);
                 }
             }
             

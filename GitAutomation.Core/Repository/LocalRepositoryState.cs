@@ -20,23 +20,21 @@ namespace GitAutomation.Repository
     {
         private readonly IGitCli cli;
         private readonly Subject<Unit> allUpdates = new Subject<Unit>();
-        private readonly IObservable<ImmutableList<GitRef>> remoteBranches;
-        private readonly IObservable<ImmutableDictionary<Tuple<string, string>, LazyObservable<string>>> mergeBaseBranches;
+        private AsyncLazy<ImmutableList<GitRef>> remoteBranchesAsync;
         private readonly ConcurrentDictionary<Tuple<string, string>, Task<string>> mergeBaseCommits = new ConcurrentDictionary<Tuple<string, string>, Task<string>>();
 
         public LocalRepositoryState(IReactiveProcessFactory factory, IRepositoryOrchestration orchestration, IOptions<GitRepositoryOptions> options)
         {
             cli = new _GitCli(factory, checkoutPath: options.Value.CheckoutPath, repository: options.Value.Repository, userName: options.Value.UserName, userEmail: options.Value.UserEmail);
 
-            this.remoteBranches = BuildRemoteBranches();
-            this.mergeBaseBranches = BuildMergeBases();
+            this.remoteBranchesAsync = BuildRemoteBranches();
         }
 
         public IGitCli Cli => cli;
 
         public async Task<ImmutableList<GitRef>> DetectUpstream(string branchName, bool allowSame)
         {
-            var remotes = await remoteBranches.Take(1);
+            var remotes = await remoteBranchesAsync.Value;
             var currentCommitish = remotes.FirstOrDefault(gitref => gitref.Name == branchName).Commit;
 
             var branches = await Task.WhenAll(from remote in remotes
@@ -59,12 +57,11 @@ namespace GitAutomation.Repository
         }
         public async Task<string> MergeBaseBetween(string branchName1, string branchName2)
         {
-            var key = branchName1.CompareTo(branchName2) < 0
-                ? Tuple.Create(branchName1, branchName2)
-                : Tuple.Create(branchName2, branchName1);
-            return await (this.mergeBaseBranches.SelectMany(bases => bases.ContainsKey(key)
-                ? bases[key]
-                : Observable.Return<string>(null))).Take(1);
+            var refs = await remoteBranchesAsync.Value;
+            return await MergeBaseBetweenCommits(
+                refs.Find(r => r.Name == branchName1).Commit,
+                refs.Find(r => r.Name == branchName2).Commit
+            );
         }
 
         public Task<string> MergeBaseBetweenCommits(string commit1, string commit2)
@@ -76,86 +73,49 @@ namespace GitAutomation.Repository
                 valueFactory: key => cli.MergeBaseCommits(key.Item1, key.Item2).FirstOutputMessage().ToTask()
             );
         }
-
-        public void NotifyRemoved(string remoteBranch)
-        {
-            allUpdates.OnNext(Unit.Default);
-        }
-
+        
         public IObservable<ImmutableList<GitRef>> RemoteBranches()
         {
-            return remoteBranches;
+            return allUpdates.StartWith(Unit.Default).Select(_ => remoteBranchesAsync.Value).Switch();
         }
+        
 
-        public void ShouldFetch(string specificRef = null)
+        private AsyncLazy<ImmutableList<GitRef>> BuildRemoteBranches()
         {
-            cli.Fetch().ActiveState.Subscribe(onNext: _ => { }, onCompleted: () =>
+            return new AsyncLazy<ImmutableList<GitRef>>(async () =>
             {
-                allUpdates.OnNext(Unit.Default);
+                if (!cli.IsGitInitialized)
+                {
+                    await cli.Initialize();
+                }
+                var remoteBranches = cli.GetRemoteBranches();
+                await remoteBranches.ActiveState;
+                // Because listing remote branches doesn't affect the index, it doesn't need to be an action, but it does need to wait until initialization is ensured.
+                return await GitCliExtensions.BranchListingToRefs(remoteBranches.Output.ToObservable());
             });
         }
 
-
-        private IObservable<ImmutableList<GitRef>> BuildRemoteBranches()
+        public void RefreshAll()
         {
-            return Observable.Merge(
-                allUpdates
-                    .StartWith(Unit.Default)
-                    .SelectMany(async _ =>
-                    {
-                        if (!cli.IsGitInitialized)
-                        {
-                            await cli.Initialize();
-                        }
-                        // Because listing remote branches doesn't affect the index, it doesn't need to be an action, but it does need to wait until initialization is ensured.
-                        return cli.GetRemoteBranches().ActiveOutput;
-                    })
-                    .Select(GitCliExtensions.BranchListingToRefs)
-            )
-                .Replay(1).ConnectFirst();
+            remoteBranchesAsync = BuildRemoteBranches();
+            allUpdates.OnNext(Unit.Default);
         }
 
-        private IObservable<ImmutableDictionary<Tuple<string, string>, LazyObservable<string>>> BuildMergeBases()
+        public async void BranchUpdated(string branchName, string revision)
         {
-            var branchPairs = remoteBranches.Select(branches =>
-                from branch1 in branches
-                from branch2 in branches.Where(branch => branch.Name.CompareTo(branch1.Name) > 0)
-                select (branch1, branch2).ToTuple());
-            var mergeBases = branchPairs
-                .Select(pairs => pairs.Select(ToCommits).Distinct().ToImmutableHashSet())
-                .Scan(ImmutableDictionary<Tuple<string, string>, LazyObservable<string>>.Empty,
-                (old, commitPairs) =>
+            if (revision != null)
+            {
+                var hasRevision = cli.HasRevision(revision);
+                await hasRevision.ActiveState;
+                if (hasRevision.ExitCode != 0)
                 {
-                    foreach (var removing in old.Where(kvp => !commitPairs.Contains(kvp.Key)))
-                    {
-                        removing.Value.Dispose();
-                    }
+                    await cli.Fetch(revision).ActiveState;
+                }
+            }
+            await cli.UpdateRemoteRef(branchName, revision).ActiveState;
 
-                    return old.Where(kvp => commitPairs.Contains(kvp.Key))
-                        .Concat(from pair in commitPairs
-                                where !old.ContainsKey(pair)
-                                select new System.Collections.Generic.KeyValuePair<Tuple<string, string>, LazyObservable<string>>(
-                                    pair,
-                                    new LazyObservable<string>(GetMergeBase(pair).Replay(1))
-                                )
-                            )
-                        .ToImmutableDictionary();
-                });
-            return mergeBases.Zip(branchPairs, (commits, branches) =>
-                    branches.ToImmutableDictionary(pair => Tuple.Create(pair.Item1.Name, pair.Item2.Name), pair => commits[ToCommits(pair)])
-                ).Replay(1).ConnectFirst();
+            remoteBranchesAsync = BuildRemoteBranches();
+            allUpdates.OnNext(Unit.Default);
         }
-
-        private IObservable<string> GetMergeBase(Tuple<string, string> commitPair)
-        {
-            return MergeBaseBetweenCommits(commitPair.Item1, commitPair.Item2).ToObservable();
-        }
-
-        private Tuple<string, string> ToCommits(Tuple<GitRef, GitRef> pair)
-        {
-            var list = new[] { pair.Item1.Commit, pair.Item2.Commit }.OrderBy(commit => commit).ToArray();
-            return Tuple.Create(list[0], list[1]);
-        }
-        
     }
 }

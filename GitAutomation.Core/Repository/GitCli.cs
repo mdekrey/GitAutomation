@@ -60,7 +60,6 @@ namespace GitAutomation.Repository
 
         public IReactiveProcess Clone()
         {
-            Directory.Exists(checkoutPath);
             return RunGit("clone", repository, checkoutPath);
         }
 
@@ -69,9 +68,9 @@ namespace GitAutomation.Repository
             return RunGit("config", configKey, configValue);
         }
 
-        public IReactiveProcess Fetch()
+        public IReactiveProcess Fetch(string specificRef = null)
         {
-            return RunGit("fetch", "--prune");
+            return RunGit("fetch", "origin", specificRef ?? "--prune");
         }
 
         public IReactiveProcess GetRemoteBranches()
@@ -116,14 +115,22 @@ namespace GitAutomation.Repository
             return RunGit("show-ref", RemoteBranch(branchName), "--hash");
         }
 
+        public IReactiveProcess HasRevision(string revision)
+        {
+            return RunGit("show", revision, "--");
+        }
+
         public IReactiveProcess DeleteRemote(string branchName)
         {
             return RunGit("push", "origin", "--delete", branchName);
         }
 
-        public IReactiveProcess RemoveRemoteTrackingBranch(string branchName)
+        public IReactiveProcess UpdateRemoteRef(string branchName, string newValue)
         {
-            return RunGit("branch", "-rd", RemoteBranch(branchName));
+            var refName = $"refs/remotes/{RemoteBranch(branchName)}";
+            return newValue == null
+                ? RunGit("update-ref", "-d", refName)
+                : RunGit("update-ref", refName, newValue);
         }
 
         public IReactiveProcess Checkout(string branchName)
