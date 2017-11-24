@@ -54,7 +54,7 @@ namespace GitAutomation.Orchestration.Actions
 
         public class Internal : ComplexActionInternal
         {
-            private readonly GitCli cli;
+            private readonly IGitCli cli;
             private readonly IRepositoryMediator repository;
             private readonly IBranchSettings settings;
             private readonly IBranchIterationMediator branchIteration;
@@ -66,7 +66,7 @@ namespace GitAutomation.Orchestration.Actions
             private readonly string tagName;
             private readonly bool autoConsolidate;
 
-            public Internal(GitCli cli, IRepositoryMediator repository, IBranchSettings settings, IBranchIterationMediator branchIteration, IUnitOfWorkFactory unitOfWorkFactory, IRepositoryOrchestration orchestration, IOptions<GitRepositoryOptions> options, string releaseCandidateBranch, string serviceLineBranch, string tagName, bool autoConsolidate)
+            public Internal(IGitCli cli, IRepositoryMediator repository, IBranchSettings settings, IBranchIterationMediator branchIteration, IUnitOfWorkFactory unitOfWorkFactory, IRepositoryOrchestration orchestration, IOptions<GitRepositoryOptions> options, string releaseCandidateBranch, string serviceLineBranch, string tagName, bool autoConsolidate)
             {
                 this.cli = cli;
                 this.repository = repository;
@@ -146,7 +146,7 @@ namespace GitAutomation.Orchestration.Actions
                 }
             }
 
-            private async Task<bool> CreateOrFastForwardServiceLine(string latestBranchName, IRepositoryMediator repository, GitCli cli)
+            private async Task<bool> CreateOrFastForwardServiceLine(string latestBranchName, IRepositoryMediator repository, IGitCli cli)
             {
                 var showRefResult = await repository.GetBranchRef(serviceLineBranch).Take(1);
                 if (showRefResult == null)

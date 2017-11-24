@@ -20,11 +20,11 @@ namespace GitAutomation.Management
     public class ManagementController : Controller
     {
         private readonly IRepositoryMediator repository;
-        private readonly IRepositoryState repositoryState;
+        private readonly IRemoteRepositoryState repositoryState;
         private readonly IBranchSettings branchSettings;
         private readonly IUnitOfWorkFactory unitOfWorkFactory;
 
-        public ManagementController(IRepositoryMediator repository, IRepositoryState repositoryState, IBranchSettings branchSettings, IUnitOfWorkFactory unitOfWorkFactory)
+        public ManagementController(IRepositoryMediator repository, IRemoteRepositoryState repositoryState, IBranchSettings branchSettings, IUnitOfWorkFactory unitOfWorkFactory)
         {
             this.repository = repository;
             this.repositoryState = repositoryState;
@@ -115,7 +115,7 @@ namespace GitAutomation.Management
         [HttpGet("detect-upstream/{*branchName}")]
         public Task<ImmutableList<string>> DetectUpstream(string branchName, [FromQuery] bool asGroup)
         {
-            return repository.DetectShallowUpstream(branchName, asGroup).FirstAsync().ToTask();
+            return repository.DetectShallowUpstream(branchName, asGroup);
         }
 
         [Authorize(Auth.PolicyNames.Read)]

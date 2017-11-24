@@ -51,7 +51,7 @@ namespace GitAutomation.Orchestration.Actions
         private readonly IRepositoryOrchestration orchestration;
         private readonly IIntegrationNamingMediator integrationNaming;
         private readonly IBranchSettings settings;
-        private readonly IRepositoryState repository;
+        private readonly IRemoteRepositoryState repository;
         private readonly IBranchIterationMediator branchIteration;
         private readonly IGitServiceApi gitServiceApi;
 
@@ -63,7 +63,7 @@ namespace GitAutomation.Orchestration.Actions
             public ConflictingBranches? ConflictWhenSuccess;
         }
 
-        public IntegrateBranchesOrchestration(IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, IIntegrationNamingMediator integrationNaming, IBranchSettings settings, IRepositoryState repository, IBranchIterationMediator branchIteration)
+        public IntegrateBranchesOrchestration(IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, IIntegrationNamingMediator integrationNaming, IBranchSettings settings, IRemoteRepositoryState repository, IBranchIterationMediator branchIteration)
         {
             this.gitServiceApi = gitServiceApi;
             this.workFactory = workFactory;

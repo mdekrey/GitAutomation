@@ -22,10 +22,10 @@ namespace GitAutomation.Orchestration.Actions
 
         public class Internal : ComplexActionInternal
         {
-            private readonly GitCli cli;
+            private readonly IGitCli cli;
             private readonly GitRepositoryOptions gitOptions;
 
-            public Internal(GitCli cli, IOptions<GitRepositoryOptions> options)
+            public Internal(IGitCli cli, IOptions<GitRepositoryOptions> options)
             {
                 this.cli = cli;
                 this.gitOptions = options.Value;

@@ -17,13 +17,13 @@ namespace GitAutomation
 {
     class RepositoryMediator : IRepositoryMediator
     {
-        private readonly IRepositoryState repositoryState;
+        private readonly IRemoteRepositoryState repositoryState;
         private readonly IBranchSettings branchSettings;
         private readonly IBranchIterationMediator branchIteration;
         private readonly IGitServiceApi gitApi;
         private readonly IOrchestrationActions actions;
 
-        public RepositoryMediator(IRepositoryState repositoryState, IBranchSettings branchSettings, IBranchIterationMediator branchIteration, IGitServiceApi gitApi, IOrchestrationActions actions)
+        public RepositoryMediator(IRemoteRepositoryState repositoryState, IBranchSettings branchSettings, IBranchIterationMediator branchIteration, IGitServiceApi gitApi, IOrchestrationActions actions)
         {
             this.repositoryState = repositoryState;
             this.branchSettings = branchSettings;
@@ -91,29 +91,26 @@ namespace GitAutomation
             this.branchSettings.ConsolidateBranches(branchesToRemove, targetBranch, unitOfWork);
         }
 
-        public IObservable<ImmutableList<string>> DetectUpstream(string actualBranchName)
+        public async Task<ImmutableList<string>> DetectUpstream(string actualBranchName)
         {
-            return repositoryState.DetectUpstream(actualBranchName, true).Select(v => v.Select(r => r.Name).ToImmutableList());
+            var results = await repositoryState.DetectUpstream(actualBranchName, true);
+            return results.Select(r => r.Name).ToImmutableList();
         }
 
-        public IObservable<ImmutableList<string>> DetectShallowUpstream(string branchName, bool asGroup)
+        public async Task<ImmutableList<string>> DetectShallowUpstream(string branchName, bool asGroup)
         {
-            return repositoryState.RemoteBranches().CombineLatest(branchSettings.GetConfiguredBranches(), (allRemotes, configured) => (allRemotes, configured))
-                .SelectMany(tuple =>
-                {
-                    var actualBranchName = asGroup
-                        ? branchIteration.GetLatestBranchNameIteration(branchName, tuple.allRemotes.Select(b => b.Name))
-                        : branchName;
-                    return repositoryState.DetectUpstream(actualBranchName, false).Select(allUpstream => (allUpstream, tuple.allRemotes, tuple.configured));
-                })
-                .SelectMany(tuple =>
-                {
-                    var configured = tuple.configured;
-                    var allRemotes = tuple.allRemotes;
-                    var allUpstream = tuple.allUpstream;
+            var remoteBranchesTask = repositoryState.RemoteBranches().FirstOrDefaultAsync().ToTask();
+            var configuredBranchesTask = branchSettings.GetConfiguredBranches().FirstOrDefaultAsync().ToTask();
+            await Task.WhenAll(remoteBranchesTask, configuredBranchesTask);
+            var allRemotes = remoteBranchesTask.Result;
+            var configured = configuredBranchesTask.Result;
 
-					return PruneUpstream(allRemotes.Find(remote => remote.Name == branchName), allUpstream, configured, allRemotes);
-				});
+            var actualBranchName = asGroup
+                ? branchIteration.GetLatestBranchNameIteration(branchName, allRemotes.Select(b => b.Name))
+                : branchName;
+            var allUpstream = await repositoryState.DetectUpstream(actualBranchName, false);
+                
+			return await PruneUpstream(allRemotes.Find(remote => remote.Name == branchName), allUpstream, configured, allRemotes);
 		}
 
         private async System.Threading.Tasks.Task<ImmutableList<string>> PruneUpstream(GitRef original, ImmutableList<GitRef> allUpstream, ImmutableList<BranchGroup> configured, ImmutableList<GitRef> allRemotes)
@@ -144,7 +141,7 @@ namespace GitAutomation
             for (var i = 0; i < allUpstream.Count; i++)
             {
                 var upstream = allUpstream[i];
-                var furtherUpstream = await repositoryState.DetectUpstream(upstream.Name, false).FirstOrDefaultAsync();
+                var furtherUpstream = await repositoryState.DetectUpstream(upstream.Name, false);
                 if (allUpstream.Intersect(furtherUpstream).Any())
                 {
                     allUpstream = allUpstream.Except(furtherUpstream).ToImmutableList();
@@ -240,13 +237,12 @@ namespace GitAutomation
             repositoryState.RemoteBranches()
                 .Select(gitref => gitref.Exists(gr => gr.Name == branchName) ? gitref.Find(gr => gr.Name == branchName).Commit : null);
 
-        public IObservable<bool> HasOutstandingCommits(string upstreamBranch, string downstreamBranch)
+        public async Task<bool> HasOutstandingCommits(string upstreamBranch, string downstreamBranch)
         {
-            return Observable.CombineLatest(
-                repositoryState.MergeBaseBetween(upstreamBranch, downstreamBranch),
-                GetBranchRef(upstreamBranch),
-                (mergeBaseResult, showRefResult) => mergeBaseResult != showRefResult
-            );
+            var mergeBaseTask = repositoryState.MergeBaseBetween(upstreamBranch, downstreamBranch);
+            var showRefTask = GetBranchRef(upstreamBranch).FirstOrDefaultAsync().ToTask();
+            await Task.WhenAll(mergeBaseTask, showRefTask);
+            return mergeBaseTask.Result != showRefTask.Result;
         }
 
         private async Task<IEnumerable<BranchGroupCompleteData>> GroupBranches(ImmutableList<BranchGroupCompleteData> settings, ImmutableList<GitRef> actualBranches, Func<string, Task<BranchGroupCompleteData>> factory)

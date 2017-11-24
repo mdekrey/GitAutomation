@@ -44,7 +44,7 @@ namespace GitAutomation.Orchestration.Actions
             public readonly Mock<IUnitOfWorkFactory> workFactoryMock = new Mock<IUnitOfWorkFactory>() { DefaultValue = DefaultValue.Mock };
             public readonly Mock<IRepositoryOrchestration> orchestrationMock = new Mock<IRepositoryOrchestration>();
             public readonly Mock<IBranchSettings> settingsMock = new Mock<IBranchSettings>();
-            public readonly Mock<IRepositoryState> repositoryMock = new Mock<IRepositoryState>();
+            public readonly Mock<IRemoteRepositoryState> repositoryMock = new Mock<IRemoteRepositoryState>();
 
             public IntegrateBranchesOrchestration Target { get; }
             public Mock<IMergeDelegate> AttemptMergeMock { get; }

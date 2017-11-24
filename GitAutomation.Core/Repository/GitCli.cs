@@ -8,24 +8,26 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace GitAutomation.Repository
 {
-    // TODO - extract public interface for unit tests
-    class GitCli
+    class _GitCli : IGitCli
     {
-        private static readonly Regex remoteBranches = new Regex(@"^(?<commit>\S+)\s+refs/heads/(?<branch>.+)");
 
         private readonly IReactiveProcessFactory reactiveProcessFactory;
         private readonly string checkoutPath;
         private readonly string repository;
+        private readonly string userName;
+        private readonly string userEmail;
 
-        public GitCli(IReactiveProcessFactory factory, IOptions<GitRepositoryOptions> options)
+        public _GitCli(IReactiveProcessFactory factory, string checkoutPath, string repository, string userName, string userEmail)
         {
             this.reactiveProcessFactory = factory;
-            this.checkoutPath = options.Value.CheckoutPath;
-            this.repository = options.Value.Repository;
-
+            this.checkoutPath = checkoutPath;
+            this.repository = repository;
+            this.userName = userName;
+            this.userEmail = userEmail;
         }
 
         public bool IsGitInitialized =>
@@ -119,6 +121,11 @@ namespace GitAutomation.Repository
             return RunGit("push", "origin", "--delete", branchName);
         }
 
+        public IReactiveProcess RemoveRemoteTrackingBranch(string branchName)
+        {
+            return RunGit("branch", "-rd", RemoteBranch(branchName));
+        }
+
         public IReactiveProcess Checkout(string branchName)
         {
             return RunGit("checkout", branchName);
@@ -184,21 +191,18 @@ namespace GitAutomation.Repository
             return RunGit("show", "--format=%P", "-s", commitish);
         }
 
-        public static IObservable<ImmutableList<GitRef>> BranchListingToRefs(IObservable<OutputMessage> refListing)
-        {
-
-            return (
-                from output in refListing
-                where output.Channel == OutputChannel.Out
-                let remoteBranchLine = output.Message
-                let remoteBranch = remoteBranches.Match(remoteBranchLine)
-                where remoteBranch.Success
-                select new GitRef { Commit = remoteBranch.Groups["commit"].Value, Name = remoteBranch.Groups["branch"].Value }
-            )
-                .Aggregate(ImmutableList<GitRef>.Empty, (list, next) => list.Add(next));
-        }
-
         public string RemoteBranch(string branchName) => $"origin/{branchName}";
 
+        public async Task Initialize()
+        {
+            if (!Directory.Exists(checkoutPath))
+            {
+                Directory.CreateDirectory(checkoutPath);
+            }
+
+            await Clone().ActiveState;
+            await Config("user.name", userName).ActiveState;
+            await Config("user.email", userEmail).ActiveState;
+        }
     }
 }

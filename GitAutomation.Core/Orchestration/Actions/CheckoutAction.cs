@@ -31,7 +31,7 @@ namespace GitAutomation.Orchestration.Actions
                 { "branch", branch }
             }.ToImmutableDictionary());
         
-        protected override IReactiveProcess GetCliAction(GitCli gitCli) =>
+        protected override IReactiveProcess GetCliAction(IGitCli gitCli) =>
             gitCli.CheckoutRemote(branch);
     }
 }

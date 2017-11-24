@@ -20,10 +20,10 @@ namespace GitAutomation.Orchestration.Actions
 
         public class Internal : ComplexActionInternal
         {
-            private readonly GitCli cli;
-            private readonly IRepositoryState repositoryState;
+            private readonly IGitCli cli;
+            private readonly IRemoteRepositoryState repositoryState;
 
-            public Internal(GitCli cli, IRepositoryState repositoryState)
+            public Internal(IGitCli cli, IRemoteRepositoryState repositoryState)
             {
                 this.cli = cli;
                 this.repositoryState = repositoryState;

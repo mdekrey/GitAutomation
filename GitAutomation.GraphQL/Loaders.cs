@@ -22,11 +22,11 @@ namespace GitAutomation.GraphQL
         private readonly DataLoaderContext loadContext;
         private readonly IBranchSettingsAccessor branchSettings;
         private readonly IUserPermissionAccessor permissionAccessor;
-        private readonly IRepositoryState repositoryState;
+        private readonly IRemoteRepositoryState repositoryState;
         private readonly IBranchIterationNamingConvention branchIteration;
         private readonly IGitServiceApi gitService;
 
-        public Loaders(IDataLoaderContextAccessor loadContextAccessor, IBranchSettingsAccessor branchSettings, IUserPermissionAccessor permissionAccessor, IRepositoryState repositoryState, IBranchIterationNamingConvention branchIteration, IGitServiceApi gitService, ILoggerFactory loggerFactory)
+        public Loaders(IDataLoaderContextAccessor loadContextAccessor, IBranchSettingsAccessor branchSettings, IUserPermissionAccessor permissionAccessor, IRemoteRepositoryState repositoryState, IBranchIterationNamingConvention branchIteration, IGitServiceApi gitService, ILoggerFactory loggerFactory)
         {
             this.logger = loggerFactory.CreateLogger<Loaders>();
             this.loadContext = loadContextAccessor.LoadContext;

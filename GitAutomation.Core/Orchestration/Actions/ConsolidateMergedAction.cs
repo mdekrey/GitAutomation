@@ -50,13 +50,13 @@ namespace GitAutomation.Orchestration.Actions
         
         public class ConsolidateMergedActionProcess : ComplexActionInternal
         {
-            private readonly GitCli cli;
+            private readonly IGitCli cli;
             private readonly IRepositoryMediator repository;
             private readonly IUnitOfWorkFactory workFactory;
             private readonly ImmutableHashSet<string> originalBranches;
             private readonly string newBaseBranch;
 
-            public ConsolidateMergedActionProcess(GitCli cli, IRepositoryMediator repository, IUnitOfWorkFactory workFactory, IEnumerable<string> originalBranches, string newBaseBranch)
+            public ConsolidateMergedActionProcess(IGitCli cli, IRepositoryMediator repository, IUnitOfWorkFactory workFactory, IEnumerable<string> originalBranches, string newBaseBranch)
             {
                 this.cli = cli;
                 this.repository = repository;

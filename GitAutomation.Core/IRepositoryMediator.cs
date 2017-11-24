@@ -13,8 +13,8 @@ namespace GitAutomation
     {
         IObservable<ImmutableList<BranchGroupCompleteData>> AllBranches();
         IObservable<ImmutableList<BranchGroupCompleteData>> AllBranchesHierarchy();
-        IObservable<ImmutableList<string>> DetectUpstream(string actualBranchName);
-        IObservable<ImmutableList<string>> DetectShallowUpstream(string branchName, bool asGroup);
+        Task<ImmutableList<string>> DetectUpstream(string actualBranchName);
+        Task<ImmutableList<string>> DetectShallowUpstream(string branchName, bool asGroup);
         IObservable<ImmutableList<string>> DetectShallowUpstreamServiceLines(string branchName);
         IObservable<ImmutableList<PullRequest>> GetUpstreamPullRequests(string branchName);
         IObservable<string> LatestBranchName(BranchGroup details);
@@ -23,7 +23,7 @@ namespace GitAutomation
         void ConsolidateBranches(IEnumerable<string> branchesToRemove, string targetBranch, IUnitOfWork unitOfWork);
         IObservable<ImmutableList<Repository.GitRef>> GetAllBranchRefs();
         IObservable<string> GetBranchRef(string branchName);
-        IObservable<bool> HasOutstandingCommits(string upstreamBranch, string downstreamBranch);
+        Task<bool> HasOutstandingCommits(string upstreamBranch, string downstreamBranch);
         void NotifyPushedRemoteBranch(string downstreamBranch);
         IObservable<ImmutableList<BranchGroup>> GetConfiguredBranchGroups();
         IObservable<ImmutableList<string>> RecommendNewGroups();

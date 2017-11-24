@@ -10,9 +10,9 @@ namespace GitAutomation.Repository
     class IntegrationNamingMediator : IIntegrationNamingMediator
     {
         private readonly IIntegrationNamingConvention convention;
-        private readonly IRepositoryState repository;
+        private readonly IRemoteRepositoryState repository;
 
-        public IntegrationNamingMediator(IIntegrationNamingConvention convention, IRepositoryState repository)
+        public IntegrationNamingMediator(IIntegrationNamingConvention convention, IRemoteRepositoryState repository)
         {
             this.convention = convention;
             this.repository = repository;

@@ -11,9 +11,9 @@ namespace GitAutomation.Repository
     class BranchIterationMediator : IBranchIterationMediator
     {
         private readonly IBranchIterationNamingConvention convention;
-        private readonly IRepositoryState repository;
+        private readonly IRemoteRepositoryState repository;
 
-        public BranchIterationMediator(IBranchIterationNamingConvention convention, IRepositoryState repository)
+        public BranchIterationMediator(IBranchIterationNamingConvention convention, IRemoteRepositoryState repository)
         {
             this.convention = convention;
             this.repository = repository;

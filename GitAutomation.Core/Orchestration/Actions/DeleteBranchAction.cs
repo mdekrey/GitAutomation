@@ -48,14 +48,14 @@ namespace GitAutomation.Orchestration.Actions
 
         public class Internal : ComplexActionInternal
         {
-            private readonly GitCli cli;
+            private readonly IGitCli cli;
             private readonly IBranchSettings settings;
             private readonly IRepositoryMediator repository;
             private readonly IUnitOfWorkFactory unitOfWorkFactory;
             private readonly string deletingBranch;
             private readonly DeleteBranchMode mode;
 
-            public Internal(GitCli cli, IBranchSettings settings, IRepositoryMediator repository, IUnitOfWorkFactory unitOfWorkFactory, string deletingBranch, DeleteBranchMode mode)
+            public Internal(IGitCli cli, IBranchSettings settings, IRepositoryMediator repository, IUnitOfWorkFactory unitOfWorkFactory, string deletingBranch, DeleteBranchMode mode)
             {
                 this.cli = cli;
                 this.settings = settings;

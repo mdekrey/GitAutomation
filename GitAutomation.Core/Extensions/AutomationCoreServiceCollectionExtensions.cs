@@ -22,8 +22,9 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddSingleton<IRepositoryOrchestration, RepositoryOrchestration>();
             services.AddSingleton<IOrchestrationActions, OrchestrationActions>();
             services.AddSingleton<IRepositoryStateDriver, RepositoryStateDriver>();
-            services.AddSingleton<IRepositoryState, RepositoryState>();
-            services.AddSingleton<GitCli>();
+            services.AddSingleton<IRemoteRepositoryState, RemoteRepositoryState>();
+            services.AddSingleton<ILocalRepositoryState, LocalRepositoryState>();
+            services.AddSingleton<IGitCli>(sp => sp.GetRequiredService<ILocalRepositoryState>().Cli);
             services.AddSingleton<Func<HttpClient>>(() => new HttpClient());
             services.AddTransient<GitAutomation.Orchestration.Actions.IntegrateBranchesOrchestration>();
 

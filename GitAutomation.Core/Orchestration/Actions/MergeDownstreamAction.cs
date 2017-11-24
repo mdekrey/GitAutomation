@@ -66,7 +66,7 @@ namespace GitAutomation.Orchestration.Actions
 
         public class MergeDownstreamActionProcess : ComplexActionInternal
         {
-            private readonly GitCli cli;
+            private readonly IGitCli cli;
             private readonly IGitServiceApi gitServiceApi;
             private readonly IntegrateBranchesOrchestration integrateBranches;
             private readonly IRepositoryMediator repository;
@@ -80,7 +80,7 @@ namespace GitAutomation.Orchestration.Actions
             private BranchGroupCompleteData Details => detailsTask.Result;
             private string LatestBranchName => latestBranchName.Result;
 
-            public MergeDownstreamActionProcess(GitCli cli, IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, IRepositoryMediator repository, IntegrateBranchesOrchestration integrateBranches, IBranchIterationMediator branchIteration, string downstreamBranch, IOptions<GitRepositoryOptions> options)
+            public MergeDownstreamActionProcess(IGitCli cli, IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, IRepositoryMediator repository, IntegrateBranchesOrchestration integrateBranches, IBranchIterationMediator branchIteration, string downstreamBranch, IOptions<GitRepositoryOptions> options)
             {
                 this.cli = cli;
                 this.gitServiceApi = gitServiceApi;
@@ -223,9 +223,9 @@ namespace GitAutomation.Orchestration.Actions
                     .Select(items => items.ToImmutableList());
             }
             
-            private IObservable<bool> HasOutstandingCommits(string upstreamBranch)
+            private Task<bool> HasOutstandingCommits(string upstreamBranch)
             {
-                return repository.HasOutstandingCommits(upstreamBranch: upstreamBranch, downstreamBranch: LatestBranchName).Take(1);
+                return repository.HasOutstandingCommits(upstreamBranch: upstreamBranch, downstreamBranch: LatestBranchName);
             }
 
             private async Task CreateDownstreamBranch(IEnumerable<NeededMerge> allUpstreamBranches)

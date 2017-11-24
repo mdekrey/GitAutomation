@@ -12,13 +12,13 @@ namespace GitAutomation.Orchestration
 {
     class RepositoryStateDriver : IRepositoryStateDriver
     {
-        private readonly IRepositoryState repositoryState;
+        private readonly IRemoteRepositoryState repositoryState;
         private readonly IRepositoryOrchestration orchestration;
         private readonly IOrchestrationActions orchestrationActions;
         private readonly IBranchSettings branchSettings;
         private CompositeDisposable disposable = null;
 
-        public RepositoryStateDriver(IRepositoryState repositoryState, IRepositoryOrchestration orchestration, IOrchestrationActions orchestrationActions, IBranchSettings branchSettings)
+        public RepositoryStateDriver(IRemoteRepositoryState repositoryState, IRepositoryOrchestration orchestration, IOrchestrationActions orchestrationActions, IBranchSettings branchSettings)
         {
             this.repositoryState = repositoryState;
             this.orchestration = orchestration;

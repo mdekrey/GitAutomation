@@ -29,11 +29,11 @@ namespace GitAutomation.Orchestration.Actions
 
         public virtual IObservable<IRepositoryActionEntry> PerformAction(IServiceProvider serviceProvider)
         {
-            return Observable.Return(new RepositoryActionReactiveProcessEntry(GetCliAction(serviceProvider.GetRequiredService<GitCli>())))
+            return Observable.Return(new RepositoryActionReactiveProcessEntry(GetCliAction(serviceProvider.GetRequiredService<IGitCli>())))
                 .Multicast(output).ConnectFirst();
         }
 
-        protected abstract IReactiveProcess GetCliAction(GitCli gitCli);
+        protected abstract IReactiveProcess GetCliAction(IGitCli gitCli);
 
         protected void Abort(IObservable<IRepositoryActionEntry> alternate)
         {
