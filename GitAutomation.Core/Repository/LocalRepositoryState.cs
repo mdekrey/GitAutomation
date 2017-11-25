@@ -66,6 +66,10 @@ namespace GitAutomation.Repository
 
         public Task<string> MergeBaseBetweenCommits(string commit1, string commit2)
         {
+            if (commit1 == null || commit2 == null)
+            {
+                return Task.FromResult<string>(null);
+            }
             return mergeBaseCommits.GetOrAdd(
                 key: commit1.CompareTo(commit2) < 0
                     ? Tuple.Create(commit1, commit2)
