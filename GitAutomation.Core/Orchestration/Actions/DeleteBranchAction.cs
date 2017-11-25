@@ -70,7 +70,7 @@ namespace GitAutomation.Orchestration.Actions
                 if (mode == DeleteBranchMode.ActualBranchOnly)
                 {
                     await AppendProcess(cli.DeleteRemote(deletingBranch)).WaitUntilComplete();
-                    repository.BranchUpdated(deletingBranch, null);
+                    await repository.BranchUpdated(deletingBranch, null, await repository.GetBranchRef(deletingBranch).Take(1));
                 }
                 else
                 {
@@ -88,7 +88,7 @@ namespace GitAutomation.Orchestration.Actions
                         foreach (var branch in details.Branches)
                         {
                             await AppendProcess(cli.DeleteRemote(branch.Name)).WaitUntilComplete();
-                            repository.BranchUpdated(branch.Name, null);
+                            await repository.BranchUpdated(branch.Name, null, await repository.GetBranchRef(branch.Name).Take(1));
                         }
                     }
                 }

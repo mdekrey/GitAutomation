@@ -24,7 +24,8 @@ namespace GitAutomation.Repository
         /// </summary>
         /// <param name="branchName">The branch that was updated. Should not be null.</param>
         /// <param name="revision">The new revision. If null, the branch was deleted.</param>
-        void BranchUpdated(string branchName, string revision);
+        /// <param name="beforeRef">The old revision. If null, the branch was created. If this doesn't match what we have locally, something is out of date; we need to do a full refresh.</param>
+        Task BranchUpdated(string branchName, string revision, string beforeRef);
 
     }
 }

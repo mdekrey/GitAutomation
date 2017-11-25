@@ -36,11 +36,20 @@ namespace GitAutomation.Repository
             }
         }
 
-        public void BranchUpdated(string branchName, string revision)
+        public async Task BranchUpdated(string branchName, string revision, string oldRevision)
         {
-            foreach (var local in localRepositories)
+            var gitRef = (await RemoteBranches().FirstOrDefaultAsync()).Where(g => g.Name == branchName).FirstOrDefault();
+            if (gitRef.Commit == oldRevision)
             {
-                local.BranchUpdated(branchName, revision);
+                foreach (var local in localRepositories)
+                {
+                    local.BranchUpdated(branchName, revision);
+                }
+            }
+            else
+            {
+                // Something's wrong _everywhere_ because the old one didn't match
+                RefreshAll();
             }
         }
 

@@ -23,11 +23,9 @@ namespace GitAutomation.GitHub
             // TODO - add support to verify signature
             switch (Request.Headers["X-GitHub-Event"])
             {
-                case "create":
-                case "delete":
                 case "push":
                     // refs updated
-                    UpdateRef(contents, serviceProvider.GetRequiredService<IGitCli>(), serviceProvider.GetRequiredService<IRemoteRepositoryState>());
+                    PushRef(contents, serviceProvider.GetRequiredService<IGitCli>(), serviceProvider.GetRequiredService<IRemoteRepositoryState>());
                     break;
                 case "pull_request":
                     UpdatePullRequest(contents, serviceProvider.GetRequiredService<IGitHubPullRequestChanges>());
@@ -42,7 +40,7 @@ namespace GitAutomation.GitHub
             }
         }
 
-        private async void UpdateRef(JObject contents, IGitCli cli, IRemoteRepositoryState repositoryState)
+        private void PushRef(JObject contents, IGitCli cli, IRemoteRepositoryState repositoryState)
         {
             var refName = contents["ref"].ToString();
             var branchName = refName.StartsWith(refPrefix) ? refName.Substring(refPrefix.Length) : refName;
@@ -51,12 +49,13 @@ namespace GitAutomation.GitHub
                 return;
             }
 
-            var targetRef = Request.Headers["X-GitHub-Event"] == "create"
-                ? await GetRefFor(branchName, cli)
-                : Request.Headers["X-GitHub-Event"] == "push"
-                    ? contents["after"].ToString()
-                    : null;
-            repositoryState.BranchUpdated(branchName, targetRef);
+            var targetRef = contents["after"].ToString() == "0000000000000000000000000000000000000000"
+                ? null
+                : contents["after"].ToString();
+            var beforeRef = contents["before"].ToString() == "0000000000000000000000000000000000000000"
+                ? null
+                : contents["before"].ToString();
+            repositoryState.BranchUpdated(branchName, targetRef, beforeRef);
         }
 
         private async Task<string> GetRefFor(string branchName, IGitCli cli)

@@ -297,7 +297,7 @@ namespace GitAutomation.Orchestration.Actions
                 if (pushExitCode == 0)
                 {
                     var newValue = await cli.ShowRef(downstreamBranch).FirstOutputMessage();
-                    repository.BranchUpdated(downstreamBranch, newValue);
+                    await repository.BranchUpdated(downstreamBranch, newValue, await repository.GetBranchRef(downstreamBranch).Take(1));
                 }
             }
             
