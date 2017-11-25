@@ -229,7 +229,7 @@ query($owner: String!, $repository: String!, $states: [PullRequestState!], $targ
 
         public Task<string> GetBranchUrl(string name)
         {
-            return Task.FromResult<string>(ResourcePathToUrl($"/mdekrey/GitAutomation-Testing/tree/{name}"));
+            return Task.FromResult<string>(ResourcePathToUrl($"/{owner}/{repository}/tree/{name}"));
         }
 
         private string ResourcePathToUrl(string v)
