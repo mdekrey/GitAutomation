@@ -385,7 +385,7 @@ fragment commitStatus on Commit {
                               select new
                               {
                                   sha,
-                                  result = data["repository"]["_" + sha] != null
+                                  result = data["repository"]["_" + sha] != null && data["repository"]["_" + sha].Type != JTokenType.Null
                                             ? from entry in data["repository"]["_" + sha]["status"]["contexts"] as JArray
                                               select new CommitStatus
                                               {
