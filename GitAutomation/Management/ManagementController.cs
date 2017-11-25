@@ -41,7 +41,7 @@ namespace GitAutomation.Management
         
         [Authorize(Auth.PolicyNames.Create)]
         [HttpPut("branch/create/{*branchName}")]
-        public async Task<IActionResult> CreateBranch(string branchName, [FromBody] CreateBranchRequestBody requestBody)
+        public async Task<IActionResult> CreateBranch(string branchName, [FromBody] CreateBranchRequestBody requestBody, [FromServices] IOrchestrationActions orchestrationActions)
         {
             var branch = await branchSettings.GetBranchBasicDetails(branchName).FirstOrDefaultAsync();
             if (branch != null)
@@ -59,6 +59,10 @@ namespace GitAutomation.Management
 
                 await unitOfWork.CommitAsync();
             }
+
+#pragma warning disable CS4014
+            orchestrationActions.CheckDownstreamMerges(branchName);
+#pragma warning restore CS4014
             return Ok();
         }
 
