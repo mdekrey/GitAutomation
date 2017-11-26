@@ -23,31 +23,15 @@ namespace GitAutomation.Orchestration.Actions
         public class Internal : ComplexActionInternal
         {
             private readonly IGitCli cli;
-            private readonly GitRepositoryOptions gitOptions;
 
-            public Internal(IGitCli cli, IOptions<GitRepositoryOptions> options)
+            public Internal(IGitCli cli)
             {
                 this.cli = cli;
-                this.gitOptions = options.Value;
             }
 
             protected override async Task RunProcess()
             {
-                if (cli.IsGitInitialized)
-                {
-                    return;
-                }
-
-                var checkoutPath = gitOptions.CheckoutPath;
-
-                if (!Directory.Exists(checkoutPath))
-                {
-                    Directory.CreateDirectory(checkoutPath);
-                }
-
-                await AppendProcess(cli.Clone()).WaitUntilComplete();
-                await AppendProcess(cli.Config("user.name", gitOptions.UserName)).WaitUntilComplete();
-                await AppendProcess(cli.Config("user.email", gitOptions.UserEmail)).WaitUntilComplete();
+                await cli.EnsureInitialized;
             }
         }
     }

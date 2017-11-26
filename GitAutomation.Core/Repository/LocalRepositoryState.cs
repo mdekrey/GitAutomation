@@ -25,7 +25,7 @@ namespace GitAutomation.Repository
 
         public LocalRepositoryState(IReactiveProcessFactory factory, IRepositoryOrchestration orchestration, IOptions<GitRepositoryOptions> options)
         {
-            cli = new _GitCli(factory, checkoutPath: options.Value.CheckoutPath, repository: options.Value.Repository, userName: options.Value.UserName, userEmail: options.Value.UserEmail);
+            cli = new GitCli(factory, checkoutPath: options.Value.CheckoutPath, repository: options.Value.Repository, userName: options.Value.UserName, userEmail: options.Value.UserEmail);
 
             this.remoteBranchesAsync = BuildRemoteBranches();
         }
@@ -88,10 +88,7 @@ namespace GitAutomation.Repository
         {
             return new AsyncLazy<ImmutableList<GitRef>>(async () =>
             {
-                if (!cli.IsGitInitialized)
-                {
-                    await cli.Initialize();
-                }
+                await cli.EnsureInitialized;
                 var remoteBranches = cli.GetRemoteBranches();
                 await remoteBranches.ActiveState;
                 // Because listing remote branches doesn't affect the index, it doesn't need to be an action, but it does need to wait until initialization is ensured.
