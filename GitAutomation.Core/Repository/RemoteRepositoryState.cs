@@ -20,13 +20,12 @@ namespace GitAutomation.Repository
     class RemoteRepositoryState : IRemoteRepositoryState
     {
         private readonly IEnumerable<ILocalRepositoryState> localRepositories;
+        private readonly ConcurrentDictionary<string, string> badBranchCommits = new ConcurrentDictionary<string, string>();
 
         public RemoteRepositoryState(IEnumerable<ILocalRepositoryState> localRepositories)
         {
             this.localRepositories = localRepositories;
         }
-
-        #region Updates
         
         public void RefreshAll()
         {
@@ -73,7 +72,28 @@ namespace GitAutomation.Repository
             return localRepositories.First().MergeBaseBetween(branchName1, branchName2);
         }
 
-        #endregion
+        public void FlagBadGitRef(GitRef target)
+        {
+            badBranchCommits.AddOrUpdate(target.Name, target.Commit, (_1, _2) => target.Commit);
+        }
 
+        public async Task<bool> IsBadBranch(string branchName)
+        {
+            if (!badBranchCommits.TryGetValue(branchName, out var badCommit))
+            {
+                return false;
+            }
+            if (badCommit == null)
+            {
+                return false;
+            }
+            var branches = await RemoteBranches().Take(1);
+            var branch = branches.FirstOrDefault(b => b.Name == branchName);
+            if (branch.Commit != badCommit)
+            {
+                return !badBranchCommits.TryUpdate(branchName, null, badCommit);
+            }
+            return true;
+        }
     }
 }

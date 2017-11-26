@@ -245,6 +245,17 @@ namespace GitAutomation.Orchestration.Actions
                     return;
                 }
 
+                var badBranches = (await Task.WhenAll(
+                    validUpstream.Select(t => repository.IsBadBranch(t.BranchName)
+                        .ContinueWith(task => new { IsBad = task.Result, BranchName = t.BranchName })
+                    )
+                )).Where(b => b.IsBad);
+                if (badBranches.Any())
+                {
+                    await AppendMessage($"{badBranches.First().BranchName} is marked as bad; aborting", isError: true);
+                    return;
+                }
+
                 // Basic process; should have checks on whether or not to create the branch
                 var initialBranch = validUpstream[0];
 
@@ -337,6 +348,7 @@ namespace GitAutomation.Orchestration.Actions
 
                 if (!createdIntegrationBranch.HasValue || createdIntegrationBranch.Value.NeedsPullRequest())
                 {
+                    repository.FlagBadGitRef(downstreamBranch, await cli.ShowRef(downstreamBranch).FirstOutputMessage());
                     if (await gitServiceApi.HasOpenPullRequest(targetBranch: downstreamBranch, sourceBranch: upstreamBranch.BranchName))
                     {
                         return new MergeStatus { HadConflicts = true, Resolution = MergeConflictResolution.PendingPullRequest };

@@ -318,5 +318,15 @@ namespace GitAutomation
         {
             actions.CheckForUpdatesOnBranch(branchName);
         }
+
+        public void FlagBadGitRef(string branch, string commit)
+        {
+            repositoryState.FlagBadGitRef(new GitRef { Name = branch, Commit = commit });
+        }
+
+        public Task<bool> IsBadBranch(string branch)
+        {
+            return repositoryState.IsBadBranch(branch);
+        }
     }
 }

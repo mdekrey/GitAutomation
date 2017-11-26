@@ -29,5 +29,7 @@ namespace GitAutomation
         IObservable<ImmutableList<string>> RecommendNewGroups();
         void CheckForUpdates();
         void CheckForUpdatesOnBranch(string branchName);
+        void FlagBadGitRef(string branch, string commit);
+        Task<bool> IsBadBranch(string branch);
     }
 }

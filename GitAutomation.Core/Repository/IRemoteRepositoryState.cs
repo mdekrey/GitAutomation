@@ -16,6 +16,13 @@ namespace GitAutomation.Repository
         Task<string> MergeBaseBetween(string branchName1, string branchName2);
 
         /// <summary>
+        /// Flag a given gitref as being "bad" until it is updated.
+        /// </summary>
+        /// <param name="target">The target git ref</param>
+        void FlagBadGitRef(GitRef target);
+        Task<bool> IsBadBranch(string branchName);
+
+        /// <summary>
         /// Dump internal cache and fetch from remote
         /// </summary>
         void RefreshAll();
