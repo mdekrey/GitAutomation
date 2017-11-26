@@ -32,6 +32,10 @@ namespace GitAutomation.GraphQL
                 .Name("statuses")
                 .Resolve(this, nameof(GetStatuses));
 
+            Field<NonNullGraphType<BooleanGraphType>>()
+                .Name("isBad")
+                .Resolve(this, nameof(IsBad));
+
             Field<NonNullGraphType<ListGraphType<PullRequestInterface>>>()
                 .Name("pullRequestsInto")
                 .Argument<StringGraphType>("target", "target of pull requests")
@@ -58,6 +62,11 @@ namespace GitAutomation.GraphQL
                 default:
                     return Task.FromResult<string>(null);
             }
+        }
+
+        private Task<bool> IsBad([Source] GitRef gitRef, [FromServices] IRepositoryMediator repository)
+        {
+            return repository.IsBadBranch(gitRef.Name);
         }
 
         private Task<string> BranchUrl([Source] GitRef gitRef, [FromServices] IGitServiceApi gitApi)

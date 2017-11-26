@@ -158,6 +158,7 @@ export const allBranchGroups = forceRefreshBranchGroups
                 key
                 url
               }
+              isBad
               pullRequestsFrom {
                 id
                 sourceBranch

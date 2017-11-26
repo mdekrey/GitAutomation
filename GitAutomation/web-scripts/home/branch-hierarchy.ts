@@ -172,12 +172,8 @@ const conflictedHierarchyStyle: HierarchyStyleEntry = {
       const latestBranch = temp.branches.find(
         b => b.name === temp.latestBranch!.name
       );
-      if (latestBranch && latestBranch.pullRequestsFrom) {
-        return Boolean(
-          latestBranch.pullRequestsFrom.find(
-            pr => pr.isSystem && pr.state === "Open"
-          )
-        );
+      if (latestBranch && latestBranch.isBad) {
+        return latestBranch.isBad;
       }
     }
     return false;
