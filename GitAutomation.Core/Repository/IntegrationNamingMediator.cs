@@ -20,6 +20,11 @@ namespace GitAutomation.Repository
 
         public async Task<string> GetIntegrationBranchName(string branchA, string branchB)
         {
+            if (branchA.CompareTo(branchB) > 0)
+            {
+                return await GetIntegrationBranchName(branchB, branchA);
+            }
+
             var candidateNames = convention.GetIngtegrationBranchNameCandidates(branchA, branchB);
             var remoteBranches = repository.RemoteBranches().Take(1);
             return await candidateNames.CombineLatest(remoteBranches, (name, branches) => new { name, branches })
