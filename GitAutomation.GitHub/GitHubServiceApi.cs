@@ -150,6 +150,7 @@ query($owner: String!, $repository: String!, $states: [PullRequestState!], $targ
                         Id = entry["number"].ToString(),
                         Created = entry["createdAt"].ToString(),
                         Author = entry["author"]["login"].ToString(),
+                        IsSystem = entry["author"]["login"].ToString() == username,
                         State = entry["state"].ToString() == "OPEN" ? PullRequestState.Open : PullRequestState.Closed,
                         TargetBranch = entry["baseRefName"].ToString(),
                         SourceBranch = entry["headRefName"].ToString(),
@@ -195,12 +196,15 @@ query($owner: String!, $repository: String!, $states: [PullRequestState!], $targ
             }
         }
 
-        public async Task<ImmutableList<PullRequest>> GetPullRequests(PullRequestState? state = PullRequestState.Open, string targetBranch = null, string sourceBranch = null, bool includeReviews = false)
+        public async Task<ImmutableList<PullRequest>> GetPullRequests(PullRequestState? state = PullRequestState.Open, string targetBranch = null, string sourceBranch = null, bool includeReviews = false, PullRequestAuthorMode authorMode = PullRequestAuthorMode.All)
         {
             return (from pr in (await pullRequests.Value).Values
                     where pr.State == (state ?? pr.State)
                     where pr.TargetBranch == (targetBranch ?? pr.TargetBranch)
                     where pr.SourceBranch == (sourceBranch ?? pr.SourceBranch)
+                    where (authorMode == PullRequestAuthorMode.SystemOnly && pr.Author == username)
+                        || (authorMode == PullRequestAuthorMode.NonSystemOnly && pr.Author != username)
+                        || authorMode == PullRequestAuthorMode.All
                     orderby pr.Created descending
                     select pr).ToImmutableList();
         }
@@ -425,6 +429,7 @@ fragment commitStatus on Commit {
         {
             var target = await pullRequests.Value;
 
+            pullRequest.IsSystem = pullRequest.Author == username;
             pullRequest.Reviews = ImmutableList<PullRequestReview>.Empty;
             target.AddOrUpdate(pullRequest.Id, pullRequest, (id, original) =>
             {

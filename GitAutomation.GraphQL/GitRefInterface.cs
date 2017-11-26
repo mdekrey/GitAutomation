@@ -35,11 +35,13 @@ namespace GitAutomation.GraphQL
             Field<NonNullGraphType<ListGraphType<PullRequestInterface>>>()
                 .Name("pullRequestsInto")
                 .Argument<StringGraphType>("target", "target of pull requests")
+                .Argument<BooleanGraphType>("system", "true to include system-created PRs, false to exclude system-created PRs, omit to receive all")
                 .Resolve(this, nameof(PullRequestsInto));
 
             Field<NonNullGraphType<ListGraphType<PullRequestInterface>>>()
                 .Name("pullRequestsFrom")
                 .Argument<StringGraphType>("source", "source of pull requests")
+                .Argument<BooleanGraphType>("system", "true to include system-created PRs, false to exclude system-created PRs, omit to receive all")
                 .Resolve(this, nameof(PullRequestsFrom));
         }
 
@@ -68,15 +70,29 @@ namespace GitAutomation.GraphQL
             return loaders.LoadBranchStatus(gitRef.Commit);
         }
 
-        private Task<ImmutableList<GitService.PullRequest>> PullRequestsInto([Source] GitRef gitRef, [FromArgument] string target, [FromServices] Loaders loaders, ResolveFieldContext resolveContext)
+        private Task<ImmutableList<GitService.PullRequest>> PullRequestsInto([Source] GitRef gitRef, [FromArgument] string target, [FromArgument] bool? system, [FromServices] Loaders loaders, ResolveFieldContext resolveContext)
         {
             
-            return loaders.LoadPullRequests(source: gitRef.Name, target: target, includeReviews: resolveContext.FieldAst.SelectionSet.Selections.OfType<global::GraphQL.Language.AST.Field>().Any(field => field.Name == "reviews"));
+            return loaders.LoadPullRequests(
+                source: gitRef.Name, 
+                target: target, 
+                includeReviews: resolveContext.FieldAst.SelectionSet.Selections.OfType<global::GraphQL.Language.AST.Field>().Any(field => field.Name == "reviews"),
+                authorMode: system == null ? PullRequestAuthorMode.All
+                    : system == true ? PullRequestAuthorMode.SystemOnly
+                    : PullRequestAuthorMode.NonSystemOnly
+            );
         }
 
-        private Task<ImmutableList<GitService.PullRequest>> PullRequestsFrom([Source] GitRef gitRef, [FromArgument] string source, [FromServices] Loaders loaders, ResolveFieldContext resolveContext)
+        private Task<ImmutableList<GitService.PullRequest>> PullRequestsFrom([Source] GitRef gitRef, [FromArgument] string source, [FromArgument] bool? system, [FromServices] Loaders loaders, ResolveFieldContext resolveContext)
         {
-            return loaders.LoadPullRequests(source: source, target: gitRef.Name, includeReviews: resolveContext.FieldAst.SelectionSet.Selections.OfType<global::GraphQL.Language.AST.Field>().Any(field => field.Name == "reviews"));
+            return loaders.LoadPullRequests(
+                source: source, 
+                target: gitRef.Name, 
+                includeReviews: resolveContext.FieldAst.SelectionSet.Selections.OfType<global::GraphQL.Language.AST.Field>().Any(field => field.Name == "reviews"),
+                authorMode: system == null ? PullRequestAuthorMode.All
+                    : system == true ? PullRequestAuthorMode.SystemOnly
+                    : PullRequestAuthorMode.NonSystemOnly
+            );
         }
     }
 }

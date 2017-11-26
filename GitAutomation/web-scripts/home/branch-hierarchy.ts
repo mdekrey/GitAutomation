@@ -21,7 +21,9 @@ import {
   fnEvent,
   rxData,
   rxDatum,
-  fnSelect
+  fnSelect,
+  IBindBaseProps,
+  bind
 } from "../utils/presentation/d3-binding";
 
 import { branchTypeColors } from "../style/branch-colors";
@@ -30,6 +32,8 @@ import { BranchType } from "../api/basic-branch";
 
 import * as branchHierarchyHtml from "./branch-hierarchy.html";
 import { BranchGroupInput, BranchGroupHierarchyDepth } from "../api/hierarchy";
+import { ValueFn } from "d3-selection";
+import { BaseType } from "d3-selection";
 
 interface NodeDatum
   extends BranchGroupInput,
@@ -88,16 +92,121 @@ function centerY(y) {
   return force;
 }
 
+export interface HierarchyStyleEntry {
+  bind: IBindBaseProps<any, NodeDatum, any, any>;
+  selection: string;
+  filter: ValueFn<BaseType, NodeDatum, boolean>;
+}
+
+const defaultHierarchyStyle: HierarchyStyleEntry = {
+  bind: {
+    onCreate: target => target.append<SVGCircleElement>("circle"),
+    onEnter: target => target.transition("resize").attr("r", 5),
+    onExit: target => {
+      target = target.filter(`:not([data-locator="dead-node"])`);
+      if (target.nodes().length) {
+        target
+          .attr("data-locator", "dead-node")
+          .transition("resize")
+          .duration(500)
+          .attr("r", 0)
+          .remove();
+      }
+    },
+    onEach: target => target.attr("fill", node => node.branchColor)
+  },
+  selection: "circle",
+  filter: _ => true
+};
+
+export const highlightedHierarchyStyle: (
+  color: string
+) => Pick<HierarchyStyleEntry, "bind" | "selection"> = color => ({
+  bind: {
+    onCreate: target => {
+      const result = target.append("g");
+      result.append("circle").attr("data-locator", "outer");
+      result.append("circle").attr("data-locator", "inner");
+      return result;
+    },
+    onEnter: target => {
+      const t = target.transition("resize");
+      t.select(`circle[data-locator="outer"]`).attr("r", 5);
+      t
+        .select(`circle[data-locator="inner"]`)
+        .attr("r", 3.5)
+        .attr("stroke", color);
+    },
+    onExit: target => {
+      target = target.filter(`:not([data-locator="dead-node"])`);
+      if (target.nodes().length) {
+        target.attr("data-locator", "dead-node");
+
+        target
+          .select(`circle[data-locator="outer"]`)
+          .transition("resize")
+          .duration(500)
+          .attr("r", 0)
+          .remove();
+        target
+          .select(`circle[data-locator="inner"]`)
+          .transition("resize")
+          .duration(500)
+          .attr("r", 0)
+          .remove();
+      }
+    },
+    onEach: target => {
+      target
+        .select(`circle[data-locator="outer"]`)
+        .attr("fill", node => node.branchColor);
+      target
+        .select(`circle[data-locator="inner"]`)
+        .attr("fill", node => node.branchColor);
+    }
+  },
+  selection: "g"
+});
+
+const conflictedHierarchyStyle: HierarchyStyleEntry = {
+  ...highlightedHierarchyStyle("red"),
+  filter: v => {
+    // TODO - this typing is correct, but why do I need to go through `any`? I
+    // think it's because it's not a deep partial.
+    const temp = (v as any) as Partial<GitAutomationGQL.IBranchGroupDetails>;
+    if (temp.branches && temp.latestBranch) {
+      const latestBranch = temp.branches.find(
+        b => b.name === temp.latestBranch!.name
+      );
+      if (latestBranch && latestBranch.pullRequestsFrom) {
+        return Boolean(
+          latestBranch.pullRequestsFrom.find(
+            pr => pr.isSystem && pr.state === "Open"
+          )
+        );
+      }
+    }
+    return false;
+  }
+};
+
+export const defaultHierarchyStyles = [
+  conflictedHierarchyStyle,
+  defaultHierarchyStyle
+];
+
 export function branchHierarchy({
   target,
   navigate,
-  data: hierarchyData
+  data: hierarchyData,
+  style = defaultHierarchyStyles
 }: {
   target: Observable<Selection<SVGSVGElement, any, any, any>>;
   navigate: RoutingNavigate;
   data: Observable<
     Record<string, BranchGroupInput & BranchGroupHierarchyDepth>
   >;
+  style?: HierarchyStyleEntry[];
 }) {
   return Observable.create(() => {
     const subscription = new Subscription();
@@ -293,32 +402,37 @@ export function branchHierarchy({
         node => node.groupName
       )
         .bind({
-          selector: `circle`,
-          onCreate: target => target.append<SVGCircleElement>("circle"),
-          onEnter: target => {
-            target.transition("resize").attr("r", 5);
-          },
-          onExit: target => {
-            target = target.filter(`:not([data-locator="dead-node"])`);
-            if (target.nodes().length) {
-              target
-                .attr("data-locator", "dead-node")
-                .transition("resize")
-                .duration(500)
-                .attr("r", 0)
-                .remove();
-            }
+          selector: `g`,
+          onCreate: target => {
+            return target.append<SVGGElement>("g");
           },
           onEach: target => {
-            target
-              .attr(
-                "transform",
-                node =>
-                  `translate(${(node.x || 0).toFixed(6)}, ${(node.y || 0
-                  ).toFixed(6)})`
-              )
-              .attr("fill", node => node.branchColor);
+            target.attr(
+              "transform",
+              node =>
+                `translate(${(node.x || 0).toFixed(6)}, ${(node.y || 0).toFixed(
+                  6
+                )})`
+            );
           }
+        })
+        .do(allTarget => {
+          style.forEach((styleEntry, idx, all) => {
+            const target = allTarget
+              .filter(function(...args) {
+                return (// make sure it's not selected by something esle
+                  !all
+                    .slice(0, idx)
+                    .find(other => other.filter.call(this, ...args)) &&
+                  styleEntry.filter.call(this, ...args) );
+              })
+              .selectAll(styleEntry.selection)
+              .data(d => [d], d => (d as any).groupName);
+            bind({
+              target,
+              ...styleEntry.bind
+            });
+          });
         })
         .subscribe()
     );

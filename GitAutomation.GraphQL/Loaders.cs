@@ -82,10 +82,10 @@ namespace GitAutomation.GraphQL
             }).LoadAsync();
         }
 
-        internal Task<ImmutableList<PullRequest>> LoadPullRequests(string source, string target, bool includeReviews)
+        internal Task<ImmutableList<PullRequest>> LoadPullRequests(string source, string target, bool includeReviews, PullRequestAuthorMode authorMode)
         {
-            // TODO - GraphQL to GitHub and pass through?
-            return gitService.GetPullRequests(targetBranch: target, sourceBranch: source, includeReviews: includeReviews);
+            // TODO - better loaders
+            return gitService.GetPullRequests(state: null, targetBranch: target, sourceBranch: source, includeReviews: includeReviews, authorMode: authorMode);
         }
 
         internal Task<ImmutableList<string>> LoadDownstreamBranches(string name)

@@ -8,7 +8,11 @@ import { buildBranchCheckListing, checkedData } from "./branch-check-listing";
 import { doSave } from "./bind-save-button";
 import { style } from "typestyle";
 import { classed } from "../style/style-binding";
-import { branchHierarchy } from "../home/branch-hierarchy";
+import {
+  branchHierarchy,
+  defaultHierarchyStyles,
+  highlightedHierarchyStyle
+} from "../home/branch-hierarchy";
 import { groupsToHierarchy } from "../api/hierarchy";
 import { secured } from "../security/security-binding";
 import { inputValue, checkboxChecked } from "../utils/inputs";
@@ -106,14 +110,17 @@ export const newBranch = (
             .let(inputValue({ includeInitial: true }))
             .map(v => v as GitAutomationGQL.IBranchGroupTypeEnum),
           checkedData(checkboxes)
-        ).map(
-          ([branchName, recreateFromUpstream, branchType, checkedData]) => ({
-            branchName,
-            recreateFromUpstream,
-            branchType,
-            ...checkedData
-          })
-        );
+        )
+          .map(
+            ([branchName, recreateFromUpstream, branchType, checkedData]) => ({
+              branchName,
+              recreateFromUpstream,
+              branchType,
+              ...checkedData
+            })
+          )
+          .publishReplay(1)
+          .refCount();
 
         const hierarchy$ = data
           .combineLatest(allBranchGroups, (newStatus, groups) => ({
@@ -170,6 +177,11 @@ export const newBranch = (
             )
           );
 
+        let currentGroupName: string = "New Branch";
+        subscription.add(
+          data.map(d => d.branchName).subscribe(r => (currentGroupName = r))
+        );
+
         subscription.add(
           branchHierarchy({
             target: container.map(
@@ -178,7 +190,14 @@ export const newBranch = (
               )
             ),
             navigate: state.navigate,
-            data: hierarchy$
+            data: hierarchy$,
+            style: [
+              {
+                ...highlightedHierarchyStyle("white"),
+                filter: data => data.groupName === currentGroupName
+              },
+              ...defaultHierarchyStyles
+            ]
           }).subscribe()
         );
 

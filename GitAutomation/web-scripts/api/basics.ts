@@ -3,7 +3,7 @@ import { BehaviorSubject, Observable } from "../utils/rxjs";
 import { ClaimDetails } from "./claim-details";
 import { IUpdateUserRequestBody } from "./update-user";
 import { graphQl, invalidateQuery } from "./graphql";
-import { flatten } from "../utils/ramda";
+import { flatten, merge } from "../utils/ramda";
 import { groupsToHierarchy } from "./hierarchy";
 import { BranchGroupWithDownstream } from "./types";
 
@@ -151,11 +151,25 @@ export const allBranchGroups = forceRefreshBranchGroups
             allActualBranches {
               name
               commit
+              url
               statuses {
                 state
                 description
                 key
                 url
+              }
+              pullRequestsFrom {
+                id
+                sourceBranch
+                url
+                author
+                isSystem
+                reviews {
+                  author
+                  url
+                  state
+                }
+                state
               }
             }
             configuredBranchGroups {
@@ -169,14 +183,6 @@ export const allBranchGroups = forceRefreshBranchGroups
               }
               branches {
                 name
-                commit
-                url
-                statuses {
-                  state
-                  description
-                  key
-                  url
-                }
               }
             }
           }
@@ -196,7 +202,13 @@ export const allBranchGroups = forceRefreshBranchGroups
       b => configuredBranches.indexOf(b.name) === -1
     );
     return [
-      ...result.configuredBranchGroups,
+      ...result.configuredBranchGroups.map(group =>
+        merge(group, {
+          branches: group.branches.map(branch =>
+            result.allActualBranches.find(b => b.name === branch.name)
+          )
+        })
+      ),
       ...nonConfiguredBranches.map(branch => ({
         groupName: branch.name,
         branchType: "Feature" as GitAutomationGQL.IBranchGroupTypeEnum,

@@ -15,6 +15,7 @@ namespace GitAutomation.GraphQL
             Field(r => r.TargetBranch);
             Field(r => r.Url);
             Field(r => r.Author);
+            Field(r => r.IsSystem);
             Field<NonNullGraphType<ListGraphType<NonNullGraphType<PullRequestReviewInterface>>>>()
                 .Name("Reviews")
                 .Resolve(ctx => ctx.Source.Reviews);

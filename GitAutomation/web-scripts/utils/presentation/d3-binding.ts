@@ -68,7 +68,7 @@ export function bind<GElement extends BaseType, NewDatum>({
 }
 
 export interface IRxBindProps<
-  GElement extends BaseType,
+  GElement extends Element | EnterElement,
   NewDatum,
   PElement extends BaseType,
   PDatum
@@ -79,7 +79,7 @@ export interface IRxBindProps<
 
 export interface BindResult<TDatum, PElement extends BaseType> {
   /** Binds to the subscription. The type corresponds to the created element. */
-  bind<GElement extends BaseType>(
+  bind<GElement extends Element | EnterElement>(
     bindParams: IRxBindProps<GElement, TDatum, PElement, {}>
   ): Observable<Selection<GElement, TDatum, PElement, any>>;
 }
@@ -97,7 +97,7 @@ export function rxData<TDatum, PElement extends BaseType>(
   key?: (data: TDatum, index: number) => any
 ): BindResult<TDatum, PElement> {
   return {
-    bind: <GElement extends BaseType>({
+    bind: <GElement extends Element | EnterElement>({
       selector,
       ...actions
     }: IRxBindProps<GElement, TDatum, PElement, {}>) => {
@@ -106,11 +106,14 @@ export function rxData<TDatum, PElement extends BaseType>(
           const onUnsubscribing = new Subject<TDatum[]>();
           const subscription = target
             .switchMap(svgSelection =>
-              data
-                .merge(onUnsubscribing)
-                .map(data =>
-                  svgSelection.selectAll<GElement, {}>(selector).data(data, key)
-                )
+              data.merge(onUnsubscribing).map(data =>
+                svgSelection
+                  .selectAll<GElement, {}>(selector)
+                  .filter(function() {
+                    return (this as Element).parentNode === svgSelection.node();
+                  })
+                  .data(data, key)
+              )
             )
             .map(target =>
               bind({

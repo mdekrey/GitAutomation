@@ -21,11 +21,12 @@ namespace GitAutomation.GitService
             return Task.FromResult(commitSha.Distinct().ToImmutableDictionary(k => k, _ => ImmutableList<CommitStatus>.Empty));
         }
         
-        public Task<ImmutableList<PullRequest>> GetPullRequests(PullRequestState? state = PullRequestState.Open, string targetBranch = null, string sourceBranch = null, bool includeReviews = false)
+        public Task<ImmutableList<PullRequest>> GetPullRequests(PullRequestState? state = PullRequestState.Open, string targetBranch = null, string sourceBranch = null, bool includeReviews = false, PullRequestAuthorMode authorMode = PullRequestAuthorMode.All)
         {
             return Task.FromResult(
                 pullRequests.Values
                     .Where(ex => (state == null || ex.State == state) && (targetBranch == null || ex.TargetBranch == targetBranch) && (sourceBranch == null || ex.SourceBranch == sourceBranch))
+                    .Where(ex => authorMode != PullRequestAuthorMode.NonSystemOnly)
                     .ToImmutableList()
             );
         }
