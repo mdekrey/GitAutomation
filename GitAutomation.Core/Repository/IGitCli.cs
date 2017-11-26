@@ -5,7 +5,7 @@ namespace GitAutomation.Repository
 {
     public interface IGitCli
     {
-        bool IsGitInitialized { get; }
+        Task EnsureInitialized { get; }
 
         IReactiveProcess AnnotatedTag(string tagName, string message);
         IReactiveProcess Checkout(string branchName);
@@ -29,6 +29,5 @@ namespace GitAutomation.Repository
         IReactiveProcess UpdateRemoteRef(string branchName, string newValue);
         IReactiveProcess Reset();
         IReactiveProcess ShowRef(string branchName);
-        Task Initialize();
     }
 }
