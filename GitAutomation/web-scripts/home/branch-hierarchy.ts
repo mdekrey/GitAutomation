@@ -11,7 +11,7 @@ import {
   forceSimulation,
   forceManyBody,
   forceX,
-  // forceY,
+  forceY,
   SimulationNodeDatum,
   SimulationLinkDatum
 } from "d3-force";
@@ -56,40 +56,34 @@ const xOffset = 40;
 
 /** Centers the graph vertically. Code adapted from `forceCenter`, which centers
  * horizontally and vertically */
-function centerY(y) {
-  let nodes;
+function centerY(y: number = 0) {
+  interface Force {
+    (): void;
+    y(newY: number): this;
+    y(): number;
+    initialize: (newNodes: SimulationNodeDatum[]) => void;
+  }
+  let nodes: SimulationNodeDatum[];
 
-  if (y == null) y = 0;
-
-  const force: (() => void) & {
-    y?: ((newY: number) => typeof force) | (() => number);
-    initialize?: (newNodes) => void;
-  } = function() {
+  const force: Partial<Force> & (() => void) = function() {
     let i,
       n = nodes.length,
-      node,
-      sy = 0;
+      sY = 0;
 
     for (i = 0; i < n; ++i) {
-      node = nodes[i];
-      sy += node.y;
+      sY += nodes[i].y!;
     }
 
-    for (sy = sy / n - y, i = 0; i < n; ++i) {
-      node = nodes[i];
-      node.y -= sy;
+    sY = sY / n - y;
+    for (i = 0; i < n; ++i) {
+      nodes[i].y! -= sY;
     }
   };
+  force.initialize = (_: NodeDatum[]) => (nodes = _);
+  force.y = ((_?: number) =>
+    _ !== undefined ? ((y = +_), force) : y) as Force["y"];
 
-  force.initialize = function(_) {
-    nodes = _;
-  };
-
-  force.y = function(_) {
-    return arguments.length ? ((y = +_), force) : y;
-  };
-
-  return force;
+  return force as Force;
 }
 
 export interface HierarchyStyleEntry {
@@ -289,6 +283,7 @@ export function branchHierarchy({
           )
         );
       });
+    const yForce = forceY<NodeDatum>().strength(0);
     const simulation = forceSimulation<NodeDatum>([])
       .force("link", linkForce)
       .force(
@@ -301,7 +296,8 @@ export function branchHierarchy({
         "x",
         forceX<NodeDatum>(branch => branch.hierarchyDepth * 40).strength(1)
       )
-      .force("y", centerY(0));
+      .force("y", centerY(0))
+      .force("y2", yForce);
 
     subscription.add(
       data.subscribe(({ nodes, links }) => {
@@ -594,11 +590,21 @@ export function branchHierarchy({
           .select<SVGGElement>(`[data-locator="viewport"]`)
           .node();
         if (viewport) {
+          const outerSize = svg.node()!.getClientRects()[0];
           const size = viewport.getClientRects()[0];
+          const topOffset = Math.max(0, outerSize.top - size.top);
+          // Makes an exponentially increasing "gravity" to hold everything
+          // within view of the SVG
+          yForce.strength(d =>
+            Math.min(1, (Math.abs(d.y!) / (outerSize.height / 1.5)) ** 5)
+          );
           svg
             .attr(
               "height",
-              Math.max(Number(svg.attr("height")), Math.ceil(size.height))
+              Math.max(
+                Number(svg.attr("height")),
+                Math.ceil(size.height + topOffset)
+              )
             )
             .attr(
               "width",
