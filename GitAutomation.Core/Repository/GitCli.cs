@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Reactive;
 using System.Reactive.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -12,26 +13,30 @@ using System.Threading.Tasks;
 
 namespace GitAutomation.Repository
 {
-    class _GitCli : IGitCli
+    class GitCli : IGitCli
     {
-
+        private readonly AsyncLazy<Unit> ensureInitialized;
         private readonly IReactiveProcessFactory reactiveProcessFactory;
         private readonly string checkoutPath;
         private readonly string repository;
         private readonly string userName;
         private readonly string userEmail;
 
-        public _GitCli(IReactiveProcessFactory factory, string checkoutPath, string repository, string userName, string userEmail)
+        public GitCli(IReactiveProcessFactory factory, string checkoutPath, string repository, string userName, string userEmail)
         {
             this.reactiveProcessFactory = factory;
             this.checkoutPath = checkoutPath;
             this.repository = repository;
             this.userName = userName;
             this.userEmail = userEmail;
+
+            this.ensureInitialized = new AsyncLazy<Unit>(() => this.Initialize());
         }
 
         public bool IsGitInitialized =>
             Directory.Exists(Path.Combine(checkoutPath, ".git"));
+
+        public Task EnsureInitialized => ensureInitialized.Value;
 
         private IReactiveProcess RunGit(params string[] args)
         {
@@ -200,7 +205,7 @@ namespace GitAutomation.Repository
 
         public string RemoteBranch(string branchName) => $"origin/{branchName}";
 
-        public async Task Initialize()
+        private async Task<Unit> Initialize()
         {
             if (!Directory.Exists(checkoutPath))
             {
@@ -210,6 +215,8 @@ namespace GitAutomation.Repository
             await Clone().ActiveState;
             await Config("user.name", userName).ActiveState;
             await Config("user.email", userEmail).ActiveState;
+
+            return Unit.Default;
         }
     }
 }
