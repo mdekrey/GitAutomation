@@ -25,7 +25,7 @@ namespace GitAutomation.GitHub
             {
                 case "push":
                     // refs updated
-                    PushRef(contents, serviceProvider.GetRequiredService<IGitCli>(), serviceProvider.GetRequiredService<IRemoteRepositoryState>());
+                    PushRef(contents, serviceProvider.GetRequiredService<IRepositoryMediator>());
                     break;
                 case "pull_request":
                     UpdatePullRequest(contents, serviceProvider.GetRequiredService<IGitHubPullRequestChanges>());
@@ -40,7 +40,7 @@ namespace GitAutomation.GitHub
             }
         }
 
-        private void PushRef(JObject contents, IGitCli cli, IRemoteRepositoryState repositoryState)
+        private void PushRef(JObject contents, IRepositoryMediator repository)
         {
             var refName = contents["ref"].ToString();
             var branchName = refName.StartsWith(refPrefix) ? refName.Substring(refPrefix.Length) : refName;
@@ -48,14 +48,7 @@ namespace GitAutomation.GitHub
             {
                 return;
             }
-
-            var targetRef = contents["after"].ToString() == "0000000000000000000000000000000000000000"
-                ? null
-                : contents["after"].ToString();
-            var beforeRef = contents["before"].ToString() == "0000000000000000000000000000000000000000"
-                ? null
-                : contents["before"].ToString();
-            repositoryState.BranchUpdated(branchName, targetRef, beforeRef);
+            repository.CheckForUpdatesOnBranch(branchName);
         }
 
         private async Task<string> GetRefFor(string branchName, IGitCli cli)
