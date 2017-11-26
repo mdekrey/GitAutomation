@@ -313,5 +313,10 @@ namespace GitAutomation
         {
             actions.CheckForUpdates();
         }
+
+        public void CheckForUpdatesOnBranch(string branchName)
+        {
+            actions.CheckForUpdatesOnBranch(branchName);
+        }
     }
 }

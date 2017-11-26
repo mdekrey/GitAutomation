@@ -31,6 +31,11 @@ namespace GitAutomation.Orchestration
             return orchestration.EnqueueAction(new UpdateAction());
         }
 
+        public void CheckForUpdatesOnBranch(string branchName)
+        {
+            orchestration.EnqueueAction(new UpdateAction(branchName));
+        }
+
         public IObservable<IRepositoryActionEntry> DeleteBranch(string branchName, DeleteBranchMode mode)
         {
             return orchestration.EnqueueAction(new DeleteBranchAction(branchName, mode));
