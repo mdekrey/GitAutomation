@@ -13,5 +13,6 @@ namespace GitAutomation.Orchestration
         IObservable<IRepositoryActionEntry> CheckDownstreamMerges(string downstreamBranch);
         IObservable<IRepositoryActionEntry> ReleaseToServiceLine(string releaseCandidateBranch, string serviceLineBranch, string tagName, bool autoConsolidate);
         IObservable<IRepositoryActionEntry> ConsolidateMerged(IEnumerable<string> originalBranches, string newBaseBranch);
+        void CheckForUpdatesOnBranch(string branchName);
     }
 }
