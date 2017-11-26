@@ -2,6 +2,13 @@ language: c
 sudo: required
 services: docker
 
+branches:
+  only:
+  - latest
+  - /^rel\/.*$/
+  - /^rc\/.*$/
+  - /^line\/.*$/
+
 before_install:
 # needs at least docker 17.05 for the multi-phase builds
   - sudo apt-get update
