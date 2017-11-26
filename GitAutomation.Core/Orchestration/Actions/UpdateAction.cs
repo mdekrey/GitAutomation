@@ -53,18 +53,16 @@ namespace GitAutomation.Orchestration.Actions
                 this.repositoryState = repositoryState;
                 this.branchName = branchName;
             }
-            
+
             protected override async Task RunProcess()
             {
                 if (branchName == null)
                 {
-                    await AppendProcess(cli.IsGitInitialized
-                        ? cli.Fetch()
-                        : cli.Clone());
+                    await cli.EnsureInitialized;
+                    await AppendProcess(cli.Fetch());
                 }
                 else
                 {
-
                     await AppendProcess(cli.Fetch(branchName));
                 }
                 repositoryState.RefreshAll();
