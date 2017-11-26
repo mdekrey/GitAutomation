@@ -29,7 +29,9 @@ namespace GitAutomation.Orchestration.Actions
 
         internal override object[] GetExtraParameters()
         {
-            return new object[] { branchName };
+            return branchName == null
+                ? base.GetExtraParameters()
+                : new object[] { branchName };
         }
 
         public class Internal : ComplexActionInternal
@@ -37,6 +39,13 @@ namespace GitAutomation.Orchestration.Actions
             private readonly IGitCli cli;
             private readonly IRemoteRepositoryState repositoryState;
             private readonly string branchName;
+
+            public Internal(IGitCli cli, IRemoteRepositoryState repositoryState)
+            {
+                this.cli = cli;
+                this.repositoryState = repositoryState;
+                this.branchName = null;
+            }
 
             public Internal(IGitCli cli, IRemoteRepositoryState repositoryState, string branchName)
             {
