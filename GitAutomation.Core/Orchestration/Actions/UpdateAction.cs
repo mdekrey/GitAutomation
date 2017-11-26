@@ -31,9 +31,8 @@ namespace GitAutomation.Orchestration.Actions
             
             protected override async Task RunProcess()
             {
-                await AppendProcess(cli.IsGitInitialized
-                    ? cli.Fetch()
-                    : cli.Clone());
+                await cli.EnsureInitialized;
+                await AppendProcess(cli.Fetch());
 
                 repositoryState.RefreshAll();
             }
