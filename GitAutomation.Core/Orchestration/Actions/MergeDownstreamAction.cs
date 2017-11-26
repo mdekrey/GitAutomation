@@ -236,6 +236,9 @@ namespace GitAutomation.Orchestration.Actions
                 {
                     if (validUpstream.Any(t => t.BranchName != null))
                     {
+#pragma warning disable CS4014
+                        orchestration.EnqueueAction(new MergeDownstreamAction(validUpstream.First(t => t.BranchName == null).GroupName), skipDuplicateCheck: false);
+#pragma warning restore
                         await AppendMessage($"{validUpstream.First(t => t.BranchName == null).GroupName} did not have current branch; aborting", isError: true);
                     }
 

@@ -187,7 +187,8 @@ namespace GitAutomation
                 .Select(remoteBranches =>
                     {
                         return branchSettings.GetConfiguredBranches()
-                            .Select(branches => branches.FirstOrDefault(branch => branchIteration.IsBranchIteration(branch.GroupName, branchName)))
+                            .Select(branches => branches.FirstOrDefault(branch => branch.GroupName == branchName) 
+                                             ?? branches.FirstOrDefault(branch => branchIteration.IsBranchIteration(branch.GroupName, branchName)))
                             .Select(branchBasicDetails => branchSettings.GetBranchDetails(branchBasicDetails?.GroupName ?? branchName))
                             .Switch()
                             .Select(branchDetails => AddRemoteBranchNames(branchDetails, remoteBranches));
