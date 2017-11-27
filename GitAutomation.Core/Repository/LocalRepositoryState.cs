@@ -90,7 +90,8 @@ namespace GitAutomation.Repository
             {
                 await cli.EnsureInitialized;
                 var remoteBranches = cli.GetRemoteBranches();
-                await remoteBranches.ActiveState;
+                await remoteBranches.ActiveState.DefaultIfEmpty();
+                await remoteBranches.ActiveOutput.DefaultIfEmpty();
                 // Because listing remote branches doesn't affect the index, it doesn't need to be an action, but it does need to wait until initialization is ensured.
                 return await GitCliExtensions.BranchListingToRefs(remoteBranches.Output.ToObservable());
             });
