@@ -125,13 +125,7 @@ namespace GitAutomation.Processes
                 .Publish();
             output.Connect();
 
-            ActiveOutput = Observable.Create<OutputMessage>(observer =>
-            {
-                return new CompositeDisposable(
-                    output.Subscribe(observer),
-                    ActiveState.Subscribe()
-                );
-            });
+            ActiveOutput = ActiveState.SelectMany(output);
         }
 
     }
