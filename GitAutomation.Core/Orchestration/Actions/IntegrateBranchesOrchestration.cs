@@ -81,6 +81,10 @@ namespace GitAutomation.Orchestration.Actions
             // 3. Add the integration branch for ourselves
 
             var result = await FindConflicts(downstreamDetails.GroupName, initialUpstreamBranchGroups, doMerge);
+            if (result.PendingUpdates)
+            {
+                return result;
+            }
 
             var addedIntegrationBranch = false;
             using (var work = workFactory.CreateUnitOfWork())
@@ -212,6 +216,15 @@ namespace GitAutomation.Orchestration.Actions
                     };
                 }
                 var possibleConflict = possibleConflicts.Pop();
+
+                if (await repository.IsBadBranch(possibleConflict.BranchA.LatestBranchName))
+                {
+                    // At least one bad branch was found
+                    return new IntegrationBranchResult
+                    {
+                        PendingUpdates = true,
+                    };
+                }
                 if (leafConflicts.Contains(new ConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possibleConflict.BranchB }))
                 {
                     continue;
@@ -265,6 +278,14 @@ namespace GitAutomation.Orchestration.Actions
             while (possibleConflicts.Count > 0)
             {
                 var possibleConflict = possibleConflicts.Pop();
+                if (await repository.IsBadBranch(possibleConflict.BranchA.LatestBranchName))
+                {
+                    // At least one bad branch was found
+                    return new IntegrationBranchResult
+                    {
+                        PendingUpdates = true,
+                    };
+                }
                 if (leafConflicts.Contains(new ConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possibleConflict.BranchB }))
                 {
                     continue;

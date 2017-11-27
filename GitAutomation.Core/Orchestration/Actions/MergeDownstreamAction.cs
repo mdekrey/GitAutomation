@@ -180,6 +180,12 @@ namespace GitAutomation.Orchestration.Actions
                     var shouldPush = false;
                     foreach (var upstreamBranch in neededUpstreamMerges)
                     {
+                        if (await repository.IsBadBranch(upstreamBranch.BranchName))
+                        {
+                            await AppendMessage($"... {upstreamBranch.BranchName} is flagged as bad and won't be merged.");
+                            continue;
+                        }
+
                         var result = await MergeUpstreamBranch(upstreamBranch, LatestBranchName);
                         shouldPush = shouldPush || !result.HadConflicts;
                         if (result.HadConflicts)
