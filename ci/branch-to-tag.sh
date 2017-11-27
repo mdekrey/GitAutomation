@@ -14,7 +14,6 @@ if [ "${PARTS[0]}" == "rc" ]; then
     if [ "${MORE_PARTS[1]}" != "" ]; then
         REST+=("${MORE_PARTS[@]:1}")
     fi
-	echo $REST
     TAG=$(printf -- ".%s" "${REST[@]:1}")
     TAG=:${REST}-${TAG:1}
 fi
