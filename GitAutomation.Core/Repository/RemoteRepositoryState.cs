@@ -21,6 +21,7 @@ namespace GitAutomation.Repository
     {
         private readonly IEnumerable<ILocalRepositoryState> localRepositories;
         private readonly ConcurrentDictionary<string, string> badBranchCommits = new ConcurrentDictionary<string, string>();
+        private readonly ConcurrentDictionary<Tuple<string, string>, bool> canMerge = new ConcurrentDictionary<Tuple<string, string>, bool>();
 
         public RemoteRepositoryState(IEnumerable<ILocalRepositoryState> localRepositories)
         {
@@ -94,6 +95,39 @@ namespace GitAutomation.Repository
                 return !badBranchCommits.TryUpdate(branchName, null, badCommit);
             }
             return true;
+        }
+
+        private async Task<Tuple<string, string>> GetMergeTuple(string branchNameA, string branchNameB)
+        {
+            var branches = await RemoteBranches().Take(1);
+            var commitA = branches.FirstOrDefault(b => b.Name == branchNameA).Commit;
+            var commitB = branches.FirstOrDefault(b => b.Name == branchNameB).Commit;
+            if (commitA == null || commitB == null)
+            {
+                return null;
+            }
+            return commitA.CompareTo(commitB) < 0
+                ? Tuple.Create(commitA, commitB)
+                : Tuple.Create(commitB, commitA);
+        }
+
+        public async Task<bool?> CanMerge(string branchNameA, string branchNameB)
+        {
+            var key = await GetMergeTuple(branchNameA, branchNameB);
+            if (key == null || !canMerge.TryGetValue(key, out var canMergeResult))
+            {
+                return null;
+            }
+
+            return canMergeResult;
+        }
+        public async Task MarkCanMerge(string branchNameA, string branchNameB, bool canMerge)
+        {
+            var key = await GetMergeTuple(branchNameA, branchNameB);
+            if (key != null)
+            {
+                this.canMerge.TryAdd(key, canMerge);
+            }
         }
     }
 }

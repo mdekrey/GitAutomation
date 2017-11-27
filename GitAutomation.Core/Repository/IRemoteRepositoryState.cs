@@ -22,6 +22,9 @@ namespace GitAutomation.Repository
         void FlagBadGitRef(GitRef target);
         Task<bool> IsBadBranch(string branchName);
 
+        Task<bool?> CanMerge(string branchNameA, string branchNameB);
+        Task MarkCanMerge(string branchNameA, string branchNameB, bool canMerge);
+
         /// <summary>
         /// Dump internal cache and fetch from remote
         /// </summary>

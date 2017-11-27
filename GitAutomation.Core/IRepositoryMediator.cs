@@ -31,5 +31,7 @@ namespace GitAutomation
         void CheckForUpdatesOnBranch(string branchName);
         void FlagBadGitRef(string branch, string commit);
         Task<bool> IsBadBranch(string branch);
+        Task<bool?> CanMerge(string branchNameA, string branchNameB);
+        Task MarkCanMerge(string branchNameA, string branchNameB, bool canMerge);
     }
 }
