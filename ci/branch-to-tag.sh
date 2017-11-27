@@ -14,8 +14,9 @@ if [ "${PARTS[0]}" == "rc" ]; then
     if [ "${MORE_PARTS[1]}" != "" ]; then
         REST+=("${MORE_PARTS[@]:1}")
     fi
-    TAG=$(printf -- "-%s" "${REST[@]}")
-    TAG=:${TAG:1}
+	echo $REST
+    TAG=$(printf -- ".%s" "${REST[@]:1}")
+    TAG=:${REST}-${TAG:1}
 fi
 if [ "${PARTS[0]}" == "latest" ]; then
     TAG=:latest
