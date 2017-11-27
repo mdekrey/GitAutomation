@@ -41,8 +41,14 @@ namespace GitAutomation.Management
         
         [Authorize(Auth.PolicyNames.Create)]
         [HttpPut("branch/create/{*branchName}")]
-        public async Task<IActionResult> CreateBranch(string branchName, [FromBody] CreateBranchRequestBody requestBody, [FromServices] IOrchestrationActions orchestrationActions)
+        public async Task<IActionResult> CreateBranch(string branchName, [FromBody] CreateBranchRequestBody requestBody, [FromServices] IGitCli cli, [FromServices] IOrchestrationActions orchestrationActions)
         {
+            var checkRefFormat = cli.CheckRefFormat(branchName);
+            await checkRefFormat.ActiveState.DefaultIfEmpty();
+            if (checkRefFormat.ExitCode != 0)
+            {
+                return StatusCode(400, new { code = "bad-branch-name", message = "Branch name is not valid." });
+            }
             var branch = await branchSettings.GetBranchBasicDetails(branchName).FirstOrDefaultAsync();
             if (branch != null)
             {

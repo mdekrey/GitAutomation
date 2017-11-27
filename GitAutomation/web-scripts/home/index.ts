@@ -16,6 +16,7 @@ import { flatten, sortBy } from "../utils/ramda";
 import { style } from "typestyle";
 import { branchNameDisplay } from "../branch-name-display";
 import { secured } from "../security/security-binding";
+import { handleError } from "../handle-error";
 
 const remoteBranchesTableLayout = style({
   borderCollapse: "collapse",
@@ -71,6 +72,7 @@ export const homepage = (
             .map(fnSelect('[data-locator="fetch-from-remote"]'))
             .let(fnEvent("click"))
             .switchMap(() => fetch())
+            .let(handleError)
             .subscribe()
         );
 

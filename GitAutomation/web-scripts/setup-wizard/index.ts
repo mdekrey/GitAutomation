@@ -4,6 +4,7 @@ import { Selection } from "d3-selection";
 import { RoutingComponent } from "../utils/routing-component";
 import { fnEvent, fnSelect, rxData } from "../utils/presentation/d3-binding";
 import { recommendGroups, updateBranch, detectUpstream } from "../api/basics";
+import { handleErrorOnce } from "../handle-error";
 
 export const setupWizard = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -119,7 +120,7 @@ export const setupWizard = (
                 url: "/",
                 replaceCurentHistory: false
               });
-            })
+            }, handleErrorOnce)
         );
 
         return subscription;

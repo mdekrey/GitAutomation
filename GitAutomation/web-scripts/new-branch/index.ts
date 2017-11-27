@@ -16,6 +16,7 @@ import {
 import { groupsToHierarchy } from "../api/hierarchy";
 import { secured } from "../security/security-binding";
 import { inputValue, checkboxChecked } from "../utils/inputs";
+import { handleError } from "../handle-error";
 
 const manageStyle = {
   fieldSection: style({
@@ -206,7 +207,7 @@ export const newBranch = (
             .map(fnSelect('[data-locator="save"]'))
             .let(fnEvent("click"))
             .switchMap(() => doSave(data))
-            // TODO - error message
+            .let(handleError)
             .subscribe({
               next: branchName => {
                 state.navigate({

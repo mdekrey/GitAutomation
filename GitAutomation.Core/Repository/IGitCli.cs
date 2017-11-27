@@ -11,6 +11,7 @@ namespace GitAutomation.Repository
         IReactiveProcess Checkout(string branchName);
         IReactiveProcess CheckoutNew(string branchName);
         IReactiveProcess CheckoutRemote(string branchName);
+        IReactiveProcess CheckRefFormat(string branchName);
         IReactiveProcess Clean();
         IReactiveProcess Clone();
         IReactiveProcess Config(string configKey, string configValue);
