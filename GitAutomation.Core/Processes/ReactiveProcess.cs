@@ -125,7 +125,7 @@ namespace GitAutomation.Processes
                 .Publish();
             output.Connect();
 
-            ActiveOutput = ActiveState.SelectMany(output);
+            ActiveOutput = output.WithLatestFrom(ActiveState, (a, b) => a);
         }
 
     }

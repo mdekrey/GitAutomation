@@ -33,7 +33,7 @@ namespace GitAutomation.Orchestration.Actions
                     orchestrationMock.Object,
                     new IntegrationNamingMediator(new StandardIntegrationNamingConvention(branchNaming), repositoryMock.Object),
                     settingsMock.Object,
-                    repositoryMock.Object,
+                    repositoryMediatorMock.Object,
                     new BranchIterationMediator(branchNaming, repositoryMock.Object)
                 );
                 AttemptMergeMock = new Mock<IMergeDelegate>();
@@ -44,6 +44,7 @@ namespace GitAutomation.Orchestration.Actions
             public readonly Mock<IUnitOfWorkFactory> workFactoryMock = new Mock<IUnitOfWorkFactory>() { DefaultValue = DefaultValue.Mock };
             public readonly Mock<IRepositoryOrchestration> orchestrationMock = new Mock<IRepositoryOrchestration>();
             public readonly Mock<IBranchSettings> settingsMock = new Mock<IBranchSettings>();
+            public readonly Mock<IRepositoryMediator> repositoryMediatorMock = new Mock<IRepositoryMediator>();
             public readonly Mock<IRemoteRepositoryState> repositoryMock = new Mock<IRemoteRepositoryState>();
 
             public IntegrateBranchesOrchestration Target { get; }
@@ -54,7 +55,7 @@ namespace GitAutomation.Orchestration.Actions
         public async Task FindParentConflictsOnCreate()
         {
             var setup = new Setup();
-            setup.repositoryMock.Setup(repository => repository.RemoteBranches()).Returns(Observable.Return(
+            setup.repositoryMediatorMock.Setup(repository => repository.GetAllBranchRefs()).Returns(Observable.Return(
                 new[]
                 {
                     new GitRef
@@ -85,7 +86,7 @@ namespace GitAutomation.Orchestration.Actions
         public async Task FindParentConflicts()
         {
             var setup = new Setup();
-            setup.repositoryMock.Setup(repository => repository.RemoteBranches()).Returns(Observable.Return(
+            setup.repositoryMediatorMock.Setup(repository => repository.GetAllBranchRefs()).Returns(Observable.Return(
                 new[]
                 {
                     new GitRef
@@ -121,7 +122,7 @@ namespace GitAutomation.Orchestration.Actions
         public async Task FindParentConflictsIssue76()
         {
             var setup = new Setup();
-            setup.repositoryMock.Setup(repository => repository.RemoteBranches()).Returns(Observable.Return(
+            setup.repositoryMediatorMock.Setup(repository => repository.GetAllBranchRefs()).Returns(Observable.Return(
                 new[]
                 {
                     new GitRef
@@ -168,7 +169,7 @@ namespace GitAutomation.Orchestration.Actions
         public async Task FindIntegrationFromConsolidationIssue75()
         {
             var setup = new Setup();
-            setup.repositoryMock.Setup(repository => repository.RemoteBranches()).Returns(Observable.Return(
+            setup.repositoryMediatorMock.Setup(repository => repository.GetAllBranchRefs()).Returns(Observable.Return(
                 new[]
                 {
                     new GitRef

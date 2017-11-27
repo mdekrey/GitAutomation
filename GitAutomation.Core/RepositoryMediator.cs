@@ -328,5 +328,14 @@ namespace GitAutomation
         {
             return repositoryState.IsBadBranch(branch);
         }
+
+        public Task<bool?> CanMerge(string branchNameA, string branchNameB)
+        {
+            return repositoryState.CanMerge(branchNameA, branchNameB);
+        }
+        public Task MarkCanMerge(string branchNameA, string branchNameB, bool canMerge)
+        {
+            return repositoryState.MarkCanMerge(branchNameA, branchNameB, canMerge);
+        }
     }
 }

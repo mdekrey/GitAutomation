@@ -51,7 +51,7 @@ namespace GitAutomation.Orchestration.Actions
         private readonly IRepositoryOrchestration orchestration;
         private readonly IIntegrationNamingMediator integrationNaming;
         private readonly IBranchSettings settings;
-        private readonly IRemoteRepositoryState repository;
+        private readonly IRepositoryMediator repository;
         private readonly IBranchIterationMediator branchIteration;
         private readonly IGitServiceApi gitServiceApi;
 
@@ -63,7 +63,7 @@ namespace GitAutomation.Orchestration.Actions
             public ConflictingBranches? ConflictWhenSuccess;
         }
 
-        public IntegrateBranchesOrchestration(IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, IIntegrationNamingMediator integrationNaming, IBranchSettings settings, IRemoteRepositoryState repository, IBranchIterationMediator branchIteration)
+        public IntegrateBranchesOrchestration(IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, IIntegrationNamingMediator integrationNaming, IBranchSettings settings, IRepositoryMediator repository, IBranchIterationMediator branchIteration)
         {
             this.gitServiceApi = gitServiceApi;
             this.workFactory = workFactory;
@@ -155,7 +155,7 @@ namespace GitAutomation.Orchestration.Actions
             // Two integration branches are needed: A-H and B-J. A-H is already found, so only B-J is created.
             // A-H and B-J are added to the downstream branch, if A-H was not already added to the downstream branch.
 
-            var remoteBranches = await repository.RemoteBranches().Select(branches => branches.Select(branch => branch.Name).ToImmutableList()).FirstOrDefaultAsync();
+            var remoteBranches = await repository.GetAllBranchRefs().Select(branches => branches.Select(branch => branch.Name).ToImmutableList()).FirstOrDefaultAsync();
             Func<string, LatestBranchGroup> groupToLatest = group => new LatestBranchGroup
             {
                 GroupName = group,
@@ -234,13 +234,17 @@ namespace GitAutomation.Orchestration.Actions
                     skippedDueToPullRequest = true;
                     continue;
                 }
-                var isSuccessfulMerge = await doMerge(possibleConflict.BranchA.LatestBranchName, possibleConflict.BranchB.LatestBranchName, "CONFLICT TEST; DO NOT PUSH");
+                var isSuccessfulMerge = await repository.CanMerge(possibleConflict.BranchA.LatestBranchName, possibleConflict.BranchB.LatestBranchName)
+                    ?? await doMerge(possibleConflict.BranchA.LatestBranchName, possibleConflict.BranchB.LatestBranchName, "CONFLICT TEST; DO NOT PUSH");
                 if (isSuccessfulMerge)
                 {
                     // successful, not a conflict
+                    await repository.MarkCanMerge(possibleConflict.BranchA.LatestBranchName, possibleConflict.BranchB.LatestBranchName, true);
                 }
                 else
                 {
+                    await repository.MarkCanMerge(possibleConflict.BranchA.LatestBranchName, possibleConflict.BranchB.LatestBranchName, false);
+
                     // there was a conflict
                     if (possibleConflict.ConflictWhenSuccess.HasValue && unflippedConflicts.Contains(possibleConflict.ConflictWhenSuccess.Value))
                     {
