@@ -153,6 +153,11 @@ namespace GitAutomation.Repository
             return RunGit("checkout", "-B", branchName);
         }
 
+        public IReactiveProcess CheckRefFormat(string branchName)
+        {
+            return RunGit("check-ref-format", "--branch", branchName);
+        }
+
         public IReactiveProcess MergeRemote(string branchName, string message = null, string commitDate = null)
         {
             var parameters = new List<string>

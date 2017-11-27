@@ -8,6 +8,7 @@ import { getLog, actionQueue, forceRefreshLog } from "../api/basics";
 import { logPresentation } from "../logs/log.presentation";
 
 import { secured } from "../security/security-binding";
+import { handleError } from "../handle-error";
 
 export const debugPage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
@@ -32,6 +33,7 @@ export const debugPage = (
               .let(fnEvent("click"))
               .startWith(null)
               .switchMap(() => actionQueue)
+              .let(handleError)
           )
             .bind<HTMLLIElement>({
               onCreate: target => target.append<HTMLLIElement>("li"),

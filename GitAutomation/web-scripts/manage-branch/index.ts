@@ -34,6 +34,7 @@ import { classed } from "../style/style-binding";
 import { style } from "typestyle";
 import { secured } from "../security/security-binding";
 import { inputValue, checkboxChecked } from "../utils/inputs";
+import { handleError, handleErrorOnce } from "../handle-error";
 
 const manageStyle = {
   fieldSection: style({
@@ -242,9 +243,9 @@ export const manage = (
             .map(fnSelect('[data-locator="save"]'))
             .let(fnEvent("click"))
             .switchMap(() => doSave(data, branchDataState))
+            .let(handleError)
             .subscribe({
               next: () => reload.next(null),
-              // TODO - error
               error: err => console.error(err)
             })
         );
@@ -322,6 +323,7 @@ export const manage = (
             .switchMap(event =>
               deleteBranchByMode(event.datum.name, "ActualBranchOnly")
             )
+            .let(handleError)
             .subscribe()
         );
 
@@ -347,6 +349,7 @@ export const manage = (
                 onEach: selection => selection.text(data => data)
               })
             )
+            .let(handleError)
             .subscribe()
         );
 
@@ -432,21 +435,23 @@ export const manage = (
               (_, elem) => elem
             )
             .subscribe(elements => {
-              detectUpstream(branchName, true).subscribe(branchNames =>
-                branchNames.forEach(upstreamBranchName =>
-                  elements
-                    .select(
-                      `[data-locator="upstream-branches"] [data-locator="check"][data-branch="${
-                        upstreamBranchName
-                      }"]`
-                    )
-                    .property("checked", true)
-                    .each(function(this: Element) {
-                      const evt = document.createEvent("HTMLEvents");
-                      evt.initEvent("change", false, true);
-                      this.dispatchEvent(evt);
-                    })
-                )
+              detectUpstream(branchName, true).subscribe(
+                branchNames =>
+                  branchNames.forEach(upstreamBranchName =>
+                    elements
+                      .select(
+                        `[data-locator="upstream-branches"] [data-locator="check"][data-branch="${
+                          upstreamBranchName
+                        }"]`
+                      )
+                      .property("checked", true)
+                      .each(function(this: Element) {
+                        const evt = document.createEvent("HTMLEvents");
+                        evt.initEvent("change", false, true);
+                        this.dispatchEvent(evt);
+                      })
+                  ),
+                handleErrorOnce
               );
             })
         );
@@ -460,44 +465,46 @@ export const manage = (
               (_, elem) => elem
             )
             .subscribe(elements => {
-              checkPullRequests(branchName).subscribe(pullRequests =>
-                pullRequests.forEach(pr => {
-                  const target = elements
-                    .select(
-                      `[data-locator="pr-status"][data-branch="${
-                        pr.sourceBranch
-                      }"]`
-                    )
-                    .html(require("./pr-display.html"));
-                  target
-                    .select(`[data-locator="status"]`)
-                    .attr("href", pr.url)
-                    .text(`PR ${pr.state}`);
-                  bind({
-                    target: target
-                      .select(`[data-locator="reviews"]`)
-                      .selectAll("a")
-                      .data(pr.reviews || []),
-                    onCreate: e =>
-                      e
-                        .append("a")
-                        .attr("target", "_blank")
-                        .classed("normal", true),
-                    onEach: e =>
-                      e
-                        .attr("href", review => review.url)
-                        .text(
-                          review =>
-                            review.author +
-                            ": " +
-                            (review.state === "Approved"
-                              ? "✔️"
-                              : review.state === "ChangesRequested"
-                                ? "❌"
-                                : "❔")
-                        )
-                  });
-                })
+              checkPullRequests(branchName).subscribe(
+                pullRequests =>
+                  pullRequests.forEach(pr => {
+                    const target = elements
+                      .select(
+                        `[data-locator="pr-status"][data-branch="${
+                          pr.sourceBranch
+                        }"]`
+                      )
+                      .html(require("./pr-display.html"));
+                    target
+                      .select(`[data-locator="status"]`)
+                      .attr("href", pr.url)
+                      .text(`PR ${pr.state}`);
+                    bind({
+                      target: target
+                        .select(`[data-locator="reviews"]`)
+                        .selectAll("a")
+                        .data(pr.reviews || []),
+                      onCreate: e =>
+                        e
+                          .append("a")
+                          .attr("target", "_blank")
+                          .classed("normal", true),
+                      onEach: e =>
+                        e
+                          .attr("href", review => review.url)
+                          .text(
+                            review =>
+                              review.author +
+                              ": " +
+                              (review.state === "Approved"
+                                ? "✔️"
+                                : review.state === "ChangesRequested"
+                                  ? "❌"
+                                  : "❔")
+                          )
+                    });
+                  }),
+                handleErrorOnce
               );
             })
         );
@@ -533,6 +540,7 @@ export const manage = (
             )
             .take(1)
             .switchMap(promoteServiceLine)
+            .let(handleError)
             .subscribe(response => {
               state.navigate({ url: "/", replaceCurentHistory: false });
             })
@@ -566,6 +574,7 @@ export const manage = (
             )
             .take(1)
             .switchMap(consolidateMerged)
+            .let(handleError)
             .subscribe(response => {
               state.navigate({ url: "/", replaceCurentHistory: false });
             })
@@ -578,6 +587,7 @@ export const manage = (
             .map(() => branchName)
             .take(1)
             .switchMap(deleteBranch)
+            .let(handleError)
             .subscribe(response => {
               state.navigate({ url: "/", replaceCurentHistory: false });
             })
@@ -592,6 +602,7 @@ export const manage = (
             .switchMap(branchName =>
               deleteBranchByMode(branchName, "GroupOnly")
             )
+            .let(handleError)
             .subscribe(response => {
               state.navigate({ url: "/", replaceCurentHistory: false });
             })
