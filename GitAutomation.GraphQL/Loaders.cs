@@ -137,7 +137,7 @@ namespace GitAutomation.GraphQL
             var refs = await LoadAllGitRefs().ConfigureAwait(false);
             return (from branch in refs
                     where branchIteration.IsBranchIteration(name, branch.Name)
-                    select branch).ToImmutableList();
+                    select branch).OrderBy(gitRef => gitRef.Name, branchIteration.GetIterationNameComparer(name)).ToImmutableList();
         }
 
         async internal Task<GitRef?> LoadLatestBranch(string name)
