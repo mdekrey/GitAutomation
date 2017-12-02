@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace GitAutomation.EFCore.BranchingModel
 {
@@ -12,8 +13,8 @@ namespace GitAutomation.EFCore.BranchingModel
         }
 
         public string GroupName { get; set; }
-        public bool RecreateFromUpstream { get; set; }
         public string BranchType { get; set; }
+        [Required]
         public string UpstreamMergePolicy { get; set; }
 
         public ICollection<BranchStream> UpstreamBranchConnections { get; set; }

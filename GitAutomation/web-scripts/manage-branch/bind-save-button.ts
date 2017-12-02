@@ -8,7 +8,7 @@ export interface ISaveData {
   downstream: string[];
   upstream: string[];
   branchName: string;
-  recreateFromUpstream: boolean;
+  upstreamMergePolicy: GitAutomationGQL.IUpstreamMergePolicyEnum;
   branchType: GitAutomationGQL.IBranchGroupTypeEnum;
 }
 
@@ -26,7 +26,7 @@ export const doSave = (
     .withLatestFrom(
       branchData.map(d => d.branches),
       (
-        { branchName, upstream, downstream, recreateFromUpstream, branchType },
+        { branchName, upstream, downstream, upstreamMergePolicy, branchType },
         branches
       ) => {
         const oldUpstream = branches
@@ -37,7 +37,7 @@ export const doSave = (
           .map(b => b.groupName);
         return {
           branchName,
-          recreateFromUpstream,
+          upstreamMergePolicy,
           branchType,
           addUpstream: difference(upstream, oldUpstream),
           removeUpstream: difference(oldUpstream, upstream),

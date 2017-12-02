@@ -21,7 +21,7 @@ namespace GitAutomation.BranchSettings
         IObservable<ImmutableList<string>> GetAllUpstreamRemovableBranches(string branchName);
         Task<string> GetIntegrationBranch(string branchA, string branchB);
 
-        void UpdateBranchSetting(string branchName, bool recreateFromUpstream, BranchGroupType branchType, Work.IUnitOfWork work);
+        void UpdateBranchSetting(string branchName, UpstreamMergePolicy upstreamMergePolicy, BranchGroupType branchType, Work.IUnitOfWork work);
         void AddBranchPropagation(string upstreamBranch, string downstreamBranch, Work.IUnitOfWork work);
         void RemoveBranchPropagation(string upstreamBranch, string downstreamBranch, Work.IUnitOfWork work);
         void ConsolidateBranches(IEnumerable<string> branchesToRemove, string targetBranch, IUnitOfWork unitOfWork);

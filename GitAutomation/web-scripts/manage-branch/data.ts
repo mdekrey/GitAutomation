@@ -5,7 +5,7 @@ import { groupsToHierarchy } from "../api/hierarchy";
 
 export interface IManageBranch {
   isLoading: boolean;
-  recreateFromUpstream: boolean;
+  upstreamMergePolicy: GitAutomationGQL.IUpstreamMergePolicyEnum;
   branchType: string;
   branches: IBranchData[];
   actualBranches: Pick<GitAutomationGQL.IGitRef, "name" | "commit">[];
@@ -63,7 +63,7 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
             isUpstreamAllowed: downstreamBranches.indexOf(group.groupName) == -1
           })),
           branchType: branchDetails.branchType,
-          recreateFromUpstream: branchDetails.recreateFromUpstream,
+          upstreamMergePolicy: branchDetails.upstreamMergePolicy,
           actualBranches: branchDetails.branches,
           latestBranchName: branchDetails.latestBranch
             ? branchDetails.latestBranch.name
@@ -75,13 +75,13 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
     .map(
       ({
         branches,
-        recreateFromUpstream,
+        upstreamMergePolicy,
         branchType,
         actualBranches,
         latestBranchName
       }): IManageBranch => ({
         branches,
-        recreateFromUpstream,
+        upstreamMergePolicy,
         branchType,
         isLoading: false,
         actualBranches,
@@ -91,7 +91,7 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
 
   const branchData = Observable.of<IManageBranch>({
     isLoading: true,
-    recreateFromUpstream: false,
+    upstreamMergePolicy: "None",
     branchType: "Feature",
     branches: [],
     actualBranches: [],

@@ -18,9 +18,9 @@ namespace GitAutomation.GraphQL
             Field(nameof(BranchGroup.GroupName), d => d)
                 .Description("The full name of the group.");
 
-            Field<NonNullGraphType<BooleanGraphType>>()
-                .Name(nameof(BranchGroup.RecreateFromUpstream))
-                .Resolve(this, nameof(LoadRecreateFromUpstream));
+            Field<NonNullGraphType<UpstreamMergePolicyTypeEnum>>()
+                .Name(nameof(BranchGroup.UpstreamMergePolicy))
+                .Resolve(this, nameof(LoadUpstreamMergePolicy));
 
             Field<NonNullGraphType<BranchGroupTypeEnum>>()
                 .Name(nameof(BranchGroup.BranchType))
@@ -45,12 +45,12 @@ namespace GitAutomation.GraphQL
                 .Resolve(this, nameof(LatestBranch));
         }
 
-        Task<bool> LoadRecreateFromUpstream([Source] string name, [FromServices] Loaders loaders)
+        Task<UpstreamMergePolicy> LoadUpstreamMergePolicy([Source] string name, [FromServices] Loaders loaders)
         {
             return loaders.LoadBranchGroup(name)
                 .ContinueWith(r =>
                 {
-                    return r.Result?.RecreateFromUpstream ?? false;
+                    return r.Result?.UpstreamMergePolicy ?? UpstreamMergePolicy.None;
                 });
         }
 

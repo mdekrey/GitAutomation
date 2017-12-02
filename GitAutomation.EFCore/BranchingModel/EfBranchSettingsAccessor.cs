@@ -39,18 +39,7 @@ namespace GitAutomation.EFCore.BranchingModel
 
         private static BranchSettings.BranchGroup EfBranchGroupToModel(BranchGroup branch)
         {
-            if (branch == null)
-            {
-                return null;
-            }
-            return new BranchSettings.BranchGroup
-            {
-                GroupName = branch.GroupName,
-                RecreateFromUpstream = branch.RecreateFromUpstream,
-                BranchType = Enum.TryParse<BranchGroupType>(branch.BranchType, out var branchType)
-                    ? branchType
-                    : BranchGroupType.Feature,
-            };
+            return branch.ToModel();
         }
 
         public Task<ImmutableDictionary<string, ImmutableList<string>>> GetDownstreamBranchGroups(params string[] groupNames)

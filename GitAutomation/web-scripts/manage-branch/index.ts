@@ -33,7 +33,7 @@ import { groupsToHierarchy } from "../api/hierarchy";
 import { classed } from "../style/style-binding";
 import { style } from "typestyle";
 import { secured } from "../security/security-binding";
-import { inputValue, checkboxChecked } from "../utils/inputs";
+import { inputValue } from "../utils/inputs";
 import { handleError, handleErrorOnce } from "../handle-error";
 
 const manageStyle = {
@@ -152,14 +152,18 @@ export const manage = (
           )
           .combineLatest(reset, _ => _);
 
-        subscription.add(
-          container
-            .map(fnSelect(`[data-locator="recreate-from-upstream"]`))
-            .let(rxDatum(branchDataState.map(d => d.recreateFromUpstream)))
-            .subscribe(target => {
-              target.property("checked", value => value);
-            })
-        );
+        const upstreamMergePolicyData = container
+          .map(fnSelect(`[data-locator="upstream-merge-policy"]`))
+          .let(rxDatum(branchDataState.map(d => d.upstreamMergePolicy)))
+          .do(target => {
+            target.property("value", value => value);
+          })
+          .publishReplay(1)
+          .refCount()
+          .let(inputValue({ includeInitial: true }))
+          .map(v => v as GitAutomationGQL.IUpstreamMergePolicyEnum);
+
+        subscription.add(upstreamMergePolicyData.subscribe());
 
         const branchTypeData = container
           .map(fnSelect(`[data-locator="branch-type"]`))
@@ -183,8 +187,8 @@ export const manage = (
 
         subscription.add(
           container
-            .map(fnSelect(`[data-locator="recreate-from-upstream"]`))
-            .let(checkboxChecked({ includeInitial: false }))
+            .map(fnSelect(`[data-locator="upstream-merge-policy"]`))
+            .let(inputValue({ includeInitial: false }))
             .subscribe(disconnect)
         );
 
@@ -228,13 +232,14 @@ export const manage = (
         const data = checkedData(checkboxes).combineLatest(
           branchTypeData,
           container
-            .map(fnSelect(`[data-locator="recreate-from-upstream"]`))
-            .let(checkboxChecked({ includeInitial: true })),
-          (stream, branchType, recreateFromUpstream) => ({
+            .map(fnSelect(`[data-locator="upstream-merge-policy"]`))
+            .let(inputValue({ includeInitial: true }))
+            .map(v => v as GitAutomationGQL.IUpstreamMergePolicyEnum),
+          (stream, branchType, upstreamMergePolicy) => ({
             ...stream,
             branchType,
             branchName,
-            recreateFromUpstream
+            upstreamMergePolicy
           })
         );
 

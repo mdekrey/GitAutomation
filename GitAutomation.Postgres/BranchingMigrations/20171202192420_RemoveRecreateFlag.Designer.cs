@@ -11,9 +11,10 @@ using System;
 namespace GitAutomation.Postgres.BranchingMigrations
 {
     [DbContext(typeof(BranchingContext))]
-    partial class BranchingContextModelSnapshot : ModelSnapshot
+    [Migration("20171202192420_RemoveRecreateFlag")]
+    partial class RemoveRecreateFlag
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

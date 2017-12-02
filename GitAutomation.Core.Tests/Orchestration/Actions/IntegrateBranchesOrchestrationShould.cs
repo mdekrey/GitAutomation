@@ -148,7 +148,7 @@ namespace GitAutomation.Orchestration.Actions
                 }.ToImmutableList()
             ));
             setup.gitServiceApiMock.Setup(git => git.GetPullRequests(It.IsAny<PullRequestState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<PullRequestAuthorMode>())).Returns(Task.FromResult(ImmutableList<PullRequest>.Empty));
-            var serviceLineGroups = Observable.Return(new [] { new BranchGroup { GroupName = "ServiceLine", BranchType = BranchGroupType.ServiceLine, RecreateFromUpstream = false } }.ToImmutableList());
+            var serviceLineGroups = Observable.Return(new [] { new BranchGroup { GroupName = "ServiceLine", BranchType = BranchGroupType.ServiceLine, UpstreamMergePolicy = UpstreamMergePolicy.None } }.ToImmutableList());
             setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("A")).Returns(serviceLineGroups);
             setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("B")).Returns(serviceLineGroups);
             setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("ServiceLine")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
@@ -191,7 +191,7 @@ namespace GitAutomation.Orchestration.Actions
             ));
             setup.gitServiceApiMock.Setup(git => git.GetPullRequests(It.IsAny<PullRequestState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<PullRequestAuthorMode>())).Returns(Task.FromResult(ImmutableList<PullRequest>.Empty));
             var serviceLineGroups = Observable.Return(
-                new [] { new BranchGroup { GroupName = "ServiceLine", BranchType = BranchGroupType.ServiceLine, RecreateFromUpstream = false } }.ToImmutableList()
+                new [] { new BranchGroup { GroupName = "ServiceLine", BranchType = BranchGroupType.ServiceLine, UpstreamMergePolicy = UpstreamMergePolicy.None } }.ToImmutableList()
             );
             setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("ServiceLine")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
             setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("B", "ServiceLine", It.IsAny<string>())).Returns(Task.FromResult(false));

@@ -232,7 +232,7 @@ export const branchDetails = (branchName: string) =>
         query($branchName: String!) {
           branchGroup(name: $branchName) {
             groupName
-            recreateFromUpstream
+            upstreamMergePolicy
             branchType
             directDownstream {
               groupName
@@ -362,8 +362,8 @@ export const fetch = () =>
 export const createBranch = (
   branchName: string,
   body: {
-    recreateFromUpstream: boolean;
-    branchType: string;
+    upstreamMergePolicy: GitAutomationGQL.IUpstreamMergePolicyEnum;
+    branchType: GitAutomationGQL.IBranchGroupTypeEnum;
     addUpstream: string[];
   }
 ) =>
@@ -376,8 +376,8 @@ export const createBranch = (
 export const updateBranch = (
   branchName: string,
   body: {
-    recreateFromUpstream: boolean;
-    branchType: string;
+    upstreamMergePolicy: GitAutomationGQL.IUpstreamMergePolicyEnum;
+    branchType: GitAutomationGQL.IBranchGroupTypeEnum;
     addUpstream: string[];
     addDownstream: string[];
     removeUpstream: string[];

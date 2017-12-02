@@ -61,7 +61,7 @@ namespace GitAutomation.Management
                 {
                     branchSettings.AddBranchPropagation(addedUpstream, branchName, unitOfWork);
                 }
-                branchSettings.UpdateBranchSetting(branchName, requestBody.RecreateFromUpstream, requestBody.BranchType, unitOfWork);
+                branchSettings.UpdateBranchSetting(branchName, requestBody.UpstreamMergePolicy, requestBody.BranchType, unitOfWork);
 
                 await unitOfWork.CommitAsync();
             }
@@ -100,7 +100,7 @@ namespace GitAutomation.Management
                     branchSettings.RemoveBranchPropagation(branchName, removeDownstream, unitOfWork);
                     branchesToCheck.Add(removeDownstream);
                 }
-                branchSettings.UpdateBranchSetting(branchName, requestBody.RecreateFromUpstream, requestBody.BranchType, unitOfWork);
+                branchSettings.UpdateBranchSetting(branchName, requestBody.UpstreamMergePolicy, requestBody.BranchType, unitOfWork);
 
                 await unitOfWork.CommitAsync();
             }
@@ -142,14 +142,14 @@ namespace GitAutomation.Management
 
         public class CreateBranchRequestBody
         {
-            public bool RecreateFromUpstream { get; set; }
+            public UpstreamMergePolicy UpstreamMergePolicy { get; set; }
             public BranchGroupType BranchType { get; set; }
             public string[] AddUpstream { get; set; }
         }
 
         public class UpdateBranchRequestBody
         {
-            public bool RecreateFromUpstream { get; set; }
+            public UpstreamMergePolicy UpstreamMergePolicy { get; set; }
             public BranchGroupType BranchType { get; set; }
             public string[] AddUpstream { get; set; }
             public string[] AddDownstream { get; set; }

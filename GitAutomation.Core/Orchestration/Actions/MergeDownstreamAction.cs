@@ -121,7 +121,7 @@ namespace GitAutomation.Orchestration.Actions
                     ? upstreamBranches
                     : await FindNeededMerges(upstreamBranches);
 
-                if (Details.RecreateFromUpstream)
+                if (Details.UpstreamMergePolicy == UpstreamMergePolicy.MergeNextIteration)
                 {
                     if (neededUpstreamMerges.Any())
                     {

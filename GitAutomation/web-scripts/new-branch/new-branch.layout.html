@@ -22,7 +22,12 @@
     </section>
     <section data-class="fieldSection">
         <label>
-            <input type="checkbox" data-locator="recreate-from-upstream" /> Recreate from Upstream
+            Upstream Policy
+            <select data-locator="upstream-merge-policy">
+                <option value="None">None (merge normally)</option>
+                <option value="MergeNextIteration">Create new branch Iteration</option>
+                <option value="ForceFresh">Force update base branch</option>
+            </select>
         </label>
         <p data-class="hint">Used only with "Release Candidates"; will make new branches that contain only upstream commits</p>
     </section>

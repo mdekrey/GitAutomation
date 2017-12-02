@@ -6,7 +6,7 @@ export interface ISaveData {
   downstream: string[];
   upstream: string[];
   branchName: string;
-  recreateFromUpstream: boolean;
+  upstreamMergePolicy: GitAutomationGQL.IUpstreamMergePolicyEnum;
   branchType: GitAutomationGQL.IBranchGroupTypeEnum;
 }
 
@@ -14,11 +14,11 @@ export const doSave = (data: Observable<ISaveData>) => {
   // save
   return data
     .take(1)
-    .map(({ branchName, upstream, recreateFromUpstream, branchType }) => {
+    .map(({ branchName, upstream, upstreamMergePolicy, branchType }) => {
       return {
         branchName,
         requestBody: {
-          recreateFromUpstream,
+          upstreamMergePolicy,
           branchType,
           addUpstream: upstream
         }

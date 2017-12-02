@@ -39,18 +39,7 @@ namespace GitAutomation.EFCore.BranchingModel
 
         private static BranchSettings.BranchGroup EfBranchGroupToModel(BranchGroup branch)
         {
-            if (branch == null)
-            {
-                return null;
-            }
-            return new BranchSettings.BranchGroup
-            {
-                GroupName = branch.GroupName,
-                RecreateFromUpstream = branch.RecreateFromUpstream,
-                BranchType = Enum.TryParse<BranchGroupType>(branch.BranchType, out var branchType)
-                    ? branchType
-                    : BranchGroupType.Feature,
-            };
+            return branch.ToModel();
         }
 
         public IObservable<BranchSettings.BranchGroup> GetBranchBasicDetails(string branchName)
@@ -91,7 +80,7 @@ namespace GitAutomation.EFCore.BranchingModel
             return new BranchGroupCompleteData
             {
                 GroupName = branchName,
-                RecreateFromUpstream = settings.RecreateFromUpstream,
+                UpstreamMergePolicy = settings.UpstreamMergePolicy,
                 BranchType = settings.BranchType,
                 DirectDownstreamBranchGroups = downstream.ContainsKey(branchName) ? downstream[branchName] : ImmutableList<string>.Empty,
                 DirectUpstreamBranchGroups = upstream.ContainsKey(branchName) ? upstream[branchName] : ImmutableList<string>.Empty,
@@ -139,7 +128,7 @@ namespace GitAutomation.EFCore.BranchingModel
             return new BranchGroup
             {
                 GroupName = branchName,
-                RecreateFromUpstream = false,
+                UpstreamMergePolicy = UpstreamMergePolicy.None.ToString("g"),
                 BranchType = BranchGroupType.Feature.ToString("g"),
             };
         }
@@ -149,7 +138,7 @@ namespace GitAutomation.EFCore.BranchingModel
             return new BranchSettings.BranchGroup
             {
                 GroupName = branchName,
-                RecreateFromUpstream = false,
+                UpstreamMergePolicy = UpstreamMergePolicy.None,
                 BranchType = BranchGroupType.Feature,
             };
         }
@@ -288,7 +277,7 @@ namespace GitAutomation.EFCore.BranchingModel
             };
         }
 
-        public void UpdateBranchSetting(string branchName, bool recreateFromUpstream, BranchGroupType branchType, IUnitOfWork work)
+        public void UpdateBranchSetting(string branchName, UpstreamMergePolicy upstreamMergePolicy, BranchGroupType branchType, IUnitOfWork work)
         {
             PrepareSecurityContextUnitOfWork(work);
             work.Defer(async sp =>
@@ -297,10 +286,10 @@ namespace GitAutomation.EFCore.BranchingModel
                 var target = await context.BranchGroup.AddIfNotExists(new BranchGroup
                 {
                     GroupName = branchName,
-                    RecreateFromUpstream = recreateFromUpstream,
+                    UpstreamMergePolicy = upstreamMergePolicy.ToString("g"),
                     BranchType = branchType.ToString("g")
                 }, branch => branch.GroupName == branchName);
-                target.RecreateFromUpstream = recreateFromUpstream;
+                target.UpstreamMergePolicy = upstreamMergePolicy.ToString("g");
                 target.BranchType = branchType.ToString("g");
             });
             // TODO - onCommit, notify changes
@@ -341,7 +330,7 @@ namespace GitAutomation.EFCore.BranchingModel
                 var serviceLine = await context.BranchGroup.AddIfNotExists(new BranchGroup
                 {
                     GroupName = targetBranch,
-                    RecreateFromUpstream = false,
+                    UpstreamMergePolicy = UpstreamMergePolicy.None.ToString("g"),
                     BranchType = BranchGroupType.ServiceLine.ToString("g"),
                 }, branch => branch.GroupName == targetBranch);
 
@@ -391,7 +380,7 @@ namespace GitAutomation.EFCore.BranchingModel
 
         public void CreateIntegrationBranch(string branchA, string branchB, string integrationGroupName, IUnitOfWork work)
         {
-            UpdateBranchSetting(integrationGroupName, false, BranchGroupType.Integration, work);
+            UpdateBranchSetting(integrationGroupName, UpstreamMergePolicy.None, BranchGroupType.Integration, work);
             AddBranchPropagation(branchA, integrationGroupName, work);
             AddBranchPropagation(branchB, integrationGroupName, work);
         }

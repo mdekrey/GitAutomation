@@ -116,7 +116,7 @@ namespace GitAutomation.Orchestration.Actions
                         // We need to set it up as a service line
                         using (var work = unitOfWorkFactory.CreateUnitOfWork())
                         {
-                            settings.UpdateBranchSetting(serviceLineBranch, false, BranchGroupType.ServiceLine, work);
+                            settings.UpdateBranchSetting(serviceLineBranch, UpstreamMergePolicy.None, BranchGroupType.ServiceLine, work);
                             foreach (var upstreamServiceLine in upstreamLines)
                             {
                                 settings.AddBranchPropagation(upstreamServiceLine, serviceLineBranch, work);

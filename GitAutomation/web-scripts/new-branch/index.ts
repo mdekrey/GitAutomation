@@ -15,7 +15,7 @@ import {
 } from "../home/branch-hierarchy";
 import { groupsToHierarchy } from "../api/hierarchy";
 import { secured } from "../security/security-binding";
-import { inputValue, checkboxChecked } from "../utils/inputs";
+import { inputValue } from "../utils/inputs";
 import { handleError } from "../handle-error";
 
 const manageStyle = {
@@ -104,8 +104,9 @@ export const newBranch = (
             .let(inputValue({ includeInitial: true }))
             .map(e => e || "New Branch"),
           container
-            .map(fnSelect(`[data-locator="recreate-from-upstream"]`))
-            .let(checkboxChecked({ includeInitial: true })),
+            .map(fnSelect(`[data-locator="upstream-merge-policy"]`))
+            .let(inputValue({ includeInitial: true }))
+            .map(v => v as GitAutomationGQL.IUpstreamMergePolicyEnum),
           container
             .map(fnSelect(`[data-locator="branch-type"]`))
             .let(inputValue({ includeInitial: true }))
@@ -113,9 +114,9 @@ export const newBranch = (
           checkedData(checkboxes)
         )
           .map(
-            ([branchName, recreateFromUpstream, branchType, checkedData]) => ({
+            ([branchName, upstreamMergePolicy, branchType, checkedData]) => ({
               branchName,
-              recreateFromUpstream,
+              upstreamMergePolicy,
               branchType,
               ...checkedData
             })

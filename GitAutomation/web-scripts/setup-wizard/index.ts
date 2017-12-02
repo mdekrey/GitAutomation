@@ -74,7 +74,7 @@ export const setupWizard = (
               Observable.concat(
                 ...groups.map(group =>
                   updateBranch(group, {
-                    recreateFromUpstream: false,
+                    upstreamMergePolicy: "None",
                     branchType: "Feature",
                     addUpstream: [],
                     addDownstream: [],
@@ -93,8 +93,8 @@ export const setupWizard = (
                   detectUpstream(group, true).map(upstream => ({
                     group,
                     settings: {
-                      recreateFromUpstream: false,
-                      branchType: "Feature",
+                      upstreamMergePolicy: "None" as GitAutomationGQL.IUpstreamMergePolicyEnum,
+                      branchType: "Feature" as GitAutomationGQL.IBranchGroupTypeEnum,
                       addUpstream: upstream,
                       addDownstream: [],
                       removeDownstream: [],
