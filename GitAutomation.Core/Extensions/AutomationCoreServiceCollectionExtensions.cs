@@ -2,6 +2,7 @@
 using GitAutomation.BranchSettings;
 using GitAutomation.GitService;
 using GitAutomation.Orchestration;
+using GitAutomation.Orchestration.Actions.MergeStrategies;
 using GitAutomation.Plugins;
 using GitAutomation.Repository;
 using Microsoft.Extensions.Configuration;
@@ -47,6 +48,10 @@ namespace Microsoft.Extensions.DependencyInjection
             ).RegisterGitServiceApi(services, repositoryConfiguration);
 
             services.AddIntegrationNamingConvention(repositoryOptions);
+
+            services.AddTransient<NormalMergeStrategy>();
+            services.AddTransient<MergeNextIterationMergeStrategy>();
+            services.AddTransient<IMergeStrategyManager, MergeStrategyManager>();
 
             return services;
         }

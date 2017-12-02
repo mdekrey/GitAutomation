@@ -1,5 +1,6 @@
 ﻿using GitAutomation.BranchSettings;
 using GitAutomation.GitService;
+using GitAutomation.Orchestration.Actions.MergeStrategies;
 using GitAutomation.Processes;
 using GitAutomation.Repository;
 using GitAutomation.Work;
@@ -23,26 +24,6 @@ namespace GitAutomation.Orchestration.Actions
 {
     class MergeDownstreamAction : ComplexUniqueAction<MergeDownstreamAction.MergeDownstreamActionProcess>
     {
-        private enum MergeConflictResolution
-        {
-            AddIntegrationBranch,
-            PendingIntegrationBranch,
-            PullRequest,
-            PendingPullRequest,
-        }
-
-        private struct MergeStatus
-        {
-            public bool HadConflicts;
-            public MergeConflictResolution Resolution;
-        }
-
-        private struct NeededMerge
-        {
-            public string GroupName;
-            public string BranchName;
-        }
-
         private readonly string downstreamBranch;
 
         public override string ActionType => "MergeDownstream";
@@ -75,12 +56,14 @@ namespace GitAutomation.Orchestration.Actions
             private readonly string downstreamBranchGroup;
             private readonly Task<BranchGroupCompleteData> detailsTask;
             private readonly Task<string> latestBranchName;
+            private readonly Task<IMergeStrategy> strategyTask;
             private readonly bool isReadOnly;
 
             private BranchGroupCompleteData Details => detailsTask.Result;
             private string LatestBranchName => latestBranchName.Result;
+            private IMergeStrategy Strategy => strategyTask.Result;
 
-            public MergeDownstreamActionProcess(IGitCli cli, IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, IRepositoryMediator repository, IntegrateBranchesOrchestration integrateBranches, IBranchIterationMediator branchIteration, string downstreamBranch, IOptions<GitRepositoryOptions> options)
+            public MergeDownstreamActionProcess(IGitCli cli, IGitServiceApi gitServiceApi, IUnitOfWorkFactory workFactory, IRepositoryOrchestration orchestration, IRepositoryMediator repository, IntegrateBranchesOrchestration integrateBranches, IBranchIterationMediator branchIteration, string downstreamBranch, IOptions<GitRepositoryOptions> options, IMergeStrategyManager strategyManager)
             {
                 this.cli = cli;
                 this.gitServiceApi = gitServiceApi;
@@ -91,6 +74,7 @@ namespace GitAutomation.Orchestration.Actions
                 this.downstreamBranchGroup = downstreamBranch;
                 this.detailsTask = repository.GetBranchDetails(downstreamBranch).FirstAsync().ToTask();
                 this.latestBranchName = detailsTask.ContinueWith(task => repository.LatestBranchName(task.Result).FirstOrDefaultAsync().ToTask()).Unwrap();
+                this.strategyTask = detailsTask.ContinueWith(task => strategyManager.GetMergeStrategy(task.Result));
                 this.isReadOnly = options.Value.ReadOnly;
             }
 
@@ -100,107 +84,55 @@ namespace GitAutomation.Orchestration.Actions
                 {
                     return;
                 }
-                // if these two are different, we need to do the merge
-                // cli.MergeBase(upstreamBranch, downstreamBranch);
-                // cli.ShowRef(upstreamBranch);
-
-                // do the actual merge
-                // cli.CheckoutRemote(downstreamBranch);
-                // cli.MergeRemote(upstreamBranch);
-
-                // if it was successful
-                // cli.Push();
-
+                
                 await detailsTask;
                 await latestBranchName;
 
                 var allConfigured = await repository.GetConfiguredBranchGroups().FirstOrDefaultAsync();
-                var needsCreate = await repository.GetBranchRef(LatestBranchName).Take(1) == null;
                 var upstreamBranches = (await ToUpstreamBranchNames(Details.DirectUpstreamBranchGroups.Select(groupName => allConfigured.Find(g => g.GroupName == groupName)).ToImmutableList())).ToImmutableList();
-                var neededUpstreamMerges = needsCreate
-                    ? upstreamBranches
-                    : await FindNeededMerges(upstreamBranches);
-
-                if (Details.UpstreamMergePolicy == UpstreamMergePolicy.MergeNextIteration)
-                {
-                    if (neededUpstreamMerges.Any())
-                    {
-                        neededUpstreamMerges = upstreamBranches;
-
-                        needsCreate = true;
-                    }
-
-                    if (!needsCreate)
-                    {
-                        // It's okay if there are still other "upstreamBranches" that didn't get merged, because we already did that check
-                        var neededRefs = (await (from branchName in upstreamBranches.ToObservable()
-                                                 from branchRef in cli.ShowRef(branchName.BranchName).FirstOutputMessage()
-                                                 select branchRef).ToArray()).ToImmutableHashSet();
-
-                        var currentHead = await cli.ShowRef(LatestBranchName).FirstOutputMessage();
-                        if (!neededRefs.Contains(currentHead))
-                        {
-                            // The latest commit of the branch isn't one that we needed. That means it's probably a merge commit!
-                            Func<string, IObservable<string[]>> getParents = (commitish) =>
-                                cli.GetCommitParents(commitish).FirstOutputMessage().Select(commit => commit.Split(' '));
-                            var parents = await getParents(cli.RemoteBranch(LatestBranchName));
-                            while (parents.Length > 1)
-                            {
-                                // Figure out what the other commits are, if any
-                                var other = parents.Where(p => !neededRefs.Contains(p)).ToArray();
-                                if (other.Length != 1)
-                                {
-                                    break;
-                                }
-                                else
-                                {
-                                    // If there's another commit, it might be a merge of two of our other requireds. Check it!
-                                    parents = await getParents(other[0]);
-                                }
-                            }
-                            // If this isn't a merge, then we had a non-merge commit in there; we don't care about the parent.
-                            // If it is a merge, we either have 2 "others" or no "others", so looking at one parent will tell us:
-                            // If it's a required commit, we're good. If it's not, we need to recreate the branch.
-                            needsCreate = parents.Length < 2 || !neededRefs.Contains(parents[0]);
-                        }
-                    }
-                }
-
+                var needsCreate = await Strategy.NeedsCreate(LatestBranchName, upstreamBranches);
+                var neededUpstreamMerges = await Strategy.FindNeededMerges(LatestBranchName, upstreamBranches);
+                
                 if (needsCreate)
                 {
-                    await AppendMessage($"{Details.GroupName} needs to be created from {string.Join(",", neededUpstreamMerges.Select(up => up.GroupName))}");
-                    await CreateDownstreamBranch(upstreamBranches);
+                    await AppendMessage($"{Details.GroupName} needs a new branch to be created from {string.Join(",", neededUpstreamMerges.Select(up => up.GroupName))}");
+                    var (created, branchName) = await CreateDownstreamBranch(upstreamBranches);
+                    if (created)
+                    {
+                        await PushBranch(branchName);
+                    }
+
+                    await Strategy.AfterCreate(LatestBranchName, branchName);
                 }
                 else if (neededUpstreamMerges.Any())
                 {
                     await AppendMessage($"{LatestBranchName} needs merges from {string.Join(",", neededUpstreamMerges.Select(up => up.GroupName))}");
+                    var merged = await MergeToBranch(LatestBranchName, neededUpstreamMerges);
 
-                    await AppendProcess(cli.CheckoutRemote(LatestBranchName));
-
-                    var shouldPush = false;
-                    foreach (var upstreamBranch in neededUpstreamMerges)
-                    {
-                        if (await repository.IsBadBranch(upstreamBranch.BranchName))
-                        {
-                            await AppendMessage($"... {upstreamBranch.BranchName} is flagged as bad and won't be merged.");
-                            continue;
-                        }
-
-                        var result = await MergeUpstreamBranch(upstreamBranch, LatestBranchName);
-                        shouldPush = shouldPush || !result.HadConflicts;
-                        if (result.HadConflicts)
-                        {
-                            await AppendProcess(cli.Checkout(LatestBranchName));
-
-                        }
-                    }
-
-                    if (shouldPush)
+                    if (merged)
                     {
                         await PushBranch(LatestBranchName);
                     }
-
                 }
+            }
+
+            private async Task<bool> MergeToBranch(string latestBranchName, ImmutableList<NeededMerge> neededUpstreamMerges)
+            {
+                await AppendProcess(cli.CheckoutRemote(LatestBranchName));
+
+                var shouldPush = false;
+                foreach (var upstreamBranch in neededUpstreamMerges)
+                {
+                    var result = await MergeUpstreamBranch(upstreamBranch, LatestBranchName);
+                    shouldPush = shouldPush || !result.HadConflicts;
+                    if (result.HadConflicts)
+                    {
+                        await AppendProcess(cli.Checkout(LatestBranchName));
+
+                    }
+                }
+
+                return shouldPush;
             }
 
             private async Task<IEnumerable<NeededMerge>> ToUpstreamBranchNames(ImmutableList<BranchGroup> directUpstreamBranchGroups)
@@ -217,24 +149,8 @@ namespace GitAutomation.Orchestration.Actions
                            BranchName = branchIteration.GetLatestBranchNameIteration(branch.GroupName, remotes.Select(r => r.Name))
                        };
             }
-
-            private async Task<ImmutableList<NeededMerge>> FindNeededMerges(IEnumerable<NeededMerge> allUpstreamBranches)
-            {
-                return await (from upstreamBranch in allUpstreamBranches.ToObservable()
-                              where upstreamBranch.BranchName != null
-                              from hasOutstandingCommit in HasOutstandingCommits(upstreamBranch.BranchName)
-                              where hasOutstandingCommit
-                              select upstreamBranch)
-                    .ToArray()
-                    .Select(items => items.ToImmutableList());
-            }
             
-            private Task<bool> HasOutstandingCommits(string upstreamBranch)
-            {
-                return repository.HasOutstandingCommits(upstreamBranch: upstreamBranch, downstreamBranch: LatestBranchName);
-            }
-
-            private async Task CreateDownstreamBranch(IEnumerable<NeededMerge> allUpstreamBranches)
+            private async Task<(bool created, string branchName)> CreateDownstreamBranch(IEnumerable<NeededMerge> allUpstreamBranches)
             {
                 var downstreamBranch = await repository.GetNextCandidateBranch(Details, shouldMutate: true).FirstOrDefaultAsync();
                 var validUpstream = allUpstreamBranches.ToImmutableList();
@@ -248,7 +164,7 @@ namespace GitAutomation.Orchestration.Actions
                         await AppendMessage($"{validUpstream.First(t => t.BranchName == null).GroupName} did not have current branch; aborting", isError: true);
                     }
 
-                    return;
+                    return (created: false, branchName: null);
                 }
 
                 var badBranches = (await Task.WhenAll(
@@ -259,7 +175,7 @@ namespace GitAutomation.Orchestration.Actions
                 if (badBranches.Any())
                 {
                     await AppendMessage($"{badBranches.First().BranchName} is marked as bad; aborting", isError: true);
-                    return;
+                    return (created: false, branchName: null);
                 }
 
                 // Basic process; should have checks on whether or not to create the branch
@@ -271,7 +187,7 @@ namespace GitAutomation.Orchestration.Actions
                 if (!string.IsNullOrEmpty(checkoutError) && checkoutError.StartsWith("fatal"))
                 {
                     await AppendMessage ( $"{downstreamBranch} unable to be branched from {initialBranch.BranchName}; aborting" );
-                    return;
+                    return (created: false, branchName: null);
                 }
 
                 await AppendProcess(cli.CheckoutNew(downstreamBranch));
@@ -293,20 +209,10 @@ namespace GitAutomation.Orchestration.Actions
                         orchestration.EnqueueAction(new MergeDownstreamAction(downstreamBranchGroup), skipDuplicateCheck: true);
 #pragma warning restore
                     }
-                    return;
+                    return (created: false, branchName: null);
                 }
 
-                // Explicitly push the commit _before_ the initial branch, allowing us to migrate PRs.
-                var pushProcess = cli.Push(initialBranch.BranchName + "^1", "refs/heads/" + downstreamBranch);
-                await pushProcess.ExitCode().FirstAsync();
-                await AppendProcess(pushProcess);
-
-                if (LatestBranchName != null && LatestBranchName != downstreamBranch)
-                {
-                    await gitServiceApi.MigrateOrClosePullRequests(fromBranch: LatestBranchName, toBranch: downstreamBranch);
-                }
-
-                await PushBranch(downstreamBranch);
+                return (created: true, branchName: downstreamBranch);
             }
 
             private async Task PushBranch(string downstreamBranch)
