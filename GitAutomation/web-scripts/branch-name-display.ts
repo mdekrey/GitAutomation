@@ -100,7 +100,7 @@ export const branchNameDisplay = (
                   ? `<img alt="Build Successful" class="text-image" src="${require("./images/green-check.svg")}" />`
                   : s.state === "Error"
                     ? `<img alt="Build Error" class="text-image" src="${require("./images/red-x.svg")}" />`
-                    : `<img alt="Build Pending" class="text-image" src="${require("../images/question-mark.svg")}" />`
+                    : `<img alt="Build Pending" class="text-image" src="${require("./images/question-mark.svg")}" />`
             )
             .attr("href", s => s.url)
             .attr("title", s => `${s.key} - ${s.description}`)
