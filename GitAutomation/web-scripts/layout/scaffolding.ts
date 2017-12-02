@@ -56,15 +56,17 @@ const menuStyle = {
   }),
   menuLink: style(linkStyle, {
     userSelect: "none",
-    backgroundImage: `url(${require(`./menu-icon.svg?fill=${featureColors[0]}`)})`,
+    backgroundImage: `url(${require(`./menu-icon.svg?fill=${
+      featureColors[0]
+    }`)})`,
     backgroundSize: "contain",
     backgroundRepeat: "no-repeat",
     backgroundPosition: "center center",
     color: "transparent",
     display: "block",
-    width: 30,
-    height: 30,
-    fontSize: 30
+    width: "1em",
+    height: "1em",
+    fontSize: "1.875rem"
   }),
   menuContents: style(headerBackground, {
     boxShadow: headerShadow,
