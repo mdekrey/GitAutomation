@@ -37,6 +37,9 @@ namespace GitAutomation.SqlServer.BranchingMigrations
                     b.Property<bool>("RecreateFromUpstream")
                         .HasColumnName("recreatefromupstream");
 
+                    b.Property<string>("UpstreamMergePolicy")
+                        .HasColumnName("upstreammergepolicy");
+
                     b.HasKey("GroupName");
 
                     b.ToTable("branchgroup");
@@ -62,12 +65,12 @@ namespace GitAutomation.SqlServer.BranchingMigrations
             modelBuilder.Entity("GitAutomation.EFCore.BranchingModel.BranchStream", b =>
                 {
                     b.HasOne("GitAutomation.EFCore.BranchingModel.BranchGroup", "DownstreamBranchNavigation")
-                        .WithMany("BranchStreamDownstreamBranchNavigation")
+                        .WithMany("UpstreamBranchConnections")
                         .HasForeignKey("DownstreamBranch")
                         .HasConstraintName("FK_BranchStream_ToDownstreamBranch");
 
                     b.HasOne("GitAutomation.EFCore.BranchingModel.BranchGroup", "UpstreamBranchNavigation")
-                        .WithMany("BranchStreamUpstreamBranchNavigation")
+                        .WithMany("DownstreamBranchConnections")
                         .HasForeignKey("UpstreamBranch")
                         .HasConstraintName("FK_BranchStream_ToUpstreamBranch");
                 });
