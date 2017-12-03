@@ -49,7 +49,7 @@ namespace GitAutomation.Repository
             return TryGetIterationNumber(originalName, candidateName, out var temp);
         }
 
-        private bool TryGetIterationNumber(string originalName, string candidateName, out int iterationNumber)
+        private static bool TryGetIterationNumber(string originalName, string candidateName, out int iterationNumber)
         {
             if (candidateName == originalName)
             {
@@ -63,6 +63,29 @@ namespace GitAutomation.Repository
             }
             iterationNumber = 0;
             return false;
+        }
+
+        public IComparer<string> GetIterationNameComparer(string name)
+        {
+            return new BranchIterationComparer(name);
+        }
+
+        private class BranchIterationComparer : IComparer<string>
+        {
+            private string name;
+
+            public BranchIterationComparer(string name)
+            {
+                this.name = name;
+            }
+
+            public int Compare(string x, string y)
+            {
+                return (TryGetIterationNumber(name, x, out var xIndex)
+                    && TryGetIterationNumber(name, y, out var yIndex))
+                    ? xIndex - yIndex
+                    : 0;
+            }
         }
     }
 }
