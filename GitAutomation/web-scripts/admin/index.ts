@@ -95,7 +95,9 @@ export const admin = (
                       .selectAll<HTMLInputElement, any>(`[type="checkbox"]`)
                       .nodes()
                       .map(checkbox => ({
-                        role: checkbox.getAttribute("data-role") as string,
+                        role: checkbox.getAttribute(
+                          "data-selected-role"
+                        ) as string,
                         hasRole: checkbox.checked
                       }));
                     const addRoles = roleCheckboxes
@@ -136,7 +138,10 @@ export const admin = (
                     target
                       .select("input")
                       .property("checked", data => data.hasPermission)
-                      .attr("data-role", ({ permission }) => permission)
+                      .attr(
+                        "data-selected-role",
+                        ({ permission }) => permission
+                      )
                       .attr(
                         "data-locator",
                         ({ username, permission }) =>
