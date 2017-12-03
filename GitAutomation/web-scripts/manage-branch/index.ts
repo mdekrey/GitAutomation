@@ -35,6 +35,7 @@ import { inputValue } from "../utils/inputs";
 import { handleError, handleErrorOnce } from "../handle-error";
 import { branchNameDisplay } from "../branch-name-display";
 import { merge } from "../utils/ramda";
+import { applyExternalLink } from "../external-window-link";
 
 const manageStyle = {
   fieldSection: style({
@@ -323,10 +324,17 @@ export const manage = (
           onCreate: selection => selection.append<HTMLLIElement>("li"),
           onEnter: selection =>
             selection.html(require("./manage-branch.branch-row.html")),
-          onEach: selection =>
+          onEach: selection => {
             selection
-              .select("span")
-              .text(data => `${data.name} (${data.commit.substr(0, 7)})`)
+              .select(`span[data-locator="branch-name"]`)
+              .text(data => `${data.name} (${data.commit.substr(0, 7)})`);
+
+            applyExternalLink(
+              selection
+                .select(`span[data-locator="actual-branch-link"]`)
+                .datum(d => d.url)
+            );
+          }
         });
 
         subscription.add(

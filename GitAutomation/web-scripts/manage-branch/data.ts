@@ -9,7 +9,7 @@ export interface IManageBranch {
   upstreamMergePolicy: GitAutomationGQL.IUpstreamMergePolicyEnum;
   branchType: string;
   otherBranches: IBranchData[];
-  branches: Pick<GitAutomationGQL.IGitRef, "name" | "commit">[];
+  branches: Pick<GitAutomationGQL.IGitRef, "name" | "commit" | "url">[];
   latestBranch: { name: string } | null;
 }
 
