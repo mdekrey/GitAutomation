@@ -7,9 +7,9 @@ export interface IManageBranch {
   isLoading: boolean;
   upstreamMergePolicy: GitAutomationGQL.IUpstreamMergePolicyEnum;
   branchType: string;
-  branches: IBranchData[];
-  actualBranches: Pick<GitAutomationGQL.IGitRef, "name" | "commit">[];
-  latestBranchName: string | null;
+  otherBranches: IBranchData[];
+  branches: Pick<GitAutomationGQL.IGitRef, "name" | "commit">[];
+  latestBranch: { name: string } | null;
 }
 
 export interface IBranchData {
@@ -47,7 +47,7 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
         );
         const downstreamBranches = target.downstream;
         const result = {
-          branches: allBranches.map((group): IBranchData => ({
+          otherBranches: allBranches.map((group): IBranchData => ({
             groupName: group.groupName,
             branchType: group.branchType,
             latestBranch: group.latestBranch,
@@ -64,9 +64,9 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
           })),
           branchType: branchDetails.branchType,
           upstreamMergePolicy: branchDetails.upstreamMergePolicy,
-          actualBranches: branchDetails.branches,
-          latestBranchName: branchDetails.latestBranch
-            ? branchDetails.latestBranch.name
+          branches: branchDetails.branches,
+          latestBranch: branchDetails.latestBranch
+            ? branchDetails.latestBranch
             : null
         };
         return result;
@@ -74,18 +74,18 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
     )
     .map(
       ({
-        branches,
+        otherBranches,
         upstreamMergePolicy,
         branchType,
-        actualBranches,
-        latestBranchName
-      }): IManageBranch => ({
         branches,
+        latestBranch
+      }): IManageBranch => ({
+        otherBranches,
         upstreamMergePolicy,
         branchType,
         isLoading: false,
-        actualBranches,
-        latestBranchName
+        branches,
+        latestBranch
       })
     );
 
@@ -93,9 +93,9 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
     isLoading: true,
     upstreamMergePolicy: "None",
     branchType: "Feature",
+    otherBranches: [],
     branches: [],
-    actualBranches: [],
-    latestBranchName: null
+    latestBranch: null
   })
     .concat(reload.startWith(null).switchMap(() => initializeBranchData))
     .publishReplay(1)

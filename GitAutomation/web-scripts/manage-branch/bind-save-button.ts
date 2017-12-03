@@ -24,7 +24,7 @@ export const doSave = (
       ({ upstream, downstream }) => !intersection(upstream, downstream).length
     )
     .withLatestFrom(
-      branchData.map(d => d.branches),
+      branchData.map(d => d.otherBranches),
       (
         { branchName, upstream, downstream, upstreamMergePolicy, branchType },
         branches
