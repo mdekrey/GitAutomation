@@ -115,13 +115,14 @@ const defaultHierarchyStyle: HierarchyStyleEntry = {
   filter: _ => true
 };
 
-export const glowHierarchyStyle: Pick<
-  HierarchyStyleEntry,
-  "bind" | "selection"
-> = {
+export const glowHierarchyStyle = (
+  filter: string
+): Pick<HierarchyStyleEntry, "bind" | "selection"> => ({
   bind: {
     onCreate: target =>
-      target.append<SVGCircleElement>("circle").attr("data-type", "glow"),
+      target
+        .append<SVGCircleElement>("circle")
+        .attr("data-filter-type", filter),
     onEnter: target => {
       const node = target.node() as Element | null;
       if (node) {
@@ -131,7 +132,7 @@ export const glowHierarchyStyle: Pick<
         target
           .transition("resize")
           .attr("r", 5)
-          .attr("filter", `url(${ids.glow.selector})`);
+          .attr("filter", `url(${ids[filter].selector})`);
       }
     },
     onExit: target => {
@@ -147,8 +148,8 @@ export const glowHierarchyStyle: Pick<
     },
     onEach: target => target.attr("fill", node => node.branchColor)
   },
-  selection: `circle[data-type="glow"]`
-};
+  selection: `circle[data-filter-type="${filter}"]`
+});
 
 export const highlightedHierarchyStyle: (
   color: string
@@ -200,7 +201,7 @@ export const highlightedHierarchyStyle: (
 });
 
 const conflictedHierarchyStyle: HierarchyStyleEntry = {
-  ...highlightedHierarchyStyle("red"),
+  ...glowHierarchyStyle("redGlow"),
   filter: v => {
     // TODO - this typing is correct, but why do I need to go through `any`? I
     // think it's because it's not a deep partial.
@@ -218,7 +219,7 @@ const conflictedHierarchyStyle: HierarchyStyleEntry = {
 };
 
 export const hoveredGloballyHierarchyStyle: HierarchyStyleEntry = {
-  ...glowHierarchyStyle,
+  ...glowHierarchyStyle("glow"),
   filter: v => v.groupName == hoveredGroupName.value
 };
 
