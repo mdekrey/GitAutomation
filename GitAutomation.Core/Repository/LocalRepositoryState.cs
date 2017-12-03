@@ -88,12 +88,12 @@ namespace GitAutomation.Repository
         {
             return new AsyncLazy<ImmutableList<GitRef>>(async () =>
             {
-                await cli.EnsureInitialized;
+                await cli.EnsureInitialized.ConfigureAwait(false);
                 var remoteBranches = cli.GetRemoteBranches();
-                await remoteBranches.ActiveState.DefaultIfEmpty();
-                await remoteBranches.ActiveOutput.DefaultIfEmpty();
+                await remoteBranches.ActiveState.DefaultIfEmpty().ToTask().ConfigureAwait(false);
+                await remoteBranches.ActiveOutput.DefaultIfEmpty().ToTask().ConfigureAwait(false);
                 // Because listing remote branches doesn't affect the index, it doesn't need to be an action, but it does need to wait until initialization is ensured.
-                return await GitCliExtensions.BranchListingToRefs(remoteBranches.Output.ToObservable());
+                return GitCliExtensions.BranchListingToRefs(remoteBranches.Output);
             });
         }
 

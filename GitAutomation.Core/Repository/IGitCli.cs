@@ -25,7 +25,7 @@ namespace GitAutomation.Repository
         IReactiveProcess MergeBaseCommits(string branchA, string branchB);
         IReactiveProcess MergeFastForward(string branchName);
         IReactiveProcess MergeRemote(string branchName, string message = null, string commitDate = null);
-        IReactiveProcess Push(string branchName, string remoteBranchName = null);
+        IReactiveProcess Push(string branchName, string remoteBranchName = null, bool force = false);
         string RemoteBranch(string branchName);
         IReactiveProcess UpdateRemoteRef(string branchName, string newValue);
         IReactiveProcess Reset();

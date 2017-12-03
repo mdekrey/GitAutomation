@@ -186,16 +186,14 @@ namespace GitAutomation.Repository
             return RunGit("merge", RemoteBranch(branchName), "--ff-only");
         }
 
-        public IReactiveProcess Push(string branchName, string remoteBranchName = null)
+        public IReactiveProcess Push(string branchName, string remoteBranchName = null, bool force = false)
         {
-            if (remoteBranchName == null)
+            var args = new[] { "push", "origin", remoteBranchName == null ? branchName : $"{branchName}:{remoteBranchName}" }.ToList();
+            if(force)
             {
-                return RunGit("push", "origin", branchName);
+                args.Add("-f");
             }
-            else
-            {
-                return RunGit("push", "origin", $"{branchName}:{remoteBranchName}");
-            }
+            return RunGit(args.ToArray());
         }
 
         public IReactiveProcess GetCommitTimestamps(params string[] commitishes)

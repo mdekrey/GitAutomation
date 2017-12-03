@@ -27,7 +27,8 @@ namespace GitAutomation.Orchestration.Actions.MergeStrategies
 
         public async Task<bool> NeedsCreate(string latestBranchName, ImmutableList<NeededMerge> upstreamBranches)
         {
-            if (await normalStrategy.NeedsCreate(latestBranchName, upstreamBranches))
+            if (await normalStrategy.NeedsCreate(latestBranchName, upstreamBranches) ||
+                (await normalStrategy.FindNeededMerges(latestBranchName, upstreamBranches)).Count > 0)
             {
                 return true;
             }
@@ -67,12 +68,14 @@ namespace GitAutomation.Orchestration.Actions.MergeStrategies
             return false;
         }
 
-        public Task<ImmutableList<NeededMerge>> FindNeededMerges(string latestBranchName, ImmutableList<NeededMerge> upstreamBranches)
+        public async Task<ImmutableList<NeededMerge>> FindNeededMerges(string latestBranchName, ImmutableList<NeededMerge> upstreamBranches)
         {
-            return Task.FromResult(upstreamBranches);
+            return await NeedsCreate(latestBranchName, upstreamBranches)
+                ? upstreamBranches
+                : ImmutableList<NeededMerge>.Empty;
         }
 
-        public async Task AfterCreate(string latestBranchName, string branchName)
+        public async Task AfterCreate(BranchGroup group, string latestBranchName, string branchName, Func<IReactiveProcess, RepositoryActionReactiveProcessEntry> appendProcess)
         {
             if (latestBranchName != null && latestBranchName != branchName)
             {

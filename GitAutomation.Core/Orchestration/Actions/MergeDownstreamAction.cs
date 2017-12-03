@@ -100,9 +100,8 @@ namespace GitAutomation.Orchestration.Actions
                     if (created)
                     {
                         await PushBranch(branchName);
+                        await Strategy.AfterCreate(Details, LatestBranchName, branchName, AppendProcess);
                     }
-
-                    await Strategy.AfterCreate(LatestBranchName, branchName);
                 }
                 else if (neededUpstreamMerges.Any())
                 {
@@ -152,7 +151,7 @@ namespace GitAutomation.Orchestration.Actions
             
             private async Task<(bool created, string branchName)> CreateDownstreamBranch(IEnumerable<NeededMerge> allUpstreamBranches)
             {
-                var downstreamBranch = await repository.GetNextCandidateBranch(Details, shouldMutate: true).FirstOrDefaultAsync();
+                var downstreamBranch = await repository.GetNextCandidateBranch(Details).FirstOrDefaultAsync();
                 var validUpstream = allUpstreamBranches.ToImmutableList();
                 if (validUpstream.Count == 0 || validUpstream.Any(t => t.BranchName == null))
                 {
@@ -186,7 +185,7 @@ namespace GitAutomation.Orchestration.Actions
                 await AppendProcess(checkout);
                 if (!string.IsNullOrEmpty(checkoutError) && checkoutError.StartsWith("fatal"))
                 {
-                    await AppendMessage ( $"{downstreamBranch} unable to be branched from {initialBranch.BranchName}; aborting" );
+                    await AppendMessage( $"{downstreamBranch} unable to be branched from {initialBranch.BranchName}; aborting" );
                     return (created: false, branchName: null);
                 }
 
@@ -223,7 +222,9 @@ namespace GitAutomation.Orchestration.Actions
                 if (pushExitCode == 0)
                 {
                     var newValue = await cli.ShowRef(downstreamBranch).FirstOutputMessage();
-                    await repository.BranchUpdated(downstreamBranch, newValue, await repository.GetBranchRef(downstreamBranch).Take(1));
+                    await repository.BranchUpdated(downstreamBranch, newValue, await repository.GetBranchRef(downstreamBranch).FirstOrDefaultAsync());
+                    // Makes sure the local repository is updated with the new branch value
+                    await repository.GetBranchRef(downstreamBranch).Where(v => v == newValue).FirstOrDefaultAsync();
                 }
             }
             

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using GitAutomation.BranchSettings;
 using System.Reactive.Linq;
+using GitAutomation.Processes;
 
 namespace GitAutomation.Orchestration.Actions.MergeStrategies
 {
@@ -42,7 +43,7 @@ namespace GitAutomation.Orchestration.Actions.MergeStrategies
                    select upstreamBranch;
         }
 
-        public Task AfterCreate(string latestBranchName, string branchName)
+        public Task AfterCreate(BranchGroup group, string latestBranchName, string branchName, Func<IReactiveProcess, RepositoryActionReactiveProcessEntry> appendProcess)
         {
             return Task.CompletedTask;
         }

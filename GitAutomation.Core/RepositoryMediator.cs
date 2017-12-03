@@ -205,7 +205,7 @@ namespace GitAutomation
             };
         }
 
-        public IObservable<string> GetNextCandidateBranch(BranchGroup details, bool shouldMutate)
+        public IObservable<string> GetNextCandidateBranch(BranchGroup details)
         {
             return (
                 from remoteBranches in this.repositoryState.RemoteBranches()
@@ -236,7 +236,7 @@ namespace GitAutomation
 
         public IObservable<string> GetBranchRef(string branchName) =>
             repositoryState.RemoteBranches()
-                .Select(gitref => gitref.Exists(gr => gr.Name == branchName) ? gitref.Find(gr => gr.Name == branchName).Commit : null);
+                .Select(gitref => gitref.FirstOrDefault(gr => gr.Name == branchName).Commit);
 
         public async Task<bool> HasOutstandingCommits(string upstreamBranch, string downstreamBranch)
         {

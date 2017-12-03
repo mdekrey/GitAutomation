@@ -18,7 +18,7 @@ namespace GitAutomation
         IObservable<ImmutableList<string>> DetectShallowUpstreamServiceLines(string branchName);
         IObservable<ImmutableList<PullRequest>> GetUpstreamPullRequests(string branchName);
         IObservable<string> LatestBranchName(BranchGroup details);
-        IObservable<string> GetNextCandidateBranch(BranchGroup details, bool shouldMutate);
+        IObservable<string> GetNextCandidateBranch(BranchGroup details);
         IObservable<BranchGroupCompleteData> GetBranchDetails(string branchName);
         void ConsolidateBranches(IEnumerable<string> branchesToRemove, string targetBranch, IUnitOfWork unitOfWork);
         IObservable<ImmutableList<Repository.GitRef>> GetAllBranchRefs();

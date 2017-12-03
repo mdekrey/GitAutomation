@@ -1,4 +1,5 @@
 ﻿using GitAutomation.BranchSettings;
+using GitAutomation.Processes;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -12,6 +13,6 @@ namespace GitAutomation.Orchestration.Actions.MergeStrategies
         Task<bool> NeedsCreate(string latestBranchName, ImmutableList<NeededMerge> upstreamBranches);
 
         Task<ImmutableList<NeededMerge>> FindNeededMerges(string latestBranchName, ImmutableList<NeededMerge> upstreamBranches);
-        Task AfterCreate(string latestBranchName, string branchName);
+        Task AfterCreate(BranchGroup group, string latestBranchName, string createdBranchName, Func<IReactiveProcess, RepositoryActionReactiveProcessEntry> appendProcess);
     }
 }

@@ -9,11 +9,13 @@ namespace GitAutomation.Orchestration.Actions.MergeStrategies
     {
         private readonly NormalMergeStrategy normal;
         private readonly MergeNextIterationMergeStrategy mergeNextIteration;
+        private readonly ForceFreshMergeStrategy forceFresh;
 
-        public MergeStrategyManager(NormalMergeStrategy normal, MergeNextIterationMergeStrategy mergeNextIteration)
+        public MergeStrategyManager(NormalMergeStrategy normal, MergeNextIterationMergeStrategy mergeNextIteration, ForceFreshMergeStrategy forceFresh)
         {
             this.normal = normal;
             this.mergeNextIteration = mergeNextIteration;
+            this.forceFresh = forceFresh;
         }
 
         public IMergeStrategy GetMergeStrategy(BranchGroup branchGroup)
@@ -25,6 +27,7 @@ namespace GitAutomation.Orchestration.Actions.MergeStrategies
                 case UpstreamMergePolicy.MergeNextIteration:
                     return mergeNextIteration;
                 case UpstreamMergePolicy.ForceFresh:
+                    return forceFresh;
                 default:
                     throw new NotImplementedException();
             }

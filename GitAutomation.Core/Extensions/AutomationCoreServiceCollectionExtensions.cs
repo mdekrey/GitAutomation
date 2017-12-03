@@ -51,6 +51,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddTransient<NormalMergeStrategy>();
             services.AddTransient<MergeNextIterationMergeStrategy>();
+            services.AddTransient<ForceFreshMergeStrategy>();
             services.AddTransient<IMergeStrategyManager, MergeStrategyManager>();
 
             return services;
