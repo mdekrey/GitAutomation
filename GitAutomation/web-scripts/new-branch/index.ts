@@ -195,7 +195,7 @@ export const newBranch = (
             data: hierarchy$,
             style: addDefaultHierarchyStyles([
               {
-                ...highlightedHierarchyStyle("white"),
+                ...highlightedHierarchyStyle,
                 filter: data => data.groupName === currentGroupName
               }
             ])

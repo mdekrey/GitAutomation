@@ -216,7 +216,7 @@ export const manage = (
             ),
             style: addDefaultHierarchyStyles([
               {
-                ...highlightedHierarchyStyle("white"),
+                ...highlightedHierarchyStyle,
                 filter: data => data.groupName === branchName
               }
             ])
@@ -307,7 +307,7 @@ export const manage = (
             ),
             style: addDefaultHierarchyStyles([
               {
-                ...highlightedHierarchyStyle("white"),
+                ...highlightedHierarchyStyle,
                 filter: data => data.groupName === branchName
               }
             ])

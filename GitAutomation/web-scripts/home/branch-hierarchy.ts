@@ -115,7 +115,7 @@ const defaultHierarchyStyle: HierarchyStyleEntry = {
   filter: _ => true
 };
 
-export const glowHierarchyStyle = (
+export const svgFilterHierarchyStyle = (
   filter: string
 ): Pick<HierarchyStyleEntry, "bind" | "selection"> => ({
   bind: {
@@ -151,57 +151,10 @@ export const glowHierarchyStyle = (
   selection: `circle[data-filter-type="${filter}"]`
 });
 
-export const highlightedHierarchyStyle: (
-  color: string
-) => Pick<HierarchyStyleEntry, "bind" | "selection"> = color => ({
-  bind: {
-    onCreate: target => {
-      const result = target.append("g");
-      result.append("circle").attr("data-locator", "outer");
-      result.append("circle").attr("data-locator", "inner");
-      return result;
-    },
-    onEnter: target => {
-      const t = target.transition("resize");
-      t.select(`circle[data-locator="outer"]`).attr("r", 5);
-      t
-        .select(`circle[data-locator="inner"]`)
-        .attr("r", 3.5)
-        .attr("stroke", color);
-    },
-    onExit: target => {
-      target = target.filter(`:not([data-locator="dead-node"])`);
-      if (target.nodes().length) {
-        target.attr("data-locator", "dead-node");
-
-        target
-          .select(`circle[data-locator="outer"]`)
-          .transition("resize")
-          .duration(500)
-          .attr("r", 0)
-          .remove();
-        target
-          .select(`circle[data-locator="inner"]`)
-          .transition("resize")
-          .duration(500)
-          .attr("r", 0)
-          .remove();
-      }
-    },
-    onEach: target => {
-      target
-        .select(`circle[data-locator="outer"]`)
-        .attr("fill", node => node.branchColor);
-      target
-        .select(`circle[data-locator="inner"]`)
-        .attr("fill", node => node.branchColor);
-    }
-  },
-  selection: "g"
-});
+export const highlightedHierarchyStyle = svgFilterHierarchyStyle("innerGlow");
 
 const conflictedHierarchyStyle: HierarchyStyleEntry = {
-  ...glowHierarchyStyle("redGlow"),
+  ...svgFilterHierarchyStyle("redGlow"),
   filter: v => {
     // TODO - this typing is correct, but why do I need to go through `any`? I
     // think it's because it's not a deep partial.
@@ -219,7 +172,7 @@ const conflictedHierarchyStyle: HierarchyStyleEntry = {
 };
 
 export const hoveredGloballyHierarchyStyle: HierarchyStyleEntry = {
-  ...glowHierarchyStyle("glow"),
+  ...svgFilterHierarchyStyle("glow"),
   filter: v => v.groupName == hoveredGroupName.value
 };
 

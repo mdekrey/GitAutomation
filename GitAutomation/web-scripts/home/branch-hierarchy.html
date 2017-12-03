@@ -19,6 +19,18 @@
       <feMergeNode in="SourceGraphic" />
     </feMerge>
   </filter>
+  <filter data-id-as="innerGlow" x="-50%" y="-50%" width="200%" height="200%">
+    <feColorMatrix type="matrix" values="0 0 0 0   1
+                    0 0 0 0   1
+                    0 0 0 0   1
+                    0 0 0 1 0" />
+    <feMorphology operator="erode" radius="2" result="smaller" />
+    <feGaussianBlur in="smaller" stdDeviation="1.5" result="coloredBlur" />
+    <feMerge>
+      <feMergeNode in="SourceGraphic" />
+      <feMergeNode in="coloredBlur" />
+    </feMerge>
+  </filter>
 </defs>
 <g data-locator="viewport">
   <g data-locator="links" />
