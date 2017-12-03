@@ -25,7 +25,7 @@ import {
 import {
   branchHierarchy,
   highlightedHierarchyStyle,
-  defaultHierarchyStyles
+  addDefaultHierarchyStyles
 } from "../home/branch-hierarchy";
 import { groupsToHierarchy } from "../api/hierarchy";
 import { classed } from "../style/style-binding";
@@ -214,13 +214,12 @@ export const manage = (
                 Boolean(group.upstream.find(v => v === branchName)) ||
                 Boolean(group.downstream.find(v => v === branchName))
             ),
-            style: [
+            style: addDefaultHierarchyStyles([
               {
                 ...highlightedHierarchyStyle("white"),
                 filter: data => data.groupName === branchName
-              },
-              ...defaultHierarchyStyles
-            ]
+              }
+            ])
           }).subscribe()
         );
 
@@ -306,13 +305,12 @@ export const manage = (
                 Boolean(group.upstream.find(v => v === branchName)) ||
                 Boolean(group.downstream.find(v => v === branchName))
             ),
-            style: [
+            style: addDefaultHierarchyStyles([
               {
                 ...highlightedHierarchyStyle("white"),
                 filter: data => data.groupName === branchName
-              },
-              ...defaultHierarchyStyles
-            ]
+              }
+            ])
           }).subscribe()
         );
 

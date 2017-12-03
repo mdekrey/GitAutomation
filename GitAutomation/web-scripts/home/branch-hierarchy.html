@@ -1,3 +1,13 @@
+<defs>
+  <filter data-id-as="glow" x="-50%" y="-50%" width="200%" height="200%">
+    <feMorphology in="SourceGraphic" operator="dilate" radius="1" result="larger" />
+    <feGaussianBlur in="larger" stdDeviation="2.5" result="coloredBlur" />
+    <feMerge>
+      <feMergeNode in="coloredBlur" />
+      <feMergeNode in="SourceGraphic" />
+    </feMerge>
+  </filter>
+</defs>
 <g data-locator="viewport">
   <g data-locator="links" />
   <g data-locator="nodes" />

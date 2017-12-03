@@ -10,7 +10,7 @@ import { style } from "typestyle";
 import { classed } from "../style/style-binding";
 import {
   branchHierarchy,
-  defaultHierarchyStyles,
+  addDefaultHierarchyStyles,
   highlightedHierarchyStyle
 } from "../home/branch-hierarchy";
 import { groupsToHierarchy } from "../api/hierarchy";
@@ -193,13 +193,12 @@ export const newBranch = (
             ),
             navigate: state.navigate,
             data: hierarchy$,
-            style: [
+            style: addDefaultHierarchyStyles([
               {
                 ...highlightedHierarchyStyle("white"),
                 filter: data => data.groupName === currentGroupName
-              },
-              ...defaultHierarchyStyles
-            ]
+              }
+            ])
           }).subscribe()
         );
 

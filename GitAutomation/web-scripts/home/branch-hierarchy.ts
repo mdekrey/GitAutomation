@@ -1,6 +1,8 @@
 import { Observable, Subject, Subscription } from "../utils/rxjs";
 import { any, equals, flatten, values } from "../utils/ramda";
 import {
+  BaseType,
+  ValueFn,
   Selection,
   event as d3event,
   mouse as d3mouse,
@@ -25,6 +27,7 @@ import {
   IBindBaseProps,
   bind
 } from "../utils/presentation/d3-binding";
+import { v4 as uuid } from "uuid";
 
 import { branchTypeColors } from "../style/branch-colors";
 import { RoutingNavigate } from "../routing/index";
@@ -32,8 +35,7 @@ import { BranchType } from "../api/basic-branch";
 
 import * as branchHierarchyHtml from "./branch-hierarchy.html";
 import { BranchGroupInput, BranchGroupHierarchyDepth } from "../api/hierarchy";
-import { ValueFn } from "d3-selection";
-import { BaseType } from "d3-selection";
+import { hoveredGroupName } from "../branch-name-display";
 
 interface NodeDatum
   extends BranchGroupInput,
@@ -113,6 +115,41 @@ const defaultHierarchyStyle: HierarchyStyleEntry = {
   filter: _ => true
 };
 
+export const glowHierarchyStyle: Pick<
+  HierarchyStyleEntry,
+  "bind" | "selection"
+> = {
+  bind: {
+    onCreate: target =>
+      target.append<SVGCircleElement>("circle").attr("data-type", "glow"),
+    onEnter: target => {
+      const node = target.node() as Element | null;
+      if (node) {
+        const svg = node.closest("svg");
+        const ids = getIds(d3select(svg!));
+
+        target
+          .transition("resize")
+          .attr("r", 5)
+          .attr("filter", `url(${ids.glow.selector})`);
+      }
+    },
+    onExit: target => {
+      target = target.filter(`:not([data-locator="dead-node"])`);
+      if (target.nodes().length) {
+        target
+          .attr("data-locator", "dead-node")
+          .transition("resize")
+          .duration(500)
+          .attr("r", 0)
+          .remove();
+      }
+    },
+    onEach: target => target.attr("fill", node => node.branchColor)
+  },
+  selection: `circle[data-type="glow"]`
+};
+
 export const highlightedHierarchyStyle: (
   color: string
 ) => Pick<HierarchyStyleEntry, "bind" | "selection"> = color => ({
@@ -180,10 +217,25 @@ const conflictedHierarchyStyle: HierarchyStyleEntry = {
   }
 };
 
-export const defaultHierarchyStyles = [
+export const hoveredGloballyHierarchyStyle: HierarchyStyleEntry = {
+  ...glowHierarchyStyle,
+  filter: v => v.groupName == hoveredGroupName.value
+};
+
+const defaultHierarchyStyles = [
+  hoveredGloballyHierarchyStyle,
   conflictedHierarchyStyle,
   defaultHierarchyStyle
 ];
+
+export function addDefaultHierarchyStyles(inserted: HierarchyStyleEntry[]) {
+  return [
+    hoveredGloballyHierarchyStyle,
+    ...inserted,
+    conflictedHierarchyStyle,
+    defaultHierarchyStyle
+  ];
+}
 
 export function branchHierarchy({
   target,
@@ -372,6 +424,7 @@ export function branchHierarchy({
     const redraw = Observable.of(simulation)
       .let(fnEvent("tick", { toResult: () => null }))
       .merge(updateDraw)
+      .merge(hoveredGroupName)
       .withLatestFrom(data, (_, d) => d)
       .publish()
       .refCount();
@@ -410,18 +463,21 @@ export function branchHierarchy({
         })
         .do(allTarget => {
           style.forEach((styleEntry, idx, all) => {
-            const target = allTarget
-              .filter(function(...args) {
-                return (// make sure it's not selected by something esle
-                  !all
-                    .slice(0, idx)
-                    .find(other => other.filter.call(this, ...args)) &&
-                  styleEntry.filter.call(this, ...args) );
-              })
-              .selectAll(styleEntry.selection)
-              .data(d => [d], d => (d as any).groupName);
+            const target = allTarget.filter(function(...args) {
+              return (// make sure it's not selected by something esle
+                !all
+                  .slice(0, idx)
+                  .find(other => other.filter.call(this, ...args)) &&
+                styleEntry.filter.call(this, ...args) );
+            });
+            target
+              .filter(`[data-style-index]:not([data-style-index="${idx}"])`)
+              .html("");
+            target.attr("data-style-index", idx);
             bind({
-              target,
+              target: target
+                .selectAll(styleEntry.selection)
+                .data(d => [d], d => (d as any).groupName),
               ...styleEntry.bind
             });
           });
@@ -612,4 +668,21 @@ export function branchHierarchy({
 
     return subscription;
   }) as Observable<never>;
+}
+
+function getIds(selection: Selection<any, any, any, any>) {
+  const result: Record<string, { id: string; selector: string }> = {};
+
+  selection.selectAll(`[data-id-as]`).each(function(this: Element) {
+    const key = this.getAttribute("data-id-as")!;
+    if (!this.id) {
+      this.id = uuid();
+    }
+    result[key] = {
+      id: this.id,
+      selector: `#${this.id}`
+    };
+  });
+
+  return result;
 }
