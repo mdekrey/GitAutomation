@@ -25,7 +25,7 @@ const manageStyle = {
   hint: style({
     margin: 0,
     padding: 0,
-    fontSize: "0.75em"
+    fontSize: "0.75rem"
   }),
   rotateHeader: style({
     height: "100px",

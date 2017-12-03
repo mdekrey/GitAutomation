@@ -6,12 +6,9 @@
   "scripts": {
     "start": "webpack --watch",
     "build": "webpack",
-    "gql-generation":
-      "gql2ts generated/graphql.json -o web-scripts/graphql.generated.d.ts -n GitAutomationGQL",
-    "gql:nix":
-      "(mkdir generated || echo 1) && cd ../GitAutomation.GraphQL && (dotnet build || echo 1) && dotnet run --no-build > ../GitAutomation/generated/graphql.json && cd ../GitAutomation && generated/graphql.json | yarn gql-generation",
-    "gql:win":
-      "(mkdir generated || echo 1) && cd ../GitAutomation.GraphQL && (dotnet build || echo 1) && dotnet run --no-build > ../GitAutomation/generated/graphql.json && cd ../GitAutomation && yarn gql-generation < generated/graphql.json",
+    "gql-generation": "gql2ts generated/graphql.json -o web-scripts/graphql.generated.d.ts -n GitAutomationGQL",
+    "gql:nix": "(mkdir generated || echo 1) && cd ../GitAutomation.GraphQL && (dotnet build || echo 1) && dotnet run --no-build > ../GitAutomation/generated/graphql.json && cd ../GitAutomation && generated/graphql.json | yarn gql-generation",
+    "gql:win": "(mkdir generated || echo 1) && cd ../GitAutomation.GraphQL && (dotnet build || echo 1) && dotnet run --no-build > ../GitAutomation/generated/graphql.json && cd ../GitAutomation && yarn gql-generation < generated/graphql.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Matt DeKrey",
@@ -36,6 +33,7 @@
     "file-loader": "^1.1.5",
     "gql2ts": "^1.2.2",
     "graphql-tag": "^2.5.0",
+    "html-loader": "0.5.1",
     "html-minifier": "^3.5.5",
     "html-minifier-loader": "^1.4.0",
     "ramda": "^0.24.1",

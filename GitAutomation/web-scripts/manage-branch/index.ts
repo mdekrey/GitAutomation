@@ -43,7 +43,7 @@ const manageStyle = {
   hint: style({
     margin: 0,
     padding: 0,
-    fontSize: "0.75em"
+    fontSize: "0.75rem"
   }),
   rotateHeader: style({
     height: "100px",
@@ -502,10 +502,10 @@ export const manage = (
                               review.author +
                               ": " +
                               (review.state === "Approved"
-                                ? "✔️"
+                                ? `<img alt="Approved" class="text-image" src="${require("../images/green-check.svg")}" />`
                                 : review.state === "ChangesRequested"
-                                  ? "❌"
-                                  : "❔")
+                                  ? `<img alt="Rejected" class="text-image" src="${require("../images/red-x.svg")}" />`
+                                  : `<img alt="Comment Only" class="text-image" src="${require("../images/question-mark.svg")}" />`)
                           )
                     });
                   }),

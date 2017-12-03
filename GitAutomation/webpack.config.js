@@ -61,7 +61,7 @@ module.exports = {
       {
         test: /\.html$/,
         loaders: [
-          "raw-loader",
+          "html-loader",
           {
             loader: "html-minifier-loader",
             options: {
