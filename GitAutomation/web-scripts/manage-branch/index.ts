@@ -7,14 +7,12 @@ import {
   fnSelect,
   rxDatum,
   rxData,
-  d3element,
-  bind
+  d3element
 } from "../utils/presentation/d3-binding";
 import { runBranchData } from "./data";
 import { buildBranchCheckListing, checkedData } from "./branch-check-listing";
 import { doSave } from "./bind-save-button";
 import {
-  checkPullRequests,
   consolidateMerged,
   promoteServiceLine,
   deleteBranch,
@@ -470,59 +468,6 @@ export const manage = (
                         this.dispatchEvent(evt);
                       })
                   ),
-                handleErrorOnce
-              );
-            })
-        );
-
-        subscription.add(
-          container
-            .map(fnSelect(`[data-locator="check-prs"]`))
-            .let(fnEvent("click"))
-            .withLatestFrom(
-              container.map(fnSelect(`[data-locator="other-branches"]`)),
-              (_, elem) => elem
-            )
-            .subscribe(elements => {
-              checkPullRequests(branchName).subscribe(
-                pullRequests =>
-                  pullRequests.forEach(pr => {
-                    const target = elements
-                      .select(
-                        `[data-locator="pr-status"][data-branch="${
-                          pr.sourceBranch
-                        }"]`
-                      )
-                      .html(require("./pr-display.html"));
-                    target
-                      .select(`[data-locator="status"]`)
-                      .attr("href", pr.url)
-                      .text(`PR ${pr.state}`);
-                    bind({
-                      target: target
-                        .select(`[data-locator="reviews"]`)
-                        .selectAll("a")
-                        .data(pr.reviews || []),
-                      onCreate: e =>
-                        e
-                          .append("a")
-                          .attr("target", "_blank")
-                          .classed("normal", true),
-                      onEach: e =>
-                        e
-                          .attr("href", review => review.url)
-                          .text(
-                            review =>
-                              review.author +
-                              ": " +
-                              (review.state === "Approved"
-                                ? `<img alt="Approved" class="text-image" src="${require("../images/green-check.svg")}" />`
-                                : review.state === "ChangesRequested"
-                                  ? `<img alt="Rejected" class="text-image" src="${require("../images/red-x.svg")}" />`
-                                  : `<img alt="Comment Only" class="text-image" src="${require("../images/question-mark.svg")}" />`)
-                          )
-                    });
-                  }),
                 handleErrorOnce
               );
             })
