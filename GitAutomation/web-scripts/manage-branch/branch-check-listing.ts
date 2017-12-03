@@ -1,11 +1,26 @@
-import { IRxBindProps } from "../utils/presentation/d3-binding";
+import { IRxBindProps, bind } from "../utils/presentation/d3-binding";
 import { IBranchData } from "./data";
 import { branchNameDisplay } from "../branch-name-display";
 import { applyStyles } from "../style/style-binding";
 import { Observable } from "../utils/rxjs";
+import { take } from "../utils/ramda";
 import { Selection } from "d3-selection";
 import { RoutingNavigate } from "../routing";
 import { checkboxChecked } from "../utils/inputs";
+import { style } from "typestyle";
+
+const prListing = style({
+  margin: 0,
+  padding: 0,
+  listStyle: "none"
+});
+const separator = style({
+  $nest: {
+    "&::after": {
+      content: JSON.stringify(": ")
+    }
+  }
+});
 
 type BranchPredicate = (data: IBranchData) => boolean;
 interface BranchTypeRules {
@@ -50,9 +65,48 @@ export const buildBranchCheckListing = (
       .property("checked", upstreamRules.checked)
       .property("disabled", upstreamRules.disabled);
 
-    selection
-      .select(`[data-locator="pr-status"]`)
-      .attr("data-branch", data => data.groupName);
+    bind({
+      target: selection
+        .select(`[data-locator="pr-status"]`)
+        .classed(prListing, true)
+        .selectAll(`li[data-locator="pr"]`)
+        .data(data => take(1, data.pullRequests)),
+      onCreate: t => t.append("li").attr("data-locator", "pr"),
+      onEnter: t => t.html(require("./pr-display.html")),
+      onEach: t => {
+        t
+          .select(`[data-locator="link"]`)
+          .attr("href", pr => pr.url)
+          .text(pr => `${pr.state} PR #${pr.id}`);
+        t
+          .select(`[data-locator="status"]`)
+          .classed(separator, pr => Boolean(pr.reviews.length));
+
+        bind({
+          target: t
+            .select(`[data-locator="reviews"]`)
+            .selectAll("a")
+            .data(pr => pr.reviews || []),
+          onCreate: e =>
+            e
+              .append("a")
+              .attr("target", "_blank")
+              .classed("normal", true),
+          onEach: e =>
+            e
+              .attr("href", review => review.url)
+              .html(
+                review =>
+                  review.state === "Approved"
+                    ? `<img alt="Approved" class="text-image" src="${require("../images/green-check.svg")}" />`
+                    : review.state === "ChangesRequested"
+                      ? `<img alt="Rejected" class="text-image" src="${require("../images/red-x.svg")}" />`
+                      : `<img alt="Comment Only" class="text-image" src="${require("../images/question-mark.svg")}" />`
+              )
+              .attr("title", review => review.author)
+        });
+      }
+    });
 
     selection.sort((a, b) => a.groupName.localeCompare(b.groupName));
   }

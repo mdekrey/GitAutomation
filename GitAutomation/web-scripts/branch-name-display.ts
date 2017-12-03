@@ -2,6 +2,8 @@ import { Selection, event as d3event } from "d3-selection";
 import { bind } from "./utils/presentation/d3-binding";
 import { RoutingNavigate } from "./routing";
 import { branchTypeColors } from "./style/branch-colors";
+import { style, classes } from "typestyle";
+import { applyStyles } from "./style/style-binding";
 
 export interface DisplayableBranch {
   groupName: string;
@@ -9,6 +11,17 @@ export interface DisplayableBranch {
   branches?: Array<Partial<GitAutomationGQL.IGitRef>>;
   latestBranch?: ({ name: string } & Partial<GitAutomationGQL.IGitRef>) | null;
 }
+
+const nameDisplayStyle = {
+  newWindowLink: classes(
+    style({
+      verticalAlign: "super",
+      fontSize: "0.8em",
+      marginLeft: "-0.3em"
+    }),
+    "normal"
+  )
+};
 
 function findActualBranch<P extends keyof GitAutomationGQL.IGitRef>(
   data: DisplayableBranch,
@@ -105,5 +118,6 @@ export const branchNameDisplay = (
             .attr("href", s => s.url)
             .attr("title", s => `${s.key} - ${s.description}`)
       });
+      applyStyles(nameDisplayStyle)(selection);
     }
   });
