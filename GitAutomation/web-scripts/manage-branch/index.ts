@@ -154,6 +154,7 @@ export const manage = (
         );
 
         const branchList = branchDataState
+          .filter(b => !b.isLoading)
           .map(state =>
             state.otherBranches.filter(
               ({ groupName }) => groupName !== branchName
@@ -186,6 +187,16 @@ export const manage = (
           .map(v => v as GitAutomationGQL.IBranchGroupTypeEnum);
 
         subscription.add(branchTypeData.subscribe());
+
+        subscription.add(
+          branchDataState
+            .filter(b => !b.isLoading)
+            .take(1)
+            .switchMap(() => container)
+            .subscribe(target =>
+              target.selectAll(`[data-form]`).attr("disabled", null)
+            )
+        );
 
         subscription.add(
           container
