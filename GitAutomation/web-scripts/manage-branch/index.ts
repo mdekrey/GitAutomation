@@ -35,6 +35,8 @@ import { style } from "typestyle";
 import { secured } from "../security/security-binding";
 import { inputValue } from "../utils/inputs";
 import { handleError, handleErrorOnce } from "../handle-error";
+import { branchNameDisplay } from "../branch-name-display";
+import { merge } from "../utils/ramda";
 
 const manageStyle = {
   fieldSection: style({
@@ -142,13 +144,21 @@ export const manage = (
         subscription.add(
           container
             .map(fnSelect(`[data-locator="branch-name"]`))
-            .let(rxDatum(Observable.of(branchName)))
-            .subscribe(target => target.text(data => data))
+            .let(
+              rxDatum(
+                branchDataState
+                  .map(d => merge(d, { groupName: branchName }))
+                  .do(v => console.log(v))
+              )
+            )
+            .subscribe(branchNameDisplay)
         );
 
         const branchList = branchDataState
           .map(state =>
-            state.branches.filter(({ groupName }) => groupName !== branchName)
+            state.otherBranches.filter(
+              ({ groupName }) => groupName !== branchName
+            )
           )
           .combineLatest(reset, _ => _);
 
@@ -309,7 +319,7 @@ export const manage = (
 
         const actualBranchDisplay = rxData(
           container.map(fnSelect(`[data-locator="grouped-branches"]`)),
-          branchDataState.map(branch => branch.actualBranches)
+          branchDataState.map(branch => branch.branches)
         ).bind({
           selector: "li",
           onCreate: selection => selection.append<HTMLLIElement>("li"),
@@ -361,7 +371,7 @@ export const manage = (
         subscription.add(
           rxData(
             container.map(fnSelect(`[data-locator="approved-branch"]`)),
-            branchDataState.map(branch => branch.actualBranches)
+            branchDataState.map(branch => branch.branches)
           )
             .bind({
               selector: "option",
@@ -376,7 +386,11 @@ export const manage = (
         );
 
         subscription.add(
-          rxDatum(branchDataState.map(branch => branch.latestBranchName))(
+          rxDatum(
+            branchDataState.map(
+              branch => branch.latestBranch && branch.latestBranch.name
+            )
+          )(
             container.map(fnSelect(`[data-locator="approved-branch"]`))
           ).subscribe(selection => selection.property("value", d => d))
         );

@@ -246,6 +246,7 @@ export const branchDetails = (branchName: string) =>
             branches {
               name
               commit
+              url
             }
           }
         }
