@@ -334,23 +334,33 @@ namespace GitAutomation.EFCore.BranchingModel
                     BranchType = BranchGroupType.ServiceLine.ToString("g"),
                 }, branch => branch.GroupName == targetBranch);
 
-                var newDownstream = (await (from branch in context.BranchStream
+                var allDownstream = await (from b in branchesToRemove.ToObservable()
+                                           from d in GetAllDownstreamBranchesOnce(b)(context)
+                                           from branch in d
+                                           select branch.GroupName).Distinct().ToArray();
+
+                var newUpstream = (await (from branch in context.BranchStream
                                           where branchesToRemove.Contains(branch.UpstreamBranch) // where there's something flowing from an upstream branch
                                             && !branchesToRemove.Contains(branch.DownstreamBranch) // that is being deleted
                                           group branch.DownstreamBranchNavigation by branch.DownstreamBranch into downstreamBranches
                                           select downstreamBranches.Key).ToArrayAsync())
+                    .Except(allDownstream)
                     .Distinct();
 
-                foreach (var upstream in newDownstream.Where(upstream => upstream != targetBranch))
+                var addingStream = from upstream in newUpstream
+                                   where upstream != targetBranch
+                                   select new BranchStream { DownstreamBranch = upstream, UpstreamBranch = targetBranch };
+                var removingStream = await (from branch in context.BranchStream
+                                            where branchesToRemove.Contains(branch.UpstreamBranch)
+                                              || branchesToRemove.Contains(branch.DownstreamBranch)
+                                            select branch
+                                           ).ToArrayAsync();
+                foreach (var stream in addingStream)
                 {
-                    await context.BranchStream.AddIfNotExists(new BranchStream { DownstreamBranch = upstream, UpstreamBranch = targetBranch }, b => b.DownstreamBranch == upstream && b.UpstreamBranch == targetBranch);
+                    await context.BranchStream.AddIfNotExists(stream, b => b.DownstreamBranch == stream.DownstreamBranch && b.UpstreamBranch == stream.UpstreamBranch);
                 }
 
-                context.BranchStream.RemoveRange(await (from branch in context.BranchStream
-                                                        where branchesToRemove.Contains(branch.UpstreamBranch)
-                                                          || branchesToRemove.Contains(branch.DownstreamBranch)
-                                                        select branch
-                                                        ).ToArrayAsync());
+                context.BranchStream.RemoveRange(removingStream);
 
                 context.BranchGroup.RemoveRange(await (from branch in context.BranchGroup
                                                        where branchesToRemove.Contains(branch.GroupName)

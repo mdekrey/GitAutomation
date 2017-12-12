@@ -42,7 +42,15 @@ namespace GitAutomation.GitService
             {
                 pullRequests.Add(
                     new Tuple<string, string>(targetBranch, sourceBranch), 
-                    new PullRequest { TargetBranch = targetBranch, SourceBranch = sourceBranch, Reviews = ImmutableList<PullRequestReview>.Empty }
+                    new PullRequest
+                    {
+                        TargetBranch = targetBranch,
+                        SourceBranch = sourceBranch,
+                        Reviews = ImmutableList<PullRequestReview>.Empty,
+                        Id = Guid.NewGuid().ToString(),
+                        Url = "http://example.com",
+                        Author = "In-Memory Placeholder PR"
+                    }
                 );
             }
             return Task.FromResult(true);

@@ -386,19 +386,15 @@ export const manage = (
             container.map(
               fnSelect(`[data-locator="consolidate-target-branch"]`)
             ),
-            branchList.map(branches =>
-              branches.filter(branch => !branch.isUpstream)
-            ),
-            data => data.groupName
+            branchDataState.map(b => b.branches.map(group => group.groupName)),
+            data => data
           )
             .bind({
               selector: "option",
               onCreate: selection =>
                 selection.append<HTMLOptionElement>("option"),
               onEach: selection =>
-                selection
-                  .text(data => data.groupName)
-                  .attr("value", data => data.groupName)
+                selection.text(data => data).attr("value", data => data)
             })
             .subscribe()
         );
@@ -407,13 +403,15 @@ export const manage = (
             container.map(
               fnSelect(`[data-locator="consolidate-original-branches"]`)
             ),
-            branchList.map(branches =>
-              [branchName].concat(
-                branches
-                  .filter(branch => branch.isSomewhereUpstream)
-                  .map(branch => branch.groupName)
-              )
-            ),
+            branchDataState
+              .map(b => b.branches)
+              .map(branches =>
+                [branchName].concat(
+                  branches
+                    .filter(branch => branch.isSomewhereUpstream)
+                    .map(branch => branch.groupName)
+                )
+              ),
             data => data
           )
             .bind({
