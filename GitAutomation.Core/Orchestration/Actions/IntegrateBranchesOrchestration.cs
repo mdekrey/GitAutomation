@@ -23,6 +23,30 @@ namespace GitAutomation.Orchestration.Actions
         {
             return GroupName.CompareTo(other.GroupName);
         }
+
+        public override bool Equals(object obj)
+        {
+            //       
+            // See the full list of guidelines at
+            //   http://go.microsoft.com/fwlink/?LinkID=85237  
+            // and also the guidance for operator== at
+            //   http://go.microsoft.com/fwlink/?LinkId=85238
+            //
+
+            if (obj == null || GetType() != obj.GetType())
+            {
+                return false;
+            }
+
+            var other = (LatestBranchGroup)obj;
+
+            return other.GroupName == GroupName;
+        }
+
+        public override int GetHashCode()
+        {
+            return GroupName.GetHashCode();
+        }
     }
 
     public struct ConflictingBranches
@@ -41,6 +65,22 @@ namespace GitAutomation.Orchestration.Actions
                 BranchA = BranchB,
                 BranchB = BranchA,
             };
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null || GetType() != obj.GetType())
+            {
+                return false;
+            }
+            var other = (ConflictingBranches)obj;
+
+            return other.BranchA.Equals(BranchA) && other.BranchB.Equals(BranchB);
+        }
+
+        public override int GetHashCode()
+        {
+            return BranchA.GetHashCode() ^ BranchB.GetHashCode();
         }
     }
 
@@ -344,7 +384,7 @@ namespace GitAutomation.Orchestration.Actions
 
             return new IntegrationBranchResult
             {
-                Conflicts = leafConflicts.Concat(middleConflicts).Select(c => c.Normalize()),
+                Conflicts = leafConflicts.Concat(middleConflicts).Select(c => c.Normalize()).Distinct(),
                 HadPullRequest = skippedDueToPullRequest,
             };
         }
@@ -374,7 +414,7 @@ namespace GitAutomation.Orchestration.Actions
                         // already found this as an exception
                         continue;
                     }
-                    foreach (var newEntry in (await settings.GetAllUpstreamBranches(entry)).Select(b => b.GroupName))
+                    foreach (var newEntry in (await settings.GetAllUpstreamBranches(entry).FirstOrDefaultAsync()).Select(b => b.GroupName))
                     {
                         removed.Add(newEntry);
                     }
