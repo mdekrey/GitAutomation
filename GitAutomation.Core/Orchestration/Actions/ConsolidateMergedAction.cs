@@ -61,7 +61,7 @@ namespace GitAutomation.Orchestration.Actions
                 this.cli = cli;
                 this.repository = repository;
                 this.workFactory = workFactory;
-                this.originalBranches = originalBranches.ToImmutableHashSet();
+                this.originalBranches = originalBranches.Except(new[] { newBaseBranch }).ToImmutableHashSet();
                 this.newBaseBranch = newBaseBranch;
             }
 
