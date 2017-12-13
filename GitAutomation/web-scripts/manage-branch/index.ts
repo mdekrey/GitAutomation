@@ -400,7 +400,9 @@ export const manage = (
             container.map(
               fnSelect(`[data-locator="consolidate-target-branch"]`)
             ),
-            branchDataState.map(b => b.branches.map(group => group.groupName)),
+            branchDataState.map(b =>
+              b.otherBranches.map(group => group.groupName)
+            ),
             data => data
           )
             .bind({
@@ -418,7 +420,7 @@ export const manage = (
               fnSelect(`[data-locator="consolidate-original-branches"]`)
             ),
             branchDataState
-              .map(b => b.branches)
+              .map(b => b.otherBranches)
               .map(branches =>
                 [branchName].concat(
                   branches
