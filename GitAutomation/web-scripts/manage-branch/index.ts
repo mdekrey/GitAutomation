@@ -7,14 +7,12 @@ import {
   fnSelect,
   rxDatum,
   rxData,
-  d3element,
-  bind
+  d3element
 } from "../utils/presentation/d3-binding";
 import { runBranchData } from "./data";
 import { buildBranchCheckListing, checkedData } from "./branch-check-listing";
 import { doSave } from "./bind-save-button";
 import {
-  checkPullRequests,
   consolidateMerged,
   promoteServiceLine,
   deleteBranch,
@@ -27,7 +25,7 @@ import {
 import {
   branchHierarchy,
   highlightedHierarchyStyle,
-  defaultHierarchyStyles
+  addDefaultHierarchyStyles
 } from "../home/branch-hierarchy";
 import { groupsToHierarchy } from "../api/hierarchy";
 import { classed } from "../style/style-binding";
@@ -37,6 +35,7 @@ import { inputValue } from "../utils/inputs";
 import { handleError, handleErrorOnce } from "../handle-error";
 import { branchNameDisplay } from "../branch-name-display";
 import { merge } from "../utils/ramda";
+import { applyExternalLink } from "../external-window-link";
 
 const manageStyle = {
   fieldSection: style({
@@ -155,6 +154,7 @@ export const manage = (
         );
 
         const branchList = branchDataState
+          .filter(b => !b.isLoading)
           .map(state =>
             state.otherBranches.filter(
               ({ groupName }) => groupName !== branchName
@@ -189,6 +189,16 @@ export const manage = (
         subscription.add(branchTypeData.subscribe());
 
         subscription.add(
+          branchDataState
+            .filter(b => !b.isLoading)
+            .take(1)
+            .switchMap(() => container)
+            .subscribe(target =>
+              target.selectAll(`[data-form]`).attr("disabled", null)
+            )
+        );
+
+        subscription.add(
           container
             .map(fnSelect(`[data-locator="branch-type"]`))
             .let(inputValue({ includeInitial: false }))
@@ -215,13 +225,12 @@ export const manage = (
                 Boolean(group.upstream.find(v => v === branchName)) ||
                 Boolean(group.downstream.find(v => v === branchName))
             ),
-            style: [
+            style: addDefaultHierarchyStyles([
               {
-                ...highlightedHierarchyStyle("white"),
+                ...highlightedHierarchyStyle,
                 filter: data => data.groupName === branchName
-              },
-              ...defaultHierarchyStyles
-            ]
+              }
+            ])
           }).subscribe()
         );
 
@@ -307,13 +316,12 @@ export const manage = (
                 Boolean(group.upstream.find(v => v === branchName)) ||
                 Boolean(group.downstream.find(v => v === branchName))
             ),
-            style: [
+            style: addDefaultHierarchyStyles([
               {
-                ...highlightedHierarchyStyle("white"),
+                ...highlightedHierarchyStyle,
                 filter: data => data.groupName === branchName
-              },
-              ...defaultHierarchyStyles
-            ]
+              }
+            ])
           }).subscribe()
         );
 
@@ -325,10 +333,17 @@ export const manage = (
           onCreate: selection => selection.append<HTMLLIElement>("li"),
           onEnter: selection =>
             selection.html(require("./manage-branch.branch-row.html")),
-          onEach: selection =>
+          onEach: selection => {
             selection
-              .select("span")
-              .text(data => `${data.name} (${data.commit.substr(0, 7)})`)
+              .select(`span[data-locator="branch-name"]`)
+              .text(data => `${data.name} (${data.commit.substr(0, 7)})`);
+
+            applyExternalLink(
+              selection
+                .select(`span[data-locator="actual-branch-link"]`)
+                .datum(d => d.url)
+            );
+          }
         });
 
         subscription.add(
@@ -470,59 +485,6 @@ export const manage = (
                         this.dispatchEvent(evt);
                       })
                   ),
-                handleErrorOnce
-              );
-            })
-        );
-
-        subscription.add(
-          container
-            .map(fnSelect(`[data-locator="check-prs"]`))
-            .let(fnEvent("click"))
-            .withLatestFrom(
-              container.map(fnSelect(`[data-locator="other-branches"]`)),
-              (_, elem) => elem
-            )
-            .subscribe(elements => {
-              checkPullRequests(branchName).subscribe(
-                pullRequests =>
-                  pullRequests.forEach(pr => {
-                    const target = elements
-                      .select(
-                        `[data-locator="pr-status"][data-branch="${
-                          pr.sourceBranch
-                        }"]`
-                      )
-                      .html(require("./pr-display.html"));
-                    target
-                      .select(`[data-locator="status"]`)
-                      .attr("href", pr.url)
-                      .text(`PR ${pr.state}`);
-                    bind({
-                      target: target
-                        .select(`[data-locator="reviews"]`)
-                        .selectAll("a")
-                        .data(pr.reviews || []),
-                      onCreate: e =>
-                        e
-                          .append("a")
-                          .attr("target", "_blank")
-                          .classed("normal", true),
-                      onEach: e =>
-                        e
-                          .attr("href", review => review.url)
-                          .text(
-                            review =>
-                              review.author +
-                              ": " +
-                              (review.state === "Approved"
-                                ? `<img alt="Approved" class="text-image" src="${require("../images/green-check.svg")}" />`
-                                : review.state === "ChangesRequested"
-                                  ? `<img alt="Rejected" class="text-image" src="${require("../images/red-x.svg")}" />`
-                                  : `<img alt="Comment Only" class="text-image" src="${require("../images/question-mark.svg")}" />`)
-                          )
-                    });
-                  }),
                 handleErrorOnce
               );
             })

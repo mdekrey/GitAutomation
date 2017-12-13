@@ -1,3 +1,4 @@
+import { flatten } from "../utils/ramda";
 import { Observable, Subscription } from "../utils/rxjs";
 
 import { allBranchGroups, branchDetails } from "../api/basics";
@@ -8,7 +9,7 @@ export interface IManageBranch {
   upstreamMergePolicy: GitAutomationGQL.IUpstreamMergePolicyEnum;
   branchType: string;
   otherBranches: IBranchData[];
-  branches: Pick<GitAutomationGQL.IGitRef, "name" | "commit">[];
+  branches: Pick<GitAutomationGQL.IGitRef, "name" | "commit" | "url">[];
   latestBranch: { name: string } | null;
 }
 
@@ -24,6 +25,7 @@ export interface IBranchData {
   isSomewhereUpstream: boolean;
   isDownstreamAllowed: boolean;
   isUpstreamAllowed: boolean;
+  pullRequests: GitAutomationGQL.IPullRequest[];
 }
 
 export const runBranchData = (branchName: string, reload: Observable<any>) => {
@@ -46,6 +48,9 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
           g => g.groupName
         );
         const downstreamBranches = target.downstream;
+        const actualBranchNames = new Set<string>(
+          branchDetails.branches.map(b => b.name)
+        );
         const result = {
           otherBranches: allBranches.map((group): IBranchData => ({
             groupName: group.groupName,
@@ -60,7 +65,18 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
             isSomewhereUpstream: Boolean(
               target.upstream.find(branch => branch === group.groupName)
             ),
-            isUpstreamAllowed: downstreamBranches.indexOf(group.groupName) == -1
+            isUpstreamAllowed:
+              downstreamBranches.indexOf(group.groupName) == -1,
+            pullRequests: flatten(group.branches.map(b => b.pullRequestsInto))
+              .filter(pr => actualBranchNames.has(pr.targetBranch))
+              .filter(pr => pr.state === "Open")
+              .sort(
+                (a, b) =>
+                  -(Number(a.id).toString() === a.id &&
+                  Number(b.id).toString() === b.id
+                    ? Number(a.id) - Number(b.id)
+                    : a.id.localeCompare(b.id))
+              )
           })),
           branchType: branchDetails.branchType,
           upstreamMergePolicy: branchDetails.upstreamMergePolicy,
