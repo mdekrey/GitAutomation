@@ -381,10 +381,14 @@ namespace GitAutomation.EFCore.BranchingModel
                                                         select branch
                                                         ).ToArrayAsync());
 
-                context.BranchGroup.Remove(await (from branch in context.BranchGroup
-                                                  where branch.GroupName == deletingBranch
-                                                  select branch
-                                                  ).FirstOrDefaultAsync());
+                var group = await (from branch in context.BranchGroup
+                                   where branch.GroupName == deletingBranch
+                                   select branch
+                                                  ).FirstOrDefaultAsync();
+                if (group != null)
+                {
+                    context.BranchGroup.Remove(group);
+                }
             });
         }
 
