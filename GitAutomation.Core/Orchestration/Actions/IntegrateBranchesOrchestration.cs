@@ -23,12 +23,65 @@ namespace GitAutomation.Orchestration.Actions
         {
             return GroupName.CompareTo(other.GroupName);
         }
+
+        public override bool Equals(object obj)
+        {
+            //       
+            // See the full list of guidelines at
+            //   http://go.microsoft.com/fwlink/?LinkID=85237  
+            // and also the guidance for operator== at
+            //   http://go.microsoft.com/fwlink/?LinkId=85238
+            //
+
+            if (obj == null || GetType() != obj.GetType())
+            {
+                return false;
+            }
+
+            var other = (LatestBranchGroup)obj;
+
+            return other.GroupName == GroupName;
+        }
+
+        public override int GetHashCode()
+        {
+            return GroupName.GetHashCode();
+        }
     }
 
     public struct ConflictingBranches
     {
         public LatestBranchGroup BranchA;
         public LatestBranchGroup BranchB;
+
+        public ConflictingBranches Normalize()
+        {
+            if (BranchA.GroupName.CompareTo(BranchB.GroupName) < 0)
+            {
+                return this;
+            }
+            return new ConflictingBranches
+            {
+                BranchA = BranchB,
+                BranchB = BranchA,
+            };
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null || GetType() != obj.GetType())
+            {
+                return false;
+            }
+            var other = (ConflictingBranches)obj;
+
+            return other.BranchA.Equals(BranchA) && other.BranchB.Equals(BranchB);
+        }
+
+        public override int GetHashCode()
+        {
+            return BranchA.GetHashCode() ^ BranchB.GetHashCode();
+        }
     }
 
     public struct IntegrationBranchResult
@@ -133,7 +186,7 @@ namespace GitAutomation.Orchestration.Actions
             };
         }
 
-        public async Task<IntegrationBranchResult> FindConflicts(string targetBranch, IEnumerable<string> initialUpstreamBranchGroups, AttemptMergeDelegate doMerge)
+        public async Task<IntegrationBranchResult> FindConflicts(string targetBranch, IEnumerable<string> _, AttemptMergeDelegate doMerge)
         {
 
             // When finding branches that conflict, we should go to the earliest point of conflict... so we need to know full ancestry.
@@ -162,16 +215,18 @@ namespace GitAutomation.Orchestration.Actions
                 LatestBranchName = branchIteration.GetLatestBranchNameIteration(group, remoteBranches)
             };
 
-            var upstreamBranchListings = new Dictionary<string, ImmutableList<string>>()
-            {
-                { targetBranch, initialUpstreamBranchGroups.ToImmutableList() }
-            };
+
+            var upstreamBranchListings = new Dictionary<string, ImmutableList<string>>();
+            var initialUpstreamBranchGroups = await GetUpstreamBranches(targetBranch, upstreamBranchListings);
+
+            await GetUpstreamBranches(targetBranch, upstreamBranchListings);
             var hasOpenPullRequest = new Dictionary<string, bool>();
             var leafConflicts = new HashSet<ConflictingBranches>();
             var unflippedConflicts = new HashSet<ConflictingBranches>();
             // Remove from `middleConflicts` if we find a deeper one that conflicts
             var middleConflicts = new HashSet<ConflictingBranches>();
             var target = groupToLatest(targetBranch);
+            
             var possibleConflicts = new Stack<PossibleConflictingBranches>(
                 (
                     from branchA in initialUpstreamBranchGroups.Select(groupToLatest)
@@ -329,7 +384,7 @@ namespace GitAutomation.Orchestration.Actions
 
             return new IntegrationBranchResult
             {
-                Conflicts = leafConflicts.Concat(middleConflicts),
+                Conflicts = leafConflicts.Concat(middleConflicts).Select(c => c.Normalize()).Distinct(),
                 HadPullRequest = skippedDueToPullRequest,
             };
         }
@@ -347,10 +402,24 @@ namespace GitAutomation.Orchestration.Actions
         {
             if (!upstreamBranchListings.ContainsKey(branch))
             {
-                upstreamBranchListings[branch] = (
+                var result = (
                     from b in (await settings.GetUpstreamBranches(branch).FirstOrDefaultAsync())
                     select b.GroupName
                 ).ToImmutableList();
+                var removed = new HashSet<string>();
+                foreach (var entry in result.ToArray())
+                {
+                    if (removed.Contains(entry))
+                    {
+                        // already found this as an exception
+                        continue;
+                    }
+                    foreach (var newEntry in (await settings.GetAllUpstreamBranches(entry).FirstOrDefaultAsync()).Select(b => b.GroupName))
+                    {
+                        removed.Add(newEntry);
+                    }
+                }
+                upstreamBranchListings[branch] = result.Except(removed).ToImmutableList();
             }
             return upstreamBranchListings[branch];
         }

@@ -79,7 +79,7 @@ namespace GitAutomation.Orchestration.Actions
             var result = await setup.Target.FindConflicts("C", new[] { "A", "B" }, setup.AttemptMergeMock.Object.AttemptMergeDelegate);
 
             Assert.IsFalse(result.HadPullRequest);
-            Assert.IsTrue(result.Conflicts.Any(a => a.BranchA.GroupName == "A" && a.BranchB.GroupName == "B"));
+            Assert.IsNotNull(result.Conflicts.SingleOrDefault(a => a.BranchA.GroupName == "A" && a.BranchB.GroupName == "B"));
         }
 
         [TestMethod]
@@ -115,7 +115,7 @@ namespace GitAutomation.Orchestration.Actions
             var result = await setup.Target.FindConflicts("C", new[] { "A", "B" }, setup.AttemptMergeMock.Object.AttemptMergeDelegate);
 
             Assert.IsFalse(result.HadPullRequest);
-            Assert.IsTrue(result.Conflicts.Any(a => a.BranchA.GroupName == "A" && a.BranchB.GroupName == "B"));
+            Assert.IsNotNull(result.Conflicts.SingleOrDefault(a => a.BranchA.GroupName == "A" && a.BranchB.GroupName == "B"));
         }
 
         [TestMethod]
@@ -149,9 +149,15 @@ namespace GitAutomation.Orchestration.Actions
             ));
             setup.gitServiceApiMock.Setup(git => git.GetPullRequests(It.IsAny<PullRequestState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<PullRequestAuthorMode>())).Returns(Task.FromResult(ImmutableList<PullRequest>.Empty));
             var serviceLineGroups = Observable.Return(new [] { new BranchGroup { GroupName = "ServiceLine", BranchType = BranchGroupType.ServiceLine, UpstreamMergePolicy = UpstreamMergePolicy.None } }.ToImmutableList());
+            var cUpstreamGroups = Observable.Return(new [] { new BranchGroup { GroupName = "ServiceLine", BranchType = BranchGroupType.ServiceLine, UpstreamMergePolicy = UpstreamMergePolicy.None } }.ToImmutableList());
+            setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("C")).Returns(cUpstreamGroups);
             setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("A")).Returns(serviceLineGroups);
             setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("B")).Returns(serviceLineGroups);
             setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("ServiceLine")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
+            setup.settingsMock.Setup(settings => settings.GetAllUpstreamBranches("C")).Returns(serviceLineGroups.CombineLatest(cUpstreamGroups, (a, b) => a.Concat(b).ToImmutableList()));
+            setup.settingsMock.Setup(settings => settings.GetAllUpstreamBranches("A")).Returns(serviceLineGroups);
+            setup.settingsMock.Setup(settings => settings.GetAllUpstreamBranches("B")).Returns(serviceLineGroups);
+            setup.settingsMock.Setup(settings => settings.GetAllUpstreamBranches("ServiceLine")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
             setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("A", "B", It.IsAny<string>())).Returns(Task.FromResult(true));
             setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("A", "ServiceLine", It.IsAny<string>())).Returns(Task.FromResult(true));
             setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("B", "ServiceLine", It.IsAny<string>())).Returns(Task.FromResult(true));
@@ -162,7 +168,7 @@ namespace GitAutomation.Orchestration.Actions
             var result = await setup.Target.FindConflicts("C", new[] { "A", "B" }, setup.AttemptMergeMock.Object.AttemptMergeDelegate);
 
             Assert.IsFalse(result.HadPullRequest);
-            Assert.IsTrue(result.Conflicts.Any(a => a.BranchA.GroupName == "C" && a.BranchB.GroupName == "ServiceLine"));
+            Assert.IsNotNull(result.Conflicts.SingleOrDefault(a => a.BranchA.GroupName == "C" && a.BranchB.GroupName == "ServiceLine"));
         }
 
         [TestMethod]
@@ -193,7 +199,10 @@ namespace GitAutomation.Orchestration.Actions
             var serviceLineGroups = Observable.Return(
                 new [] { new BranchGroup { GroupName = "ServiceLine", BranchType = BranchGroupType.ServiceLine, UpstreamMergePolicy = UpstreamMergePolicy.None } }.ToImmutableList()
             );
+            setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("B")).Returns(serviceLineGroups);
+            setup.settingsMock.Setup(settings => settings.GetAllUpstreamBranches("B")).Returns(serviceLineGroups);
             setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("ServiceLine")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
+            setup.settingsMock.Setup(settings => settings.GetAllUpstreamBranches("ServiceLine")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
             setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("B", "ServiceLine", It.IsAny<string>())).Returns(Task.FromResult(false));
             setup.settingsMock.Setup(settings => settings.GetIntegrationBranch("B", "ServiceLine")).ReturnsAsync("Integ");
             setup.settingsMock.Setup(settings => settings.AddBranchPropagation("Integ", "B", It.IsAny<IUnitOfWork>())).Verifiable();
@@ -215,6 +224,247 @@ namespace GitAutomation.Orchestration.Actions
             setup.settingsMock.Verify(settings => settings.RemoveBranchPropagation("B", "Integ", It.IsAny<IUnitOfWork>()), Times.Once());
             setup.orchestrationMock.Verify(orchestration => orchestration.EnqueueAction(It.Is<MergeDownstreamAction>(a => a.DownstreamBranch == "B"), false), Times.Once());
             setup.orchestrationMock.Verify(orchestration => orchestration.EnqueueAction(It.Is<ConsolidateMergedAction>(a => a.NewBaseBranch == "B" && a.OriginalBranches.Single() == "Integ"), false), Times.Once());
+        }
+
+        [TestMethod]
+        public async Task FindIntegrationFromConsolidationIssue119WithBaseIntegration()
+        {
+            var setup = new Setup();
+            setup.repositoryMediatorMock.Setup(repository => repository.GetAllBranchRefs()).Returns(Observable.Return(
+                new[]
+                {
+                    new GitRef
+                    {
+                        Name = "A",
+                        Commit = "0000000"
+                    },
+                    new GitRef
+                    {
+                        Name = "B",
+                        Commit = "1111111"
+                    },
+                    new GitRef
+                    {
+                        Name = "Integ-AB",
+                        Commit = "0101010"
+                    },
+                    new GitRef
+                    {
+                        Name = "C-from-A",
+                        Commit = "0002222"
+                    },
+                }.ToImmutableList()
+            ));
+            setup.gitServiceApiMock.Setup(git => git.GetPullRequests(It.IsAny<PullRequestState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<PullRequestAuthorMode>())).Returns(Task.FromResult(ImmutableList<PullRequest>.Empty));
+
+            setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("A")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
+            setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("B")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
+            setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("C-from-A")).Returns(Observable.Return(new[] {
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "A",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                }
+            }.ToImmutableList()));
+            setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("Integ-AB")).Returns(Observable.Return(new[] {
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "A",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                },
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "B",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                }
+            }.ToImmutableList()));
+            setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("Result")).Returns(Observable.Return(new[] {
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "A",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                },
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "B",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                },
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "Integ-AB",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                },
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "C-from-A",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                }
+            }.ToImmutableList()));
+
+            setup.settingsMock.Setup(settings => settings.GetAllUpstreamBranches("A")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
+            setup.settingsMock.Setup(settings => settings.GetAllUpstreamBranches("B")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
+            setup.settingsMock.Setup(settings => settings.GetAllUpstreamBranches("C-from-A")).Returns(Observable.Return(new[] {
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "A",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                }
+            }.ToImmutableList()));
+            setup.settingsMock.Setup(settings => settings.GetAllUpstreamBranches("Integ-AB")).Returns(Observable.Return(new[] {
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "A",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                },
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "B",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                }
+            }.ToImmutableList()));
+            setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("A", "B", It.IsAny<string>())).Returns(Task.FromResult(false));
+            setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("A", "C-from-A", It.IsAny<string>())).Returns(Task.FromResult(true));
+            setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("A", "Integ-AB", It.IsAny<string>())).Returns(Task.FromResult(true));
+            setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("B", "Integ-AB", It.IsAny<string>())).Returns(Task.FromResult(true));
+            setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("B", "C-from-A", It.IsAny<string>())).Returns(Task.FromResult(false));
+            setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("C-from-A", "Integ-AB", It.IsAny<string>())).Returns(Task.FromResult(true));
+
+            var result = await setup.Target.FindConflicts("Result", new[] { "C-from-A", "B", "A", "Integ-AB" }, setup.AttemptMergeMock.Object.AttemptMergeDelegate);
+
+            Assert.IsFalse(result.HadPullRequest);
+            Assert.IsFalse(result.Conflicts.Any());
+            Assert.IsFalse(result.AddedNewIntegrationBranches);
+        }
+
+        [TestMethod]
+        public async Task FindIntegrationFromConsolidationIssue119WithoutBaseIntegration()
+        {
+            var setup = new Setup();
+            setup.repositoryMediatorMock.Setup(repository => repository.GetAllBranchRefs()).Returns(Observable.Return(
+                new[]
+                {
+                    new GitRef
+                    {
+                        Name = "A",
+                        Commit = "0000000"
+                    },
+                    new GitRef
+                    {
+                        Name = "B",
+                        Commit = "1111111"
+                    },
+                    new GitRef
+                    {
+                        Name = "Integ-AB",
+                        Commit = "0101010"
+                    },
+                    new GitRef
+                    {
+                        Name = "C-from-A",
+                        Commit = "0002222"
+                    },
+                }.ToImmutableList()
+            ));
+            setup.gitServiceApiMock.Setup(git => git.GetPullRequests(It.IsAny<PullRequestState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<PullRequestAuthorMode>())).Returns(Task.FromResult(ImmutableList<PullRequest>.Empty));
+
+            setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("A")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
+            setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("B")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
+            setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("C-from-A")).Returns(Observable.Return(new[] {
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "A",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                }
+            }.ToImmutableList()));
+            setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("Integ-AB")).Returns(Observable.Return(new[] {
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "A",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                },
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "B",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                }
+            }.ToImmutableList()));
+            setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("Result")).Returns(Observable.Return(new[] {
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "A",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                },
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "B",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                },
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "C-from-A",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                }
+            }.ToImmutableList()));
+
+            setup.settingsMock.Setup(settings => settings.GetAllUpstreamBranches("A")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
+            setup.settingsMock.Setup(settings => settings.GetAllUpstreamBranches("B")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
+            setup.settingsMock.Setup(settings => settings.GetAllUpstreamBranches("C-from-A")).Returns(Observable.Return(new[] {
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "A",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                }
+            }.ToImmutableList()));
+            setup.settingsMock.Setup(settings => settings.GetAllUpstreamBranches("Integ-AB")).Returns(Observable.Return(new[] {
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "A",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                },
+                new BranchGroup
+                {
+                    BranchType = BranchGroupType.Feature,
+                    GroupName = "B",
+                    UpstreamMergePolicy = UpstreamMergePolicy.None
+                }
+            }.ToImmutableList()));
+            setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("A", "B", It.IsAny<string>())).Returns(Task.FromResult(false));
+            setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("A", "C-from-A", It.IsAny<string>())).Returns(Task.FromResult(true));
+            setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("A", "Integ-AB", It.IsAny<string>())).Returns(Task.FromResult(true));
+            setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("B", "Integ-AB", It.IsAny<string>())).Returns(Task.FromResult(true));
+            setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("B", "C-from-A", It.IsAny<string>())).Returns(Task.FromResult(false));
+            setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("C-from-A", "Integ-AB", It.IsAny<string>())).Returns(Task.FromResult(true));
+            setup.settingsMock.Setup(settings => settings.GetIntegrationBranch("A", "B")).ReturnsAsync("Integ-AB");
+
+            var result = await setup.Target.FindAndCreateIntegrationBranches(new BranchGroupCompleteData
+            {
+                GroupName = "Result",
+                LatestBranchName = "Result",
+                UpstreamBranchGroups = new[] { "A", "B", "C-from-A" }.ToImmutableList()
+            }, new[] { "A", "B", "C-from-A" }, setup.AttemptMergeMock.Object.AttemptMergeDelegate);
+
+            Assert.IsFalse(result.HadPullRequest);
+            Assert.AreEqual("A", result.Conflicts.Single().BranchA.GroupName);
+            Assert.AreEqual("B", result.Conflicts.Single().BranchB.GroupName);
+            Assert.IsTrue(result.AddedNewIntegrationBranches);
         }
     }
 }
