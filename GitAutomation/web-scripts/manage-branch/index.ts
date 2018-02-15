@@ -7,14 +7,12 @@ import {
   fnSelect,
   rxDatum,
   rxData,
-  d3element,
-  bind
+  d3element
 } from "../utils/presentation/d3-binding";
 import { runBranchData } from "./data";
 import { buildBranchCheckListing, checkedData } from "./branch-check-listing";
 import { doSave } from "./bind-save-button";
 import {
-  checkPullRequests,
   consolidateMerged,
   promoteServiceLine,
   deleteBranch,
@@ -27,7 +25,7 @@ import {
 import {
   branchHierarchy,
   highlightedHierarchyStyle,
-  defaultHierarchyStyles
+  addDefaultHierarchyStyles
 } from "../home/branch-hierarchy";
 import { groupsToHierarchy } from "../api/hierarchy";
 import { classed } from "../style/style-binding";
@@ -35,6 +33,9 @@ import { style } from "typestyle";
 import { secured } from "../security/security-binding";
 import { inputValue } from "../utils/inputs";
 import { handleError, handleErrorOnce } from "../handle-error";
+import { branchNameDisplay } from "../branch-name-display";
+import { merge } from "../utils/ramda";
+import { applyExternalLink } from "../external-window-link";
 
 const manageStyle = {
   fieldSection: style({
@@ -142,13 +143,22 @@ export const manage = (
         subscription.add(
           container
             .map(fnSelect(`[data-locator="branch-name"]`))
-            .let(rxDatum(Observable.of(branchName)))
-            .subscribe(target => target.text(data => data))
+            .let(
+              rxDatum(
+                branchDataState
+                  .map(d => merge(d, { groupName: branchName }))
+                  .do(v => console.log(v))
+              )
+            )
+            .subscribe(branchNameDisplay)
         );
 
         const branchList = branchDataState
+          .filter(b => !b.isLoading)
           .map(state =>
-            state.branches.filter(({ groupName }) => groupName !== branchName)
+            state.otherBranches.filter(
+              ({ groupName }) => groupName !== branchName
+            )
           )
           .combineLatest(reset, _ => _);
 
@@ -179,6 +189,16 @@ export const manage = (
         subscription.add(branchTypeData.subscribe());
 
         subscription.add(
+          branchDataState
+            .filter(b => !b.isLoading)
+            .take(1)
+            .switchMap(() => container)
+            .subscribe(target =>
+              target.selectAll(`[data-form]`).attr("disabled", null)
+            )
+        );
+
+        subscription.add(
           container
             .map(fnSelect(`[data-locator="branch-type"]`))
             .let(inputValue({ includeInitial: false }))
@@ -205,13 +225,12 @@ export const manage = (
                 Boolean(group.upstream.find(v => v === branchName)) ||
                 Boolean(group.downstream.find(v => v === branchName))
             ),
-            style: [
+            style: addDefaultHierarchyStyles([
               {
-                ...highlightedHierarchyStyle("white"),
+                ...highlightedHierarchyStyle,
                 filter: data => data.groupName === branchName
-              },
-              ...defaultHierarchyStyles
-            ]
+              }
+            ])
           }).subscribe()
         );
 
@@ -297,28 +316,34 @@ export const manage = (
                 Boolean(group.upstream.find(v => v === branchName)) ||
                 Boolean(group.downstream.find(v => v === branchName))
             ),
-            style: [
+            style: addDefaultHierarchyStyles([
               {
-                ...highlightedHierarchyStyle("white"),
+                ...highlightedHierarchyStyle,
                 filter: data => data.groupName === branchName
-              },
-              ...defaultHierarchyStyles
-            ]
+              }
+            ])
           }).subscribe()
         );
 
         const actualBranchDisplay = rxData(
           container.map(fnSelect(`[data-locator="grouped-branches"]`)),
-          branchDataState.map(branch => branch.actualBranches)
+          branchDataState.map(branch => branch.branches)
         ).bind({
           selector: "li",
           onCreate: selection => selection.append<HTMLLIElement>("li"),
           onEnter: selection =>
             selection.html(require("./manage-branch.branch-row.html")),
-          onEach: selection =>
+          onEach: selection => {
             selection
-              .select("span")
-              .text(data => `${data.name} (${data.commit.substr(0, 7)})`)
+              .select(`span[data-locator="branch-name"]`)
+              .text(data => `${data.name} (${data.commit.substr(0, 7)})`);
+
+            applyExternalLink(
+              selection
+                .select(`span[data-locator="actual-branch-link"]`)
+                .datum(d => d.url)
+            );
+          }
         });
 
         subscription.add(
@@ -361,7 +386,7 @@ export const manage = (
         subscription.add(
           rxData(
             container.map(fnSelect(`[data-locator="approved-branch"]`)),
-            branchDataState.map(branch => branch.actualBranches)
+            branchDataState.map(branch => branch.branches)
           )
             .bind({
               selector: "option",
@@ -376,7 +401,11 @@ export const manage = (
         );
 
         subscription.add(
-          rxDatum(branchDataState.map(branch => branch.latestBranchName))(
+          rxDatum(
+            branchDataState.map(
+              branch => branch.latestBranch && branch.latestBranch.name
+            )
+          )(
             container.map(fnSelect(`[data-locator="approved-branch"]`))
           ).subscribe(selection => selection.property("value", d => d))
         );
@@ -386,7 +415,9 @@ export const manage = (
             container.map(
               fnSelect(`[data-locator="consolidate-target-branch"]`)
             ),
-            branchDataState.map(b => b.branches.map(group => group.groupName)),
+            branchDataState.map(b =>
+              b.otherBranches.map(group => group.groupName)
+            ),
             data => data
           )
             .bind({
@@ -404,7 +435,7 @@ export const manage = (
               fnSelect(`[data-locator="consolidate-original-branches"]`)
             ),
             branchDataState
-              .map(b => b.branches)
+              .map(b => b.otherBranches)
               .map(branches =>
                 [branchName].concat(
                   branches
@@ -454,59 +485,6 @@ export const manage = (
                         this.dispatchEvent(evt);
                       })
                   ),
-                handleErrorOnce
-              );
-            })
-        );
-
-        subscription.add(
-          container
-            .map(fnSelect(`[data-locator="check-prs"]`))
-            .let(fnEvent("click"))
-            .withLatestFrom(
-              container.map(fnSelect(`[data-locator="other-branches"]`)),
-              (_, elem) => elem
-            )
-            .subscribe(elements => {
-              checkPullRequests(branchName).subscribe(
-                pullRequests =>
-                  pullRequests.forEach(pr => {
-                    const target = elements
-                      .select(
-                        `[data-locator="pr-status"][data-branch="${
-                          pr.sourceBranch
-                        }"]`
-                      )
-                      .html(require("./pr-display.html"));
-                    target
-                      .select(`[data-locator="status"]`)
-                      .attr("href", pr.url)
-                      .text(`PR ${pr.state}`);
-                    bind({
-                      target: target
-                        .select(`[data-locator="reviews"]`)
-                        .selectAll("a")
-                        .data(pr.reviews || []),
-                      onCreate: e =>
-                        e
-                          .append("a")
-                          .attr("target", "_blank")
-                          .classed("normal", true),
-                      onEach: e =>
-                        e
-                          .attr("href", review => review.url)
-                          .text(
-                            review =>
-                              review.author +
-                              ": " +
-                              (review.state === "Approved"
-                                ? `<img alt="Approved" class="text-image" src="${require("../images/green-check.svg")}" />`
-                                : review.state === "ChangesRequested"
-                                  ? `<img alt="Rejected" class="text-image" src="${require("../images/red-x.svg")}" />`
-                                  : `<img alt="Comment Only" class="text-image" src="${require("../images/question-mark.svg")}" />`)
-                          )
-                    });
-                  }),
                 handleErrorOnce
               );
             })

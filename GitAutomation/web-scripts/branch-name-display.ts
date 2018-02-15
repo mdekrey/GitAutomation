@@ -2,6 +2,8 @@ import { Selection, event as d3event } from "d3-selection";
 import { bind } from "./utils/presentation/d3-binding";
 import { RoutingNavigate } from "./routing";
 import { branchTypeColors } from "./style/branch-colors";
+import { applyExternalLink } from "./external-window-link";
+import { BehaviorSubject } from "./utils/rxjs";
 
 export interface DisplayableBranch {
   groupName: string;
@@ -9,6 +11,8 @@ export interface DisplayableBranch {
   branches?: Array<Partial<GitAutomationGQL.IGitRef>>;
   latestBranch?: ({ name: string } & Partial<GitAutomationGQL.IGitRef>) | null;
 }
+
+export const hoveredGroupName = new BehaviorSubject<string | null>(null);
 
 function findActualBranch<P extends keyof GitAutomationGQL.IGitRef>(
   data: DisplayableBranch,
@@ -54,6 +58,13 @@ export const branchNameDisplay = (
         .attr("data-locator", "branch-name-display"),
     onEnter: span => span.html(require("./branch-name-display.html")),
     onEach: selection => {
+      selection.on("mouseenter.globalGroupName", b => {
+        hoveredGroupName.next(b.groupName);
+      });
+      selection.on("mouseleave.globalGroupName", b => {
+        hoveredGroupName.next(null);
+      });
+
       selection
         .select(`span[data-locator="name"]`)
         .text(data => data.groupName)
@@ -74,12 +85,12 @@ export const branchNameDisplay = (
               replaceCurentHistory: false
             })
         );
-      selection
-        .select(`a[data-locator="external-link"]`)
-        .datum(data => findActualBranch(data, "url"))
-        .style("display", url => (url ? "inline" : "none"))
-        .attr("href", url => url || "")
-        .on("click", stopPropagation);
+      applyExternalLink(
+        selection
+          .select(`[data-locator="external-window"]`)
+          .datum(data => findActualBranch(data, "url"))
+      );
+
       bind({
         target: selection
           .select(`span[data-locator="status"]`)

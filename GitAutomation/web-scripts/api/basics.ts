@@ -159,9 +159,9 @@ export const allBranchGroups = forceRefreshBranchGroups
                 url
               }
               isBad
-              pullRequestsFrom {
+              pullRequestsInto {
                 id
-                sourceBranch
+                targetBranch
                 url
                 author
                 isSystem
@@ -246,6 +246,7 @@ export const branchDetails = (branchName: string) =>
             branches {
               name
               commit
+              url
             }
           }
         }

@@ -1,3 +1,4 @@
+import { flatten } from "../utils/ramda";
 import { Observable, Subscription } from "../utils/rxjs";
 
 import { allBranchGroups, branchDetails } from "../api/basics";
@@ -7,9 +8,9 @@ export interface IManageBranch {
   isLoading: boolean;
   upstreamMergePolicy: GitAutomationGQL.IUpstreamMergePolicyEnum;
   branchType: string;
-  branches: IBranchData[];
-  actualBranches: Pick<GitAutomationGQL.IGitRef, "name" | "commit">[];
-  latestBranchName: string | null;
+  otherBranches: IBranchData[];
+  branches: Pick<GitAutomationGQL.IGitRef, "name" | "commit" | "url">[];
+  latestBranch: { name: string } | null;
 }
 
 export interface IBranchData {
@@ -24,6 +25,7 @@ export interface IBranchData {
   isSomewhereUpstream: boolean;
   isDownstreamAllowed: boolean;
   isUpstreamAllowed: boolean;
+  pullRequests: GitAutomationGQL.IPullRequest[];
 }
 
 export const runBranchData = (branchName: string, reload: Observable<any>) => {
@@ -46,8 +48,11 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
           g => g.groupName
         );
         const downstreamBranches = target.downstream;
+        const actualBranchNames = new Set<string>(
+          branchDetails.branches.map(b => b.name)
+        );
         const result = {
-          branches: allBranches.map((group): IBranchData => ({
+          otherBranches: allBranches.map((group): IBranchData => ({
             groupName: group.groupName,
             branchType: group.branchType,
             latestBranch: group.latestBranch,
@@ -60,13 +65,24 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
             isSomewhereUpstream: Boolean(
               target.upstream.find(branch => branch === group.groupName)
             ),
-            isUpstreamAllowed: downstreamBranches.indexOf(group.groupName) == -1
+            isUpstreamAllowed:
+              downstreamBranches.indexOf(group.groupName) == -1,
+            pullRequests: flatten(group.branches.map(b => b.pullRequestsInto))
+              .filter(pr => actualBranchNames.has(pr.targetBranch))
+              .filter(pr => pr.state === "Open")
+              .sort(
+                (a, b) =>
+                  -(Number(a.id).toString() === a.id &&
+                  Number(b.id).toString() === b.id
+                    ? Number(a.id) - Number(b.id)
+                    : a.id.localeCompare(b.id))
+              )
           })),
           branchType: branchDetails.branchType,
           upstreamMergePolicy: branchDetails.upstreamMergePolicy,
-          actualBranches: branchDetails.branches,
-          latestBranchName: branchDetails.latestBranch
-            ? branchDetails.latestBranch.name
+          branches: branchDetails.branches,
+          latestBranch: branchDetails.latestBranch
+            ? branchDetails.latestBranch
             : null
         };
         return result;
@@ -74,18 +90,18 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
     )
     .map(
       ({
-        branches,
+        otherBranches,
         upstreamMergePolicy,
         branchType,
-        actualBranches,
-        latestBranchName
-      }): IManageBranch => ({
         branches,
+        latestBranch
+      }): IManageBranch => ({
+        otherBranches,
         upstreamMergePolicy,
         branchType,
         isLoading: false,
-        actualBranches,
-        latestBranchName
+        branches,
+        latestBranch
       })
     );
 
@@ -93,9 +109,9 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
     isLoading: true,
     upstreamMergePolicy: "None",
     branchType: "Feature",
+    otherBranches: [],
     branches: [],
-    actualBranches: [],
-    latestBranchName: null
+    latestBranch: null
   })
     .concat(reload.startWith(null).switchMap(() => initializeBranchData))
     .publishReplay(1)
