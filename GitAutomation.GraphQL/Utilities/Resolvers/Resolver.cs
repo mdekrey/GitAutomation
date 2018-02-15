@@ -92,7 +92,7 @@ namespace GitAutomation.GraphQL.Utilities.Resolvers
                     return Expression.Call(
                         contextParameter,
                         GetArgumentGeneric.MakeGenericMethod(param.ParameterType),
-                        Expression.Constant(param.Name),
+                        Expression.Constant(a.Name ?? param.Name),
                         Expression.Constant(
                             param.ParameterType.IsValueType
                                 ? Activator.CreateInstance(param.ParameterType)

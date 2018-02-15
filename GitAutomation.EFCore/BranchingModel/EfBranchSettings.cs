@@ -339,7 +339,7 @@ namespace GitAutomation.EFCore.BranchingModel
                                            from branch in d
                                            select branch.GroupName).Distinct().ToArray();
 
-                var newUpstream = (await (from branch in context.BranchStream
+                var newDownstream = (await (from branch in context.BranchStream
                                           where branchesToRemove.Contains(branch.UpstreamBranch) // where there's something flowing from an upstream branch
                                             && !branchesToRemove.Contains(branch.DownstreamBranch) // that is being deleted
                                           group branch.DownstreamBranchNavigation by branch.DownstreamBranch into downstreamBranches
@@ -347,9 +347,25 @@ namespace GitAutomation.EFCore.BranchingModel
                     .Except(allDownstream)
                     .Distinct();
 
-                var addingStream = from upstream in newUpstream
-                                   where upstream != targetBranch
-                                   select new BranchStream { DownstreamBranch = upstream, UpstreamBranch = targetBranch };
+                var allUpstream = await (from b in branchesToRemove.ToObservable()
+                                           from d in GetAllUpstreamBranchesOnce(b)(context)
+                                           from branch in d
+                                           select branch.GroupName).Distinct().ToArray();
+
+                var newUpstream = (await (from branch in context.BranchStream
+                                            where branchesToRemove.Contains(branch.DownstreamBranch) // where there's something flowing from an upstream branch
+                                              && !branchesToRemove.Contains(branch.UpstreamBranch) // that is being deleted
+                                            group branch.UpstreamBranchNavigation by branch.UpstreamBranch into upstreamBranches
+                                            select upstreamBranches.Key).ToArrayAsync())
+                    .Except(allUpstream)
+                    .Distinct();
+
+                var addingStream = (from downstream in newDownstream
+                                   where downstream != targetBranch
+                                   select new BranchStream { DownstreamBranch = downstream, UpstreamBranch = targetBranch })
+                                   .Concat(from upstream in newUpstream
+                                           where upstream != targetBranch
+                                           select new BranchStream { UpstreamBranch = upstream, DownstreamBranch = targetBranch });
                 var removingStream = await (from branch in context.BranchStream
                                             where branchesToRemove.Contains(branch.UpstreamBranch)
                                               || branchesToRemove.Contains(branch.DownstreamBranch)

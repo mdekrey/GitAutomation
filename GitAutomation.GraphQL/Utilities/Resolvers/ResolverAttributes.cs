@@ -16,7 +16,6 @@ namespace GitAutomation.GraphQL.Utilities.Resolvers
     public class FromArgumentAttribute : ResolverAttribute
     {
         public string Name { get; set; }
-        public string Description { get; set; }
     }
 
     public class FromServicesAttribute : ResolverAttribute
