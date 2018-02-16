@@ -19,7 +19,7 @@ UPDATE [branchgroup]
 SET [upstreammergepolicy] =
     CASE WHEN [recreatefromupstream]=1 THEN 'MergeNextIteration'
          ELSE 'None'
-    END");
+    END;");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)

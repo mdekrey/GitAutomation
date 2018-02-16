@@ -78,3 +78,9 @@ git merge conflicting-readme -s ours
 git checkout feature/enhanced-content
 git checkout -B content-conflicts-resolved
 git merge feature/garbage-content -s ours
+
+git checkout original
+git checkout -B initial-conflict
+echo "Base bad" > readme.md
+git add .
+git commit -m "Base Bad"
