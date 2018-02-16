@@ -1,4 +1,4 @@
-FROM nmarus/docker-gitbox
+FROM pvdlg/docker-gitbox
 
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
