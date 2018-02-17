@@ -11,7 +11,7 @@ import {
   forceRefreshUsers
 } from "../api/basics";
 import { IUpdateUserRequestBody } from "../api/update-user";
-import { secured } from "../security/security-binding";
+// import { Secured } from "../security/security-binding";
 
 const updateUserData = new Subject<
   { userName: string } & IUpdateUserRequestBody
@@ -25,7 +25,7 @@ export const admin = (
     .do(elem => elem.html(require("./admin.layout.html")))
     .publishReplay(1)
     .refCount()
-    .let(secured)
+    // .let(secured)
     .let(body =>
       Observable.create(() => {
         const subscription = new Subscription();

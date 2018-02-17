@@ -1,14 +1,20 @@
+import * as React from "react";
 import { Observable } from "../utils/rxjs";
 
 import {
   ICascadingRoutingStrategy,
   route,
-  RouteConcrete,
+  ConcreteRoute,
   wildcard
-} from "../routing";
-import { RoutingComponent, renderRouteOnce } from "../utils/routing-component";
+} from "@woosti/rxjs-router";
+import {
+  RoutingComponent,
+  renderRouteOnce,
+  ContextComponent
+} from "../utils/routing-component";
 import { equals } from "../utils/ramda";
 import { currentClaims } from "../api/basics";
+import { Subscription } from "rxjs/Subscription";
 
 export const claims = currentClaims.publishReplay(1);
 claims.connect();
@@ -18,19 +24,35 @@ interface SecurityComponent {
   state: ICascadingRoutingStrategy<any>;
 }
 
-export function handleSecurity(
-  strategy: Observable<ICascadingRoutingStrategy<any>>
-) {
+export class RouteSecurity extends ContextComponent {
+  private subscription: Subscription;
+
+  componentDidMount() {
+    this.subscription = this.context.injector.services.routingStrategy
+      .let(handleSecurity)
+      .subscribe();
+  }
+
+  componentWillUnmount() {
+    this.subscription.unsubscribe();
+  }
+
+  render() {
+    return <>{this.props.children || null}</>;
+  }
+}
+
+function handleSecurity(strategy: Observable<ICascadingRoutingStrategy<any>>) {
   return strategy
     .map(
       route<RoutingComponent<SecurityComponent>>({
-        login: RouteConcrete<RoutingComponent<SecurityComponent>>(state =>
+        login: ConcreteRoute<RoutingComponent<SecurityComponent>>(state =>
           claims.map(claims => ({
             redirectPath: claims.roles.length !== 0 ? "/" : null,
             state: state.parent!
           }))
         ),
-        [wildcard]: RouteConcrete<RoutingComponent<SecurityComponent>>(state =>
+        [wildcard]: ConcreteRoute<RoutingComponent<SecurityComponent>>(state =>
           claims.map(claims => ({
             redirectPath: claims.roles.length === 0 ? "/login" : null,
             state: state.parent!

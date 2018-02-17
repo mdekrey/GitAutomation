@@ -30,7 +30,7 @@ import {
 import { groupsToHierarchy } from "../api/hierarchy";
 import { classed } from "../style/style-binding";
 import { style } from "typestyle";
-import { secured } from "../security/security-binding";
+// import { secured } from "../security/security-binding";
 import { inputValue } from "../utils/inputs";
 import { handleError, handleErrorOnce } from "../handle-error";
 import { branchNameDisplay } from "../branch-name-display";
@@ -87,7 +87,7 @@ export const manage = (
     .let(classed(manageStyle))
     .publishReplay(1)
     .refCount()
-    .let(secured)
+    // .let(secured)
     .let(container =>
       Observable.create(() => {
         const subscription = new Subscription();
@@ -474,9 +474,7 @@ export const manage = (
                   branchNames.forEach(upstreamBranchName =>
                     elements
                       .select(
-                        `[data-locator="upstream-branches"] [data-locator="check"][data-branch="${
-                          upstreamBranchName
-                        }"]`
+                        `[data-locator="upstream-branches"] [data-locator="check"][data-branch="${upstreamBranchName}"]`
                       )
                       .property("checked", true)
                       .each(function(this: Element) {
@@ -509,9 +507,12 @@ export const manage = (
                   .map(fnSelect(`[data-locator="auto-consolidate"]`))
                   .map(sl => sl.property("checked") as boolean)
               ).map(
-                (
-                  [releaseCandidate, serviceLine, tagName, autoConsolidate]
-                ) => ({
+                ([
+                  releaseCandidate,
+                  serviceLine,
+                  tagName,
+                  autoConsolidate
+                ]) => ({
                   releaseCandidate,
                   serviceLine,
                   tagName,

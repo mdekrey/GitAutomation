@@ -15,7 +15,7 @@ import { flatten, sortBy } from "../utils/ramda";
 
 import { style } from "typestyle";
 import { branchNameDisplay } from "../branch-name-display";
-import { secured } from "../security/security-binding";
+// import { secured } from "../security/security-binding";
 import { handleError } from "../handle-error";
 
 const remoteBranchesTableLayout = style({
@@ -41,10 +41,11 @@ export const homepage = (
   container: Observable<Selection<HTMLElement, {}, null, undefined>>
 ): RoutingComponent<never> => state =>
   container
+    .do(v => console.log(v))
     .do(elem => elem.html(require("./home.layout.html")))
     .publishReplay(1)
     .refCount()
-    .let(secured)
+    // .let(secured)
     .let(body =>
       Observable.create(() => {
         const subscription = new Subscription();

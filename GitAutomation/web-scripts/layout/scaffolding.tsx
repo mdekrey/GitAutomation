@@ -1,9 +1,8 @@
-import { Observable } from "../utils/rxjs";
+import * as React from "react";
+import * as ReactDOM from "react-dom";
 import { Selection } from "d3-selection";
-import { fnSelect, rxDatum } from "../utils/presentation/d3-binding";
 import { style, types } from "typestyle";
 import { linkStyle } from "../style/global";
-import { classed } from "../style/style-binding";
 import { black } from "csx";
 import { application } from "../api/basics";
 
@@ -98,19 +97,58 @@ export interface ScaffoldingResult {
   menu: ScaffoldingPart;
 }
 
-export const scaffolding = (
-  body: Observable<Selection<HTMLElement, {}, null, undefined>>
-) =>
-  rxDatum(application)(body)
-    .do(elem =>
-      elem.html(require("./scaffolding.layout.html")).classed(bodyStyle, true)
-    )
-    .do(elem => elem.select(`[data-locator="title"]`).text(app => app.title))
-    .let(classed(menuStyle))
-    .publishReplay(1)
-    .refCount()
-    .map((body): ScaffoldingResult => ({
-      contents: fnSelect<HTMLElement>(`[data-locator="body-contents"]`)(body),
-      menu: fnSelect<HTMLElement>(`[data-locator="menu-contents"]`)(body)
-    }))
-    .do(({ contents }) => (contents.node()!.scrollTop = 0));
+export class Scaffolding extends React.Component<{ menu: JSX.Element }, never> {
+  componentDidMount() {
+    const host = ReactDOM.findDOMNode(this).parentNode;
+    if (host !== null) {
+      (host as HTMLElement).className = bodyStyle;
+    }
+  }
+
+  render() {
+    return (
+      <>
+        <header className={menuStyle.header}>
+          <h1
+            onClick={this.navigateHome}
+            className={menuStyle.title}
+            data-locator="title"
+          >
+            {application.map(app => <>{app.title}</>).asComponent()}
+          </h1>
+          <section data-locator="menu" className={menuStyle.menuContainer}>
+            <input
+              type="checkbox"
+              id="menu-expander"
+              className={menuStyle.menuExpander}
+            />
+            <label
+              data-locator="menu-anchor"
+              className={menuStyle.menuLink}
+              htmlFor="menu-expander"
+            >
+              Menu
+            </label>
+            <label
+              className={menuStyle.menuContents}
+              data-locator="menu-contents"
+              htmlFor="menu-expander"
+            >
+              {this.props.menu}
+            </label>
+          </section>
+        </header>
+        <section
+          data-locator="body-contents"
+          className={menuStyle.bodyContents}
+        >
+          {this.props.children}
+        </section>
+      </>
+    );
+  }
+
+  public navigateHome() {
+    window.location.href = "#/";
+  }
+}

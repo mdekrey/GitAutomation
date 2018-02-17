@@ -7,7 +7,7 @@ import { RoutingComponent } from "../utils/routing-component";
 import { getLog, actionQueue, forceRefreshLog } from "../api/basics";
 import { logPresentation } from "../logs/log.presentation";
 
-import { secured } from "../security/security-binding";
+// import { secured } from "../security/security-binding";
 import { handleError } from "../handle-error";
 
 export const debugPage = (
@@ -17,7 +17,7 @@ export const debugPage = (
     .do(elem => elem.html(require("./debug.layout.html")))
     .publishReplay(1)
     .refCount()
-    .let(secured)
+    // .let(secured)
     .let(body =>
       Observable.create(() => {
         const subscription = new Subscription();

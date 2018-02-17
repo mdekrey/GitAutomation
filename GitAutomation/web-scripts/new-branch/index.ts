@@ -14,7 +14,7 @@ import {
   highlightedHierarchyStyle
 } from "../home/branch-hierarchy";
 import { groupsToHierarchy } from "../api/hierarchy";
-import { secured } from "../security/security-binding";
+// import { Secured } from "../security/security-binding";
 import { inputValue } from "../utils/inputs";
 import { handleError } from "../handle-error";
 
@@ -68,7 +68,7 @@ export const newBranch = (
     .let(classed(manageStyle))
     .publishReplay(1)
     .refCount()
-    .let(secured)
+    // .let(secured)
     .let(container =>
       Observable.create(() => {
         const subscription = new Subscription();

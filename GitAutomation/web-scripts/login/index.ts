@@ -9,11 +9,10 @@ import {
 } from "../utils/presentation/d3-binding";
 
 import { RoutingComponent } from "../utils/routing-component";
-import { ClaimDetails } from "../api/claim-details";
+import { claims } from "../security/app-access";
 
 export const login = (
-  container: Observable<Selection<HTMLElement, {}, null, undefined>>,
-  claims: Observable<ClaimDetails>
+  container: Observable<Selection<HTMLElement, {}, null, undefined>>
 ): RoutingComponent<never> => state =>
   container
     .do(elem => elem.html(require("./login.layout.html")))

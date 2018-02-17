@@ -6,6 +6,7 @@ export const equals: R["equals"] = require("ramda/src/equals");
 export const flatten: (<T>(x: T[][]) => T[]) &
   R["flatten"] = require("ramda/src/flatten");
 export const fromPairs: R["fromPairs"] = require("ramda/src/fromPairs");
+export const identity: R["identity"] = require("ramda/src/identity");
 export const indexBy: {
   <T>(fn: (v: T) => string, input: T[]): Record<string, T>;
   <T>(fn: (v: T) => string): (input: T[]) => Record<string, T>;
