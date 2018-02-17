@@ -2,6 +2,13 @@ import { cssRule, types } from "typestyle";
 
 const fontFamily = `Arial, Helvetica, sans-serif`;
 
+cssRule("body", {
+  margin: 0,
+  display: "flex",
+  flexDirection: "column",
+  maxHeight: "100vh"
+});
+
 cssRule("*", {
   cursor: "default",
   fontFamily

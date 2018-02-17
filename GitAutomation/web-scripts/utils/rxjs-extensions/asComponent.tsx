@@ -12,7 +12,7 @@ export interface IRxState {
   current: JSX.Element | null;
 }
 
-export class Rx extends React.Component<
+export class Rx extends React.PureComponent<
   IRxProps & Record<string, any>,
   IRxState
 > {

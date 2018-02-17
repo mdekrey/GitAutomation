@@ -77,7 +77,7 @@ export interface IInjectorProviderProps {
   content: RenderableElement;
   cleanup?: InjectorCleanup;
 }
-export class InjectorProvider extends React.Component<
+export class InjectorProvider extends React.PureComponent<
   IInjectorProviderProps,
   never
 > {

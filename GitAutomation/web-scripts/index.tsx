@@ -18,7 +18,7 @@ import { homepage } from "./home/index";
 import { debugPage } from "./debug/index";
 import { manage } from "./manage-branch/index";
 import { newBranch } from "./new-branch/index";
-import { login } from "./login/index";
+import { Login } from "./login/login";
 import { admin } from "./admin/index";
 import { setupWizard } from "./setup-wizard/index";
 import { RxD3 } from "./utils/rxjs-d3-component";
@@ -31,7 +31,7 @@ const Scaffolded = (child: React.Props<any>["children"]) =>
   RouteConcrete(<Scaffolding menu={<StandardMenu />}>{child}</Scaffolding>);
 
 const baseRoutes: ComponentRoutes = {
-  login: RouteConcrete(<RxD3 do={login} />),
+  login: RouteConcrete(<Login />),
 
   "": Scaffolded(<RxD3 do={homepage} />),
   manage: Scaffolded(<RxD3 do={manage} />),
@@ -52,5 +52,5 @@ ReactDOM.render(
       </>
     }
   />,
-  document.body
+  document.body.appendChild(document.createElement("div"))
 );

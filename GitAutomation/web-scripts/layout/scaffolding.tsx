@@ -1,5 +1,4 @@
 import * as React from "react";
-import * as ReactDOM from "react-dom";
 import { Selection } from "d3-selection";
 import { style, types } from "typestyle";
 import { linkStyle } from "../style/global";
@@ -8,12 +7,6 @@ import { application } from "../api/basics";
 
 type ScaffoldingPart = Selection<HTMLElement, {}, null, undefined>;
 
-const bodyStyle = style({
-  margin: 0,
-  display: "flex",
-  flexDirection: "column",
-  maxHeight: "100vh"
-});
 const headerBackground: types.NestedCSSProperties = {
   backgroundColor: "#fff"
 };
@@ -97,14 +90,10 @@ export interface ScaffoldingResult {
   menu: ScaffoldingPart;
 }
 
-export class Scaffolding extends React.Component<{ menu: JSX.Element }, never> {
-  componentDidMount() {
-    const host = ReactDOM.findDOMNode(this).parentNode;
-    if (host !== null) {
-      (host as HTMLElement).className = bodyStyle;
-    }
-  }
-
+export class Scaffolding extends React.PureComponent<
+  { menu: JSX.Element },
+  never
+> {
   render() {
     return (
       <>
