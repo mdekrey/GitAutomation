@@ -19,7 +19,7 @@ import { debugPage } from "./debug/index";
 import { manage } from "./manage-branch/index";
 import { newBranch } from "./new-branch/index";
 import { Login } from "./login/login";
-import { admin } from "./admin/index";
+import { Admin } from "./admin/admin";
 import { setupWizard } from "./setup-wizard/index";
 import { RxD3 } from "./utils/rxjs-d3-component";
 
@@ -37,7 +37,7 @@ const baseRoutes: ComponentRoutes = {
   manage: Scaffolded(<RxD3 do={manage} />),
   "new-branch": Scaffolded(<RxD3 do={newBranch} />),
   "auto-wireup": Scaffolded(<RxD3 do={setupWizard} />),
-  admin: Scaffolded(<RxD3 do={admin} />),
+  admin: Scaffolded(<Admin />),
   debug: Scaffolded(<RxD3 do={debugPage} />),
   [wildcard]: Scaffolded("Four-oh-four")
 };
