@@ -1,9 +1,11 @@
+import * as React from "react";
 import { Selection, event as d3event } from "d3-selection";
 import { bind } from "./utils/presentation/d3-binding";
 import { RoutingNavigate } from "./routing";
 import { branchTypeColors } from "./style/branch-colors";
-import { applyExternalLink } from "./external-window-link";
+import { applyExternalLink, ExternalLink } from "./external-window-link";
 import { BehaviorSubject } from "./utils/rxjs";
+import { ContextComponent } from "./utils/routing-component";
 
 export interface DisplayableBranch {
   groupName: string;
@@ -40,6 +42,43 @@ function findStatuses(data: DisplayableBranch) {
 
 function stopPropagation() {
   d3event.stopPropagation();
+}
+
+export interface IBranchNameDisplayProps {
+  branch: DisplayableBranch;
+}
+
+export class BranchNameDisplay extends ContextComponent<
+  IBranchNameDisplayProps
+> {
+  render() {
+    const { branch } = this.props;
+    return (
+      <span onMouseEnter={this.beginHover} onMouseLeave={this.endHover}>
+        <a
+          data-locator="name"
+          style={{
+            color: branch.branchType
+              ? branchTypeColors[branch.branchType][0].toHexString()
+              : null,
+            cursor: "pointer"
+          }}
+          href={this.context.injector.services.routeHrefBuilder(
+            "/manage/" + branch.groupName
+          )}
+        >
+          {branch.groupName}
+        </a>
+        <span data-locator="external-window">
+          <ExternalLink url={findActualBranch(branch, "url")} />
+        </span>
+        <span data-locator="status" />
+      </span>
+    );
+  }
+
+  beginHover = () => hoveredGroupName.next(this.props.branch.groupName);
+  endHover = () => hoveredGroupName.next(null);
 }
 
 export const branchNameDisplay = (

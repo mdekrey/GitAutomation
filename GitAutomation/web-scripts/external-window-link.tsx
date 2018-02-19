@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Selection, event as d3event } from "d3-selection";
 import { style, classes } from "typestyle";
 import { applyStyles } from "./style/style-binding";
@@ -15,6 +16,34 @@ const linkDisplayStyle = {
 
 function stopPropagation() {
   d3event.stopPropagation();
+}
+
+export class ExternalLink extends React.PureComponent<
+  {
+    url: string | null | undefined;
+  },
+  never
+> {
+  render() {
+    const { url } = this.props;
+    if (!url) {
+      return null;
+    }
+    return (
+      <a
+        target="_blank"
+        data-locator="external-link"
+        className={linkDisplayStyle.newWindowLink}
+        href={url}
+      >
+        <img
+          alt="Open in New Window"
+          className="text-image"
+          src="./images/new-window.svg"
+        />
+      </a>
+    );
+  }
 }
 
 export function applyExternalLink(

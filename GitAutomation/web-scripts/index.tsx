@@ -14,7 +14,7 @@ import "./style/global";
 import { Scaffolding } from "./layout/scaffolding";
 import { StandardMenu } from "./home/menu";
 import { RouteSecurity } from "./security/app-access";
-import { homepage } from "./home/index";
+import { Homepage } from "./home/home";
 import { debugPage } from "./debug/index";
 import { manage } from "./manage-branch/index";
 import { newBranch } from "./new-branch/index";
@@ -33,7 +33,7 @@ const Scaffolded = (child: React.Props<any>["children"]) =>
 const baseRoutes: ComponentRoutes = {
   login: RouteConcrete(<Login />),
 
-  "": Scaffolded(<RxD3 do={homepage} />),
+  "": Scaffolded(<Homepage />),
   manage: Scaffolded(<RxD3 do={manage} />),
   "new-branch": Scaffolded(<RxD3 do={newBranch} />),
   "auto-wireup": Scaffolded(<RxD3 do={setupWizard} />),

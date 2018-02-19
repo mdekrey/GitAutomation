@@ -16,16 +16,14 @@ export class RxD3 extends ContextComponent<IRxD3Props> {
   renderer = new Subject<IRxD3Props["do"]>();
 
   componentDidMount() {
-    const host = ReactDOM.findDOMNode(this).parentNode as HTMLElement;
+    const host = ReactDOM.findDOMNode(this) as HTMLElement;
     const hostObservable = Observable.of(d3element(host));
     this.subscription = this.renderer
-      .do(v => console.log(v))
       .map(v => v(hostObservable))
-      .do(v => console.log(v))
       .switchMap(routingComponent =>
-        this.context.injector.services.routingStrategy
-          .do(v => console.log(v))
-          .switchMap(strategy => routingComponent(strategy))
+        this.context.injector.services.routingStrategy.switchMap(strategy =>
+          routingComponent(strategy)
+        )
       )
       .subscribe();
     this.renderer.next(this.props.do);
@@ -40,6 +38,9 @@ export class RxD3 extends ContextComponent<IRxD3Props> {
   }
 
   render() {
+    if (this.props.children) {
+      return <>{this.props.children}</>;
+    }
     return <div />;
   }
 }

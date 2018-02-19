@@ -6,7 +6,15 @@ cssRule("body", {
   margin: 0,
   display: "flex",
   flexDirection: "column",
-  maxHeight: "100vh"
+  maxHeight: "100vh",
+  $nest: {
+    "> div": {
+      margin: 0,
+      display: "flex",
+      flexDirection: "column",
+      maxHeight: "100vh"
+    }
+  }
 });
 
 cssRule("*", {
