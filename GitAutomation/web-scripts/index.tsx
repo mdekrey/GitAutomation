@@ -16,7 +16,7 @@ import { RouteSecurity } from "./security/app-access";
 import { Homepage } from "./home/home";
 import { SystemHealth } from "./debug/system-health";
 import { manage } from "./manage-branch/index";
-import { NewBranch } from "./new-branch/new-branch";
+import { NewBranch } from "./manage-branch/new-branch";
 import { Login } from "./login/login";
 import { Admin } from "./admin/admin";
 import { AutoWireup } from "./setup-wizard/auto-wireup";

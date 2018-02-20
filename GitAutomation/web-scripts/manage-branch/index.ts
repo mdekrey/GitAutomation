@@ -10,7 +10,10 @@ import {
   d3element
 } from "../utils/presentation/d3-binding";
 import { runBranchData } from "./data";
-import { buildBranchCheckListing, checkedData } from "./branch-check-listing";
+import {
+  buildBranchCheckListing,
+  checkedData
+} from "./original-branch-check-listing";
 import { doSave } from "./bind-save-button";
 import {
   consolidateMerged,
