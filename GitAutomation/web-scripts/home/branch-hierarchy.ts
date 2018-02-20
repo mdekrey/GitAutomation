@@ -30,7 +30,7 @@ import {
 import { v4 as uuid } from "uuid";
 
 import { branchTypeColors } from "../style/branch-colors";
-import { RoutingNavigate } from "../routing/index";
+import { RoutingNavigate } from "@woosti/rxjs-router";
 import { BranchType } from "../api/basic-branch";
 
 import * as branchHierarchyHtml from "./branch-hierarchy.html";

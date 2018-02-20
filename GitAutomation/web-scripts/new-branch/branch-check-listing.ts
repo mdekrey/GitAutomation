@@ -1,7 +1,7 @@
 import { IRxBindProps } from "../utils/presentation/d3-binding";
 import { branchNameDisplay } from "../branch-name-display";
 import { applyStyles } from "../style/style-binding";
-import { RoutingNavigate } from "../routing";
+import { RoutingNavigate } from "@woosti/rxjs-router";
 
 export const buildBranchCheckListing = (
   styles: Record<string, string>,

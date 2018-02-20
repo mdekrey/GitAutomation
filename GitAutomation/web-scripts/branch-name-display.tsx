@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Selection, event as d3event } from "d3-selection";
 import { bind } from "./utils/presentation/d3-binding";
-import { RoutingNavigate } from "./routing";
+import { RoutingNavigate } from "@woosti/rxjs-router";
 import { branchTypeColors } from "./style/branch-colors";
 import { applyExternalLink, ExternalLink } from "./external-window-link";
 import { BehaviorSubject } from "./utils/rxjs";

@@ -5,7 +5,7 @@ import { applyStyles } from "../style/style-binding";
 import { Observable } from "../utils/rxjs";
 import { take } from "../utils/ramda";
 import { Selection } from "d3-selection";
-import { RoutingNavigate } from "../routing";
+import { RoutingNavigate } from "@woosti/rxjs-router";
 import { checkboxChecked } from "../utils/inputs";
 import { style } from "typestyle";
 
