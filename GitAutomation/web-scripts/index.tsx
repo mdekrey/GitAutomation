@@ -15,7 +15,7 @@ import { Scaffolding } from "./layout/scaffolding";
 import { StandardMenu } from "./home/menu";
 import { RouteSecurity } from "./security/app-access";
 import { Homepage } from "./home/home";
-import { debugPage } from "./debug/index";
+import { SystemHealth } from "./debug/system-health";
 import { manage } from "./manage-branch/index";
 import { newBranch } from "./new-branch/index";
 import { Login } from "./login/login";
@@ -38,7 +38,7 @@ const baseRoutes: ComponentRoutes = {
   "new-branch": Scaffolded(<RxD3 do={newBranch} />),
   "auto-wireup": Scaffolded(<AutoWireup />),
   admin: Scaffolded(<Admin />),
-  debug: Scaffolded(<RxD3 do={debugPage} />),
+  debug: Scaffolded(<SystemHealth />),
   [wildcard]: Scaffolded("Four-oh-four")
 };
 

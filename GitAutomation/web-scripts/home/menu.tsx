@@ -32,7 +32,7 @@ export class StandardMenu extends ContextComponent {
             Auto-Wireup
           </a>
         </Secured>
-        <a href={this.context.injector.services.routeHrefBuilder("debug")}>
+        <a href={this.context.injector.services.routeHrefBuilder("/debug")}>
           System Health
         </a>
         <a onClick={this.signOut}>Log Out</a>

@@ -1,10 +1,8 @@
 import * as React from "react";
-import { Observable, Subscription, BehaviorSubject } from "../utils/rxjs";
+import { Observable, BehaviorSubject } from "../utils/rxjs";
 import { without } from "../utils/ramda";
-import { Selection } from "d3-selection";
 
-import { RoutingComponent, ContextComponent } from "../utils/routing-component";
-import { fnEvent, fnSelect, rxData } from "../utils/presentation/d3-binding";
+import { ContextComponent } from "../utils/routing-component";
 import { recommendGroups, updateBranch, detectUpstream } from "../api/basics";
 import { handleErrorOnce } from "../handle-error";
 
