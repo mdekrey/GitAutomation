@@ -259,6 +259,19 @@ namespace GitAutomation.Orchestration.Actions
                             )
                     : (IntegrationBranchResult?)null;
 
+                if (createdIntegrationBranch.HasValue)
+                {
+                    if (createdIntegrationBranch?.Conflicts?.Any() ?? false)
+                    {
+                        await AppendMessage($"Detected conflicts:\n" + string.Join("\n", createdIntegrationBranch.Value.Conflicts.Select(c => $"{c.BranchA.LatestBranchName} and {c.BranchB.LatestBranchName}")), isError: true);
+                    }
+
+                    if (createdIntegrationBranch?.AddedBranches?.Any() ?? false)
+                    {
+                        await AppendMessage($"Added branches:\n" + string.Join("\n", createdIntegrationBranch.Value.AddedBranches), isError: true);
+                    }
+                }
+
                 if (!createdIntegrationBranch.HasValue || createdIntegrationBranch.Value.NeedsPullRequest())
                 {
                     repository.FlagBadGitRef(downstreamBranch, await cli.ShowRef(downstreamBranch).FirstOutputMessage());
@@ -276,6 +289,7 @@ namespace GitAutomation.Orchestration.Actions
                             sourceBranch: upstreamBranch.BranchName, 
                             body: @"Failed due to merge conflicts. Don't use web resolution. Instead:
 
+    git fetch
     git checkout -B " + downstreamBranch + @" --track origin/" + downstreamBranch + @"
     git merge origin/" + upstreamBranch.BranchName + @"
 
@@ -293,7 +307,7 @@ This will cause the relevant conflicts to be able to resolved in your editor of 
                 }
                 else
                 {
-                    await AppendMessage ($"{downstreamBranch} had integration branches added.", isError: true);
+                    await AppendMessage($"{downstreamBranch} had integration branches added.", isError: true);
                     return new MergeStatus {
                         HadConflicts = true,
                         Resolution = createdIntegrationBranch.Value.AddedNewIntegrationBranches ? MergeConflictResolution.AddIntegrationBranch : MergeConflictResolution.PendingIntegrationBranch

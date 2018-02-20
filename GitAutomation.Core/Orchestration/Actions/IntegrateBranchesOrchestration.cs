@@ -87,10 +87,12 @@ namespace GitAutomation.Orchestration.Actions
     public struct IntegrationBranchResult
     {
         public bool Resolved;
-        public bool AddedNewIntegrationBranches;
         public bool HadPullRequest;
         public bool PendingUpdates;
         public IEnumerable<ConflictingBranches> Conflicts;
+        public IEnumerable<string> AddedBranches;
+
+        public bool AddedNewIntegrationBranches => AddedBranches?.Any() ?? false;
 
         internal bool NeedsPullRequest()
         {
@@ -139,7 +141,7 @@ namespace GitAutomation.Orchestration.Actions
                 return result;
             }
 
-            var addedIntegrationBranch = false;
+            var newIntegrationBranches = new List<string>();
             using (var work = workFactory.CreateUnitOfWork())
             {
                 foreach (var conflict in result.Conflicts)
@@ -160,7 +162,7 @@ namespace GitAutomation.Orchestration.Actions
                     }
                     if (originalIntegrationBranch != null && (conflict.BranchA.GroupName == downstreamDetails.GroupName || conflict.BranchB.GroupName == downstreamDetails.GroupName))
                     {
-                        addedIntegrationBranch = true;
+                        newIntegrationBranches.Add(integrationBranch);
                         settings.AddBranchPropagation(integrationBranch, downstreamDetails.GroupName, work);
                         settings.RemoveBranchPropagation(downstreamDetails.GroupName, integrationBranch, work);
 
@@ -171,7 +173,7 @@ namespace GitAutomation.Orchestration.Actions
                     }
                     else if (!downstreamDetails.UpstreamBranchGroups.Any(b => b == integrationBranch))
                     {
-                        addedIntegrationBranch = true;
+                        newIntegrationBranches.Add(integrationBranch);
                         settings.AddBranchPropagation(integrationBranch, downstreamDetails.GroupName, work);
                     }
                 }
@@ -181,7 +183,7 @@ namespace GitAutomation.Orchestration.Actions
             return new IntegrationBranchResult
             {
                 Conflicts = result.Conflicts,
-                AddedNewIntegrationBranches = addedIntegrationBranch,
+                AddedBranches = newIntegrationBranches,
                 HadPullRequest = result.HadPullRequest,
             };
         }
@@ -432,7 +434,7 @@ namespace GitAutomation.Orchestration.Actions
             {
                 return new IntegrationBranchResult
                 {
-                    AddedNewIntegrationBranches = false,
+                    AddedBranches = Enumerable.Empty<string>(),
                     HadPullRequest = false,
                 };
             }
@@ -454,7 +456,7 @@ namespace GitAutomation.Orchestration.Actions
             return new IntegrationBranchResult
             {
                 Resolved = true,
-                AddedNewIntegrationBranches = false,
+                AddedBranches = new[] { integrationBranch },
                 HadPullRequest = false,
             };
         }
