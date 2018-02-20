@@ -308,6 +308,8 @@ This will cause the relevant conflicts to be able to resolved in your editor of 
                 else
                 {
                     await AppendMessage($"{downstreamBranch} had integration branches added.", isError: true);
+                    // TODO - remove the next line
+                    await AppendMessage(Newtonsoft.Json.JsonConvert.SerializeObject(createdIntegrationBranch), isError: false);
                     return new MergeStatus {
                         HadConflicts = true,
                         Resolution = createdIntegrationBranch.Value.AddedNewIntegrationBranches ? MergeConflictResolution.AddIntegrationBranch : MergeConflictResolution.PendingIntegrationBranch
