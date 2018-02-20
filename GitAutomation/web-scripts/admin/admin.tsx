@@ -20,7 +20,7 @@ export class Admin extends React.PureComponent<{}, never> {
     .map(roles => roles.map(({ role }) => role))
     .publishReplay(1)
     .refCount();
-  private readonly newBranchName = new BehaviorSubject("");
+  private readonly newUserName = new BehaviorSubject("");
   private readonly changeUserRole = new Subject<UserRoleChange>();
   private userRoleChanges: Observable<UserRoleChange[]>;
 
@@ -93,13 +93,13 @@ export class Admin extends React.PureComponent<{}, never> {
             <Secured roleNames={["administrate"]}>
               <tr>
                 <td>
-                  {this.newBranchName
+                  {this.newUserName
                     .map(name => (
                       <input
                         type="text"
                         data-locator="user-name-value"
                         value={name}
-                        onChange={this.updateNewBranchName}
+                        onChange={this.updateNewUserName}
                       />
                     ))
                     .asComponent()}
@@ -159,8 +159,8 @@ export class Admin extends React.PureComponent<{}, never> {
       .asComponent();
   };
 
-  updateNewBranchName = (event: React.ChangeEvent<HTMLInputElement>) =>
-    this.newBranchName.next(event.currentTarget.value);
+  updateNewUserName = (event: React.ChangeEvent<HTMLInputElement>) =>
+    this.newUserName.next(event.currentTarget.value);
   toggleCheckbox = (event: React.ChangeEvent<HTMLInputElement>) =>
     this.changeUserRole.next({
       username: event.currentTarget.getAttribute("data-username")!,
@@ -173,14 +173,14 @@ export class Admin extends React.PureComponent<{}, never> {
       .take(1)
       .map(roleChanges => roleChanges.filter(c => c.username === username))
       .subscribe(roleChanges =>
-        updateUser(username || this.newBranchName.value, {
+        updateUser(username || this.newUserName.value, {
           addRoles: roleChanges.filter(c => c.checked).map(c => c.permission),
           removeRoles: roleChanges
             .filter(c => !c.checked)
             .map(c => c.permission)
         }).subscribe(() => {
           forceRefreshUsers.next(null);
-          this.newBranchName.next("");
+          this.newUserName.next("");
         })
       );
   };

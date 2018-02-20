@@ -16,7 +16,7 @@ import { RouteSecurity } from "./security/app-access";
 import { Homepage } from "./home/home";
 import { SystemHealth } from "./debug/system-health";
 import { manage } from "./manage-branch/index";
-import { newBranch } from "./new-branch/index";
+import { NewBranch } from "./new-branch/new-branch";
 import { Login } from "./login/login";
 import { Admin } from "./admin/admin";
 import { AutoWireup } from "./setup-wizard/auto-wireup";
@@ -35,7 +35,7 @@ const baseRoutes: ComponentRoutes = {
 
   "": Scaffolded(<Homepage />),
   manage: Scaffolded(<RxD3 do={manage} />),
-  "new-branch": Scaffolded(<RxD3 do={newBranch} />),
+  "new-branch": Scaffolded(<NewBranch />),
   "auto-wireup": Scaffolded(<AutoWireup />),
   admin: Scaffolded(<Admin />),
   debug: Scaffolded(<SystemHealth />),
