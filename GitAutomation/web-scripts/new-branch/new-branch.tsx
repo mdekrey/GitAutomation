@@ -2,7 +2,7 @@ import * as React from "react";
 import { Observable, BehaviorSubject } from "../utils/rxjs";
 
 import { ContextComponent } from "../utils/routing-component";
-import { allBranchGroups } from "../api/basics";
+import { allBranchGroups, createBranch } from "../api/basics";
 import {
   BranchCheckListing,
   CheckboxState,
@@ -14,6 +14,7 @@ import { branchHierarchy } from "../home/branch-hierarchy";
 import { groupsToHierarchy } from "../api/hierarchy";
 import { BranchType } from "../api/basic-branch";
 import { RxD3 } from "../utils/rxjs-d3-component";
+import { handleError } from "../handle-error";
 
 const manageStyle = {
   fieldSection: style({
@@ -245,18 +246,13 @@ export class NewBranch extends ContextComponent {
                 data: hierarchyData
               })}
           >
-            <svg
-              data-locator="hierarchy-container-preview"
-              width="800"
-              height="100"
-              style={{ maxHeight: "70vh" }}
-            />
+            <svg width="800" height="100" style={{ maxHeight: "70vh" }} />
           </RxD3>
         </section>
         <button type="button" onClick={this.goHome}>
           Cancel
         </button>
-        <button type="button" data-locator="save" onClick={this.save}>
+        <button type="button" onClick={this.save}>
           Save
         </button>
       </>
@@ -281,11 +277,22 @@ export class NewBranch extends ContextComponent {
     this.checkboxes.next(next);
   };
   save = () => {
-    this.newBranchName.value;
-    this.mergePolicy.value;
-    this.branchType.value;
-    this.checkboxes.value;
-
-    // TODO
+    const newBranchName = this.newBranchName.value;
+    createBranch(newBranchName, {
+      upstreamMergePolicy: this.mergePolicy.value,
+      branchType: this.branchType.value,
+      addUpstream: Object.keys(this.checkboxes.value).filter(
+        groupName =>
+          this.checkboxes.value[groupName] &&
+          this.checkboxes.value[groupName].upstreamChecked
+      )
+    })
+      .let(handleError)
+      .subscribe(() => {
+        this.context.injector.services.routeNavigate({
+          url: "/manage/" + newBranchName,
+          replaceCurentHistory: false
+        });
+      });
   };
 }
