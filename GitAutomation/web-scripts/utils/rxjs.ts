@@ -11,6 +11,7 @@ import "rxjs/add/observable/empty";
 import "rxjs/add/observable/from";
 import "rxjs/add/observable/fromPromise";
 import "rxjs/add/observable/interval";
+import "rxjs/add/observable/merge";
 import "rxjs/add/observable/of";
 
 import "rxjs/add/operator/catch";
@@ -23,6 +24,7 @@ import "rxjs/add/operator/ignoreElements";
 import "rxjs/add/operator/let";
 import "rxjs/add/operator/map";
 import "rxjs/add/operator/merge";
+import "rxjs/add/operator/multicast";
 import "rxjs/add/operator/publish";
 import "rxjs/add/operator/publishReplay";
 import "rxjs/add/operator/scan";

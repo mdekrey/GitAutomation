@@ -20,7 +20,7 @@ import { manage } from "./manage-branch/index";
 import { newBranch } from "./new-branch/index";
 import { Login } from "./login/login";
 import { Admin } from "./admin/admin";
-import { setupWizard } from "./setup-wizard/index";
+import { AutoWireup } from "./setup-wizard/auto-wireup";
 import { RxD3 } from "./utils/rxjs-d3-component";
 
 const injector = new Injector(
@@ -36,7 +36,7 @@ const baseRoutes: ComponentRoutes = {
   "": Scaffolded(<Homepage />),
   manage: Scaffolded(<RxD3 do={manage} />),
   "new-branch": Scaffolded(<RxD3 do={newBranch} />),
-  "auto-wireup": Scaffolded(<RxD3 do={setupWizard} />),
+  "auto-wireup": Scaffolded(<AutoWireup />),
   admin: Scaffolded(<Admin />),
   debug: Scaffolded(<RxD3 do={debugPage} />),
   [wildcard]: Scaffolded("Four-oh-four")

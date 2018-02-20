@@ -20,4 +20,5 @@ export const toPairs: R["toPairs"] = require("ramda/src/toPairs");
 export const values: <T>(
   record: Record<string, T>
 ) => T[] = require("ramda/src/values");
+export const without: R["without"] = require("ramda/src/without");
 export const zip: R["zip"] = require("ramda/src/zip");
