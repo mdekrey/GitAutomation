@@ -81,23 +81,15 @@ export const BranchCheckListing = ({
                 onDownstreamToggled(data.groupName, !data.isDownstream)
               }
             />
-            )) .asComponent()}
           </td>
         ) : null}
-        <td
-          data-locator="upstream-branches"
-          className={manageStyle.checkboxCell}
-        >
-          <td className={manageStyle.checkboxCell}>
-            <input
-              type="checkbox"
-              checked={data.isUpstream}
-              disabled={!data.isUpstreamAllowed}
-              onChange={() =>
-                onUpstreamToggled(data.groupName, !data.isUpstream)
-              }
-            />
-          </td>
+        <td className={manageStyle.checkboxCell}>
+          <input
+            type="checkbox"
+            checked={data.isUpstream}
+            disabled={!data.isUpstreamAllowed}
+            onChange={() => onUpstreamToggled(data.groupName, !data.isUpstream)}
+          />
         </td>
         <td>
           <ul data-locator="pr-status" />
@@ -138,15 +130,17 @@ export class BranchCheckTable extends StatelessObservableComponent<{
           </tr>
         </thead>
         <tbody>
-          {this.prop$.map(props => (
-            <BranchCheckListing
-              branches={props.branches}
-              onUpstreamToggled={this.toggleUpstream}
-              onDownstreamToggled={
-                this.props.showDownstream ? this.toggleDownstream : undefined
-              }
-            />
-          ))}
+          {this.prop$
+            .map(props => (
+              <BranchCheckListing
+                branches={props.branches}
+                onUpstreamToggled={this.toggleUpstream}
+                onDownstreamToggled={
+                  this.props.showDownstream ? this.toggleDownstream : undefined
+                }
+              />
+            ))
+            .asComponent()}
         </tbody>
       </table>
     );

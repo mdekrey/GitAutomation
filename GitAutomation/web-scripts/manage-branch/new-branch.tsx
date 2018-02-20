@@ -4,41 +4,26 @@ import { Observable, BehaviorSubject } from "../utils/rxjs";
 import { ContextComponent } from "../utils/routing-component";
 import { allBranchGroups, createBranch } from "../api/basics";
 import { IBranchData, BranchCheckTable } from "./branch-check-listing";
-import { style } from "typestyle";
 import { branchHierarchy } from "../home/branch-hierarchy";
 import { groupsToHierarchy } from "../api/hierarchy";
 import { BranchType } from "../api/basic-branch";
 import { RxD3 } from "../utils/rxjs-d3-component";
 import { handleError } from "../handle-error";
-
-const manageStyle = {
-  fieldSection: style({
-    marginTop: "0.5em"
-  }),
-  hint: style({
-    margin: 0,
-    padding: 0,
-    fontSize: "0.75rem"
-  })
-};
+import { BranchSettings, IBranchSettingsData } from "./branch-settings";
 
 export class NewBranch extends ContextComponent {
-  private readonly newBranchName = new BehaviorSubject("");
   private readonly branchData = new BehaviorSubject<IBranchData[]>([]);
-  private readonly branchType = new BehaviorSubject<BranchType>(
-    BranchType.Feature
-  );
-  private readonly mergePolicy = new BehaviorSubject<
-    GitAutomationGQL.IUpstreamMergePolicyEnum
-  >("None");
+  private readonly branchSettings = new BehaviorSubject<IBranchSettingsData>({
+    branchName: "",
+    branchType: BranchType.Feature,
+    upstreamMergePolicy: "None"
+  });
   private readonly fullBranchData = Observable.combineLatest(
-    this.newBranchName.map(e => e || "New Branch"),
-    this.mergePolicy,
-    this.branchType,
+    this.branchSettings,
     this.branchData
   )
-    .map(([branchName, upstreamMergePolicy, branchType, branchData]) => ({
-      branchName,
+    .map(([{ branchName, branchType, upstreamMergePolicy }, branchData]) => ({
+      branchName: branchName || "New Branch",
       upstreamMergePolicy,
       branchType,
       downstream: branchData
@@ -122,15 +107,27 @@ export class NewBranch extends ContextComponent {
     return (
       <>
         <h1>New Branch</h1>
-        <this.renderNewBranchSettings />
+
+        <h3>Settings</h3>
+        {this.branchSettings
+          .map(current => (
+            <BranchSettings
+              currentSettings={current}
+              isNewBranch={true}
+              updateSettings={v => this.branchSettings.next(v)}
+            />
+          ))
+          .asComponent()}
         <h3>Other Branches</h3>
-        {this.branchData.map(currentData => (
-          <BranchCheckTable
-            branches={currentData}
-            updateBranches={branchData => this.branchData.next(branchData)}
-            showDownstream={false}
-          />
-        ))}
+        {this.branchData
+          .map(currentData => (
+            <BranchCheckTable
+              branches={currentData}
+              updateBranches={branchData => this.branchData.next(branchData)}
+              showDownstream={false}
+            />
+          ))
+          .asComponent()}
 
         <section>
           <h5>Preview graph</h5>
@@ -156,91 +153,17 @@ export class NewBranch extends ContextComponent {
     );
   }
 
-  private renderNewBranchSettings = () => {
-    return (
-      <>
-        <h3>Settings</h3>
-        <section>
-          <section>
-            <label>
-              Branch Name
-              {this.newBranchName
-                .map(name => (
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={this.updateNewBranchName}
-                  />
-                ))
-                .asComponent()}
-            </label>
-          </section>
-          <section className={manageStyle.fieldSection}>
-            <label>
-              Branch Type
-              {this.branchType
-                .map(currentBranchType => (
-                  <select
-                    value={currentBranchType}
-                    onChange={ev =>
-                      this.branchType.next(ev.currentTarget.value as BranchType)
-                    }
-                  >
-                    <option value="Feature">Feature</option>
-                    <option value="ReleaseCandidate">Release Candidate</option>
-                    <option value="ServiceLine">Service Line</option>
-                    <option value="Infrastructure">Infrastructure</option>
-                    <option value="Integration">Integration</option>
-                    <option value="Hotfix">Hotfix</option>
-                  </select>
-                ))
-                .asComponent()}
-            </label>
-          </section>
-          <section className={manageStyle.fieldSection}>
-            <label>
-              Upstream Policy
-              {this.mergePolicy
-                .map(currentMergePolicy => (
-                  <select
-                    value={currentMergePolicy}
-                    onChange={ev =>
-                      this.mergePolicy.next(ev.currentTarget
-                        .value as GitAutomationGQL.IUpstreamMergePolicyEnum)
-                    }
-                  >
-                    <option value="None">None (merge normally)</option>
-                    <option value="MergeNextIteration">
-                      Create new branch Iteration
-                    </option>
-                    <option value="ForceFresh">Force update base branch</option>
-                  </select>
-                ))
-                .asComponent()}
-            </label>
-            <p className={manageStyle.hint}>
-              Used only with "Release Candidates"; will make new branches that
-              contain only upstream commits
-            </p>
-          </section>
-        </section>
-      </>
-    );
-  };
-
   handleNavigate = this.context.injector.services.routeNavigate;
   goHome = () =>
     this.context.injector.services.routeNavigate({
       url: "/",
       replaceCurentHistory: false
     });
-  updateNewBranchName = (event: React.ChangeEvent<HTMLInputElement>) =>
-    this.newBranchName.next(event.currentTarget.value);
   save = () => {
-    const newBranchName = this.newBranchName.value;
-    createBranch(newBranchName, {
-      upstreamMergePolicy: this.mergePolicy.value,
-      branchType: this.branchType.value,
+    const settings = this.branchSettings.value;
+    createBranch(settings.branchName, {
+      upstreamMergePolicy: settings.upstreamMergePolicy,
+      branchType: settings.branchType,
       addUpstream: this.branchData.value
         .filter(branch => branch.isUpstream)
         .map(branch => branch.groupName)
@@ -248,7 +171,7 @@ export class NewBranch extends ContextComponent {
       .let(handleError)
       .subscribe(() => {
         this.context.injector.services.routeNavigate({
-          url: "/manage/" + newBranchName,
+          url: "/manage/" + settings.branchName,
           replaceCurentHistory: false
         });
       });
