@@ -4,17 +4,7 @@ import produce from "immer";
 import { StatelessObservableComponent } from "../utils/rxjs-component";
 import { BranchType } from "../api/basic-branch";
 import { SelectObservable, InputObservable } from "../utils/subject-forms";
-
-const manageStyle = {
-  fieldSection: style({
-    marginTop: "0.5em"
-  }),
-  hint: style({
-    margin: 0,
-    padding: 0,
-    fontSize: "0.75rem"
-  })
-};
+import { manageStyle } from "./form-styles";
 
 export type IBranchSettingsData = Pick<
   GitAutomationGQL.IBranchGroupDetails,
@@ -41,7 +31,7 @@ export class BranchSettings extends StatelessObservableComponent<
               isNewBranch ? (
                 <section>
                   <label>
-                    Branch Name
+                    <span className={manageStyle.fieldLabel}>Branch Name</span>
                     <InputObservable
                       observable={this.prop$.map(
                         p => p.currentSettings.groupName
@@ -53,43 +43,39 @@ export class BranchSettings extends StatelessObservableComponent<
               ) : null
           )
           .asComponent()}
-        <section className={manageStyle.fieldSection}>
-          <label>
-            Branch Type
-            <SelectObservable
-              observable={this.prop$.map(p => p.currentSettings.branchType)}
-              observer={{ next: this.updateBranchType }}
-            >
-              <option value="Feature">Feature</option>
-              <option value="ReleaseCandidate">Release Candidate</option>
-              <option value="ServiceLine">Service Line</option>
-              <option value="Infrastructure">Infrastructure</option>
-              <option value="Integration">Integration</option>
-              <option value="Hotfix">Hotfix</option>
-            </SelectObservable>
-          </label>
-        </section>
-        <section className={manageStyle.fieldSection}>
-          <label>
-            Upstream Policy
-            <SelectObservable
-              observable={this.prop$.map(
-                p => p.currentSettings.upstreamMergePolicy
-              )}
-              observer={{ next: this.updateMergePolicy }}
-            >
-              <option value="None">None (merge normally)</option>
-              <option value="MergeNextIteration">
-                Create new branch Iteration
-              </option>
-              <option value="ForceFresh">Force update base branch</option>
-            </SelectObservable>
-          </label>
-          <p className={manageStyle.hint}>
-            Used only with "Release Candidates"; will make new branches that
-            contain only upstream commits
-          </p>
-        </section>
+        <label className={manageStyle.fieldSection}>
+          <span className={manageStyle.fieldLabel}>Branch Type</span>
+          <SelectObservable
+            observable={this.prop$.map(p => p.currentSettings.branchType)}
+            observer={{ next: this.updateBranchType }}
+          >
+            <option value="Feature">Feature</option>
+            <option value="ReleaseCandidate">Release Candidate</option>
+            <option value="ServiceLine">Service Line</option>
+            <option value="Infrastructure">Infrastructure</option>
+            <option value="Integration">Integration</option>
+            <option value="Hotfix">Hotfix</option>
+          </SelectObservable>
+        </label>
+        <label className={manageStyle.fieldSection}>
+          <span className={manageStyle.fieldLabel}>Upstream Policy</span>
+          <SelectObservable
+            observable={this.prop$.map(
+              p => p.currentSettings.upstreamMergePolicy
+            )}
+            observer={{ next: this.updateMergePolicy }}
+          >
+            <option value="None">None (merge normally)</option>
+            <option value="MergeNextIteration">
+              Create new branch Iteration
+            </option>
+            <option value="ForceFresh">Force update base branch</option>
+          </SelectObservable>
+        </label>
+        <p className={manageStyle.hint}>
+          Used only with "Release Candidates"; will make new branches that
+          contain only upstream commits
+        </p>
       </section>
     );
   }

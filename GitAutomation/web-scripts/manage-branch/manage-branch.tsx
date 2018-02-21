@@ -25,6 +25,7 @@ import { RoutingNavigate } from "@woosti/rxjs-router";
 import { ActualBranchDisplay } from "./actual-branch-display";
 import { ReleaseToServiceLine } from "./release-to-service-line";
 import { ConsolidateMerged } from "./consolidate-merged";
+import { equals } from "../utils/ramda";
 
 export class ManageBranch extends ContextComponent {
   render() {
@@ -213,11 +214,14 @@ class ManageBranchInputed extends StatelessObservableComponent<
           .asComponent()}
 
         {this.allBranchData
-          .map(b => b.branches)
-          .distinctUntilChanged()
-          .map(branches => (
+          .map(({ branches, otherBranches }) => ({ branches, otherBranches }))
+          .distinctUntilChanged<
+            Pick<IManageBranch, "branches" | "otherBranches">
+          >(equals)
+          .map(({ branches, otherBranches }) => (
             <ReleaseToServiceLine
               branches={branches}
+              otherBranches={otherBranches}
               navigate={this.props.routeNavigate}
             />
           ))
