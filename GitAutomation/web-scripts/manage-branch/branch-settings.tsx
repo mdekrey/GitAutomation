@@ -3,7 +3,7 @@ import { style } from "typestyle";
 import produce from "immer";
 import { StatelessObservableComponent } from "../utils/rxjs-component";
 import { BranchType } from "../api/basic-branch";
-import { equals } from "../utils/ramda";
+import { SelectObservable, InputObservable } from "../utils/subject-forms";
 
 const manageStyle = {
   fieldSection: style({
@@ -34,23 +34,19 @@ export class BranchSettings extends StatelessObservableComponent<
     return (
       <section>
         {this.prop$
-          .map(({ isNewBranch, currentSettings: { groupName } }) => ({
-            isNewBranch,
-            groupName
-          }))
-          .distinctUntilChanged(equals)
+          .map(({ isNewBranch }) => isNewBranch)
+          .distinctUntilChanged()
           .map(
-            ({ isNewBranch, groupName }) =>
+            isNewBranch =>
               isNewBranch ? (
                 <section>
                   <label>
                     Branch Name
-                    <input
-                      type="text"
-                      value={groupName}
-                      onChange={ev =>
-                        this.updateBranchName(ev.currentTarget.value)
-                      }
+                    <InputObservable
+                      observable={this.prop$.map(
+                        p => p.currentSettings.groupName
+                      )}
+                      observer={{ next: this.updateBranchName }}
                     />
                   </label>
                 </section>
@@ -60,49 +56,34 @@ export class BranchSettings extends StatelessObservableComponent<
         <section className={manageStyle.fieldSection}>
           <label>
             Branch Type
-            {this.prop$
-              .map(p => p.currentSettings.branchType)
-              .distinctUntilChanged()
-              .map(currentBranchType => (
-                <select
-                  value={currentBranchType}
-                  onChange={ev =>
-                    this.updateBranchType(ev.currentTarget.value as BranchType)
-                  }
-                >
-                  <option value="Feature">Feature</option>
-                  <option value="ReleaseCandidate">Release Candidate</option>
-                  <option value="ServiceLine">Service Line</option>
-                  <option value="Infrastructure">Infrastructure</option>
-                  <option value="Integration">Integration</option>
-                  <option value="Hotfix">Hotfix</option>
-                </select>
-              ))
-              .asComponent()}
+            <SelectObservable
+              observable={this.prop$.map(p => p.currentSettings.branchType)}
+              observer={{ next: this.updateBranchType }}
+            >
+              <option value="Feature">Feature</option>
+              <option value="ReleaseCandidate">Release Candidate</option>
+              <option value="ServiceLine">Service Line</option>
+              <option value="Infrastructure">Infrastructure</option>
+              <option value="Integration">Integration</option>
+              <option value="Hotfix">Hotfix</option>
+            </SelectObservable>
           </label>
         </section>
         <section className={manageStyle.fieldSection}>
           <label>
             Upstream Policy
-            {this.prop$
-              .map(p => p.currentSettings.upstreamMergePolicy)
-              .distinctUntilChanged()
-              .map(currentMergePolicy => (
-                <select
-                  value={currentMergePolicy}
-                  onChange={ev =>
-                    this.updateMergePolicy(ev.currentTarget
-                      .value as GitAutomationGQL.IUpstreamMergePolicyEnum)
-                  }
-                >
-                  <option value="None">None (merge normally)</option>
-                  <option value="MergeNextIteration">
-                    Create new branch Iteration
-                  </option>
-                  <option value="ForceFresh">Force update base branch</option>
-                </select>
-              ))
-              .asComponent()}
+            <SelectObservable
+              observable={this.prop$.map(
+                p => p.currentSettings.upstreamMergePolicy
+              )}
+              observer={{ next: this.updateMergePolicy }}
+            >
+              <option value="None">None (merge normally)</option>
+              <option value="MergeNextIteration">
+                Create new branch Iteration
+              </option>
+              <option value="ForceFresh">Force update base branch</option>
+            </SelectObservable>
           </label>
           <p className={manageStyle.hint}>
             Used only with "Release Candidates"; will make new branches that

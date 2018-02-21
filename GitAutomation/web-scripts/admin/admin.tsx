@@ -8,6 +8,7 @@ import {
   forceRefreshUsers
 } from "../api/basics";
 import { Secured } from "../security/security-binding";
+import { InputSubject } from "../utils/subject-forms";
 
 interface UserRoleChange {
   username: string;
@@ -93,16 +94,7 @@ export class Admin extends React.PureComponent<{}, never> {
             <Secured roleNames={["administrate"]}>
               <tr>
                 <td>
-                  {this.newUserName
-                    .map(name => (
-                      <input
-                        type="text"
-                        data-locator="user-name-value"
-                        value={name}
-                        onChange={this.updateNewUserName}
-                      />
-                    ))
-                    .asComponent()}
+                  <InputSubject subject={this.newUserName} />
                 </td>
                 <this.renderPermissionCheckboxes username={""} roles={[]} />
                 <td>
