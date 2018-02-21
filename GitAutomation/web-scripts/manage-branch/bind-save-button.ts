@@ -1,8 +1,9 @@
 import { difference, intersection } from "../utils/ramda";
 import { Observable } from "../utils/rxjs";
 
-import { IManageBranch } from "./data";
 import { updateBranch } from "../api/basics";
+import { IBranchData } from "./branch-check-listing";
+import { IBranchSettingsData } from "./branch-settings";
 
 export interface ISaveData {
   downstream: string[];
@@ -12,31 +13,35 @@ export interface ISaveData {
   branchType: GitAutomationGQL.IBranchGroupTypeEnum;
 }
 
+function toUpstreamDownstream(branches: IBranchData[]) {
+  const upstream = branches.filter(b => b.isUpstream).map(b => b.groupName);
+  const downstream = branches.filter(b => b.isDownstream).map(b => b.groupName);
+  return { upstream, downstream };
+}
+
 export const doSave = (
-  data: Observable<ISaveData>,
-  branchData: Observable<IManageBranch>
+  originalData: Observable<IBranchData[]>,
+  data: Observable<IBranchSettingsData>,
+  otherBranches: Observable<IBranchData[]>
 ) =>
-  data
+  otherBranches
     .take(1)
     // TODO - warn in this case, but we can't allow saving with
     // upstream and downstream having the same branch.
+    .map(toUpstreamDownstream)
     .filter(
       ({ upstream, downstream }) => !intersection(upstream, downstream).length
     )
     .withLatestFrom(
-      branchData.map(d => d.otherBranches),
+      data,
+      originalData.map(toUpstreamDownstream),
       (
-        { branchName, upstream, downstream, upstreamMergePolicy, branchType },
-        branches
+        { upstream, downstream },
+        { groupName, upstreamMergePolicy, branchType },
+        { upstream: oldUpstream, downstream: oldDownstream }
       ) => {
-        const oldUpstream = branches
-          .filter(b => b.isUpstream)
-          .map(b => b.groupName);
-        const oldDownstream = branches
-          .filter(b => b.isDownstream)
-          .map(b => b.groupName);
         return {
-          branchName,
+          groupName,
           upstreamMergePolicy,
           branchType,
           addUpstream: difference(upstream, oldUpstream),
@@ -46,6 +51,7 @@ export const doSave = (
         };
       }
     )
-    .switchMap(({ branchName, ...requestBody }) =>
-      updateBranch(branchName, requestBody).map(_ => branchName)
+    .take(1)
+    .switchMap(({ groupName, ...requestBody }) =>
+      updateBranch(groupName, requestBody).map(_ => groupName)
     );

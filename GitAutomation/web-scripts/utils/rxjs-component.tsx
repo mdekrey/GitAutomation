@@ -16,8 +16,8 @@ export abstract class ObservableComponent<TProps, TState> extends Component<
   protected readonly state$: Observable<TState>;
   protected readonly unmounting: Subscription = new Subscription();
 
-  constructor(nextProps: TProps) {
-    super(nextProps);
+  constructor(nextProps: TProps, context?: any) {
+    super(nextProps, context);
     this.state = this.initializeState(nextProps!);
 
     this.backing = new BehaviorSubject<AllProps<TProps, TState>>({

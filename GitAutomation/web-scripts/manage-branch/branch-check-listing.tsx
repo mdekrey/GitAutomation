@@ -153,7 +153,6 @@ export class BranchCheckTable extends StatelessObservableComponent<{
         if (target) {
           target.isUpstream = checked;
         }
-        return draft;
       })
     );
   };
@@ -165,7 +164,6 @@ export class BranchCheckTable extends StatelessObservableComponent<{
         if (target) {
           target.isDownstream = checked;
         }
-        return draft;
       })
     );
   };

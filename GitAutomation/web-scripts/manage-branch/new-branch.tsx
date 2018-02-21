@@ -5,86 +5,21 @@ import { ContextComponent } from "../utils/routing-component";
 import { allBranchGroups, createBranch } from "../api/basics";
 import { IBranchData, BranchCheckTable } from "./branch-check-listing";
 import { branchHierarchy } from "../home/branch-hierarchy";
-import { groupsToHierarchy } from "../api/hierarchy";
 import { BranchType } from "../api/basic-branch";
 import { RxD3 } from "../utils/rxjs-d3-component";
 import { handleError } from "../handle-error";
 import { BranchSettings, IBranchSettingsData } from "./branch-settings";
+import { fromBranchDataToGraph } from "./data";
 
 export class NewBranch extends ContextComponent {
   private readonly branchData = new BehaviorSubject<IBranchData[]>([]);
   private readonly branchSettings = new BehaviorSubject<IBranchSettingsData>({
-    branchName: "",
+    groupName: "",
     branchType: BranchType.Feature,
     upstreamMergePolicy: "None"
   });
-  private readonly fullBranchData = Observable.combineLatest(
-    this.branchSettings,
-    this.branchData
-  )
-    .map(([{ branchName, branchType, upstreamMergePolicy }, branchData]) => ({
-      branchName: branchName || "New Branch",
-      upstreamMergePolicy,
-      branchType,
-      downstream: branchData
-        .filter(branch => branch.isDownstream)
-        .map(branch => branch.groupName),
-      upstream: branchData
-        .filter(branch => branch.isUpstream)
-        .map(branch => branch.groupName)
-    }))
-    .publishReplay(1)
-    .refCount();
-  private readonly hierarchyData = this.fullBranchData
-    .combineLatest(allBranchGroups, (newStatus, groups) => ({
-      groups: groups
-        .map(
-          group =>
-            group.groupName === newStatus.branchName
-              ? {
-                  ...group,
-                  directDownstream: newStatus.downstream.map(groupName => ({
-                    groupName
-                  }))
-                }
-              : {
-                  ...group,
-                  directDownstream: group.directDownstream
-                    .filter(g => g.groupName !== newStatus.branchName)
-                    .concat(
-                      newStatus.upstream.find(up => up === group.groupName)
-                        ? [{ groupName: newStatus.branchName }]
-                        : []
-                    )
-                }
-        )
-        .concat(
-          groups.find(group => group.groupName === newStatus.branchName)
-            ? []
-            : [
-                {
-                  groupName: newStatus.branchName,
-                  branchType: newStatus.branchType as GitAutomationGQL.IBranchGroupTypeEnum,
-                  directDownstream: newStatus.downstream.map(groupName => ({
-                    groupName
-                  })),
-                  latestBranch: null,
-                  branches: []
-                }
-              ]
-        ),
-      branchName: newStatus.branchName,
-      branchType: newStatus.branchType as GitAutomationGQL.IBranchGroupTypeEnum
-    }))
-    .switchMap(groupsData =>
-      groupsToHierarchy(
-        Observable.of(groupsData.groups),
-        group =>
-          group.groupName === groupsData.branchName ||
-          Boolean(group.upstream.find(v => v === groupsData.branchName)) ||
-          Boolean(group.downstream.find(v => v === groupsData.branchName))
-      )
-    );
+  private readonly hierarchyData = () =>
+    fromBranchDataToGraph(this.branchData, this.branchSettings);
 
   componentDidMount() {
     allBranchGroups
@@ -137,7 +72,7 @@ export class NewBranch extends ContextComponent {
               branchHierarchy({
                 target: target as Observable<any>,
                 navigate: this.handleNavigate,
-                data: this.hierarchyData
+                data: this.hierarchyData()
               })}
           >
             <svg width="800" height="100" style={{ maxHeight: "70vh" }} />
@@ -161,7 +96,7 @@ export class NewBranch extends ContextComponent {
     });
   save = () => {
     const settings = this.branchSettings.value;
-    createBranch(settings.branchName, {
+    createBranch(settings.groupName, {
       upstreamMergePolicy: settings.upstreamMergePolicy,
       branchType: settings.branchType,
       addUpstream: this.branchData.value
@@ -171,7 +106,7 @@ export class NewBranch extends ContextComponent {
       .let(handleError)
       .subscribe(() => {
         this.context.injector.services.routeNavigate({
-          url: "/manage/" + settings.branchName,
+          url: "/manage/" + settings.groupName,
           replaceCurentHistory: false
         });
       });

@@ -15,12 +15,11 @@ import { StandardMenu } from "./home/menu";
 import { RouteSecurity } from "./security/app-access";
 import { Homepage } from "./home/home";
 import { SystemHealth } from "./debug/system-health";
-import { manage } from "./manage-branch/index";
+import { ManageBranch } from "./manage-branch/manage-branch";
 import { NewBranch } from "./manage-branch/new-branch";
 import { Login } from "./login/login";
 import { Admin } from "./admin/admin";
 import { AutoWireup } from "./setup-wizard/auto-wireup";
-import { RxD3 } from "./utils/rxjs-d3-component";
 import { wildcard, ConcreteRoute } from "@woosti/rxjs-router";
 
 const injector = new Injector(
@@ -34,7 +33,7 @@ const baseRoutes: ComponentRoutes = {
   login: ConcreteRoute(<Login />),
 
   "": Scaffolded(<Homepage />),
-  manage: Scaffolded(<RxD3 do={manage} />),
+  manage: Scaffolded(<ManageBranch />),
   "new-branch": Scaffolded(<NewBranch />),
   "auto-wireup": Scaffolded(<AutoWireup />),
   admin: Scaffolded(<Admin />),

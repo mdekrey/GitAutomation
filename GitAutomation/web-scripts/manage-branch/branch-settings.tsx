@@ -16,11 +16,10 @@ const manageStyle = {
   })
 };
 
-export interface IBranchSettingsData {
-  branchName: string;
-  branchType: BranchType;
-  upstreamMergePolicy: GitAutomationGQL.IUpstreamMergePolicyEnum;
-}
+export type IBranchSettingsData = Pick<
+  GitAutomationGQL.IBranchGroupDetails,
+  "groupName" | "branchType" | "upstreamMergePolicy"
+>;
 
 export interface IBranchSettingsProps {
   isNewBranch: boolean;
@@ -35,20 +34,20 @@ export class BranchSettings extends StatelessObservableComponent<
     return (
       <section>
         {this.prop$
-          .map(({ isNewBranch, currentSettings: { branchName } }) => ({
+          .map(({ isNewBranch, currentSettings: { groupName } }) => ({
             isNewBranch,
-            branchName
+            groupName
           }))
           .distinctUntilChanged(equals)
           .map(
-            ({ isNewBranch, branchName }) =>
+            ({ isNewBranch, groupName }) =>
               isNewBranch ? (
                 <section>
                   <label>
                     Branch Name
                     <input
                       type="text"
-                      value={branchName}
+                      value={groupName}
                       onChange={ev =>
                         this.updateBranchName(ev.currentTarget.value)
                       }
@@ -116,26 +115,23 @@ export class BranchSettings extends StatelessObservableComponent<
 
   updateBranchName = (branchName: string) =>
     this.props.updateSettings(
-      produce(
-        this.props.currentSettings,
-        draft => (draft.branchName = branchName)
-      )
+      produce(this.props.currentSettings, draft => {
+        draft.groupName = branchName;
+      })
     );
 
   updateBranchType = (branchType: BranchType) =>
     this.props.updateSettings(
-      produce(
-        this.props.currentSettings,
-        draft => (draft.branchType = branchType)
-      )
+      produce(this.props.currentSettings, draft => {
+        draft.branchType = branchType;
+      })
     );
   updateMergePolicy = (
     mergePolicy: GitAutomationGQL.IUpstreamMergePolicyEnum
   ) =>
     this.props.updateSettings(
-      produce(
-        this.props.currentSettings,
-        draft => (draft.upstreamMergePolicy = mergePolicy)
-      )
+      produce(this.props.currentSettings, draft => {
+        draft.upstreamMergePolicy = mergePolicy;
+      })
     );
 }

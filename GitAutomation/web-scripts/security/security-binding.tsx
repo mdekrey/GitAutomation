@@ -7,7 +7,7 @@ export const Secured = ({
   children
 }: {
   roleNames: string[];
-  children?: JSX.Element;
+  children?: React.ReactNode;
 }) =>
   claims
     .map(

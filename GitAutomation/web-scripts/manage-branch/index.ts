@@ -11,11 +11,6 @@ import {
 } from "../utils/presentation/d3-binding";
 import { runBranchData } from "./data";
 import {
-  buildBranchCheckListing,
-  checkedData
-} from "./original-branch-check-listing";
-import { doSave } from "./bind-save-button";
-import {
   consolidateMerged,
   promoteServiceLine,
   deleteBranch,
@@ -127,17 +122,15 @@ export const manage = (
           .refCount()
           .startWith(null);
 
-        const branchData = runBranchData(branchName!, reload);
-        subscription.add(branchData.subscription);
+        const branchData = runBranchData(branchName!, reload).publishReplay(1);
 
-        const branchDataState = branchData.state.publishReplay(1);
         subscription.add(
           reload
             .merge(reset)
             .startWith(null)
             .subscribe(() => {
               if (dataConnection === null) {
-                subscription.add((dataConnection = branchDataState.connect()));
+                subscription.add((dataConnection = branchData.connect()));
               }
             })
         );
@@ -148,7 +141,7 @@ export const manage = (
             .map(fnSelect(`[data-locator="branch-name"]`))
             .let(
               rxDatum(
-                branchDataState
+                branchData
                   .map(d => merge(d, { groupName: branchName }))
                   .do(v => console.log(v))
               )
@@ -156,18 +149,9 @@ export const manage = (
             .subscribe(branchNameDisplay)
         );
 
-        const branchList = branchDataState
-          .filter(b => !b.isLoading)
-          .map(state =>
-            state.otherBranches.filter(
-              ({ groupName }) => groupName !== branchName
-            )
-          )
-          .combineLatest(reset, _ => _);
-
         const upstreamMergePolicyData = container
           .map(fnSelect(`[data-locator="upstream-merge-policy"]`))
-          .let(rxDatum(branchDataState.map(d => d.upstreamMergePolicy)))
+          .let(rxDatum(branchData.map(d => d.upstreamMergePolicy)))
           .do(target => {
             target.property("value", value => value);
           })
@@ -180,7 +164,7 @@ export const manage = (
 
         const branchTypeData = container
           .map(fnSelect(`[data-locator="branch-type"]`))
-          .let(rxDatum(branchDataState.map(d => d.branchType)))
+          .let(rxDatum(branchData.map(d => d.branchType)))
           .do(target => {
             target.property("value", value => value);
           })
@@ -192,7 +176,7 @@ export const manage = (
         subscription.add(branchTypeData.subscribe());
 
         subscription.add(
-          branchDataState
+          branchData
             .filter(b => !b.isLoading)
             .take(1)
             .switchMap(() => container)
@@ -237,100 +221,9 @@ export const manage = (
           }).subscribe()
         );
 
-        const checkboxes = rxData(
-          container.map(fnSelect(`[data-locator="other-branches"]`)),
-          branchList,
-          data => data.groupName
-        )
-          .bind(buildBranchCheckListing(manageStyle, state.navigate))
-          .publishReplay(1)
-          .refCount();
-
-        // display downstream branches
-        subscription.add(checkboxes.subscribe());
-
-        subscription.add(checkedData(checkboxes, true).subscribe(disconnect));
-
-        const data = checkedData(checkboxes).combineLatest(
-          branchTypeData,
-          container
-            .map(fnSelect(`[data-locator="upstream-merge-policy"]`))
-            .let(inputValue({ includeInitial: true }))
-            .map(v => v as GitAutomationGQL.IUpstreamMergePolicyEnum),
-          (stream, branchType, upstreamMergePolicy) => ({
-            ...stream,
-            branchType,
-            branchName,
-            upstreamMergePolicy
-          })
-        );
-
-        subscription.add(
-          container
-            .map(fnSelect('[data-locator="save"]'))
-            .let(fnEvent("click"))
-            .switchMap(() => doSave(data, branchDataState))
-            .let(handleError)
-            .subscribe({
-              next: () => reload.next(null),
-              error: err => console.error(err)
-            })
-        );
-
-        subscription.add(
-          branchHierarchy({
-            target: container.map(
-              fnSelect<SVGSVGElement>(
-                `svg[data-locator="hierarchy-container-preview"]`
-              )
-            ),
-            navigate: state.navigate,
-            data: groupsToHierarchy(
-              checkedData(checkboxes).combineLatest(
-                branchTypeData,
-                allBranchGroups,
-                (newStatus, branchType, groups) =>
-                  groups.map(
-                    group =>
-                      group.groupName === branchName
-                        ? {
-                            ...group,
-                            branchType,
-                            directDownstream: newStatus.downstream.map(
-                              groupName => ({ groupName })
-                            )
-                          }
-                        : {
-                            ...group,
-                            directDownstream: group.directDownstream
-                              .filter(g => g.groupName !== branchName)
-                              .concat(
-                                newStatus.upstream.find(
-                                  up => up === group.groupName
-                                )
-                                  ? [{ groupName: branchName }]
-                                  : []
-                              )
-                          }
-                  )
-              ),
-              group =>
-                group.groupName === branchName ||
-                Boolean(group.upstream.find(v => v === branchName)) ||
-                Boolean(group.downstream.find(v => v === branchName))
-            ),
-            style: addDefaultHierarchyStyles([
-              {
-                ...highlightedHierarchyStyle,
-                filter: data => data.groupName === branchName
-              }
-            ])
-          }).subscribe()
-        );
-
         const actualBranchDisplay = rxData(
           container.map(fnSelect(`[data-locator="grouped-branches"]`)),
-          branchDataState.map(branch => branch.branches)
+          branchData.map(branch => branch.branches)
         ).bind({
           selector: "li",
           onCreate: selection => selection.append<HTMLLIElement>("li"),
@@ -389,7 +282,7 @@ export const manage = (
         subscription.add(
           rxData(
             container.map(fnSelect(`[data-locator="approved-branch"]`)),
-            branchDataState.map(branch => branch.branches)
+            branchData.map(branch => branch.branches)
           )
             .bind({
               selector: "option",
@@ -405,7 +298,7 @@ export const manage = (
 
         subscription.add(
           rxDatum(
-            branchDataState.map(
+            branchData.map(
               branch => branch.latestBranch && branch.latestBranch.name
             )
           )(
@@ -418,9 +311,7 @@ export const manage = (
             container.map(
               fnSelect(`[data-locator="consolidate-target-branch"]`)
             ),
-            branchDataState.map(b =>
-              b.otherBranches.map(group => group.groupName)
-            ),
+            branchData.map(b => b.otherBranches.map(group => group.groupName)),
             data => data
           )
             .bind({
@@ -437,7 +328,7 @@ export const manage = (
             container.map(
               fnSelect(`[data-locator="consolidate-original-branches"]`)
             ),
-            branchDataState
+            branchData
               .map(b => b.otherBranches)
               .map(branches =>
                 [branchName].concat(
