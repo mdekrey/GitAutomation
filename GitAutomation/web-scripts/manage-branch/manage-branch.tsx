@@ -6,19 +6,25 @@ import { IBranchData, BranchCheckTable } from "./branch-check-listing";
 import { branchHierarchy } from "../home/branch-hierarchy";
 import { BranchType } from "../api/basic-branch";
 import { RxD3 } from "../utils/rxjs-d3-component";
-import { handleError } from "../handle-error";
+import { handleError, handleErrorOnce } from "../handle-error";
 import { IBranchSettingsData, BranchSettings } from "./branch-settings";
 import { Subscription, Subject } from "../utils/rxjs";
 
 import { runBranchData, fromBranchDataToGraph, IManageBranch } from "./data";
 
 import { doSave } from "./bind-save-button";
-import { forceRefreshBranchGroups } from "../api/basics";
+import {
+  forceRefreshBranchGroups,
+  detectUpstream,
+  deleteBranch,
+  deleteBranchByMode
+} from "../api/basics";
 import { BranchNameDisplay } from "../branch-name-display";
-import { ExternalLink } from "../external-window-link";
 import { StatelessObservableComponent } from "../utils/rxjs-component";
-import { Secured } from "../security/security-binding";
 import { RoutingNavigate } from "@woosti/rxjs-router";
+import { ActualBranchDisplay } from "./actual-branch-display";
+import { ReleaseToServiceLine } from "./release-to-service-line";
+import { ConsolidateMerged } from "./consolidate-merged";
 
 export class ManageBranch extends ContextComponent {
   render() {
@@ -67,11 +73,6 @@ class ManageBranchInputed extends StatelessObservableComponent<
         })
       )
     );
-
-  private readonly upToDate = new BehaviorSubject<{
-    name: string;
-    branches: string[];
-  } | null>(null);
 
   constructor(props: ManageBranchInputedProps) {
     super(props);
@@ -205,163 +206,34 @@ class ManageBranchInputed extends StatelessObservableComponent<
           Save
         </button>
 
-        <table>
-          <tbody>
-            <tr style={{ verticalAlign: "top" }}>
-              <td>
-                <h3>Actual Branches</h3>
-                <ul data-locator="grouped-branches">
-                  {this.allBranchData
-                    .map(b => b.branches)
-                    .distinctUntilChanged()
-                    .map(branches => (
-                      <>
-                        {branches.map(data => (
-                          <li key={data.name}>
-                            <span>
-                              {data.name} ({data.commit.substr(0, 7)})
-                            </span>
-                            <span>
-                              <ExternalLink url={data.url} />
-                            </span>{" "}
-                            <Secured roleNames={["delete", "administrate"]}>
-                              <a
-                                onClick={() =>
-                                  this.deleteSingleBranch(data.name)
-                                }
-                              >
-                                Delete this
-                              </a>{" "}
-                            </Secured>
-                            <a onClick={() => this.checkUpToDate(data.name)}>
-                              What is up to date?
-                            </a>
-                          </li>
-                        ))}
-                      </>
-                    ))
-                    .asComponent()}
-                </ul>
-              </td>
-              <td data-locator="up-to-date">
-                {this.upToDate
-                  .map(
-                    upToDateData =>
-                      upToDateData ? (
-                        <>
-                          <h3>
-                            Branches Up-to-date in{" "}
-                            <span>{upToDateData.name}</span>
-                          </h3>
-                          <ul>
-                            {upToDateData.branches.map(data => (
-                              <li key={data}>{data}</li>
-                            ))}
-                          </ul>
-                        </>
-                      ) : null
-                  )
-                  .asComponent()}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        {this.allBranchData
+          .map(b => b.branches)
+          .distinctUntilChanged()
+          .map(branches => <ActualBranchDisplay branches={branches} />)
+          .asComponent()}
 
-        <Secured roleNames={["approve", "administrate"]}>
-          <section>
-            <h3>Release to Service Line</h3>
-            <label>
-              <span>Approved Branch</span>
-              <select data-locator="approved-branch" value="">
-                {this.allBranchData
-                  .map(b => b.branches)
-                  .distinctUntilChanged()
-                  .map(branches => (
-                    <>
-                      {branches.map(data => (
-                        <option value={data.name} key={data.name}>
-                          {data.name} ({data.commit.substr(0, 7)})
-                        </option>
-                      ))}
-                    </>
-                  ))
-                  .asComponent()}
-              </select>
-            </label>
-            <label>
-              <span>Service Line Branch</span>
-              <input type="text" data-locator="service-line-branch" value="" />
-            </label>
-            <label>
-              <span>Release Tag</span>
-              <input type="text" data-locator="release-tag" value="" />
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                data-locator="auto-consolidate"
-                checked={false}
-              />
-              <span>Auto-consolidate</span>
-            </label>
-            <button type="button" onClick={() => this.promoteServiceLine()}>
-              Release to Service Line
-            </button>
-          </section>
+        {this.allBranchData
+          .map(b => b.branches)
+          .distinctUntilChanged()
+          .map(branches => (
+            <ReleaseToServiceLine
+              branches={branches}
+              navigate={this.props.routeNavigate}
+            />
+          ))
+          .asComponent()}
 
-          <section>
-            <h3>Consolidate Merged</h3>
-            <label>
-              <span>Consolidate Into</span>
-              <select data-locator="consolidate-target-branch" value="">
-                {this.allBranchData
-                  .map(b => b.otherBranches)
-                  .distinctUntilChanged()
-                  .map(branches => (
-                    <>
-                      {branches.map(data => (
-                        <option value={data.groupName} key={data.groupName}>
-                          {data.groupName}
-                        </option>
-                      ))}
-                    </>
-                  ))
-                  .asComponent()}
-              </select>
-            </label>
-            <ul data-locator="consolidate-original-branches">
-              {this.allBranchData
-                .map(b => b.otherBranches)
-                .map(branches =>
-                  [this.props.branchName].concat(
-                    branches
-                      .filter(branch => branch.isSomewhereUpstream)
-                      .map(branch => branch.groupName)
-                  )
-                )
-                .map(groupNames => (
-                  <>
-                    {groupNames.map(groupName => (
-                      <li key={groupName}>
-                        <label>
-                          <input
-                            type="checkbox"
-                            data-locator="consolidate-original-branch"
-                            checked={false}
-                          />
-                          <span>{groupName}</span>
-                        </label>
-                      </li>
-                    ))}
-                  </>
-                ))
-                .asComponent()}
-            </ul>
-            <button type="button" onClick={() => this.consolidateBranch()}>
-              Consolidate Branch
-            </button>
-          </section>
-        </Secured>
+        {this.allBranchData
+          .map(b => b.otherBranches)
+          .distinctUntilChanged()
+          .map(otherBranches => (
+            <ConsolidateMerged
+              branchName={this.props.branchName}
+              otherBranches={otherBranches}
+              navigate={this.props.routeNavigate}
+            />
+          ))
+          .asComponent()}
 
         <section data-role="delete administrate">
           <h3>Delete Branch</h3>
@@ -395,24 +267,29 @@ class ManageBranchInputed extends StatelessObservableComponent<
       .subscribe();
   };
   detectUpstream = () => {
-    // TODO
-  };
-  deleteSingleBranch = (branchName: string) => {
-    // TODO
+    detectUpstream(this.props.branchName, true)
+      .take(1)
+      .subscribe(
+        branchNames =>
+          this.branchData.next(
+            this.branchData.value.map(
+              branch =>
+                branchNames.indexOf(branch.groupName) >= 0
+                  ? { ...branch, isUpstream: true }
+                  : branch
+            )
+          ),
+        handleErrorOnce
+      );
   };
   delete = () => {
-    // TODO
+    deleteBranch(this.props.branchName)
+      .let(handleError)
+      .subscribe(this.goHome);
   };
   deleteConfiguration = () => {
-    // TODO
-  };
-  checkUpToDate = (branchName: string) => {
-    // TODO
-  };
-  promoteServiceLine = () => {
-    // TODO
-  };
-  consolidateBranch = () => {
-    // TODO
+    deleteBranchByMode(this.props.branchName, "GroupOnly")
+      .let(handleError)
+      .subscribe(this.goHome);
   };
 }

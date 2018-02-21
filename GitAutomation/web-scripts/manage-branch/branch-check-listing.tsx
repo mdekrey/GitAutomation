@@ -116,7 +116,7 @@ export class BranchCheckTable extends StatelessObservableComponent<{
                   showDownstream ? (
                     <th className={manageStyle.rotateHeader}>
                       <div>
-                        <span>Upstream</span>
+                        <span>Downstream</span>
                       </div>
                     </th>
                   ) : null
