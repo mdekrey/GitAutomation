@@ -214,14 +214,11 @@ class ManageBranchInputed extends StatelessObservableComponent<
           .asComponent()}
 
         {this.allBranchData
-          .map(({ branches, otherBranches }) => ({ branches, otherBranches }))
-          .distinctUntilChanged<
-            Pick<IManageBranch, "branches" | "otherBranches">
-          >(equals)
-          .map(({ branches, otherBranches }) => (
+          .map(({ branches }) => branches)
+          .distinctUntilChanged<IManageBranch["branches"]>(equals)
+          .map(branches => (
             <ReleaseToServiceLine
               branches={branches}
-              otherBranches={otherBranches}
               navigate={this.props.routeNavigate}
             />
           ))
