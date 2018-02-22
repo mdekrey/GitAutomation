@@ -3,7 +3,11 @@ import { Observable, BehaviorSubject } from "../utils/rxjs";
 
 import { ContextComponent } from "../utils/routing-component";
 import { IBranchData, BranchCheckTable } from "./branch-check-listing";
-import { branchHierarchy } from "../home/branch-hierarchy";
+import {
+  branchHierarchy,
+  highlightedHierarchyStyle,
+  addDefaultHierarchyStyles
+} from "../home/branch-hierarchy";
 import { BranchType } from "../api/basic-branch";
 import { RxD3 } from "../utils/rxjs-d3-component";
 import { handleError, handleErrorOnce } from "../handle-error";
@@ -162,7 +166,13 @@ class ManageBranchInputed extends StatelessObservableComponent<
               branchHierarchy({
                 target: target as Observable<any>,
                 navigate: this.handleNavigate,
-                data: this.originalHierarchyData()
+                data: this.originalHierarchyData(),
+                style: addDefaultHierarchyStyles([
+                  {
+                    ...highlightedHierarchyStyle,
+                    filter: data => data.groupName === this.props.branchName
+                  }
+                ])
               })}
           >
             <svg width="800" height="100" style={{ maxHeight: "70vh" }} />
@@ -191,7 +201,13 @@ class ManageBranchInputed extends StatelessObservableComponent<
               branchHierarchy({
                 target: target as Observable<any>,
                 navigate: this.handleNavigate,
-                data: this.hierarchyData()
+                data: this.hierarchyData(),
+                style: addDefaultHierarchyStyles([
+                  {
+                    ...highlightedHierarchyStyle,
+                    filter: data => data.groupName === this.props.branchName
+                  }
+                ])
               })}
           >
             <svg width="800" height="100" style={{ maxHeight: "70vh" }} />
@@ -265,7 +281,7 @@ class ManageBranchInputed extends StatelessObservableComponent<
       this.branchData
     )
       .let(handleError)
-      .subscribe();
+      .subscribe(() => this.reload.next(null));
   };
   detectUpstream = () => {
     detectUpstream(this.props.branchName, true)

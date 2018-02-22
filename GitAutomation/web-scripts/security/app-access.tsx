@@ -29,7 +29,6 @@ export class RouteSecurity extends ContextComponent {
 
   componentDidMount() {
     this.subscription = this.context.injector.services.routingStrategy
-      .do(v => console.log(v))
       .let(handleSecurity)
       .subscribe();
   }
