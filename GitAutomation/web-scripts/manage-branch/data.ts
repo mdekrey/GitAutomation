@@ -1,36 +1,22 @@
 import { flatten } from "../utils/ramda";
-import { Observable, Subscription } from "../utils/rxjs";
+import { Observable } from "../utils/rxjs";
 
 import { allBranchGroups, branchDetails } from "../api/basics";
 import { groupsToHierarchy } from "../api/hierarchy";
+import { IBranchData } from "./branch-check-listing";
+import { IBranchSettingsData } from "./branch-settings";
 
 export interface IManageBranch {
+  groupName: GitAutomationGQL.IBranchGroupDetails["groupName"];
   isLoading: boolean;
-  upstreamMergePolicy: GitAutomationGQL.IUpstreamMergePolicyEnum;
-  branchType: string;
+  upstreamMergePolicy: GitAutomationGQL.IBranchGroupDetails["upstreamMergePolicy"];
+  branchType: GitAutomationGQL.IBranchGroupDetails["branchType"];
   otherBranches: IBranchData[];
   branches: Pick<GitAutomationGQL.IGitRef, "name" | "commit" | "url">[];
   latestBranch: { name: string } | null;
 }
 
-export interface IBranchData {
-  groupName: string;
-  branchType: GitAutomationGQL.IBranchGroupTypeEnum;
-  latestBranch: {
-    name: string;
-  } | null;
-  branches: GitAutomationGQL.IGitRef[];
-  isDownstream: boolean;
-  isUpstream: boolean;
-  isSomewhereUpstream: boolean;
-  isDownstreamAllowed: boolean;
-  isUpstreamAllowed: boolean;
-  pullRequests: GitAutomationGQL.IPullRequest[];
-}
-
-export const runBranchData = (branchName: string, reload: Observable<any>) => {
-  const subscription = new Subscription();
-
+export function runBranchData(branchName: string, reload: Observable<any>) {
   const initializeBranchData = allBranchGroups
     .combineLatest(
       branchDetails(branchName),
@@ -96,6 +82,7 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
         branches,
         latestBranch
       }): IManageBranch => ({
+        groupName: branchName,
         otherBranches,
         upstreamMergePolicy,
         branchType,
@@ -106,6 +93,7 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
     );
 
   const branchData = Observable.of<IManageBranch>({
+    groupName: branchName,
     isLoading: true,
     upstreamMergePolicy: "None",
     branchType: "Feature",
@@ -117,8 +105,76 @@ export const runBranchData = (branchName: string, reload: Observable<any>) => {
     .publishReplay(1)
     .refCount();
 
-  return {
-    state: branchData,
-    subscription
-  };
-};
+  return branchData;
+}
+
+export function fromBranchDataToGraph(
+  branchData: Observable<IBranchData[]>,
+  manageData: Observable<IBranchSettingsData>
+) {
+  const fullBranchData = Observable.combineLatest(manageData, branchData)
+    .map(([{ groupName, branchType, upstreamMergePolicy }, branchData]) => ({
+      branchName: groupName || "New Branch",
+      upstreamMergePolicy,
+      branchType,
+      downstream: branchData
+        .filter(branch => branch.isDownstream)
+        .map(branch => branch.groupName),
+      upstream: branchData
+        .filter(branch => branch.isUpstream)
+        .map(branch => branch.groupName)
+    }))
+    .publishReplay(1)
+    .refCount();
+  return fullBranchData
+    .combineLatest(allBranchGroups, (newStatus, groups) => ({
+      groups: groups
+        .map(
+          group =>
+            group.groupName === newStatus.branchName
+              ? {
+                  ...group,
+                  branchType: newStatus.branchType,
+                  directDownstream: newStatus.downstream.map(groupName => ({
+                    groupName
+                  }))
+                }
+              : {
+                  ...group,
+                  directDownstream: group.directDownstream
+                    .filter(g => g.groupName !== newStatus.branchName)
+                    .concat(
+                      newStatus.upstream.find(up => up === group.groupName)
+                        ? [{ groupName: newStatus.branchName }]
+                        : []
+                    )
+                }
+        )
+        .concat(
+          groups.find(group => group.groupName === newStatus.branchName)
+            ? []
+            : [
+                {
+                  groupName: newStatus.branchName,
+                  branchType: newStatus.branchType,
+                  directDownstream: newStatus.downstream.map(groupName => ({
+                    groupName
+                  })),
+                  latestBranch: null,
+                  branches: []
+                }
+              ]
+        ),
+      branchName: newStatus.branchName,
+      branchType: newStatus.branchType
+    }))
+    .switchMap(groupsData =>
+      groupsToHierarchy(
+        Observable.of(groupsData.groups),
+        group =>
+          group.groupName === groupsData.branchName ||
+          Boolean(group.upstream.find(v => v === groupsData.branchName)) ||
+          Boolean(group.downstream.find(v => v === groupsData.branchName))
+      )
+    );
+}

@@ -45,19 +45,18 @@ const integrationBranchColors = [
 
 module.exports = {
   devtool: "cheap-source-map",
-  entry: "./web-scripts/index.ts",
+  entry: "./web-scripts/index.tsx",
   output: {
     path: path.resolve(__dirname, "wwwroot"),
     filename: "bundle.js",
     publicPath: "/wwwroot/"
   },
   resolve: {
-    // Add `.ts` as a resolvable extension.
-    extensions: [".webpack.js", ".web.js", ".ts", ".js"]
+    extensions: [".webpack.js", ".web.js", ".ts", ".tsx", ".js"]
   },
   module: {
     loaders: [
-      { test: /\.ts$/, loader: "ts-loader" },
+      { test: /\.tsx?$/, loader: "ts-loader" },
       {
         test: /\.html$/,
         loaders: [
