@@ -1,5 +1,4 @@
 import * as React from "react";
-import { style } from "typestyle";
 import produce from "immer";
 import { StatelessObservableComponent } from "../utils/rxjs-component";
 import { BranchType } from "../api/basic-branch";
