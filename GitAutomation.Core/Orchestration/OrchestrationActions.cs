@@ -51,9 +51,9 @@ namespace GitAutomation.Orchestration
             return orchestration.EnqueueAction(new ReleaseToServiceLineAction(releaseCandidateBranch, serviceLineBranch, tagName, autoConsolidate));
         }
 
-        public IObservable<IRepositoryActionEntry> ConsolidateMerged(IEnumerable<string> originalBranches, string newBaseBranch)
+        public IObservable<IRepositoryActionEntry> ConsolidateMerged(string sourceBranch, string newBaseBranch)
         {
-            return orchestration.EnqueueAction(new ConsolidateMergedAction(originalBranches, newBaseBranch));
+            return orchestration.EnqueueAction(new ConsolidateMergedAction(sourceBranch, newBaseBranch));
         }
     }
 }

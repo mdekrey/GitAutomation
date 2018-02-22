@@ -20,30 +20,30 @@ namespace GitAutomation.Orchestration.Actions
 {
     class ConsolidateMergedAction : ComplexAction<ConsolidateMergedAction.ConsolidateMergedActionProcess>
     {
-        private readonly ImmutableHashSet<string> originalBranches;
+        private readonly string sourceBranch;
         private readonly string newBaseBranch;
 
         public override string ActionType => "ConsolidateMerged";
 
-        public ConsolidateMergedAction(IEnumerable<string> originalBranches, string newBaseBranch)
+        public ConsolidateMergedAction(string sourceBranch, string newBaseBranch)
         {
-            this.originalBranches = originalBranches.ToImmutableHashSet();
+            this.sourceBranch = sourceBranch;
             this.newBaseBranch = newBaseBranch;
         }
 
         public override JToken Parameters => JToken.FromObject(new
         {
-            originalBranches = originalBranches.ToArray(),
+            sourceBranch = sourceBranch,
             newBaseBranch
         });
 
-        public IEnumerable<string> OriginalBranches => originalBranches;
+        public string SourceBranch => sourceBranch;
         public string NewBaseBranch => newBaseBranch;
 
         internal override object[] GetExtraParameters()
         {
             return new object[] {
-                originalBranches,
+                sourceBranch,
                 newBaseBranch
             };
         }
@@ -52,16 +52,18 @@ namespace GitAutomation.Orchestration.Actions
         {
             private readonly IGitCli cli;
             private readonly IRepositoryMediator repository;
+            private readonly IBranchSettings branchSettings;
             private readonly IUnitOfWorkFactory workFactory;
-            private readonly ImmutableHashSet<string> originalBranches;
+            private readonly string sourceBranch;
             private readonly string newBaseBranch;
 
-            public ConsolidateMergedActionProcess(IGitCli cli, IRepositoryMediator repository, IUnitOfWorkFactory workFactory, IEnumerable<string> originalBranches, string newBaseBranch)
+            public ConsolidateMergedActionProcess(IGitCli cli, IRepositoryMediator repository, IBranchSettings branchSettings, IUnitOfWorkFactory workFactory, string sourceBranch, string newBaseBranch)
             {
                 this.cli = cli;
                 this.repository = repository;
+                this.branchSettings = branchSettings;
                 this.workFactory = workFactory;
-                this.originalBranches = originalBranches.Except(new[] { newBaseBranch }).ToImmutableHashSet();
+                this.sourceBranch = sourceBranch;
                 this.newBaseBranch = newBaseBranch;
             }
 
@@ -74,14 +76,22 @@ namespace GitAutomation.Orchestration.Actions
                 // 2. run consolidate branches SQL
                 // 3. delete old branches
 
+                var actualBranches = await repository.DetectUpstream(sourceBranch);
+                // FIXME - this is the _branches_ not the _groups_ that are up-to-date. That should be okay for these purposes.
+                var downstream = (await branchSettings.GetBranchDetails(newBaseBranch).FirstAsync()).DownstreamBranchGroups;
+
+                //var consolidatingBranches = downstream.Intersect(actualBranches.Concat(new[] { sourceBranch })).ToImmutableHashSet();
+
                 var consolidatingBranches = (await (from branch in allBranches.ToObservable()
-                                                    where this.originalBranches.Contains(branch.GroupName) || branch.Branches.Select(b => b.Name).Any(this.originalBranches.Contains)
+                                                    where actualBranches.Contains(branch.GroupName) || branch.Branches.Select(b => b.Name).Any(actualBranches.Contains)
+                                                    where downstream.Contains(branch.GroupName)
                                                     from result in GetLatestBranchTuple(branch)
                                                     select result
                                         ).ToArray()).ToImmutableHashSet();
 
 
                 var branchesToRemove = await FindReadyToConsolidate(consolidatingBranches);
+                branchesToRemove = branchesToRemove.Concat(allBranches.Where(g => g.Branches.Select(b => b.Name).Contains(sourceBranch))).ToImmutableList();
 
                 // Integration branches remain separate. Even if they have one
                 // parent, multiple things could depend on them and you don't

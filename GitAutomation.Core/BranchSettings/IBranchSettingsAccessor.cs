@@ -12,5 +12,7 @@ namespace GitAutomation.BranchSettings
         Task<ImmutableDictionary<string, BranchGroup>> GetBranchGroups(params string[] groupNames);
         Task<ImmutableDictionary<string, ImmutableList<string>>> GetDownstreamBranchGroups(params string[] groupNames);
         Task<ImmutableDictionary<string, ImmutableList<string>>> GetUpstreamBranchGroups(params string[] groupNames);
+
+        Task<Consolidation> CalculateConsolidation(IEnumerable<string> branchesToRemove, string targetBranch);
     }
 }

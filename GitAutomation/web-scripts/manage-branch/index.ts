@@ -6,14 +6,12 @@ import {
   fnEvent,
   fnSelect,
   rxDatum,
-  rxData,
-  d3element
+  rxData
 } from "../utils/presentation/d3-binding";
 import { runBranchData } from "./data";
 import { buildBranchCheckListing, checkedData } from "./branch-check-listing";
 import { doSave } from "./bind-save-button";
 import {
-  consolidateMerged,
   promoteServiceLine,
   deleteBranch,
   deleteBranchByMode,
@@ -474,9 +472,7 @@ export const manage = (
                   branchNames.forEach(upstreamBranchName =>
                     elements
                       .select(
-                        `[data-locator="upstream-branches"] [data-locator="check"][data-branch="${
-                          upstreamBranchName
-                        }"]`
+                        `[data-locator="upstream-branches"] [data-locator="check"][data-branch="${upstreamBranchName}"]`
                       )
                       .property("checked", true)
                       .each(function(this: Element) {
@@ -509,9 +505,12 @@ export const manage = (
                   .map(fnSelect(`[data-locator="auto-consolidate"]`))
                   .map(sl => sl.property("checked") as boolean)
               ).map(
-                (
-                  [releaseCandidate, serviceLine, tagName, autoConsolidate]
-                ) => ({
+                ([
+                  releaseCandidate,
+                  serviceLine,
+                  tagName,
+                  autoConsolidate
+                ]) => ({
                   releaseCandidate,
                   serviceLine,
                   tagName,
@@ -521,40 +520,6 @@ export const manage = (
             )
             .take(1)
             .switchMap(promoteServiceLine)
-            .let(handleError)
-            .subscribe(response => {
-              state.navigate({ url: "/", replaceCurentHistory: false });
-            })
-        );
-
-        subscription.add(
-          container
-            .map(fnSelect(`[data-locator="consolidate-branch"]`))
-            .let(fnEvent("click"))
-            .switchMap(_ =>
-              Observable.combineLatest(
-                container
-                  .map(fnSelect(`[data-locator="consolidate-target-branch"]`))
-                  .map(sl => sl.property("value") as string),
-                container
-                  .map(elem =>
-                    elem.selectAll<HTMLInputElement, any>(
-                      `[data-locator="consolidate-original-branches"] [data-locator="consolidate-original-branch"]:checked`
-                    )
-                  )
-                  .map(sl => sl.nodes())
-                  .map(checkboxes =>
-                    checkboxes
-                      .map(d3element)
-                      .map(checkbox => checkbox.attr("data-branch"))
-                  )
-              ).map(([targetBranch, originalBranches]) => ({
-                targetBranch,
-                originalBranches
-              }))
-            )
-            .take(1)
-            .switchMap(consolidateMerged)
             .let(handleError)
             .subscribe(response => {
               state.navigate({ url: "/", replaceCurentHistory: false });

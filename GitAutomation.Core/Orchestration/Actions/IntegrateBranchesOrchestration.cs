@@ -166,7 +166,7 @@ namespace GitAutomation.Orchestration.Actions
 
 #pragma warning disable CS4014
                         orchestration.EnqueueAction(new MergeDownstreamAction(downstreamDetails.GroupName));
-                        orchestration.EnqueueAction(new ConsolidateMergedAction(new[] { integrationBranch }, downstreamDetails.GroupName));
+                        orchestration.EnqueueAction(new ConsolidateMergedAction(integrationBranch, downstreamDetails.GroupName));
 #pragma warning restore
                     }
                     else if (!downstreamDetails.UpstreamBranchGroups.Any(b => b == integrationBranch))
@@ -448,7 +448,7 @@ namespace GitAutomation.Orchestration.Actions
             }
 
 #pragma warning disable CS4014
-            orchestration.EnqueueAction(new ConsolidateMergedAction(new[] { integrationBranch }, details.GroupName));
+            orchestration.EnqueueAction(new ConsolidateMergedAction(integrationBranch, details.GroupName));
 #pragma warning restore
 
             return new IntegrationBranchResult

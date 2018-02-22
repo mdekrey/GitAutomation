@@ -136,7 +136,7 @@ namespace GitAutomation.Orchestration.Actions
                         }
                         var releasedCandidate = await settings.GetConfiguredBranches().Select(branches => branches.Find(branch => branchIteration.IsBranchIteration(branch.GroupName, releaseCandidateBranch)).GroupName).FirstOrDefaultAsync();
 #pragma warning disable CS4014
-                        orchestration.EnqueueAction(new ConsolidateMergedAction(consolidating.Concat(new[] { releasedCandidate }), serviceLineBranch));
+                        orchestration.EnqueueAction(new ConsolidateMergedAction(releasedCandidate, serviceLineBranch));
 #pragma warning restore
                     }
 

@@ -327,6 +327,14 @@ namespace GitAutomation.EFCore.BranchingModel
             PrepareBranchingContextUnitOfWork(work);
             work.Defer(async sp =>
             {
+                var accessor = GetAccessor(sp);
+                var consolidation = await accessor.CalculateConsolidation(branchesToRemove, targetBranch);
+                if (consolidation.Disallow)
+                {
+                    // Needs human intervention. TODO - log this
+                    return;
+                }
+
                 var context = GetContext(sp);
                 var serviceLine = await context.BranchGroup.AddIfNotExists(new BranchGroup
                 {
@@ -334,44 +342,19 @@ namespace GitAutomation.EFCore.BranchingModel
                     UpstreamMergePolicy = UpstreamMergePolicy.None.ToString("g"),
                     BranchType = BranchGroupType.ServiceLine.ToString("g"),
                 }, branch => branch.GroupName == targetBranch);
-
-                var allDownstream = await (from b in branchesToRemove.ToObservable()
-                                           from d in GetAllDownstreamBranchesOnce(b)(context)
-                                           from branch in d
-                                           select branch.GroupName).Distinct().ToArray();
-
-                var newDownstream = (await (from branch in context.BranchStream
-                                          where branchesToRemove.Contains(branch.UpstreamBranch) // where there's something flowing from an upstream branch
-                                            && !branchesToRemove.Contains(branch.DownstreamBranch) // that is being deleted
-                                            group branch.DownstreamBranchNavigation by branch.DownstreamBranch into downstreamBranches
-                                            select downstreamBranches.Key).ToArrayAsync())
-                    .Except(allDownstream)
-                    .Distinct();
-
-                var allUpstream = await (from b in branchesToRemove.ToObservable()
-                                           from d in GetAllUpstreamBranchesOnce(b)(context)
-                                           from branch in d
-                                           select branch.GroupName).Distinct().ToArray();
-
-                var newUpstream = (await (from branch in context.BranchStream
-                                            where branchesToRemove.Contains(branch.DownstreamBranch) // where there's something flowing from an upstream branch
-                                              && !branchesToRemove.Contains(branch.UpstreamBranch) // that is being deleted
-                                            group branch.UpstreamBranchNavigation by branch.UpstreamBranch into upstreamBranches
-                                            select upstreamBranches.Key).ToArrayAsync())
-                    .Except(allUpstream)
-                    .Distinct();
-
-                var addingStream = (from downstream in newDownstream
-                                   where downstream != targetBranch
-                                   select new BranchStream { DownstreamBranch = downstream, UpstreamBranch = targetBranch })
-                                   .Concat(from upstream in newUpstream
-                                           where upstream != targetBranch
-                                           select new BranchStream { UpstreamBranch = upstream, DownstreamBranch = targetBranch });
-                var removingStream = await (from branch in context.BranchStream
-                                            where branchesToRemove.Contains(branch.UpstreamBranch)
-                                              || branchesToRemove.Contains(branch.DownstreamBranch)
-                                            select branch
-                                           ).ToArrayAsync();
+                
+                var addingStream = (from upstream in consolidation.AddToLinks.Keys
+                                    from downstream in consolidation.AddToLinks[upstream]
+                                   select new BranchStream { DownstreamBranch = downstream, UpstreamBranch = upstream });
+                var removingStream = await (from removal in consolidation.RemoveFromLinks.ToObservable()
+                                            from links in (
+                                                            from candidateLink in context.BranchStream
+                                                            where candidateLink.UpstreamBranch == removal.Key && removal.Value.Contains(candidateLink.DownstreamBranch)
+                                                            select candidateLink
+                                                           ).ToArrayAsync()
+                                            from link in links
+                                            select link
+                                           ).ToArray().FirstAsync();
                 foreach (var stream in addingStream)
                 {
                     await context.BranchStream.AddIfNotExists(stream, b => b.DownstreamBranch == stream.DownstreamBranch && b.UpstreamBranch == stream.UpstreamBranch);

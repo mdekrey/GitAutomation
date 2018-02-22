@@ -121,9 +121,9 @@ namespace GitAutomation.Management
 
         [Authorize(Auth.PolicyNames.Approve)]
         [HttpPut("branch/consolidate/{*branchName}")]
-        public void ConsolidateMerged([FromBody] IEnumerable<string> originalBranches, string branchName, [FromServices] IOrchestrationActions orchestrationActions)
+        public void ConsolidateMerged([FromBody] string sourceBranch, string branchName, [FromServices] IOrchestrationActions orchestrationActions)
         {
-            orchestrationActions.ConsolidateMerged(originalBranches, branchName);
+            orchestrationActions.ConsolidateMerged(sourceBranch, branchName);
         }
 
         [Authorize(Auth.PolicyNames.Read)]
@@ -138,6 +138,18 @@ namespace GitAutomation.Management
         public Task<ImmutableList<string>> RecommendGroups()
         {
             return repository.RecommendNewGroups().FirstAsync().ToTask();
+        }
+
+        [Authorize(Auth.PolicyNames.Read)]
+        [HttpGet("predict-consolidation")]
+        public async Task<IActionResult> PredictConsolidation([FromQuery] string target, [FromQuery] string source, [FromServices] IBranchSettingsAccessor accessor)
+        {
+            var actualBranches = await repository.DetectUpstream(source);
+            // FIXME - this is the _branches_ not the _groups_ that are up-to-date. That should be okay for these purposes.
+            var downstream = (await branchSettings.GetBranchDetails(target).FirstAsync()).DownstreamBranchGroups;
+            var toRemove = downstream.Intersect(actualBranches.Concat(new[] { source })).ToArray();
+
+            return Ok(new { toRemove, consolidation = await accessor.CalculateConsolidation(toRemove, target) });
         }
 
         public class CreateBranchRequestBody
