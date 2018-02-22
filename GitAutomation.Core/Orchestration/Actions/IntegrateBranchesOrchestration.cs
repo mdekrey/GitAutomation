@@ -88,13 +88,12 @@ namespace GitAutomation.Orchestration.Actions
     {
         public bool Resolved;
         public bool AddedNewIntegrationBranches;
-        public bool HadPullRequest;
         public bool PendingUpdates;
         public IEnumerable<ConflictingBranches> Conflicts;
 
         internal bool NeedsPullRequest()
         {
-            return Resolved == false && AddedNewIntegrationBranches == false && HadPullRequest == false && PendingUpdates == false;
+            return Resolved == false && AddedNewIntegrationBranches == false && PendingUpdates == false;
         }
     }
 
@@ -182,7 +181,6 @@ namespace GitAutomation.Orchestration.Actions
             {
                 Conflicts = result.Conflicts,
                 AddedNewIntegrationBranches = addedIntegrationBranch,
-                HadPullRequest = result.HadPullRequest,
             };
         }
 
@@ -220,7 +218,6 @@ namespace GitAutomation.Orchestration.Actions
             var initialUpstreamBranchGroups = await GetUpstreamBranches(targetBranch, upstreamBranchListings);
 
             await GetUpstreamBranches(targetBranch, upstreamBranchListings);
-            var hasOpenPullRequest = new Dictionary<string, bool>();
             var leafConflicts = new HashSet<ConflictingBranches>();
             var unflippedConflicts = new HashSet<ConflictingBranches>();
             // Remove from `middleConflicts` if we find a deeper one that conflicts
@@ -260,7 +257,6 @@ namespace GitAutomation.Orchestration.Actions
                 return false;
             };
 
-            var skippedDueToPullRequest = false;
             while (possibleConflicts.Count > 0)
             {
                 if (possibleConflicts.Any(p => p.BranchA.LatestBranchName == null || p.BranchB.LatestBranchName == null))
@@ -282,11 +278,6 @@ namespace GitAutomation.Orchestration.Actions
                 }
                 if (leafConflicts.Contains(new ConflictingBranches { BranchA = possibleConflict.BranchA, BranchB = possibleConflict.BranchB }))
                 {
-                    continue;
-                }
-                if (await CachedHasOpenPullRequest(possibleConflict.BranchA.LatestBranchName, hasOpenPullRequest) || await CachedHasOpenPullRequest(possibleConflict.BranchB.LatestBranchName, hasOpenPullRequest))
-                {
-                    skippedDueToPullRequest = true;
                     continue;
                 }
                 var isSuccessfulMerge = await repository.CanMerge(possibleConflict.BranchA.LatestBranchName, possibleConflict.BranchB.LatestBranchName)
@@ -349,11 +340,6 @@ namespace GitAutomation.Orchestration.Actions
                 {
                     continue;
                 }
-                if (await CachedHasOpenPullRequest(possibleConflict.BranchA.LatestBranchName, hasOpenPullRequest) || await CachedHasOpenPullRequest(possibleConflict.BranchB.LatestBranchName, hasOpenPullRequest))
-                {
-                    skippedDueToPullRequest = true;
-                    continue;
-                }
                 var isSuccessfulMerge = await doMerge(possibleConflict.BranchA.LatestBranchName, possibleConflict.BranchB.LatestBranchName, "CONFLICT TEST; DO NOT PUSH");
                 if (isSuccessfulMerge)
                 {
@@ -385,19 +371,9 @@ namespace GitAutomation.Orchestration.Actions
             return new IntegrationBranchResult
             {
                 Conflicts = leafConflicts.Concat(middleConflicts).Select(c => c.Normalize()).Distinct(),
-                HadPullRequest = skippedDueToPullRequest,
             };
         }
-
-        private async Task<bool> CachedHasOpenPullRequest(string branch, Dictionary<string, bool> hasOpenPullRequest)
-        {
-            if (!hasOpenPullRequest.ContainsKey(branch))
-            {
-                hasOpenPullRequest[branch] = await gitServiceApi.HasOpenPullRequest(targetBranch: branch);
-            }
-            return hasOpenPullRequest[branch];
-        }
-
+        
         private async Task<ImmutableList<string>> GetUpstreamBranches(string branch, Dictionary<string, ImmutableList<string>> upstreamBranchListings)
         {
             if (!upstreamBranchListings.ContainsKey(branch))
@@ -433,7 +409,6 @@ namespace GitAutomation.Orchestration.Actions
                 return new IntegrationBranchResult
                 {
                     AddedNewIntegrationBranches = false,
-                    HadPullRequest = false,
                 };
             }
 
@@ -455,7 +430,6 @@ namespace GitAutomation.Orchestration.Actions
             {
                 Resolved = true,
                 AddedNewIntegrationBranches = false,
-                HadPullRequest = false,
             };
         }
     }

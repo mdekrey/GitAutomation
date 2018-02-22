@@ -22,6 +22,35 @@ namespace GitAutomation.Orchestration.Actions
             Task<bool> AttemptMergeDelegate(string upstreamBranch, string targetBranch, string message);
         }
 
+        class BranchSetup
+        {
+            public string Name { get; set; }
+            public string Commit { get; set; }
+            public string[] Downstream { get; set; } = Array.Empty<string>();
+            public string[] ConflictsWith { get; set; } = Array.Empty<string>();
+            public string[] PullRequestsFrom { get; set; } = Array.Empty<string>();
+
+            public BranchSetup GenerateCommitIfEmpty()
+            {
+                Commit = Commit ?? Name.GetHashCode().ToString("X");
+                return this;
+            }
+
+            internal GitRef ToGitRef() => new GitRef { Name = Name, Commit = Commit };
+            internal BranchGroup ToBranchGroup() => new BranchGroup { GroupName = Name, BranchType = BranchGroupType.Feature, UpstreamMergePolicy = UpstreamMergePolicy.None };
+
+            internal IEnumerable<PullRequest> ToPullRequests() =>
+                from source in PullRequestsFrom
+                select new PullRequest
+                {
+                    Author = "someone",
+                    SourceBranch = source,
+                    TargetBranch = Name,
+                    State = PullRequestState.Open,
+                    Reviews = ImmutableList<PullRequestReview>.Empty
+                };
+        }
+
         class Setup
         {
             public Setup()
@@ -37,6 +66,46 @@ namespace GitAutomation.Orchestration.Actions
                     new BranchIterationMediator(branchNaming, repositoryMock.Object)
                 );
                 AttemptMergeMock = new Mock<IMergeDelegate>();
+            }
+
+            public Setup(BranchSetup[] branches)
+                : this()
+            {
+                var branchByName = branches.ToDictionary(b => b.Name, b => b.GenerateCommitIfEmpty());
+                var connections = (from b in branchByName.Values
+                                   from downstream in b.Downstream
+                                   select (upstream: b.Name, downstream)).ToArray();
+                var prs = (from b in branchByName.Values
+                           from pr in b.ToPullRequests()
+                           select pr).ToArray();
+                repositoryMediatorMock.Setup(repository => repository.GetAllBranchRefs()).Returns(Observable.Return(
+                    branchByName.Values.Select(b => b.ToGitRef()).ToImmutableList()
+                ));
+                gitServiceApiMock.Setup(git => git.GetPullRequests(PullRequestState.Open, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<PullRequestAuthorMode>()))
+                    .Returns<PullRequestState, string, string, bool, PullRequestAuthorMode>((state, target, source, includeReviews, authorMode) =>
+                    {
+                        return Task.FromResult((from pr in prs
+                                                where pr.TargetBranch == target || target == null
+                                                where pr.SourceBranch == source || source == null
+                                                select pr).ToImmutableList());
+                    });
+                settingsMock.Setup(settings => settings.GetDownstreamBranches(It.IsAny<string>())).Returns<string>(branchName => 
+                    Observable.Return(branchByName[branchName].Downstream.Select(b => branchByName[b].ToBranchGroup()).ToImmutableList())
+                );
+                settingsMock.Setup(settings => settings.GetUpstreamBranches(It.IsAny<string>())).Returns<string>(branchName =>
+                    Observable.Return((from b in branchByName.Values
+                                       where b.Downstream.Contains(branchName)
+                                       select b.ToBranchGroup()).ToImmutableList())
+                );
+                settingsMock.Setup(settings => settings.GetAllUpstreamBranches(It.IsAny<string>())).Returns<string>(branchName => 
+                    Observable.Return(GetAllUpstreamFrom(branchName, connections).Select(b => branchByName[b].ToBranchGroup()).ToImmutableList())
+                );
+                settingsMock.Setup(settings => settings.GetAllDownstreamBranches(It.IsAny<string>())).Returns<string>(branchName =>
+                    Observable.Return(GetAllDownstreamFrom(branchName, connections).Select(b => branchByName[b].ToBranchGroup()).ToImmutableList())
+                );
+                AttemptMergeMock.Setup(t => t.AttemptMergeDelegate(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns<string, string, string>((a, b, message) =>
+                    Task.FromResult(branchByName[a].ConflictsWith.Contains(b) || branchByName[b].ConflictsWith.Contains(a))
+                );
 
             }
 
@@ -49,6 +118,49 @@ namespace GitAutomation.Orchestration.Actions
 
             public IntegrateBranchesOrchestration Target { get; }
             public Mock<IMergeDelegate> AttemptMergeMock { get; }
+
+
+            private static ImmutableHashSet<string> GetAllDownstreamFrom(string targetBranch, (string upstream, string downstream)[] connections)
+            {
+                var result = new HashSet<string>();
+                var queue = new Queue<string>(new[] { targetBranch });
+
+                while (queue.Any())
+                {
+                    var current = queue.Dequeue();
+                    if (result.Contains(current))
+                    {
+                        continue;
+                    }
+                    result.Add(current);
+                    foreach (var connection in connections.Where(s => s.upstream == current))
+                    {
+                        queue.Enqueue(connection.downstream);
+                    }
+                }
+                return result.Except(new[] { targetBranch }).ToImmutableHashSet();
+            }
+
+            private static ImmutableHashSet<string> GetAllUpstreamFrom(string targetBranch, (string upstream, string downstream)[] connections)
+            {
+                var result = new HashSet<string>();
+                var queue = new Queue<string>(new[] { targetBranch });
+
+                while (queue.Any())
+                {
+                    var current = queue.Dequeue();
+                    if (result.Contains(current))
+                    {
+                        continue;
+                    }
+                    result.Add(current);
+                    foreach (var connection in connections.Where(s => s.downstream == current))
+                    {
+                        queue.Enqueue(connection.upstream);
+                    }
+                }
+                return result.Except(new[] { targetBranch }).ToImmutableHashSet();
+            }
         }
 
         [TestMethod]
@@ -78,7 +190,6 @@ namespace GitAutomation.Orchestration.Actions
 
             var result = await setup.Target.FindConflicts("C", new[] { "A", "B" }, setup.AttemptMergeMock.Object.AttemptMergeDelegate);
 
-            Assert.IsFalse(result.HadPullRequest);
             Assert.IsNotNull(result.Conflicts.SingleOrDefault(a => a.BranchA.GroupName == "A" && a.BranchB.GroupName == "B"));
         }
 
@@ -114,7 +225,6 @@ namespace GitAutomation.Orchestration.Actions
 
             var result = await setup.Target.FindConflicts("C", new[] { "A", "B" }, setup.AttemptMergeMock.Object.AttemptMergeDelegate);
 
-            Assert.IsFalse(result.HadPullRequest);
             Assert.IsNotNull(result.Conflicts.SingleOrDefault(a => a.BranchA.GroupName == "A" && a.BranchB.GroupName == "B"));
         }
 
@@ -167,7 +277,6 @@ namespace GitAutomation.Orchestration.Actions
 
             var result = await setup.Target.FindConflicts("C", new[] { "A", "B" }, setup.AttemptMergeMock.Object.AttemptMergeDelegate);
 
-            Assert.IsFalse(result.HadPullRequest);
             Assert.IsNotNull(result.Conflicts.SingleOrDefault(a => a.BranchA.GroupName == "C" && a.BranchB.GroupName == "ServiceLine"));
         }
 
@@ -217,7 +326,6 @@ namespace GitAutomation.Orchestration.Actions
                 UpstreamBranchGroups = new[] { "ServiceLine" }.ToImmutableList()
             }, new[] { "ServiceLine" }, setup.AttemptMergeMock.Object.AttemptMergeDelegate);
 
-            Assert.IsFalse(result.HadPullRequest);
             Assert.IsTrue(result.AddedNewIntegrationBranches);
             Assert.IsTrue(result.Conflicts.Any(a => a.BranchA.GroupName == "B" && a.BranchB.GroupName == "ServiceLine"));
             setup.settingsMock.Verify(settings => settings.AddBranchPropagation("Integ", "B", It.IsAny<IUnitOfWork>()), Times.Once());
@@ -341,7 +449,6 @@ namespace GitAutomation.Orchestration.Actions
 
             var result = await setup.Target.FindConflicts("Result", new[] { "C-from-A", "B", "A", "Integ-AB" }, setup.AttemptMergeMock.Object.AttemptMergeDelegate);
 
-            Assert.IsFalse(result.HadPullRequest);
             Assert.IsFalse(result.Conflicts.Any());
             Assert.IsFalse(result.AddedNewIntegrationBranches);
         }
@@ -461,10 +568,28 @@ namespace GitAutomation.Orchestration.Actions
                 UpstreamBranchGroups = new[] { "A", "B", "C-from-A" }.ToImmutableList()
             }, new[] { "A", "B", "C-from-A" }, setup.AttemptMergeMock.Object.AttemptMergeDelegate);
 
-            Assert.IsFalse(result.HadPullRequest);
             Assert.AreEqual("A", result.Conflicts.Single().BranchA.GroupName);
             Assert.AreEqual("B", result.Conflicts.Single().BranchB.GroupName);
             Assert.IsTrue(result.AddedNewIntegrationBranches);
         }
+
+        [TestMethod]
+        public async Task BlockBadBranchConflictIssue126()
+        {
+            var setup = new Setup(new[] {
+                new BranchSetup { Name = "A", Downstream = new[] { "B", "C" } },
+                new BranchSetup { Name = "B", ConflictsWith = new[] { "C", "D", "E" }, Downstream = new[] { "RC" }  },
+                new BranchSetup { Name = "C", Downstream = new[] { "D", "E" }, PullRequestsFrom = new[] { "F" } },
+                new BranchSetup { Name = "D", Downstream = new[] { "RC" } },
+                new BranchSetup { Name = "E", Downstream = new[] { "RC" } },
+                new BranchSetup { Name = "F" },
+                new BranchSetup { Name = "RC" },
+            });
+
+            var result = await setup.Target.FindConflicts("RC", null, setup.AttemptMergeMock.Object.AttemptMergeDelegate);
+
+            Assert.IsNotNull(result.Conflicts.SingleOrDefault(a => a.BranchA.GroupName == "B" && a.BranchB.GroupName == "C"));
+        }
+
     }
 }
