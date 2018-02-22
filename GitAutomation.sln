@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26730.16
+VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation", "GitAutomation\GitAutomation.csproj", "{8759E081-91A2-4136-9D98-516DF1D7D385}"
 EndProject
@@ -56,7 +56,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.EFCore", "Git
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.GraphQL", "GitAutomation.GraphQL\GitAutomation.GraphQL.csproj", "{04961468-EF16-4451-8BE4-D236282B8399}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitAutomation.Mvc", "GitAutomation.Mvc\GitAutomation.Mvc.csproj", "{52841757-26BB-4EDF-8589-8703219AB9D0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Mvc", "GitAutomation.Mvc\GitAutomation.Mvc.csproj", "{52841757-26BB-4EDF-8589-8703219AB9D0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

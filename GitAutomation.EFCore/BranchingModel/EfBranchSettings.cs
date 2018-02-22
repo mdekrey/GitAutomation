@@ -279,7 +279,7 @@ namespace GitAutomation.EFCore.BranchingModel
 
         public void UpdateBranchSetting(string branchName, UpstreamMergePolicy upstreamMergePolicy, BranchGroupType branchType, IUnitOfWork work)
         {
-            PrepareSecurityContextUnitOfWork(work);
+            PrepareBranchingContextUnitOfWork(work);
             work.Defer(async sp =>
             {
                 var context = GetContext(sp);
@@ -297,7 +297,7 @@ namespace GitAutomation.EFCore.BranchingModel
 
         public void AddBranchPropagation(string upstreamBranch, string downstreamBranch, IUnitOfWork work)
         {
-            PrepareSecurityContextUnitOfWork(work);
+            PrepareBranchingContextUnitOfWork(work);
             work.Defer(async sp =>
             {
                 var context = GetContext(sp);
@@ -310,7 +310,7 @@ namespace GitAutomation.EFCore.BranchingModel
 
         public void RemoveBranchPropagation(string upstreamBranch, string downstreamBranch, IUnitOfWork work)
         {
-            PrepareSecurityContextUnitOfWork(work);
+            PrepareBranchingContextUnitOfWork(work);
             work.Defer(async sp =>
             {
                 var context = GetContext(sp);
@@ -323,7 +323,8 @@ namespace GitAutomation.EFCore.BranchingModel
 
         public void ConsolidateBranches(IEnumerable<string> branchesToRemove, string targetBranch, IUnitOfWork work)
         {
-            PrepareSecurityContextUnitOfWork(work);
+            branchesToRemove = branchesToRemove.ToArray();
+            PrepareBranchingContextUnitOfWork(work);
             work.Defer(async sp =>
             {
                 var context = GetContext(sp);
@@ -342,8 +343,8 @@ namespace GitAutomation.EFCore.BranchingModel
                 var newDownstream = (await (from branch in context.BranchStream
                                           where branchesToRemove.Contains(branch.UpstreamBranch) // where there's something flowing from an upstream branch
                                             && !branchesToRemove.Contains(branch.DownstreamBranch) // that is being deleted
-                                          group branch.DownstreamBranchNavigation by branch.DownstreamBranch into downstreamBranches
-                                          select downstreamBranches.Key).ToArrayAsync())
+                                            group branch.DownstreamBranchNavigation by branch.DownstreamBranch into downstreamBranches
+                                            select downstreamBranches.Key).ToArrayAsync())
                     .Except(allDownstream)
                     .Distinct();
 
@@ -387,7 +388,7 @@ namespace GitAutomation.EFCore.BranchingModel
 
         public void DeleteBranchSettings(string deletingBranch, IUnitOfWork work)
         {
-            PrepareSecurityContextUnitOfWork(work);
+            PrepareBranchingContextUnitOfWork(work);
             work.Defer(async sp =>
             {
                 var context = GetContext(sp);
@@ -415,7 +416,7 @@ namespace GitAutomation.EFCore.BranchingModel
             AddBranchPropagation(branchB, integrationGroupName, work);
         }
 
-        private void PrepareSecurityContextUnitOfWork(IUnitOfWork work)
+        private void PrepareBranchingContextUnitOfWork(IUnitOfWork work)
         {
             work.PrepareAndFinalize<ConnectionManagement<BranchingContext>>();
         }

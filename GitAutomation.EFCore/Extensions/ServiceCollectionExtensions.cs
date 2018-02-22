@@ -12,7 +12,7 @@ namespace Microsoft.Extensions.DependencyInjection
 {
     public static class ServiceCollectionExtensions
     {
-        public static void AddEfSecurityContext<T>(this IServiceCollection services)
+        public static IServiceCollection AddEfSecurityContext<T>(this IServiceCollection services)
             where T : class, ISecurityContextCustomization
         {
             services.AddSingleton<ISecurityContextCustomization, T>();
@@ -27,9 +27,10 @@ namespace Microsoft.Extensions.DependencyInjection
             });
             services.AddScoped(sp => sp.GetRequiredService<Func<IServiceProvider, SecurityContext>>()(sp));
             services.AddScoped<ConnectionManagement<SecurityContext>>();
+            return services;
         }
 
-        public static void AddEfBranchingContext<T>(this IServiceCollection services)
+        public static IServiceCollection AddEfBranchingContext<T>(this IServiceCollection services)
             where T : class, IBranchingContextCustomization
         {
             services.AddSingleton<IBranchingContextCustomization, T>();
@@ -43,6 +44,7 @@ namespace Microsoft.Extensions.DependencyInjection
             });
             services.AddScoped(sp => sp.GetRequiredService<Func<IServiceProvider, BranchingContext>>()(sp));
             services.AddScoped<ConnectionManagement<BranchingContext>>();
+            return services;
         }
 
         static SecurityContext SecurityContextFactory(IServiceProvider sp)
