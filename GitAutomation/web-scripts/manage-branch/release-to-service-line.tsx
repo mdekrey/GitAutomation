@@ -24,7 +24,7 @@ const formLabel = style({
 
 export class ReleaseToServiceLine extends StatelessObservableComponent<{
   branches: IManageBranch["branches"];
-  otherBranches: IManageBranch["otherBranches"];
+  otherBranches?: IManageBranch["otherBranches"];
   navigate: RoutingNavigate;
 }> {
   private approvedBranch = new BehaviorSubject("");
@@ -43,7 +43,7 @@ export class ReleaseToServiceLine extends StatelessObservableComponent<{
   render() {
     const serviceLineNames = this.prop$
       .map(p =>
-        p.otherBranches
+        (p.otherBranches || [])
           .filter(
             b =>
               b.branchType === BranchType.ServiceLine && b.isSomewhereUpstream
