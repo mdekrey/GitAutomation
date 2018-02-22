@@ -163,7 +163,7 @@ namespace GitAutomation.EFCore.BranchingModel
                     continue;
                 }
                 result.Add(current);
-                foreach (var connection in connections.Where(s => s.UpstreamBranch == current))
+                foreach (var connection in connections.Where(s => s.DownstreamBranch == current))
                 {
                     queue.Enqueue(connection.UpstreamBranch);
                 }
