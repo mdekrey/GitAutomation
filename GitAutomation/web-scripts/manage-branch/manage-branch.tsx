@@ -146,7 +146,7 @@ class ManageBranchInputed extends StatelessObservableComponent<
           .map(current => (
             <BranchSettings
               currentSettings={current}
-              isNewBranch={true}
+              isNewBranch={false}
               updateSettings={v => {
                 this.branchSettings.next({
                   ...this.branchSettings.value,
@@ -183,7 +183,9 @@ class ManageBranchInputed extends StatelessObservableComponent<
         {this.branchData
           .map(currentData => (
             <BranchCheckTable
-              branches={currentData}
+              branches={currentData.filter(
+                b => b.groupName !== this.props.branchName
+              )}
               updateBranches={branchData => {
                 this.branchData.next(branchData);
                 this.stopRefreshing.next(null);
