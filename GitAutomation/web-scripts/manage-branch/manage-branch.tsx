@@ -232,13 +232,18 @@ class ManageBranchInputed extends StatelessObservableComponent<
           .asComponent()}
 
         {this.allBranchData
-          .map(({ branches, otherBranches }) => ({ branches, otherBranches }))
+          .map(({ latestBranch, branches, otherBranches }) => ({
+            latestBranch,
+            branches,
+            otherBranches
+          }))
           .distinctUntilChanged<
-            Pick<IManageBranch, "branches" | "otherBranches">
+            Pick<IManageBranch, "branches" | "latestBranch" | "otherBranches">
           >(equals)
-          .map(({ branches, otherBranches }) => (
+          .map(({ branches, latestBranch, otherBranches }) => (
             <ReleaseToServiceLine
               branches={branches}
+              latestBranch={latestBranch}
               otherBranches={otherBranches}
               navigate={this.props.routeNavigate}
             />

@@ -23,6 +23,7 @@ const formLabel = style({
 });
 
 export class ReleaseToServiceLine extends StatelessObservableComponent<{
+  latestBranch: IManageBranch["latestBranch"];
   branches: IManageBranch["branches"];
   otherBranches?: IManageBranch["otherBranches"];
   navigate: RoutingNavigate;
@@ -35,8 +36,8 @@ export class ReleaseToServiceLine extends StatelessObservableComponent<{
   componentDidMount() {
     this.unmounting.add(
       this.prop$
-        .filter(p => Boolean(p.branches[0]))
-        .subscribe(p => this.approvedBranch.next(p.branches[0].name))
+        .filter(p => Boolean(p.latestBranch))
+        .subscribe(p => this.approvedBranch.next(p.latestBranch!.name))
     );
   }
 
