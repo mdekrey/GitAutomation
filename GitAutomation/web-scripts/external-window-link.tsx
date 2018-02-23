@@ -1,7 +1,5 @@
 import * as React from "react";
-import { Selection, event as d3event } from "d3-selection";
 import { style, classes } from "typestyle";
-import { applyStyles } from "./style/style-binding";
 
 const linkDisplayStyle = {
   newWindowLink: classes(
@@ -13,10 +11,6 @@ const linkDisplayStyle = {
     "normal"
   )
 };
-
-function stopPropagation() {
-  d3event.stopPropagation();
-}
 
 export class ExternalLink extends React.PureComponent<
   {
@@ -39,21 +33,9 @@ export class ExternalLink extends React.PureComponent<
         <img
           alt="Open in New Window"
           className="text-image"
-          src="./images/new-window.svg"
+          src={require("./images/new-window.svg")}
         />
       </a>
     );
   }
-}
-
-export function applyExternalLink(
-  selection: Selection<any, string | null | undefined, any, any>
-) {
-  selection
-    .html(require("./external-window-link.html"))
-    .select(`a[data-locator="external-link"]`)
-    .style("display", url => (url ? "inline" : "none"))
-    .attr("href", url => url || "")
-    .on("click", stopPropagation);
-  applyStyles(linkDisplayStyle)(selection);
 }
