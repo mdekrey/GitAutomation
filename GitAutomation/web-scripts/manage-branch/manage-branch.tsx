@@ -136,7 +136,8 @@ class ManageBranchInputed extends StatelessObservableComponent<
     return (
       <>
         <h1>
-          {this.branchSettings
+          {Observable.combineLatest(this.branchSettings, this.allBranchData)
+            .map(([current, fromServer]) => ({ ...fromServer, ...current }))
             .map(b => <BranchNameDisplay branch={b} />)
             .asComponent()}
         </h1>
