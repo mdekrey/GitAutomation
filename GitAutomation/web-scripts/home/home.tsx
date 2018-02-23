@@ -82,31 +82,31 @@ export class Homepage extends ContextComponent<{}> {
               )
               .map(groups => (
                 <>
-                  {groups.map(group =>
-                    (group.branches.length
-                      ? group.branches
-                      : ([null] as (GitAutomationGQL.IGitRef | null)[])
-                    ).map((branch, index) => (
-                      <tr
-                        key={branch ? branch.name : group.groupName}
-                        className={index === 0 ? groupTopRow : ""}
+                  {groups.map(({ branch, ...group }) => (
+                    <tr
+                      key={branch ? branch.name : group.groupName}
+                      className={
+                        group.branches[0] === branch ? groupTopRow : ""
+                      }
+                    >
+                      <th
+                        style={{
+                          display:
+                            group.branches[0] === branch ? undefined : "none"
+                        }}
+                        rowSpan={Math.max(group.branches.length, 1)}
                       >
-                        <th
-                          style={{ display: index === 0 ? undefined : "none" }}
-                          rowSpan={Math.max(group.branches.length, 1)}
-                        >
-                          <BranchNameDisplay branch={group} />
-                        </th>
-                        {branch ? (
-                          <td>
-                            {branch.name} ({branch.commit.substr(0, 7)})
-                          </td>
-                        ) : (
-                          <td>(Branch not created)</td>
-                        )}
-                      </tr>
-                    ))
-                  )}
+                        <BranchNameDisplay branch={group} />
+                      </th>
+                      {branch ? (
+                        <td>
+                          {branch.name} ({branch.commit.substr(0, 7)})
+                        </td>
+                      ) : (
+                        <td>(Branch not created)</td>
+                      )}
+                    </tr>
+                  ))}
                 </>
               ))
               .asComponent()}
