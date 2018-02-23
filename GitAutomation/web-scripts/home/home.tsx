@@ -9,13 +9,13 @@ import {
   forceRefreshBranchGroups
 } from "../api/basics";
 import { branchHierarchy } from "./branch-hierarchy";
-import { flatten, sortBy } from "../utils/ramda";
+import { flatten } from "../utils/ramda";
 
 import { style } from "typestyle";
-// import { secured } from "../security/security-binding";
 import { handleError } from "../handle-error";
 import { RxD3 } from "../utils/rxjs-d3-component";
 import { BranchNameDisplay } from "../branch-name-display";
+import { sortBranches } from "../utils/branch-sorting";
 
 const remoteBranchesTableLayout = style({
   borderCollapse: "collapse",
@@ -68,7 +68,7 @@ export class Homepage extends ContextComponent<{}> {
             {allBranchGroups
               .map(groups =>
                 flatten(
-                  sortBy(group => group.groupName, groups).map(group => {
+                  sortBranches(groups).map(group => {
                     const atLeastOneRow: (GitAutomationGQL.IGitRef | null)[] =
                       group.branches.length > 0 ? group.branches : [null];
                     return atLeastOneRow.map(
