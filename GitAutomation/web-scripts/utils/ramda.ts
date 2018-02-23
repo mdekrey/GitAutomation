@@ -15,6 +15,8 @@ export const intersection: R["intersection"] = require("ramda/src/intersection")
 export const mapObjIndexed: R["mapObjIndexed"] = require("ramda/src/mapObjIndexed");
 export const merge: R["merge"] = require("ramda/src/merge");
 export const sortBy: R["sortBy"] = require("ramda/src/sortBy");
+export const ascend: R["ascend"] = require("ramda/src/ascend");
+export const sortWith: R["sortWith"] = require("ramda/src/sortWith");
 export const take: R["take"] = require("ramda/src/take");
 export const toPairs: R["toPairs"] = require("ramda/src/toPairs");
 export const values: <T>(
