@@ -3,6 +3,7 @@ import { BranchNameDisplay } from "../branch-name-display";
 import { StatelessObservableComponent } from "../utils/rxjs-component";
 import { style } from "typestyle";
 import produce from "immer";
+import { sortBranches } from "../utils/branch-sorting";
 
 export interface IBranchData {
   groupName: string;
@@ -66,7 +67,7 @@ export const BranchCheckListing = ({
   onUpstreamToggled
 }: IBranchCheckListingProps) => (
   <>
-    {branches.map(data => (
+    {sortBranches(branches).map(data => (
       <tr key={data.groupName}>
         <td className={manageStyle.branchName}>
           <BranchNameDisplay branch={data} />
