@@ -4,6 +4,7 @@ import { style, types } from "typestyle";
 import { linkStyle } from "../style/global";
 import { black } from "csx";
 import { application } from "../api/basics";
+import { ContextComponent } from "../utils/routing-component";
 
 type ScaffoldingPart = Selection<HTMLElement, {}, null, undefined>;
 
@@ -90,7 +91,7 @@ export interface ScaffoldingResult {
   menu: ScaffoldingPart;
 }
 
-export class Scaffolding extends React.PureComponent<
+export class Scaffolding extends ContextComponent<
   { menu: JSX.Element },
   never
 > {
@@ -106,11 +107,16 @@ export class Scaffolding extends React.PureComponent<
             {application.map(app => <>{app.title}</>).asComponent()}
           </h1>
           <section data-locator="menu" className={menuStyle.menuContainer}>
-            <input
-              type="checkbox"
-              id="menu-expander"
-              className={menuStyle.menuExpander}
-            />
+            {this.context.injector.services.routingStrategy
+              .map(s => (
+                <input
+                  key={s.state.componentPath + "/" + s.state.remainingPath}
+                  type="checkbox"
+                  id="menu-expander"
+                  className={menuStyle.menuExpander}
+                />
+              ))
+              .asComponent()}
             <label
               data-locator="menu-anchor"
               className={menuStyle.menuLink}
@@ -127,12 +133,16 @@ export class Scaffolding extends React.PureComponent<
             </label>
           </section>
         </header>
-        <section
-          data-locator="body-contents"
-          className={menuStyle.bodyContents}
-        >
-          {this.props.children}
-        </section>
+        {this.context.injector.services.routingStrategy
+          .map(s => (
+            <section
+              key={s.state.componentPath + "/" + s.state.remainingPath}
+              className={menuStyle.bodyContents}
+            >
+              {this.props.children}
+            </section>
+          ))
+          .asComponent()}
       </>
     );
   }
