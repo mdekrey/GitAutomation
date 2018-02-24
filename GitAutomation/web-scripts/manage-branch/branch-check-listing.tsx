@@ -28,6 +28,18 @@ export interface IBranchCheckListingProps {
 }
 
 const manageStyle = {
+  prListing: style({
+    margin: 0,
+    padding: 0,
+    listStyle: "none"
+  }),
+  separator: style({
+    $nest: {
+      "&::after": {
+        content: JSON.stringify(": ")
+      }
+    }
+  }),
   rotateHeader: style({
     height: "100px",
     whiteSpace: "nowrap",
@@ -93,7 +105,44 @@ export const BranchCheckListing = ({
           />
         </td>
         <td>
-          <ul data-locator="pr-status" />
+          <ul className={manageStyle.prListing}>
+            {data.pullRequests &&
+              data.pullRequests.map(pr => (
+                <li key={pr.id}>
+                  <span data-locator="reviews">
+                    {pr.reviews.map(review => (
+                      <a key={review.url} href={review.url} target="_blank">
+                        {review.state === "Approved" ? (
+                          <img
+                            alt="Approved"
+                            className="text-image"
+                            src={require("../images/green-check.svg")}
+                          />
+                        ) : review.state === "ChangesRequested" ? (
+                          <img
+                            alt="Rejected"
+                            className="text-image"
+                            src={require("../images/red-x.svg")}
+                          />
+                        ) : (
+                          <img
+                            alt="Comment Only"
+                            className="text-image"
+                            src={require("../images/question-mark.svg")}
+                          />
+                        )}
+                      </a>
+                    ))}
+                  </span>
+                  {pr.reviews.length ? (
+                    <span className={manageStyle.separator} />
+                  ) : null}
+                  <a href={pr.url} target="_blank">{`${pr.state} PR #${
+                    pr.id
+                  }`}</a>
+                </li>
+              ))}
+          </ul>
         </td>
       </tr>
     ))}
