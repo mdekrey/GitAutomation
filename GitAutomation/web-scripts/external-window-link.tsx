@@ -6,7 +6,7 @@ const linkDisplayStyle = {
     style({
       verticalAlign: "super",
       fontSize: "0.8em",
-      marginLeft: "-0.3em"
+      marginLeft: "0.1em"
     }),
     "normal"
   )
@@ -24,12 +24,7 @@ export class ExternalLink extends React.PureComponent<
       return null;
     }
     return (
-      <a
-        target="_blank"
-        data-locator="external-link"
-        className={linkDisplayStyle.newWindowLink}
-        href={url}
-      >
+      <a target="_blank" className={linkDisplayStyle.newWindowLink} href={url}>
         <img
           alt="Open in New Window"
           className="text-image"
