@@ -33,6 +33,10 @@ function findActualBranch<P extends keyof GitAutomationGQL.IGitRef>(
   return undefined;
 }
 
+function findStatuses(data: DisplayableBranch) {
+  return findActualBranch(data, "statuses") || [];
+}
+
 export interface IBranchNameDisplayProps {
   branch: DisplayableBranch;
 }
@@ -45,7 +49,6 @@ export class BranchNameDisplay extends ContextComponent<
     return (
       <span onMouseEnter={this.beginHover} onMouseLeave={this.endHover}>
         <a
-          data-locator="name"
           style={{
             color: branch.branchType
               ? branchTypeColors[branch.branchType][0].toHexString()
@@ -58,10 +61,37 @@ export class BranchNameDisplay extends ContextComponent<
         >
           {branch.groupName}
         </a>
-        <span data-locator="external-window">
-          <ExternalLink url={findActualBranch(branch, "url")} />
+        <ExternalLink url={findActualBranch(branch, "url")} />
+        <span data-locator="status">
+          {findStatuses(branch).map(status => (
+            <a
+              target="_blank"
+              href={status.url}
+              key={status.key}
+              title={`${status.key} - ${status.description}`}
+            >
+              {status.state === "Success" ? (
+                <img
+                  alt="Build Successful"
+                  className="text-image"
+                  src={require("./images/green-check.svg")}
+                />
+              ) : status.state === "Error" ? (
+                <img
+                  alt="Build Error"
+                  className="text-image"
+                  src={require("./images/red-x.svg")}
+                />
+              ) : (
+                <img
+                  alt="Build Pending"
+                  className="text-image"
+                  src={require("./images/question-mark.svg")}
+                />
+              )}
+            </a>
+          ))}
         </span>
-        <span data-locator="status" />
       </span>
     );
   }
