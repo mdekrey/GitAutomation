@@ -158,7 +158,10 @@ export const allBranchGroups = forceRefreshBranchGroups
                 key
                 url
               }
-              isBad
+              badInfo {
+                reasonCode
+                timestamp
+              }
               pullRequestsInto {
                 id
                 targetBranch
@@ -242,6 +245,10 @@ export const branchDetails = (branchName: string) =>
             }
             latestBranch {
               name
+              badInfo {
+                reasonCode
+                timestamp
+              }
             }
             branches {
               name

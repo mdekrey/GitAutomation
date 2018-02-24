@@ -319,14 +319,14 @@ namespace GitAutomation
             actions.CheckForUpdatesOnBranch(branchName);
         }
 
-        public void FlagBadGitRef(string branch, string commit)
+        public void FlagBadGitRef(string branch, string commit, string reasonCode, DateTimeOffset? timestamp = null)
         {
-            repositoryState.FlagBadGitRef(new GitRef { Name = branch, Commit = commit });
+            repositoryState.FlagBadGitRef(new GitRef { Name = branch, Commit = commit }, reasonCode, timestamp);
         }
 
-        public Task<bool> IsBadBranch(string branch)
+        public Task<BadBranchInfo> GetBadBranchInfo(string branch)
         {
-            return repositoryState.IsBadBranch(branch);
+            return repositoryState.GetBadBranchInfo(branch);
         }
 
         public Task<bool?> CanMerge(string branchNameA, string branchNameB)

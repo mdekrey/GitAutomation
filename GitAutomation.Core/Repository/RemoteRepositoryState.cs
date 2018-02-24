@@ -20,7 +20,7 @@ namespace GitAutomation.Repository
     class RemoteRepositoryState : IRemoteRepositoryState
     {
         private readonly IEnumerable<ILocalRepositoryState> localRepositories;
-        private readonly ConcurrentDictionary<string, string> badBranchCommits = new ConcurrentDictionary<string, string>();
+        private readonly ConcurrentDictionary<string, BadBranchInfo> badBranchCommits = new ConcurrentDictionary<string, BadBranchInfo>();
         private readonly ConcurrentDictionary<Tuple<string, string>, bool> canMerge = new ConcurrentDictionary<Tuple<string, string>, bool>();
 
         public RemoteRepositoryState(IEnumerable<ILocalRepositoryState> localRepositories)
@@ -73,28 +73,35 @@ namespace GitAutomation.Repository
             return localRepositories.First().MergeBaseBetween(branchName1, branchName2);
         }
 
-        public void FlagBadGitRef(GitRef target)
+        public void FlagBadGitRef(GitRef target, string reasonCode, DateTimeOffset? timestamp = null)
         {
-            badBranchCommits.AddOrUpdate(target.Name, target.Commit, (_1, _2) => target.Commit);
+            var info = new BadBranchInfo
+            {
+                Commit = target.Commit,
+                ReasonCode = reasonCode,
+                Timestamp = timestamp ?? DateTimeOffset.Now,
+            };
+            badBranchCommits.AddOrUpdate(target.Name, info, (_1, _2) => info);
         }
 
-        public async Task<bool> IsBadBranch(string branchName)
+        public async Task<BadBranchInfo> GetBadBranchInfo(string branchName)
         {
-            if (!badBranchCommits.TryGetValue(branchName, out var badCommit))
+            if (!badBranchCommits.TryGetValue(branchName, out var badInfo))
             {
-                return false;
+                return null;
             }
-            if (badCommit == null)
+            if (badInfo == null)
             {
-                return false;
+                return null;
             }
             var branches = await RemoteBranches().Take(1);
             var branch = branches.FirstOrDefault(b => b.Name == branchName);
-            if (branch.Commit != badCommit)
+            if (branch.Commit != badInfo.Commit)
             {
-                return !badBranchCommits.TryUpdate(branchName, null, badCommit);
+                badBranchCommits.TryUpdate(branchName, null, badInfo);
+                return null;
             }
-            return true;
+            return badInfo;
         }
 
         private async Task<Tuple<string, string>> GetMergeTuple(string branchNameA, string branchNameB)

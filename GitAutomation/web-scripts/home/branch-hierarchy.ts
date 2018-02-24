@@ -163,8 +163,8 @@ const conflictedHierarchyStyle: HierarchyStyleEntry = {
       const latestBranch = temp.branches.find(
         b => b.name === temp.latestBranch!.name
       );
-      if (latestBranch && latestBranch.isBad) {
-        return latestBranch.isBad;
+      if (latestBranch && latestBranch.badInfo) {
+        return Boolean(latestBranch.badInfo);
       }
     }
     return false;

@@ -13,7 +13,7 @@ export interface IManageBranch {
   branchType: GitAutomationGQL.IBranchGroupDetails["branchType"];
   otherBranches: IBranchData[];
   branches: Pick<GitAutomationGQL.IGitRef, "name" | "commit" | "url">[];
-  latestBranch: { name: string } | null;
+  latestBranch: Pick<GitAutomationGQL.IGitRef, "name" | "badInfo"> | null;
 }
 
 export function runBranchData(branchName: string, reload: Observable<any>) {

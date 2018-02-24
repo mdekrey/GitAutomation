@@ -1,4 +1,5 @@
 import * as React from "react";
+import { style } from "typestyle";
 import { Observable, BehaviorSubject } from "../utils/rxjs";
 
 import { ContextComponent } from "../utils/routing-component";
@@ -30,6 +31,15 @@ import { ActualBranchDisplay } from "./actual-branch-display";
 import { ReleaseToServiceLine } from "./release-to-service-line";
 import { ConsolidateMerged } from "./consolidate-merged";
 import { equals } from "../utils/ramda";
+
+const badInfoStyle = style({
+  backgroundColor: "#880000",
+  color: "white",
+  display: "inline-block",
+  borderRadius: "1em",
+  fontSize: "1.4rem",
+  padding: "0 0.7em"
+});
 
 export class ManageBranch extends ContextComponent {
   render() {
@@ -141,6 +151,22 @@ class ManageBranchInputed extends StatelessObservableComponent<
             .map(b => <BranchNameDisplay branch={b} />)
             .asComponent()}
         </h1>
+
+        {this.allBranchData
+          .map(b => b.latestBranch && b.latestBranch.badInfo)
+          .map(
+            badInfo =>
+              badInfo ? (
+                <div className={badInfoStyle}>
+                  {badInfo.reasonCode === "Other"
+                    ? "Could not open a pull request. Check upstream branches."
+                    : badInfo.reasonCode === "PullRequestOpen"
+                      ? "A pull request is open to resolve conflicts"
+                      : `Unknown error (${badInfo.reasonCode})`}
+                </div>
+              ) : null
+          )
+          .asComponent()}
 
         <h3>Settings</h3>
         {this.branchSettings

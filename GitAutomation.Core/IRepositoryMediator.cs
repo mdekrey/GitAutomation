@@ -29,8 +29,11 @@ namespace GitAutomation
         IObservable<ImmutableList<string>> RecommendNewGroups();
         void CheckForUpdates();
         void CheckForUpdatesOnBranch(string branchName);
-        void FlagBadGitRef(string branch, string commit);
-        Task<bool> IsBadBranch(string branch);
+        /// <summary>
+        /// Flag a given gitref as being "bad" until it is updated.
+        /// </summary>
+        void FlagBadGitRef(string branch, string commit, string reasonCode, DateTimeOffset? timestamp = null);
+        Task<Repository.BadBranchInfo> GetBadBranchInfo(string branchName);
         Task<bool?> CanMerge(string branchNameA, string branchNameB);
         Task MarkCanMerge(string branchNameA, string branchNameB, bool canMerge);
     }

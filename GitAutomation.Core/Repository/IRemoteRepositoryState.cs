@@ -19,8 +19,8 @@ namespace GitAutomation.Repository
         /// Flag a given gitref as being "bad" until it is updated.
         /// </summary>
         /// <param name="target">The target git ref</param>
-        void FlagBadGitRef(GitRef target);
-        Task<bool> IsBadBranch(string branchName);
+        void FlagBadGitRef(GitRef target, string reasonCode, DateTimeOffset? timestamp = null);
+        Task<BadBranchInfo> GetBadBranchInfo(string branchName);
 
         Task<bool?> CanMerge(string branchNameA, string branchNameB);
         Task MarkCanMerge(string branchNameA, string branchNameB, bool canMerge);

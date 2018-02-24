@@ -22,7 +22,7 @@ namespace GitAutomation.GraphQL
                 .Name("url")
                 .Resolve(this, nameof(BranchUrl));
 
-            Field<NonNullGraphType<StringGraphType>>()
+            Field<StringGraphType>()
                 .Name("mergeBase")
                 .Argument<NonNullGraphType<StringGraphType>>("commitish", "target of the merge base")
                 .Argument<NonNullGraphType<CommitishKindTypeEnum>>("kind", "the type of 'commitish'")
@@ -34,7 +34,12 @@ namespace GitAutomation.GraphQL
 
             Field<NonNullGraphType<BooleanGraphType>>()
                 .Name("isBad")
+                .DeprecationReason("Use `badInfo`")
                 .Resolve(this, nameof(IsBad));
+
+            Field<BadBranchInfoGraphType>()
+                .Name("badInfo")
+                .Resolve(this, nameof(GetBadBranchInfo));
 
             Field<NonNullGraphType<ListGraphType<PullRequestInterface>>>()
                 .Name("pullRequestsInto")
@@ -67,6 +72,11 @@ namespace GitAutomation.GraphQL
         private Task<bool> IsBad([Source] GitRef gitRef, [FromServices] IRepositoryMediator repository)
         {
             return repository.IsBadBranch(gitRef.Name);
+        }
+
+        private Task<BadBranchInfo> GetBadBranchInfo([Source] GitRef gitRef, [FromServices] IRepositoryMediator repository)
+        {
+            return repository.GetBadBranchInfo(gitRef.Name);
         }
 
         private Task<string> BranchUrl([Source] GitRef gitRef, [FromServices] IGitServiceApi gitApi)

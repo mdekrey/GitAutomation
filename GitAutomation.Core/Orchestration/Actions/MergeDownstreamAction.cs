@@ -274,7 +274,8 @@ namespace GitAutomation.Orchestration.Actions
 
                 if (!createdIntegrationBranch.HasValue || createdIntegrationBranch.Value.NeedsPullRequest())
                 {
-                    repository.FlagBadGitRef(downstreamBranch, await cli.ShowRef(downstreamBranch).FirstOutputMessage());
+                    repository.FlagBadGitRef(downstreamBranch, await cli.ShowRef(downstreamBranch).FirstOutputMessage(),
+                        !createdIntegrationBranch.HasValue ? "PullRequestOpen" : "Other");
                     if (await gitServiceApi.HasOpenPullRequest(targetBranch: downstreamBranch, sourceBranch: upstreamBranch.BranchName))
                     {
                         return new MergeStatus { HadConflicts = true, Resolution = MergeConflictResolution.PendingPullRequest };
