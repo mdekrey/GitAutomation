@@ -24,7 +24,7 @@ namespace GitAutomation.Repository
             var remainingB = string.Join("/", branchBParts.Skip(sharedParts.Length));
             var shared = string.Join("/", sharedParts);
             var ideal = string.Join("/", new[] { "merge", shared, remainingA, remainingB }.Where(v => !string.IsNullOrEmpty(v)));
-            var maxLength = ideal.Substring(0, Math.Min(100, ideal.Length));
+            var maxLength = ideal.Substring(0, Math.Min(100, ideal.Length)).TrimEnd('/');
             return iterationNaming.GetBranchNameIterations(maxLength, Enumerable.Empty<string>()).Select(n => n != maxLength ? n + "/conflict" : n);
         }
     }
