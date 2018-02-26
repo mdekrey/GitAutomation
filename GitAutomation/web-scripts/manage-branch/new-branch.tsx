@@ -10,6 +10,7 @@ import { RxD3 } from "../utils/rxjs-d3-component";
 import { handleError } from "../handle-error";
 import { BranchSettings, IBranchSettingsData } from "./branch-settings";
 import { fromBranchDataToGraph } from "./data";
+import { Secured } from "../security/security-binding";
 
 export class NewBranch extends ContextComponent {
   private readonly branchData = new BehaviorSubject<IBranchData[]>([]);
@@ -81,9 +82,11 @@ export class NewBranch extends ContextComponent {
         <button type="button" onClick={this.goHome}>
           Cancel
         </button>
-        <button type="button" onClick={this.save}>
-          Save
-        </button>
+        <Secured roleNames={["create", "administrate"]}>
+          <button type="button" onClick={this.save}>
+            Save
+          </button>
+        </Secured>
       </>
     );
   }

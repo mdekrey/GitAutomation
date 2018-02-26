@@ -30,6 +30,7 @@ import { ActualBranchDisplay } from "./actual-branch-display";
 import { ReleaseToServiceLine } from "./release-to-service-line";
 import { ConsolidateMerged } from "./consolidate-merged";
 import { equals } from "../utils/ramda";
+import { Secured } from "../security/security-binding";
 
 export class ManageBranch extends ContextComponent {
   render() {
@@ -222,9 +223,11 @@ class ManageBranchInputed extends StatelessObservableComponent<
         <button type="button" onClick={this.goHome}>
           Cancel
         </button>
-        <button type="button" onClick={this.save}>
-          Save
-        </button>
+        <Secured roleNames={["update", "administrate"]}>
+          <button type="button" onClick={this.save}>
+            Save
+          </button>
+        </Secured>
 
         {this.allBranchData
           .map(b => b.branches)
