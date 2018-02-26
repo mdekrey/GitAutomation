@@ -58,6 +58,7 @@ namespace GitAutomation.Orchestration.Actions
             private readonly Task<string> latestBranchName;
             private readonly Task<IMergeStrategy> strategyTask;
             private readonly bool isReadOnly;
+            private readonly IUnitOfWorkFactory workFactory;
 
             private BranchGroupCompleteData Details => detailsTask.Result;
             private string LatestBranchName => latestBranchName.Result;
@@ -76,6 +77,7 @@ namespace GitAutomation.Orchestration.Actions
                 this.latestBranchName = detailsTask.ContinueWith(task => repository.LatestBranchName(task.Result).FirstOrDefaultAsync().ToTask()).Unwrap();
                 this.strategyTask = detailsTask.ContinueWith(task => strategyManager.GetMergeStrategy(task.Result));
                 this.isReadOnly = options.Value.ReadOnly;
+                this.workFactory = workFactory;
             }
 
             protected override async Task RunProcess()
@@ -88,6 +90,18 @@ namespace GitAutomation.Orchestration.Actions
                 await detailsTask;
                 await latestBranchName;
 
+                using (var work = workFactory.CreateUnitOfWork())
+                {
+                    if (await repository.AddAdditionalIntegrationBranches(Details, work))
+                    {
+                        await work.CommitAsync();
+                        // abort, but queue another attempt
+#pragma warning disable CS4014
+                        orchestration.EnqueueAction(new MergeDownstreamAction(downstreamBranchGroup), skipDuplicateCheck: true);
+#pragma warning restore
+                        return;
+                    }
+                }
                 var allConfigured = await repository.GetConfiguredBranchGroups().FirstOrDefaultAsync();
                 var upstreamBranches = (await ToUpstreamBranchNames(Details.DirectUpstreamBranchGroups.Select(groupName => allConfigured.Find(g => g.GroupName == groupName)).ToImmutableList())).ToImmutableList();
                 var needsCreate = await Strategy.NeedsCreate(LatestBranchName, upstreamBranches);

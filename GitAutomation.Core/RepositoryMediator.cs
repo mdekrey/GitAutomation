@@ -342,5 +342,21 @@ namespace GitAutomation
         {
             return repositoryState.MarkCanMerge(branchNameA, branchNameB, canMerge);
         }
+
+        public async Task<bool> AddAdditionalIntegrationBranches(BranchGroupCompleteData details, IUnitOfWork unitOfWork)
+        {
+            var branches = await branchSettings.GetIntegrationBranches(details.UpstreamBranchGroups);
+            var toAdd = branches.Except(details.UpstreamBranchGroups).Except(new [] { details.GroupName }).ToImmutableList();
+            if (toAdd.Any())
+            {
+                foreach (var upstreamBranch in toAdd)
+                {
+                    branchSettings.AddBranchPropagation(upstreamBranch, details.GroupName, unitOfWork);
+                }
+                return true;
+            }
+            return false;
+        }
+
     }
 }

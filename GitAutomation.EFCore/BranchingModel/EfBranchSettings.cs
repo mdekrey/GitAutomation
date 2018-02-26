@@ -264,6 +264,21 @@ namespace GitAutomation.EFCore.BranchingModel
             });
         }
 
+        public async Task<ImmutableList<string>> GetIntegrationBranches(ImmutableList<string> branches)
+        {
+
+            var allIntegrationBranches = await WithContext(context =>
+            {
+                return (from integrationBranch in context.BranchGroup.AsNoTracking()
+                        where integrationBranch.BranchType == BranchGroupType.Integration.ToString("g")
+                           && integrationBranch.UpstreamBranchConnections.Any(bs => branches.Contains(bs.UpstreamBranch))
+                        select integrationBranch).Include(b => b.UpstreamBranchConnections).ToArrayAsync();
+            });
+            return (from result in allIntegrationBranches
+                    where result.UpstreamBranchConnections.All(bs => branches.Contains(bs.UpstreamBranch))
+                    select result.GroupName).ToImmutableList();
+        }
+
 
         private Func<BranchingContext, Task<ImmutableList<string>>> GetAllUpstreamRemovableBranchesOnce(string branchName)
         {

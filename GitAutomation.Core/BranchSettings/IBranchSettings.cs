@@ -20,6 +20,7 @@ namespace GitAutomation.BranchSettings
         IObservable<ImmutableList<BranchGroup>> GetAllUpstreamBranches(string branchName);
         IObservable<ImmutableList<string>> GetAllUpstreamRemovableBranches(string branchName);
         Task<string> GetIntegrationBranch(string branchA, string branchB);
+        Task<ImmutableList<string>> GetIntegrationBranches(ImmutableList<string> upstreamBranchGroups);
 
         void UpdateBranchSetting(string branchName, UpstreamMergePolicy upstreamMergePolicy, BranchGroupType branchType, Work.IUnitOfWork work);
         void AddBranchPropagation(string upstreamBranch, string downstreamBranch, Work.IUnitOfWork work);

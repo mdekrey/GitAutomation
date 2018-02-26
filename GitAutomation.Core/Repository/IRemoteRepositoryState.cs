@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using GitAutomation.Orchestration;
+using GitAutomation.BranchSettings;
 
 namespace GitAutomation.Repository
 {

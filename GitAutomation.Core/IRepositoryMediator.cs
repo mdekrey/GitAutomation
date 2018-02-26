@@ -37,5 +37,8 @@ namespace GitAutomation
         Task ResetBadBranchStatus(string branchName);
         Task<bool?> CanMerge(string branchNameA, string branchNameB);
         Task MarkCanMerge(string branchNameA, string branchNameB, bool canMerge);
+
+        /// <returns>True if new branches were added, otherwise false.</returns>
+        Task<bool> AddAdditionalIntegrationBranches(BranchGroupCompleteData details, IUnitOfWork unitOfWork);
     }
 }
