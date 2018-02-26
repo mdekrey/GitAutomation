@@ -104,6 +104,13 @@ namespace GitAutomation.Repository
             return badInfo;
         }
 
+        public Task ResetBadBranchStatus(string branchName)
+        {
+            badBranchCommits.TryRemove(branchName, out var badBranchInfo);
+            return Task.CompletedTask;
+        }
+
+
         private async Task<Tuple<string, string>> GetMergeTuple(string branchNameA, string branchNameB)
         {
             var branches = await RemoteBranches().Take(1);

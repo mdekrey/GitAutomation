@@ -21,6 +21,7 @@ namespace GitAutomation.Repository
         /// <param name="target">The target git ref</param>
         void FlagBadGitRef(GitRef target, string reasonCode, DateTimeOffset? timestamp = null);
         Task<BadBranchInfo> GetBadBranchInfo(string branchName);
+        Task ResetBadBranchStatus(string branchName);
 
         Task<bool?> CanMerge(string branchNameA, string branchNameB);
         Task MarkCanMerge(string branchNameA, string branchNameB, bool canMerge);
@@ -36,6 +37,5 @@ namespace GitAutomation.Repository
         /// <param name="revision">The new revision. If null, the branch was deleted.</param>
         /// <param name="beforeRef">The old revision. If null, the branch was created. If this doesn't match what we have locally, something is out of date; we need to do a full refresh.</param>
         Task BranchUpdated(string branchName, string revision, string beforeRef);
-        
     }
 }

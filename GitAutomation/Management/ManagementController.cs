@@ -111,7 +111,17 @@ namespace GitAutomation.Management
 #pragma warning restore CS4014
             }
         }
-        
+
+        [Authorize(Auth.PolicyNames.Update)]
+        [HttpPut("branch/recheck/{*branchName}")]
+        public async Task ClearBadBranchStatus(string branchName, [FromServices] IOrchestrationActions orchestrationActions, [FromServices] IRepositoryMediator repository)
+        {
+            await repository.ResetBadBranchStatus(branchName);
+#pragma warning disable CS4014
+            orchestrationActions.CheckDownstreamMerges(branchName);
+#pragma warning restore CS4014
+        }
+
         [Authorize(Auth.PolicyNames.Approve)]
         [HttpPut("branch/promote")]
         public void PromoteServiceLine([FromBody] PromoteServiceLineBody requestBody, [FromServices] IOrchestrationActions orchestrationActions)

@@ -398,6 +398,11 @@ export const updateBranch = (
     })
     .map(response => response.response as null);
 
+export const clearBadBranchStatus = (branchName: string) =>
+  Observable.ajax
+    .put("/api/management/branch/recheck/" + branchName)
+    .map(response => response.response as null);
+
 export const promoteServiceLine = (body: {
   releaseCandidate: string;
   serviceLine: string;

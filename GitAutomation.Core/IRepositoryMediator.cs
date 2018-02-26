@@ -34,6 +34,7 @@ namespace GitAutomation
         /// </summary>
         void FlagBadGitRef(string branch, string commit, string reasonCode, DateTimeOffset? timestamp = null);
         Task<Repository.BadBranchInfo> GetBadBranchInfo(string branchName);
+        Task ResetBadBranchStatus(string branchName);
         Task<bool?> CanMerge(string branchNameA, string branchNameB);
         Task MarkCanMerge(string branchNameA, string branchNameB, bool canMerge);
     }

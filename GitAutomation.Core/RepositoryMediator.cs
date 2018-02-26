@@ -329,6 +329,11 @@ namespace GitAutomation
             return repositoryState.GetBadBranchInfo(branch);
         }
 
+        public Task ResetBadBranchStatus(string branchName)
+        {
+            return repositoryState.ResetBadBranchStatus(branchName);
+        }
+
         public Task<bool?> CanMerge(string branchNameA, string branchNameB)
         {
             return repositoryState.CanMerge(branchNameA, branchNameB);

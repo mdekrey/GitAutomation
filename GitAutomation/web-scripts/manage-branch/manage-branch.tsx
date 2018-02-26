@@ -22,7 +22,8 @@ import {
   forceRefreshBranchGroups,
   detectUpstream,
   deleteBranch,
-  deleteBranchByMode
+  deleteBranchByMode,
+  clearBadBranchStatus
 } from "../api/basics";
 import { BranchNameDisplay } from "../branch-name-display";
 import { StatelessObservableComponent } from "../utils/rxjs-component";
@@ -158,13 +159,20 @@ class ManageBranchInputed extends StatelessObservableComponent<
           .map(
             badInfo =>
               badInfo ? (
-                <div className={badInfoStyle}>
-                  {badInfo.reasonCode === "Other"
-                    ? "Could not open a pull request. Check upstream branches."
-                    : badInfo.reasonCode === "PullRequestOpen"
-                      ? "A pull request is open to resolve conflicts"
-                      : `Unknown error (${badInfo.reasonCode})`}
-                </div>
+                <>
+                  <div className={badInfoStyle}>
+                    {badInfo.reasonCode === "Other"
+                      ? "Could not open a pull request. Check upstream branches."
+                      : badInfo.reasonCode === "PullRequestOpen"
+                        ? "A pull request is open to resolve conflicts"
+                        : `Unknown error (${badInfo.reasonCode})`}
+                  </div>{" "}
+                  <Secured roleNames={["update", "administrate"]}>
+                    <button type="button" onClick={this.clearBadBranch}>
+                      Recheck
+                    </button>
+                  </Secured>
+                </>
               ) : null
           )
           .asComponent()}
@@ -340,5 +348,10 @@ class ManageBranchInputed extends StatelessObservableComponent<
     deleteBranchByMode(this.props.branchName, "GroupOnly")
       .let(handleError)
       .subscribe(this.goHome);
+  };
+  clearBadBranch = () => {
+    clearBadBranchStatus(this.props.branchName)
+      .let(handleError)
+      .subscribe(v => this.reset.next(null));
   };
 }
