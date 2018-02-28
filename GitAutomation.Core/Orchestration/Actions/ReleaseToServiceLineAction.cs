@@ -107,7 +107,10 @@ namespace GitAutomation.Orchestration.Actions
                 }
                 else
                 {
-                    await AppendProcess(cli.AnnotatedTag(tagName, $"Automated release to service line {serviceLineBranch} from {releaseCandidateBranch}")).WaitUntilComplete();
+                    if (!string.IsNullOrEmpty(tagName))
+                    {
+                        await AppendProcess(cli.AnnotatedTag(tagName, $"Automated release to service line {serviceLineBranch} from {releaseCandidateBranch}")).WaitUntilComplete();
+                    }
 
                     var serviceLine = await settings.GetBranchBasicDetails(serviceLineBranch).FirstOrDefaultAsync();
                     // possible TODO for the future: give option to add missing upstream lines always
@@ -140,7 +143,10 @@ namespace GitAutomation.Orchestration.Actions
 #pragma warning restore
                     }
 
-                    await AppendProcess(cli.Push(tagName)).WaitUntilComplete();
+                    if (!string.IsNullOrEmpty(tagName))
+                    {
+                        await AppendProcess(cli.Push(tagName)).WaitUntilComplete();
+                    }
 
                     await AppendProcess(cli.Push(serviceLineBranch)).WaitUntilComplete();
                 }
