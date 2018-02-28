@@ -250,18 +250,24 @@ namespace GitAutomation.EFCore.BranchingModel
                 .SelectMany(_ => WithContext(GetAllUpstreamRemovableBranchesOnce(branchName)));
         }
 
-        public Task<string> GetIntegrationBranch(string branchA, string branchB)
+        public async Task<string> FindIntegrationBranchForConflict(string branchA, string branchB, ImmutableList<string> upstreamBranchGroups)
         {
-            var branches = new[] { branchA, branchB }.OrderBy(a => a).ToArray();
-            return WithContext(context =>
+            var possibleIntegrationBranches = await WithContext(context =>
             {
-                return (from integrationBranch in context.BranchGroup
+                return (from integrationBranch in context.BranchGroup.AsNoTracking()
                         where integrationBranch.BranchType == BranchGroupType.Integration.ToString("g")
-                           && integrationBranch.UpstreamBranchConnections.Any(bs => bs.UpstreamBranch == branches[0])
-                           && integrationBranch.UpstreamBranchConnections.Any(bs => bs.UpstreamBranch == branches[1])
-                           && integrationBranch.UpstreamBranchConnections.Count == 2
-                        select integrationBranch.GroupName).FirstOrDefaultAsync();
+                           && integrationBranch.UpstreamBranchConnections.Any(bs => bs.UpstreamBranch == branchA)
+                           && integrationBranch.UpstreamBranchConnections.Any(bs => bs.UpstreamBranch == branchB)
+                        select integrationBranch).Include(b => b.UpstreamBranchConnections).ToArrayAsync();
             });
+
+            // Find the integration branch that has the most in common with what we already have. Not necessary really since it'll automatically be picked up anyway
+            // Note that it won't pick up an integration branch that includes an integration branch we don't yet (but should) have, as that should be handled
+            // by a AddAdditionalIntegrationBranches call.
+            return (from b in possibleIntegrationBranches
+                    where b.UpstreamBranchConnections.All(upstream => upstreamBranchGroups.Contains(upstream.UpstreamBranch))
+                    orderby b.UpstreamBranchConnections.Count descending
+                    select b.GroupName).FirstOrDefault();
         }
 
         public async Task<ImmutableList<string>> GetIntegrationBranches(ImmutableList<string> branches)

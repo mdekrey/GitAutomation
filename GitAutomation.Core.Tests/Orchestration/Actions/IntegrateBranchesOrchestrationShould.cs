@@ -313,7 +313,7 @@ namespace GitAutomation.Orchestration.Actions
             setup.settingsMock.Setup(settings => settings.GetUpstreamBranches("ServiceLine")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
             setup.settingsMock.Setup(settings => settings.GetAllUpstreamBranches("ServiceLine")).Returns(Observable.Return(ImmutableList<BranchGroup>.Empty));
             setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("B", "ServiceLine", It.IsAny<string>())).Returns(Task.FromResult(false));
-            setup.settingsMock.Setup(settings => settings.GetIntegrationBranch("B", "ServiceLine")).ReturnsAsync("Integ");
+            setup.settingsMock.Setup(settings => settings.FindIntegrationBranchForConflict("B", "ServiceLine", It.IsAny<ImmutableList<string>>())).ReturnsAsync("Integ");
             setup.settingsMock.Setup(settings => settings.AddBranchPropagation("Integ", "B", It.IsAny<IUnitOfWork>())).Verifiable();
             setup.settingsMock.Setup(settings => settings.RemoveBranchPropagation("B", "Integ", It.IsAny<IUnitOfWork>())).Verifiable();
             setup.orchestrationMock.Setup(orchestration => orchestration.EnqueueAction(It.Is<MergeDownstreamAction>(a => a.DownstreamBranch == "B"), false)).Verifiable();
@@ -559,7 +559,7 @@ namespace GitAutomation.Orchestration.Actions
             setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("B", "Integ-AB", It.IsAny<string>())).Returns(Task.FromResult(true));
             setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("B", "C-from-A", It.IsAny<string>())).Returns(Task.FromResult(false));
             setup.AttemptMergeMock.Setup(t => t.AttemptMergeDelegate("C-from-A", "Integ-AB", It.IsAny<string>())).Returns(Task.FromResult(true));
-            setup.settingsMock.Setup(settings => settings.GetIntegrationBranch("A", "B")).ReturnsAsync("Integ-AB");
+            setup.settingsMock.Setup(settings => settings.FindIntegrationBranchForConflict("A", "B", It.IsAny<ImmutableList<string>>())).ReturnsAsync("Integ-AB");
 
             var result = await setup.Target.FindAndCreateIntegrationBranches(new BranchGroupCompleteData
             {

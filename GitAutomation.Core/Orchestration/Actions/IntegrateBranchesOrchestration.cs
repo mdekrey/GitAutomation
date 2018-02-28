@@ -142,7 +142,7 @@ namespace GitAutomation.Orchestration.Actions
                     return new IntegrationBranchResult { PendingUpdates = true };
                 }
             }
-
+            
             var result = await FindConflicts(downstreamDetails.GroupName, initialUpstreamBranchGroups, doMerge);
             if (result.PendingUpdates)
             {
@@ -154,7 +154,13 @@ namespace GitAutomation.Orchestration.Actions
             {
                 foreach (var conflict in result.Conflicts)
                 {
-                    var integrationBranch = await settings.GetIntegrationBranch(conflict.BranchA.GroupName, conflict.BranchB.GroupName);
+                    // I need an integration branch!
+                    var integrationBranch = await settings.FindIntegrationBranchForConflict(conflict.BranchA.GroupName, conflict.BranchB.GroupName, downstreamDetails.UpstreamBranchGroups);
+                    if (downstreamDetails.UpstreamBranchGroups.Contains(integrationBranch))
+                    {
+                        // You already have one! - Maz Kanata
+                        continue;
+                    }
                     var originalIntegrationBranch = integrationBranch;
                     if (integrationBranch == null)
                     {
@@ -170,6 +176,7 @@ namespace GitAutomation.Orchestration.Actions
                     }
                     if (originalIntegrationBranch != null && (conflict.BranchA.GroupName == downstreamDetails.GroupName || conflict.BranchB.GroupName == downstreamDetails.GroupName))
                     {
+                        // There was an integration branch with the current branch and an upstream branch. Flip it around and consolidate!
                         newIntegrationBranches.Add(integrationBranch);
                         settings.AddBranchPropagation(integrationBranch, downstreamDetails.GroupName, work);
                         settings.RemoveBranchPropagation(downstreamDetails.GroupName, integrationBranch, work);
@@ -414,7 +421,7 @@ namespace GitAutomation.Orchestration.Actions
         public async Task<IntegrationBranchResult> FindSingleIntegrationBranch(BranchGroupCompleteData details, string groupName, AttemptMergeDelegate doMerge)
         {
             var groups = new[] { details.GroupName, groupName }.OrderBy(g => g).ToArray();
-            var integrationBranch = await settings.GetIntegrationBranch(groups[0], groups[1]);
+            var integrationBranch = await settings.FindIntegrationBranchForConflict(groups[0], groups[1], ImmutableList<string>.Empty);
             if (integrationBranch == null)
             {
                 return new IntegrationBranchResult

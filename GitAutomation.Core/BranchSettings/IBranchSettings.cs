@@ -5,6 +5,7 @@ using System.Reactive;
 using System.Text;
 using GitAutomation.Work;
 using System.Threading.Tasks;
+using GitAutomation.Orchestration.Actions;
 
 namespace GitAutomation.BranchSettings
 {
@@ -19,7 +20,7 @@ namespace GitAutomation.BranchSettings
         IObservable<ImmutableList<BranchGroup>> GetUpstreamBranches(string branchName);
         IObservable<ImmutableList<BranchGroup>> GetAllUpstreamBranches(string branchName);
         IObservable<ImmutableList<string>> GetAllUpstreamRemovableBranches(string branchName);
-        Task<string> GetIntegrationBranch(string branchA, string branchB);
+        Task<string> FindIntegrationBranchForConflict(string branchA, string branchB, ImmutableList<string> upstreamBranchGroups);
         Task<ImmutableList<string>> GetIntegrationBranches(ImmutableList<string> upstreamBranchGroups);
 
         void UpdateBranchSetting(string branchName, UpstreamMergePolicy upstreamMergePolicy, BranchGroupType branchType, Work.IUnitOfWork work);
