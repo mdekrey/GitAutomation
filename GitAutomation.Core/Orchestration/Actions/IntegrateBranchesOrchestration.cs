@@ -421,7 +421,7 @@ namespace GitAutomation.Orchestration.Actions
         public async Task<IntegrationBranchResult> FindSingleIntegrationBranch(BranchGroupCompleteData details, string groupName, AttemptMergeDelegate doMerge)
         {
             var groups = new[] { details.GroupName, groupName }.OrderBy(g => g).ToArray();
-            var integrationBranch = await settings.FindIntegrationBranchForConflict(groups[0], groups[1], ImmutableList<string>.Empty);
+            var integrationBranch = await settings.FindIntegrationBranchForConflict(groups[0], groups[1], groups.ToImmutableList());
             if (integrationBranch == null)
             {
                 return new IntegrationBranchResult
