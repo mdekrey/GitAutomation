@@ -99,6 +99,7 @@ namespace GitAutomation.Orchestration.Actions
 #pragma warning disable CS4014
                         orchestration.EnqueueAction(new MergeDownstreamAction(downstreamBranchGroup), skipDuplicateCheck: true);
 #pragma warning restore
+                        await AppendMessage($"{downstreamBranchGroup} was missing integration branches, which were added before merge was attempted. Retrying...", isError: true);
                         return;
                     }
                 }
@@ -106,46 +107,79 @@ namespace GitAutomation.Orchestration.Actions
                 var upstreamBranches = (await ToUpstreamBranchNames(Details.DirectUpstreamBranchGroups.Select(groupName => allConfigured.Find(g => g.GroupName == groupName)).ToImmutableList())).ToImmutableList();
                 var needsCreate = await Strategy.NeedsCreate(LatestBranchName, upstreamBranches);
                 var neededUpstreamMerges = await Strategy.FindNeededMerges(LatestBranchName, upstreamBranches);
-                
+
+                var badBranches = await BadBranches(neededUpstreamMerges.Select(t => t.BranchName));
+                if (badBranches.Any())
+                {
+                    await AppendMessage($"{badBranches.First().BranchName} is marked as bad; aborting", isError: true);
+                    return;
+                }
+
                 if (needsCreate)
                 {
                     await AppendMessage($"{Details.GroupName} needs a new branch to be created from {string.Join(",", neededUpstreamMerges.Select(up => up.GroupName))}");
-                    var (created, branchName) = await CreateDownstreamBranch(upstreamBranches);
+                    var (created, branchName, badReason) = await CreateDownstreamBranch(upstreamBranches);
                     if (created)
                     {
                         await PushBranch(branchName);
                         await Strategy.AfterCreate(Details, LatestBranchName, branchName, AppendProcess);
                     }
+
+                    if (badReason != null)
+                    {
+                        var output = await cli.ShowRef(branchName).FirstOutputMessage();
+                        repository.FlagBadGitRef(branchName, output, badReason);
+                        await AppendMessage($"{branchName} is now marked as bad at `{output}` for `{badReason}`.", isError: true);
+                    }
                 }
                 else if (neededUpstreamMerges.Any())
                 {
                     await AppendMessage($"{LatestBranchName} needs merges from {string.Join(",", neededUpstreamMerges.Select(up => up.GroupName))}");
-                    var merged = await MergeToBranch(LatestBranchName, neededUpstreamMerges);
+                    var (shouldPush, badReason) = await MergeToBranch(LatestBranchName, neededUpstreamMerges);
 
-                    if (merged)
+                    if (shouldPush)
                     {
                         await PushBranch(LatestBranchName);
+                    }
+                    if (badReason != null)
+                    {
+                        var output = await cli.ShowRef(LatestBranchName).FirstOutputMessage();
+                        repository.FlagBadGitRef(LatestBranchName, output, badReason);
+                        await AppendMessage($"{LatestBranchName} is now marked as bad at `{output}`.", isError: true);
                     }
                 }
             }
 
-            private async Task<bool> MergeToBranch(string latestBranchName, ImmutableList<NeededMerge> neededUpstreamMerges)
+            private async Task<(bool IsBad, string BranchName)[]> BadBranches(IEnumerable<string> branchNames)
+            {
+                var allBadResults = (await Task.WhenAll(
+                    branchNames.Select(BranchName => repository.IsBadBranch(BranchName)
+                        .ContinueWith(task => (IsBad: task.Result, BranchName))
+                    )
+                ));
+
+                return allBadResults.Where(b => b.IsBad).ToArray();
+            }
+
+            private async Task<(bool shouldPush, string badReason)> MergeToBranch(string latestBranchName, ImmutableList<NeededMerge> neededUpstreamMerges)
             {
                 await AppendProcess(cli.CheckoutRemote(LatestBranchName));
 
                 var shouldPush = false;
+                string badReason = null;
                 foreach (var upstreamBranch in neededUpstreamMerges)
                 {
                     var result = await MergeUpstreamBranch(upstreamBranch, LatestBranchName);
                     shouldPush = shouldPush || !result.HadConflicts;
+                    badReason = badReason ?? result.BadReason;
                     if (result.HadConflicts)
                     {
                         await AppendProcess(cli.Checkout(LatestBranchName));
-
+                        // Don't stop here so that we can keep checking the other branches for more merge conflicts
                     }
                 }
 
-                return shouldPush;
+                return (shouldPush, badReason);
             }
 
             private async Task<IEnumerable<NeededMerge>> ToUpstreamBranchNames(ImmutableList<BranchGroup> directUpstreamBranchGroups)
@@ -163,7 +197,7 @@ namespace GitAutomation.Orchestration.Actions
                        };
             }
             
-            private async Task<(bool created, string branchName)> CreateDownstreamBranch(IEnumerable<NeededMerge> allUpstreamBranches)
+            private async Task<(bool created, string branchName, string badReason)> CreateDownstreamBranch(IEnumerable<NeededMerge> allUpstreamBranches)
             {
                 var downstreamBranch = await repository.GetNextCandidateBranch(Details).FirstOrDefaultAsync();
                 var validUpstream = allUpstreamBranches.ToImmutableList();
@@ -177,18 +211,14 @@ namespace GitAutomation.Orchestration.Actions
                         await AppendMessage($"{validUpstream.First(t => t.BranchName == null).GroupName} did not have current branch; aborting", isError: true);
                     }
 
-                    return (created: false, branchName: null);
+                    return (created: false, branchName: null, badReason: "UpstreamBranchMissing");
                 }
 
-                var badBranches = (await Task.WhenAll(
-                    validUpstream.Select(t => repository.IsBadBranch(t.BranchName)
-                        .ContinueWith(task => new { IsBad = task.Result, BranchName = t.BranchName })
-                    )
-                )).Where(b => b.IsBad);
+                var badBranches = await BadBranches(validUpstream.Select(t => t.BranchName));
                 if (badBranches.Any())
                 {
                     await AppendMessage($"{badBranches.First().BranchName} is marked as bad; aborting", isError: true);
-                    return (created: false, branchName: null);
+                    return (created: false, branchName: null, badReason: "UpstreamAlreadyBad");
                 }
 
                 // Basic process; should have checks on whether or not to create the branch
@@ -200,17 +230,19 @@ namespace GitAutomation.Orchestration.Actions
                 if (!string.IsNullOrEmpty(checkoutError) && checkoutError.StartsWith("fatal"))
                 {
                     await AppendMessage( $"{downstreamBranch} unable to be branched from {initialBranch.BranchName}; aborting" );
-                    return (created: false, branchName: null);
+                    return (created: false, branchName: null, badReason: "FailedToBranch");
                 }
 
                 await AppendProcess(cli.CheckoutNew(downstreamBranch));
 
                 var shouldCancel = false;
                 var shouldRetry = false;
+                string badReason = null;
                 foreach (var upstreamBranch in validUpstream.Skip(1))
                 {
                     var result = await MergeUpstreamBranch(upstreamBranch, downstreamBranch);
                     shouldCancel = shouldCancel || result.HadConflicts;
+                    badReason = badReason ?? result.BadReason;
                     shouldRetry = shouldRetry || (result.HadConflicts && result.Resolution == MergeConflictResolution.AddIntegrationBranch);
                 }
                 if (shouldCancel)
@@ -221,11 +253,12 @@ namespace GitAutomation.Orchestration.Actions
 #pragma warning disable CS4014
                         orchestration.EnqueueAction(new MergeDownstreamAction(downstreamBranchGroup), skipDuplicateCheck: true);
 #pragma warning restore
+                        return (created: false, branchName: downstreamBranch, badReason: null);
                     }
-                    return (created: false, branchName: null);
+                    return (created: false, branchName: downstreamBranch, badReason);
                 }
 
-                return (created: true, branchName: downstreamBranch);
+                return (created: true, branchName: downstreamBranch, badReason);
             }
 
             private async Task PushBranch(string downstreamBranch)
@@ -286,16 +319,21 @@ namespace GitAutomation.Orchestration.Actions
                     }
                 }
 
+                // TODO - remove the next line
+                if (createdIntegrationBranch.HasValue)
+                {
+                    await AppendMessage(Newtonsoft.Json.JsonConvert.SerializeObject(createdIntegrationBranch), isError: false);
+                }
                 if (!createdIntegrationBranch.HasValue || createdIntegrationBranch.Value.NeedsPullRequest())
                 {
-                    repository.FlagBadGitRef(downstreamBranch, await cli.ShowRef(downstreamBranch).FirstOutputMessage(),
-                        !createdIntegrationBranch.HasValue ? "PullRequestOpen" : "Other");
                     if (await gitServiceApi.HasOpenPullRequest(targetBranch: downstreamBranch, sourceBranch: upstreamBranch.BranchName))
                     {
-                        return new MergeStatus { HadConflicts = true, Resolution = MergeConflictResolution.PendingPullRequest };
+                        return new MergeStatus { HadConflicts = true, Resolution = MergeConflictResolution.PendingPullRequest, BadReason = "PullRequestStillOpen" };
                     }
                     else
                     {
+                        await AppendMessage($"{downstreamBranch} needs a pull request from {upstreamBranch.BranchName}.", isError: true);
+
                         // Open a PR if we can't open a new integration branch
                         await PushBranch(downstreamBranch);
                         await gitServiceApi.OpenPullRequest(
@@ -310,7 +348,7 @@ namespace GitAutomation.Orchestration.Actions
 
 This will cause the relevant conflicts to be able to resolved in your editor of choice. Once you have resolved, make sure you add them to the index, commit and push.
 ");
-                        return new MergeStatus { HadConflicts = true, Resolution = MergeConflictResolution.PullRequest };
+                        return new MergeStatus { HadConflicts = true, Resolution = MergeConflictResolution.PullRequest, BadReason = "PullRequestOpen" };
                     }
                 }
                 else if (createdIntegrationBranch.Value.Resolved)
@@ -318,15 +356,24 @@ This will cause the relevant conflicts to be able to resolved in your editor of 
                     return new MergeStatus
                     {
                         HadConflicts = false,
+                        BadReason = null
+                    };
+                }
+                else if (createdIntegrationBranch.Value.PendingUpdates)
+                {
+                    await AppendMessage($"{downstreamBranch} had updates pending, maybe somewhere upstream.", isError: true);
+                    return new MergeStatus
+                    {
+                        HadConflicts = true,
+                        BadReason = "PendingUpdates",
                     };
                 }
                 else
                 {
                     await AppendMessage($"{downstreamBranch} had integration branches added.", isError: true);
-                    // TODO - remove the next line
-                    await AppendMessage(Newtonsoft.Json.JsonConvert.SerializeObject(createdIntegrationBranch), isError: false);
                     return new MergeStatus {
                         HadConflicts = true,
+                        BadReason = null,
                         Resolution = createdIntegrationBranch.Value.AddedNewIntegrationBranches ? MergeConflictResolution.AddIntegrationBranch : MergeConflictResolution.PendingIntegrationBranch
                     };
                 }

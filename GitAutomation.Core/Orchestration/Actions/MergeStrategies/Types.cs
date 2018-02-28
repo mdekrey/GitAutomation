@@ -16,6 +16,7 @@ namespace GitAutomation.Orchestration.Actions.MergeStrategies
     {
         public bool HadConflicts;
         public MergeConflictResolution Resolution;
+        public string BadReason;
     }
 
     public struct NeededMerge
