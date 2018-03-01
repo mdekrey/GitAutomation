@@ -69,29 +69,12 @@ namespace GitAutomation.Orchestration.Actions
 
             protected override async Task RunProcess()
             {
-                var allBranches = await repository.AllBranches().FirstOrDefaultAsync();
-                var targetBranch = allBranches.Find(branch => branch.GroupName == newBaseBranch);
+                var targetBranch = await repository.GetBranchDetails(newBaseBranch).FirstOrDefaultAsync();
 
                 // 1. make sure everything is already merged
                 // 2. run consolidate branches SQL
                 // 3. delete old branches
-
-                var actualBranches = await repository.DetectUpstream(sourceBranch);
-                // FIXME - this is the _branches_ not the _groups_ that are up-to-date. That should be okay for these purposes.
-                var downstream = (await branchSettings.GetBranchDetails(newBaseBranch).FirstAsync()).DownstreamBranchGroups;
-
-                //var consolidatingBranches = downstream.Intersect(actualBranches.Concat(new[] { sourceBranch })).ToImmutableHashSet();
-
-                var consolidatingBranches = (await (from branch in allBranches.ToObservable()
-                                                    where actualBranches.Contains(branch.GroupName) || branch.Branches.Select(b => b.Name).Any(actualBranches.Contains)
-                                                    where downstream.Contains(branch.GroupName)
-                                                    from result in GetLatestBranchTuple(branch)
-                                                    select result
-                                        ).ToArray()).ToImmutableHashSet();
-
-
-                var branchesToRemove = await FindReadyToConsolidate(consolidatingBranches);
-                branchesToRemove = branchesToRemove.Concat(allBranches.Where(g => g.Branches.Select(b => b.Name).Contains(sourceBranch))).ToImmutableList();
+                ImmutableList<BranchGroupCompleteData> branchesToRemove = await GetBranchesToRemove(targetBranch);
 
                 // Integration branches remain separate. Even if they have one
                 // parent, multiple things could depend on them and you don't
@@ -103,12 +86,44 @@ namespace GitAutomation.Orchestration.Actions
                     await unitOfWork.CommitAsync();
                 }
 
+                // TODO - branches could get deleted here that were ignored in the `ConsolidateBranches` logic.
                 await (from branch in branchesToRemove.ToObservable()
                        from actualBranch in branch.Branches
                        from entry in AppendProcess(cli.DeleteRemote(actualBranch.Name)).WaitUntilComplete().ContinueWith<int>((t) => 0)
                        select entry);
 
                 repository.CheckForUpdates();
+            }
+
+            private async Task<ImmutableList<BranchGroupCompleteData>> GetBranchesToRemove(BranchGroupCompleteData targetBranch)
+            {
+                if (targetBranch.DirectDownstreamBranchGroups.Contains(newBaseBranch))
+                {
+                    // We're deleting an old branch, and all of its stuff moves down. This is like an integration branch rolling up. Easy.
+                    return new[] { targetBranch }.ToImmutableList();
+                }
+                var allBranches = await repository.AllBranches().FirstOrDefaultAsync();
+
+                var actualBranches = await repository.DetectUpstream(sourceBranch);
+                var upstreamBranches = await branchSettings.GetAllUpstreamBranches(sourceBranch);
+
+                // Filter to only the actual upstream branches; don't just remove anything that is downstream and happens to match!
+                actualBranches = actualBranches.Intersect(upstreamBranches.Select(b => b.GroupName)).ToImmutableList();
+
+                // FIXME - this is the _branches_ not the _groups_ that are up-to-date. That should be okay for these purposes.
+                var downstream = (await branchSettings.GetBranchDetails(newBaseBranch).FirstAsync()).DownstreamBranchGroups;
+
+                var consolidatingBranches = (await (from branch in allBranches.ToObservable()
+                                                    where actualBranches.Contains(branch.GroupName) || branch.Branches.Select(b => b.Name).Any(actualBranches.Contains)
+                                                    where downstream.Contains(branch.GroupName)
+                                                    from result in GetLatestBranchTuple(branch)
+                                                    select result
+                                        ).ToArray()).ToImmutableHashSet();
+
+
+                var branchesToRemove = await FindReadyToConsolidate(consolidatingBranches);
+                branchesToRemove = branchesToRemove.Concat(allBranches.Where(g => g.Branches.Select(b => b.Name).Contains(sourceBranch))).ToImmutableList();
+                return branchesToRemove;
             }
 
             private IObservable<(BranchGroupCompleteData branch, string latestBranchName)> GetLatestBranchTuple(BranchGroupCompleteData branch)
