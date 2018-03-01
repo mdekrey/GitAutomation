@@ -31,7 +31,7 @@ export class ReleaseToServiceLine extends StatelessObservableComponent<{
   private approvedBranch = new BehaviorSubject("");
   private serviceLineBranch = new BehaviorSubject("");
   private releaseTag = new BehaviorSubject("");
-  private autoConsolidate = new BehaviorSubject(false);
+  private autoConsolidate = new BehaviorSubject(true);
 
   componentDidMount() {
     this.unmounting.add(
