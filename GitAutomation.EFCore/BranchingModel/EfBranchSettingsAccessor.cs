@@ -78,19 +78,31 @@ namespace GitAutomation.EFCore.BranchingModel
                                 where branchesToRemove.Contains(connection.DownstreamBranch)
                                 group connection.UpstreamBranch by connection.DownstreamBranch).ToDictionary(group => group.Key, group => group.ToImmutableList());
 
-            var allDownstreamFromTarget = GetAllDownstreamFrom(targetBranch, connections);
+            
 
-            var result = new Consolidation
-            {
-                RemoveFromLinks = (from entry in (from connection in connections
-                                                  where branchesToRemove.Contains(connection.DownstreamBranch) || branchesToRemove.Contains(connection.UpstreamBranch)
-                                                  select connection)
-                                   group entry.DownstreamBranch by entry.UpstreamBranch).ToImmutableDictionary(group => group.Key, group => group.ToImmutableList()),
-                AddToLinks = (from entry in losingAParent
-                              from downstream in entry.Value
-                              where !branchesToRemove.Contains(downstream)
-                              group downstream by targetBranch).ToImmutableDictionary(group => group.Key, group => group.ToImmutableList())
-            };
+            var result = connections.Any(b => b.UpstreamBranch == targetBranch && losingAParent.ContainsKey(b.DownstreamBranch))
+                ? new Consolidation
+                {
+                    RemoveFromLinks = (from entry in (from connection in connections
+                                                      where branchesToRemove.Contains(connection.DownstreamBranch) || branchesToRemove.Contains(connection.UpstreamBranch)
+                                                      select connection)
+                                       group entry.DownstreamBranch by entry.UpstreamBranch).ToImmutableDictionary(group => group.Key, group => group.ToImmutableList()),
+                    AddToLinks = (from entry in losingAParent
+                                  from downstream in entry.Value
+                                  where !branchesToRemove.Contains(downstream)
+                                  group downstream by targetBranch).ToImmutableDictionary(group => group.Key, group => group.ToImmutableList())
+                }
+                : new Consolidation
+                {
+                    RemoveFromLinks = (from entry in (from connection in connections
+                                                      where branchesToRemove.Contains(connection.DownstreamBranch) || branchesToRemove.Contains(connection.UpstreamBranch)
+                                                      select connection)
+                                       group entry.DownstreamBranch by entry.UpstreamBranch).ToImmutableDictionary(group => group.Key, group => group.ToImmutableList()),
+                    AddToLinks = (from entry in losingAChild
+                                  from upstream in entry.Value
+                                  where !branchesToRemove.Contains(upstream)
+                                  select upstream).ToImmutableDictionary(upstream => upstream, upstream => new[] { targetBranch }.ToImmutableList())
+                };
 
             result.Disallow = 
                 // Disallow if anything was added downstream that was already upstream

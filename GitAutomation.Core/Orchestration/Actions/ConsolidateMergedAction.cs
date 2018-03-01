@@ -105,7 +105,7 @@ namespace GitAutomation.Orchestration.Actions
                 var allBranches = await repository.AllBranches().FirstOrDefaultAsync();
 
                 var actualBranches = await repository.DetectUpstream(sourceBranch);
-                var upstreamBranches = await branchSettings.GetAllUpstreamBranches(sourceBranch);
+                var upstreamBranches = await branchSettings.GetAllUpstreamBranches(sourceBranch).FirstAsync();
 
                 // Filter to only the actual upstream branches; don't just remove anything that is downstream and happens to match!
                 actualBranches = actualBranches.Intersect(upstreamBranches.Select(b => b.GroupName)).ToImmutableList();

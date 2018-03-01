@@ -154,10 +154,10 @@ namespace GitAutomation.Management
         [HttpGet("predict-consolidation")]
         public async Task<IActionResult> PredictConsolidation([FromQuery] string target, [FromQuery] string source, [FromServices] IBranchSettingsAccessor accessor)
         {
-            var actualBranches = await repository.DetectUpstream(source);
-            // FIXME - this is the _branches_ not the _groups_ that are up-to-date. That should be okay for these purposes.
-            var downstream = (await branchSettings.GetBranchDetails(target).FirstAsync()).DownstreamBranchGroups;
-            var toRemove = downstream.Intersect(actualBranches.Concat(new[] { source })).ToArray();
+            var targetGroup = await branchSettings.GetBranchDetails(target).FirstAsync();
+            var toRemove = targetGroup.DownstreamBranchGroups.Contains(target)
+                ? targetGroup.DownstreamBranchGroups.Intersect((await accessor.GetUpstreamBranchGroups(source))[source].Concat(new[] { source })).ToArray()
+                : targetGroup.UpstreamBranchGroups.Intersect((await accessor.GetDownstreamBranchGroups(source))[source].Concat(new[] { source })).ToArray();
 
             return Ok(new { toRemove, consolidation = await accessor.CalculateConsolidation(toRemove, target) });
         }
