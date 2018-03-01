@@ -86,13 +86,17 @@ export class Homepage extends ContextComponent<{}> {
                     <tr
                       key={branch ? branch.name : group.groupName}
                       className={
-                        group.branches[0] === branch ? groupTopRow : ""
+                        group.branches[0] === branch || !branch
+                          ? groupTopRow
+                          : ""
                       }
                     >
                       <th
                         style={{
                           display:
-                            group.branches[0] === branch ? undefined : "none"
+                            group.branches[0] === branch || !branch
+                              ? undefined
+                              : "none"
                         }}
                         rowSpan={Math.max(group.branches.length, 1)}
                       >
