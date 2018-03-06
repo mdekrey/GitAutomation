@@ -1,4 +1,6 @@
 ﻿using GitAutomation.Processes;
+using GitAutomation.Repository;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -35,6 +37,21 @@ namespace GitAutomation.Orchestration
         {
             var queueAlterations = new Subject<QueueAlteration>();
             this.queueAlterations = queueAlterations;
+            var checkIndexLock = Observable.Create<IRepositoryActionEntry>(async (observer) =>
+            {
+                Console.WriteLine("start check lock");
+                if (await serviceProvider.GetRequiredService<IGitCli>().HasIndexLock())
+                {
+                    this.queueAlterations.OnError(new AbortOrchestrationException("Index.lock detected"));
+                    Observable.Return(new StaticRepositoryActionEntry($"FATAL ERROR: Index.lock detected.\n\nPlease restart the server.", isError: true)).Subscribe(observer);
+                }
+                else
+                {
+                    observer.OnCompleted();
+                }
+
+                return () => { };
+            });
 
             var repositoryActions = queueAlterations.Scan(ImmutableList<IRepositoryAction>.Empty, (list, alteration) =>
             {
@@ -63,18 +80,37 @@ namespace GitAutomation.Orchestration
             repositoryActions.Connect();
             this.repositoryActions = repositoryActions;
 
-            this.repositoryActionProcessor = repositoryActions.Select(action => action.FirstOrDefault()).DistinctUntilChanged()
-                .Select(action => action == null
-                    ? Observable.Empty<IRepositoryActionEntry>()
-                    : action.PerformAction(serviceProvider).Catch<IRepositoryActionEntry, Exception>(ex =>
-                    {
-                        // TODO - better logging
-                        return Observable.Return(new StaticRepositoryActionEntry($"Action {action.ActionType} encountered an exception: {ex.Message}\n\n{ex.ToString()}", isError: true));
-                    }).Finally(() =>
-                    {
-                        this.queueAlterations.OnNext(new QueueAlteration { Kind = QueueAlterationKind.Remove, Target = action });
-                    }))
-                .Switch().Publish().RefCount();
+            this.repositoryActionProcessor = Observable.Empty<IRepositoryActionEntry>()
+                .Concat(
+                    repositoryActions.Select(action => action.FirstOrDefault()).DistinctUntilChanged()
+                    .Select(action =>
+                        action == null
+                        ? Observable.Empty<IRepositoryActionEntry>()
+                        : action.PerformAction(serviceProvider)
+                            .Catch<IRepositoryActionEntry, AbortOrchestrationException>(ex =>
+                            {
+                                this.queueAlterations.OnError(ex);
+                                return Observable.Return(new StaticRepositoryActionEntry($"FATAL ERROR: Action {action.ActionType} aborted all further actions: {ex.Message}\n\n{ex.ToString()}\n\nPlease restart the server.", isError: true));
+                            })
+                            .Catch<IRepositoryActionEntry, Exception>(ex =>
+                            {
+                                // TODO - better logging
+                                return Observable.Return(new StaticRepositoryActionEntry($"Action {action.ActionType} encountered an exception: {ex.Message}\n\n{ex.ToString()}", isError: true));
+                            })
+                            .Finally(() =>
+                            {
+                                this.queueAlterations.OnNext(new QueueAlteration { Kind = QueueAlterationKind.Remove, Target = action });
+                            })
+                            .Concat(checkIndexLock)
+                    )
+                    .Switch()
+                )
+                .Catch<IRepositoryActionEntry, AbortOrchestrationException>(ex =>
+                {
+                    this.queueAlterations.OnError(ex);
+                    return Observable.Return(new StaticRepositoryActionEntry($"FATAL ERROR: Aborted all further actions: {ex.Message}\n\n{ex.ToString()}\n\nPlease restart the server.", isError: true));
+                })
+                .Publish().RefCount();
 
             var temp = repositoryActionProcessor
                 .Do(entry => entry.WaitUntilComplete().ToObservable().Subscribe())
@@ -100,11 +136,18 @@ namespace GitAutomation.Orchestration
 
         public IObservable<IRepositoryActionEntry> EnqueueAction(IRepositoryAction resetAction, bool skipDuplicateCheck)
         {
-            this.queueAlterations.OnNext(new QueueAlteration
+            try
             {
-                Kind = skipDuplicateCheck ? QueueAlterationKind.AppendNoDuplicateCheck : QueueAlterationKind.Append,
-                Target = resetAction
-            });
+                this.queueAlterations.OnNext(new QueueAlteration
+                {
+                    Kind = skipDuplicateCheck ? QueueAlterationKind.AppendNoDuplicateCheck : QueueAlterationKind.Append,
+                    Target = resetAction
+                });
+            }
+            catch
+            {
+                // Eat errors when queueAlterations is completed.
+            }
             return resetAction.ProcessStream;
         }
     }

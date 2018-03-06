@@ -38,6 +38,9 @@ namespace GitAutomation.Repository
 
         public Task EnsureInitialized => ensureInitialized.Value;
 
+        public Task<bool> HasIndexLock() =>
+            Task.FromResult(File.Exists(Path.Combine(checkoutPath, ".git", "index.lock")));
+
         private IReactiveProcess RunGit(params string[] args)
         {
             return RunGit(args, null);
