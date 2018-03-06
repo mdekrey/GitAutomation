@@ -194,7 +194,6 @@ namespace GitAutomation.Orchestration.Actions
 
             private async Task<(bool shouldPush, string badReason)> MergeToBranch(string latestBranchName, ImmutableList<NeededMerge> neededUpstreamMerges)
             {
-                await CleanIndex();
                 await AppendProcess(cli.CheckoutRemote(LatestBranchName));
 
                 var shouldPush = false;
@@ -206,7 +205,6 @@ namespace GitAutomation.Orchestration.Actions
                     badReason = badReason ?? result.BadReason;
                     if (result.HadConflicts)
                     {
-                        await CleanIndex();
                         await AppendProcess(cli.Checkout(LatestBranchName));
                         // Don't stop here so that we can keep checking the other branches for more merge conflicts
                     }
@@ -257,7 +255,6 @@ namespace GitAutomation.Orchestration.Actions
                 // Basic process; should have checks on whether or not to create the branch
                 var initialBranch = validUpstream[0];
 
-                await CleanIndex();
                 var checkout = cli.CheckoutRemote(initialBranch.BranchName);
                 var checkoutError = await checkout.FirstErrorMessage();
                 await AppendProcess(checkout);
@@ -423,7 +420,6 @@ This will cause the relevant conflicts to be able to resolved in your editor of 
 
             private async Task<bool> DoMergeWithCheckout(string upstreamBranch, string targetBranch, string message)
             {
-                await CleanIndex();
                 await AppendProcess(cli.CheckoutRemote(targetBranch));
 
                 return await DoMerge(upstreamBranch, targetBranch, message);
