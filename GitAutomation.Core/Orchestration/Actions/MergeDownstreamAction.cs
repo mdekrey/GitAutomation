@@ -90,6 +90,24 @@ namespace GitAutomation.Orchestration.Actions
                 await detailsTask;
                 await latestBranchName;
 
+                var upstreamBranchThatIsQueued = await UpstreamQueued();
+                if (upstreamBranchThatIsQueued != null)
+                {
+                    if (upstreamBranchThatIsQueued == Details.GroupName)
+                    {
+                        await AppendMessage($"{Details.GroupName} was in the queue multiple times.", isError: false);
+                    }
+                    else
+                    {
+                        // abort, but queue another attempt
+#pragma warning disable CS4014
+                        orchestration.EnqueueAction(new MergeDownstreamAction(downstreamBranchGroup), skipDuplicateCheck: true);
+#pragma warning restore
+                        await AppendMessage($"An upstream branch ({upstreamBranchThatIsQueued}) from this branch ({Details.GroupName}) is still in queue. Retrying later.", isError: true);
+                    }
+                    return;
+                }
+                
                 using (var work = workFactory.CreateUnitOfWork())
                 {
                     if (await repository.AddAdditionalIntegrationBranches(Details, work))
@@ -148,6 +166,19 @@ namespace GitAutomation.Orchestration.Actions
                         await AppendMessage($"{LatestBranchName} is now marked as bad at `{output}`.", isError: true);
                     }
                 }
+                else
+                {
+                    await AppendMessage($"{Details.GroupName} is up-to-date.");
+                }
+            }
+
+            private async Task<string> UpstreamQueued()
+            {
+                var actions = await orchestration.ActionQueue.FirstOrDefaultAsync();
+                return actions.OfType<MergeDownstreamAction>().Skip(1)
+                    .Where(a => Details.UpstreamBranchGroups.Contains(a.DownstreamBranch) || a.DownstreamBranch == Details.GroupName)
+                    .Select(a => a.DownstreamBranch)
+                    .FirstOrDefault();
             }
 
             private async Task<(bool IsBad, string BranchName)[]> BadBranches(IEnumerable<string> branchNames)
@@ -163,6 +194,7 @@ namespace GitAutomation.Orchestration.Actions
 
             private async Task<(bool shouldPush, string badReason)> MergeToBranch(string latestBranchName, ImmutableList<NeededMerge> neededUpstreamMerges)
             {
+                await CleanIndex();
                 await AppendProcess(cli.CheckoutRemote(LatestBranchName));
 
                 var shouldPush = false;
@@ -174,6 +206,7 @@ namespace GitAutomation.Orchestration.Actions
                     badReason = badReason ?? result.BadReason;
                     if (result.HadConflicts)
                     {
+                        await CleanIndex();
                         await AppendProcess(cli.Checkout(LatestBranchName));
                         // Don't stop here so that we can keep checking the other branches for more merge conflicts
                     }
@@ -224,6 +257,7 @@ namespace GitAutomation.Orchestration.Actions
                 // Basic process; should have checks on whether or not to create the branch
                 var initialBranch = validUpstream[0];
 
+                await CleanIndex();
                 var checkout = cli.CheckoutRemote(initialBranch.BranchName);
                 var checkoutError = await checkout.FirstErrorMessage();
                 await AppendProcess(checkout);
@@ -389,6 +423,7 @@ This will cause the relevant conflicts to be able to resolved in your editor of 
 
             private async Task<bool> DoMergeWithCheckout(string upstreamBranch, string targetBranch, string message)
             {
+                await CleanIndex();
                 await AppendProcess(cli.CheckoutRemote(targetBranch));
 
                 return await DoMerge(upstreamBranch, targetBranch, message);
