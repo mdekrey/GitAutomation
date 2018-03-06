@@ -53,15 +53,17 @@ namespace GitAutomation.Orchestration.Actions
             private readonly IGitCli cli;
             private readonly IRepositoryMediator repository;
             private readonly IBranchSettings branchSettings;
+            private readonly IRepositoryOrchestration orchestration;
             private readonly IUnitOfWorkFactory workFactory;
             private readonly string sourceBranch;
             private readonly string newBaseBranch;
 
-            public ConsolidateMergedActionProcess(IGitCli cli, IRepositoryMediator repository, IBranchSettings branchSettings, IUnitOfWorkFactory workFactory, string sourceBranch, string newBaseBranch)
+            public ConsolidateMergedActionProcess(IGitCli cli, IRepositoryMediator repository, IBranchSettings branchSettings, IRepositoryOrchestration orchestration, IUnitOfWorkFactory workFactory, string sourceBranch, string newBaseBranch)
             {
                 this.cli = cli;
                 this.repository = repository;
                 this.branchSettings = branchSettings;
+                this.orchestration = orchestration;
                 this.workFactory = workFactory;
                 this.sourceBranch = sourceBranch;
                 this.newBaseBranch = newBaseBranch;
@@ -75,6 +77,16 @@ namespace GitAutomation.Orchestration.Actions
                 // 2. run consolidate branches SQL
                 // 3. delete old branches
                 ImmutableList<BranchGroupCompleteData> branchesToRemove = await GetBranchesToRemove(targetBranch);
+
+                if (await MergesInProgress(targetBranch, branchesToRemove))
+                {
+                    // abort, but queue another attempt
+#pragma warning disable CS4014
+                    orchestration.EnqueueAction(new ConsolidateMergedAction(sourceBranch: sourceBranch, newBaseBranch: newBaseBranch), skipDuplicateCheck: true);
+#pragma warning restore
+                    await AppendMessage($"Merges were still in queue, deferring consolidation to {newBaseBranch} from {sourceBranch}.", isError: true);
+                    return;
+                }
 
                 // Integration branches remain separate. Even if they have one
                 // parent, multiple things could depend on them and you don't
@@ -93,6 +105,15 @@ namespace GitAutomation.Orchestration.Actions
                        select entry);
 
                 repository.CheckForUpdates();
+            }
+
+            private async Task<bool> MergesInProgress(BranchGroupCompleteData targetBranch, ImmutableList<BranchGroupCompleteData> branchesToRemove)
+            {
+                var actions = await orchestration.ActionQueue.FirstOrDefaultAsync();
+                var removingNames = branchesToRemove.Select(b => b.GroupName).ToImmutableHashSet();
+                return actions.OfType<MergeDownstreamAction>()
+                    .Where(a => targetBranch.UpstreamBranchGroups.Contains(a.DownstreamBranch) || a.DownstreamBranch == targetBranch.GroupName || removingNames.Contains(a.DownstreamBranch))
+                    .Any();
             }
 
             private async Task<ImmutableList<BranchGroupCompleteData>> GetBranchesToRemove(BranchGroupCompleteData targetBranch)
