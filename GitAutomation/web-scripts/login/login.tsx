@@ -22,7 +22,7 @@ export class Login extends React.PureComponent<{}, never> {
                   </p>
                   <ul>
                     {claim.claims.map(claim => (
-                      <li>
+                      <li key={claim.type}>
                         <strong>{claim.type}</strong> &mdash;{" "}
                         <span>{claim.value}</span>
                       </li>
