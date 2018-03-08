@@ -280,7 +280,9 @@ export const detectAllUpstream = (branchName: string) =>
           allActualBranches {
             name
             commit
-            mergeBase(commitish: $branchName, kind: RemoteBranch)
+            compareWith(commitish: $branchName, kind: RemoteBranch) {
+              commitsAhead
+            }
           }
         }
       `,
@@ -293,7 +295,7 @@ export const detectAllUpstream = (branchName: string) =>
     .filter(v => Boolean(v && v.allActualBranches))
     .map(g =>
       g.allActualBranches
-        .filter(b => b.commit === b.mergeBase && b.name !== branchName)
+        .filter(b => b.compareWith.commitsAhead === 0 && b.name !== branchName)
         .map(b => b.name)
     );
 

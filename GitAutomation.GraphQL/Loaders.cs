@@ -59,12 +59,6 @@ namespace GitAutomation.GraphQL
                 : null;
         }
 
-        internal Task<string> GetMergeBaseOfCommitAndGroup(string commit, string group)
-        {
-            logger.LogInformation("Get merge base between {0} and {1}", commit, group);
-            return LoadLatestBranch(group).ContinueWith(t => GetMergeBaseOfCommits(commit, t.Result?.Commit)).Unwrap();
-        }
-
         internal Task<string> GetMergeBaseOfCommits(string commit1, string commit2)
         {
             logger.LogInformation("Get merge base between {0} and {1}", commit1, commit2);

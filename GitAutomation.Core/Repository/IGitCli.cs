@@ -23,6 +23,7 @@ namespace GitAutomation.Repository
         IReactiveProcess HasRevision(string revision);
         IReactiveProcess MergeBase(string branchA, string branchB);
         IReactiveProcess MergeBaseCommits(string branchA, string branchB);
+        Task<int?> RevListCount(string commit1, string commit2);
         IReactiveProcess MergeFastForward(string branchName);
         IReactiveProcess MergeRemote(string branchName, string message = null, string commitDate = null);
         IReactiveProcess Push(string branchName, string remoteBranchName = null, bool force = false);

@@ -221,5 +221,12 @@ namespace GitAutomation.Repository
 
             return Unit.Default;
         }
+
+        public async Task<int?> RevListCount(string commit1, string commit2)
+        {
+            return int.TryParse((await RunGit("rev-list", $"{commit1}...{commit2}", "--count", "--left-only").FirstOutputMessage()), out var result)
+                ? result
+                : (int?)null;
+        }
     }
 }

@@ -22,9 +22,9 @@ namespace GitAutomation.GraphQL
                 .Name("url")
                 .Resolve(this, nameof(BranchUrl));
 
-            Field<StringGraphType>()
-                .Name("mergeBase")
-                .Argument<NonNullGraphType<StringGraphType>>("commitish", "target of the merge base")
+            Field<NonNullGraphType<MergeBaseGraphType>>()
+                .Name("compareWith")
+                .Argument<NonNullGraphType<StringGraphType>>("commitish", "target of the comparison")
                 .Argument<NonNullGraphType<CommitishKindTypeEnum>>("kind", "the type of 'commitish'")
                 .Resolve(this, nameof(MergeBase));
 
@@ -54,18 +54,27 @@ namespace GitAutomation.GraphQL
                 .Resolve(this, nameof(PullRequestsFrom));
         }
 
-        private Task<string> MergeBase([FromArgument] string commitish, [FromArgument] CommitishKind kind, [Source] GitRef gitRef, [FromServices] Loaders loaders)
+        private Task<MergeBaseInfo> MergeBase([FromArgument] string commitish, [FromArgument] CommitishKind kind, [Source] GitRef gitRef, [FromServices] Loaders loaders)
         {
+            if (commitish == null)
+            {
+                return Task.FromResult(new MergeBaseInfo { Source = gitRef, TargetCommit = null });
+            }
             switch (kind)
             {
                 case CommitishKind.CommitHash:
-                    return loaders.GetMergeBaseOfCommits(gitRef.Commit, commitish);
+                    return Task.FromResult(new MergeBaseInfo { Source = gitRef, TargetCommit = commitish });
                 case CommitishKind.RemoteBranch:
-                    return loaders.GetMergeBaseOfCommitAndRemoteBranch(gitRef.Commit, commitish);
+                    return loaders.LoadAllGitRefs()
+                        .ContinueWith(t => t.Result.FirstOrDefault(r => r.Name == commitish))
+                        .ContinueWith(t => MergeBase(t.Result.Commit, CommitishKind.CommitHash, gitRef, loaders))
+                        .Unwrap();
                 case CommitishKind.LastestFromGroup:
-                    return loaders.GetMergeBaseOfCommitAndGroup(gitRef.Commit, commitish);
+                    return loaders.LoadLatestBranch(gitRef.Commit)
+                        .ContinueWith(t => MergeBase(t.Result?.Commit, CommitishKind.RemoteBranch, gitRef, loaders))
+                        .Unwrap();
                 default:
-                    return Task.FromResult<string>(null);
+                    return Task.FromResult(new MergeBaseInfo { Source = gitRef, TargetCommit = null });
             }
         }
 
