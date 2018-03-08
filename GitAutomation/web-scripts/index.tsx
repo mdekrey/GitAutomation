@@ -21,6 +21,7 @@ import { Login } from "./login/login";
 import { Admin } from "./admin/admin";
 import { AutoWireup } from "./setup-wizard/auto-wireup";
 import { wildcard, ConcreteRoute } from "@woosti/rxjs-router";
+import { confirmation } from "./utils/confirmation";
 
 const injector = new Injector(
   new ProviderBuilder<InjectedServices>().apply(routeProviders).build()
@@ -48,6 +49,7 @@ ReactDOM.render(
       <>
         <RouteSecurity />
         <Router routes={baseRoutes} />
+        <confirmation.Display />
       </>
     }
   />,
