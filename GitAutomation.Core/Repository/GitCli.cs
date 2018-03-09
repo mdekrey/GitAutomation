@@ -38,8 +38,17 @@ namespace GitAutomation.Repository
 
         public Task EnsureInitialized => ensureInitialized.Value;
 
-        public Task<bool> HasIndexLock() =>
-            Task.FromResult(File.Exists(Path.Combine(checkoutPath, ".git", "index.lock")));
+        public async Task<bool> HasIndexLock()
+        {
+            if (File.Exists(Path.Combine(checkoutPath, ".git", "index.lock")))
+            {
+                // Make sure a file system doesn't have the lock file cached and that it's actually gone. This feels like a code
+                // smell to me, but such is the life of file system lock files.
+                await Task.Delay(5000);
+                return File.Exists(Path.Combine(checkoutPath, ".git", "index.lock"));
+            }
+            return false;
+        }
 
         private IReactiveProcess RunGit(params string[] args)
         {

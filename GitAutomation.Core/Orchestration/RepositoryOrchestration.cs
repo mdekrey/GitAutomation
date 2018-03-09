@@ -39,7 +39,6 @@ namespace GitAutomation.Orchestration
             this.queueAlterations = queueAlterations;
             var checkIndexLock = Observable.Create<IRepositoryActionEntry>(async (observer) =>
             {
-                Console.WriteLine("start check lock");
                 if (await serviceProvider.GetRequiredService<IGitCli>().HasIndexLock())
                 {
                     this.queueAlterations.OnError(new AbortOrchestrationException("Index.lock detected"));
