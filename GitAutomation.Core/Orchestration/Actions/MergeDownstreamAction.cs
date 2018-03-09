@@ -340,13 +340,15 @@ namespace GitAutomation.Orchestration.Actions
                             title: $"Auto-Merge: {downstreamBranch}", 
                             targetBranch: downstreamBranch, 
                             sourceBranch: upstreamBranch.BranchName, 
-                            body: @"Failed due to merge conflicts. *Don't use web resolution.*
+                            body: @"Failed due to merge conflicts.
+                            
+# Don't use web resolution.
 
-- If you have changes locally for this branch, make sure they're pushed.
+- If you have changes locally for this branch, make sure they're pushed. (If you have failed to do this, use `git reflog` to find your code again!)
 - Then,
 
         git fetch
-        git checkout -B resolving/" + downstreamBranch + @" --track origin/" + downstreamBranch + @"
+        git checkout -B " + downstreamBranch + @" --track origin/" + downstreamBranch + @"
         git merge origin/" + upstreamBranch.BranchName + @"
 
     This will cause the relevant conflicts to be able to resolved in your editor of choice. Once you have resolved, make sure you add them to the index, commit and push.
