@@ -29,6 +29,7 @@
     }
   },
   "authorization": {
+    "claimType": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
     "types": [
       "GitAutomation.Auth.RegisterRolesFromConfiguration, GitAutomation.Auth",
       "GitAutomation.Postgres.RegisterPostgres, GitAutomation.Postgres"

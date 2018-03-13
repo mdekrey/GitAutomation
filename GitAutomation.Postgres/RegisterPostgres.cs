@@ -7,6 +7,7 @@ using GitAutomation.BranchSettings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using GitAutomation.Auth;
+using GitAutomation.EFCore.SecurityModel;
 
 namespace GitAutomation.Postgres
 {
@@ -20,6 +21,7 @@ namespace GitAutomation.Postgres
 
         public void RegisterPrincipalValidation(IServiceCollection services, IConfiguration configuration)
         {
+            services.Configure<EfPermissionManagementOptions>(configuration);
             // This assumes that the branch settings are already registered
             // TODO - some cleverness to use the common section in both
             services.AddEfSecurityContext<PostgresSecurityContextCustomization>();
