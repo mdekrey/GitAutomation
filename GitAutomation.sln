@@ -43,6 +43,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Postgres.Tests", "GitAutomation.Postgres.Tests\GitAutomation.Postgres.Tests.csproj", "{EE4FF41F-BAF5-45AF-96A5-59B9212A4F7A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.AllAddons", "GitAutomation.AllAddons\GitAutomation.AllAddons.csproj", "{F5CA5438-867F-4EC4-8861-E12CF0C0674C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B498BAF7-1726-4327-AC6A-9A828F34796B} = {B498BAF7-1726-4327-AC6A-9A828F34796B}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.SqlServer.Tests", "GitAutomation.SqlServer.Tests\GitAutomation.SqlServer.Tests.csproj", "{A127CEA4-3723-4D81-B31C-D13B9E4FF979}"
 EndProject
@@ -57,6 +60,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.GraphQL", "GitAutomation.GraphQL\GitAutomation.GraphQL.csproj", "{04961468-EF16-4451-8BE4-D236282B8399}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Mvc", "GitAutomation.Mvc\GitAutomation.Mvc.csproj", "{52841757-26BB-4EDF-8589-8703219AB9D0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.MicrosoftTeamServices", "GitAutomation.MicrosoftTeamServices\GitAutomation.MicrosoftTeamServices.csproj", "{B498BAF7-1726-4327-AC6A-9A828F34796B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -149,6 +154,12 @@ Global
 		{52841757-26BB-4EDF-8589-8703219AB9D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{52841757-26BB-4EDF-8589-8703219AB9D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{52841757-26BB-4EDF-8589-8703219AB9D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B498BAF7-1726-4327-AC6A-9A828F34796B}.ci-docker|Any CPU.ActiveCfg = Debug|Any CPU
+		{B498BAF7-1726-4327-AC6A-9A828F34796B}.ci-docker|Any CPU.Build.0 = Debug|Any CPU
+		{B498BAF7-1726-4327-AC6A-9A828F34796B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B498BAF7-1726-4327-AC6A-9A828F34796B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B498BAF7-1726-4327-AC6A-9A828F34796B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B498BAF7-1726-4327-AC6A-9A828F34796B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

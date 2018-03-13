@@ -16,6 +16,7 @@ services:
     depends_on:
       - psql-addon
       - github-addon
+      - microsoft-team-services-addon
 
   psql:
     image: gitautomation/psql-host
@@ -36,6 +37,11 @@ services:
 
   github-addon:
     image: gitautomation/github-addon
+    volumes:
+      - "addons:/export"
+      
+  microsoft-team-services-addon:
+    image: gitautomation/microsoft-team-services-addon
     volumes:
       - "addons:/export"
 
