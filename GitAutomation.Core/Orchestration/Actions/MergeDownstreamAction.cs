@@ -90,6 +90,12 @@ namespace GitAutomation.Orchestration.Actions
                 await detailsTask;
                 await latestBranchName;
 
+                if (Details.UpstreamMergePolicy != UpstreamMergePolicy.None && LatestBranchName != null && await repository.IsBadBranch(LatestBranchName))
+                {
+                    await AppendMessage($"{LatestBranchName} was marked bad and is set to recreate, blocking downstream merge. Hit 'Retry' from the branch page to resume merging.", isError: true);
+                    return;
+                }
+
                 using (var work = workFactory.CreateUnitOfWork())
                 {
                     if (await repository.AddAdditionalIntegrationBranches(Details, work))
