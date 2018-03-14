@@ -6,6 +6,7 @@ namespace GitAutomation.Repository
     public interface IGitCli
     {
         Task EnsureInitialized { get; }
+        Task<bool> HasIndexLock();
 
         IReactiveProcess AnnotatedTag(string tagName, string message);
         IReactiveProcess Checkout(string branchName);
