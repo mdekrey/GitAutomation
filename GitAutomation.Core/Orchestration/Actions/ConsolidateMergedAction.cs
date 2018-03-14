@@ -87,6 +87,7 @@ namespace GitAutomation.Orchestration.Actions
                     await AppendMessage($"Merges were still in queue, deferring consolidation to {newBaseBranch} from {sourceBranch}.", isError: true);
                     return;
                 }
+                await AppendMessage($"Consolidating to {newBaseBranch} from {sourceBranch}, removing: {string.Join(", ", branchesToRemove.Select(b => b.GroupName))}.", isError: true);
 
                 // Integration branches remain separate. Even if they have one
                 // parent, multiple things could depend on them and you don't
