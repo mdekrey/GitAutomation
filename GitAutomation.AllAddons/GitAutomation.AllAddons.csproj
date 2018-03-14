@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GitAutomation.GitHub\GitAutomation.GitHub.csproj" />
+    <ProjectReference Include="..\GitAutomation.MicrosoftTeamServices\GitAutomation.MicrosoftTeamServices.csproj" />
     <ProjectReference Include="..\GitAutomation.Postgres\GitAutomation.Postgres.csproj" />
     <ProjectReference Include="..\GitAutomation.SqlServer\GitAutomation.SqlServer.csproj" />
   </ItemGroup>

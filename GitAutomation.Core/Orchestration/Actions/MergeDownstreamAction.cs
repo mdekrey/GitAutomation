@@ -90,6 +90,30 @@ namespace GitAutomation.Orchestration.Actions
                 await detailsTask;
                 await latestBranchName;
 
+                if (Details.UpstreamMergePolicy != UpstreamMergePolicy.None && LatestBranchName != null && await repository.IsBadBranch(LatestBranchName))
+                {
+                    await AppendMessage($"{LatestBranchName} was marked bad and is set to recreate, blocking downstream merge. Hit 'Retry' from the branch page to resume merging.", isError: true);
+                    return;
+                }
+
+                var upstreamBranchThatIsQueued = await UpstreamQueued();
+                if (upstreamBranchThatIsQueued != null)
+                {
+                    if (upstreamBranchThatIsQueued == Details.GroupName)
+                    {
+                        await AppendMessage($"{Details.GroupName} was in the queue multiple times.", isError: false);
+                    }
+                    else
+                    {
+                        // abort, but queue another attempt
+#pragma warning disable CS4014
+                        orchestration.EnqueueAction(new MergeDownstreamAction(downstreamBranchGroup), skipDuplicateCheck: true);
+#pragma warning restore
+                        await AppendMessage($"An upstream branch ({upstreamBranchThatIsQueued}) from this branch ({Details.GroupName}) is still in queue. Retrying later.", isError: true);
+                    }
+                    return;
+                }
+                
                 using (var work = workFactory.CreateUnitOfWork())
                 {
                     if (await repository.AddAdditionalIntegrationBranches(Details, work))
@@ -148,6 +172,19 @@ namespace GitAutomation.Orchestration.Actions
                         await AppendMessage($"{LatestBranchName} is now marked as bad at `{output}`.", isError: true);
                     }
                 }
+                else
+                {
+                    await AppendMessage($"{Details.GroupName} is up-to-date.");
+                }
+            }
+
+            private async Task<string> UpstreamQueued()
+            {
+                var actions = await orchestration.ActionQueue.FirstOrDefaultAsync();
+                return actions.OfType<MergeDownstreamAction>().Skip(1)
+                    .Where(a => Details.UpstreamBranchGroups.Contains(a.DownstreamBranch) || a.DownstreamBranch == Details.GroupName)
+                    .Select(a => a.DownstreamBranch)
+                    .FirstOrDefault();
             }
 
             private async Task<(bool IsBad, string BranchName)[]> BadBranches(IEnumerable<string> branchNames)
@@ -340,13 +377,18 @@ namespace GitAutomation.Orchestration.Actions
                             title: $"Auto-Merge: {downstreamBranch}", 
                             targetBranch: downstreamBranch, 
                             sourceBranch: upstreamBranch.BranchName, 
-                            body: @"Failed due to merge conflicts. Don't use web resolution. Instead:
+                            body: @"Failed due to merge conflicts.
+                            
+# Don't use web resolution.
 
-    git fetch
-    git checkout -B " + downstreamBranch + @" --track origin/" + downstreamBranch + @"
-    git merge origin/" + upstreamBranch.BranchName + @"
+- If you have changes locally for this branch, make sure they're pushed. (If you have failed to do this, use `git reflog` to find your code again!)
+- Then,
 
-This will cause the relevant conflicts to be able to resolved in your editor of choice. Once you have resolved, make sure you add them to the index, commit and push.
+        git fetch
+        git checkout -B " + downstreamBranch + @" --track origin/" + downstreamBranch + @"
+        git merge origin/" + upstreamBranch.BranchName + @"
+
+    This will cause the relevant conflicts to be able to resolved in your editor of choice. Once you have resolved, make sure you add them to the index, commit and push.
 ");
                         return new MergeStatus { HadConflicts = true, Resolution = MergeConflictResolution.PullRequest, BadReason = "PullRequestOpen" };
                     }

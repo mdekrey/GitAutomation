@@ -89,7 +89,7 @@ namespace GitAutomation.EFCore.BranchingModel
                                        group entry.DownstreamBranch by entry.UpstreamBranch).ToImmutableDictionary(group => group.Key, group => group.ToImmutableList()),
                     AddToLinks = (from entry in losingAParent
                                   from downstream in entry.Value
-                                  where !branchesToRemove.Contains(downstream)
+                                  where !branchesToRemove.Contains(downstream) && downstream != targetBranch
                                   group downstream by targetBranch).ToImmutableDictionary(group => group.Key, group => group.ToImmutableList())
                 }
                 : new Consolidation
@@ -100,7 +100,7 @@ namespace GitAutomation.EFCore.BranchingModel
                                        group entry.DownstreamBranch by entry.UpstreamBranch).ToImmutableDictionary(group => group.Key, group => group.ToImmutableList()),
                     AddToLinks = (from entry in losingAChild
                                   from upstream in entry.Value
-                                  where !branchesToRemove.Contains(upstream)
+                                  where !branchesToRemove.Contains(upstream) && upstream != targetBranch
                                   select upstream).ToImmutableDictionary(upstream => upstream, upstream => new[] { targetBranch }.ToImmutableList())
                 };
 

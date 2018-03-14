@@ -93,7 +93,9 @@ export class ReleaseToServiceLine extends StatelessObservableComponent<{
                 .map(branchNames => (
                   <>
                     {branchNames.map(branchName => (
-                      <option value={branchName}>{branchName}</option>
+                      <option value={branchName} key={branchName}>
+                        {branchName}
+                      </option>
                     ))}
                   </>
                 ))

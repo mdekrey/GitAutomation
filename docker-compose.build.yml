@@ -38,6 +38,14 @@ services:
       dockerfile: Dockerfile-addon
       args:
         subfolder: GitAutomation.GitHub
+        
+  microsoft-team-services-addon:
+    image: gitautomation/microsoft-team-services-addon
+    build:
+      context: ./
+      dockerfile: Dockerfile-addon
+      args:
+        subfolder: GitAutomation.MicrosoftTeamServices
 
 secrets:
   gitcredentials:

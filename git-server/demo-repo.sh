@@ -42,6 +42,13 @@ git rm pass-ci
 git commit -m "Worse Readme"
 
 git checkout initial
+git checkout -B conflicting-readme-again
+echo "Baaaw" >> readme.md
+git add .
+git rm pass-ci
+git commit -m "Another worse Readme"
+
+git checkout initial
 git checkout -B additional-content
 echo "This should merge in with no problem" > additional.md
 git add .
@@ -74,6 +81,14 @@ git commit -m "Future feature"
 git checkout better-readme
 git checkout -B readme-conflicts-resolved
 git merge conflicting-readme -s ours
+
+git checkout better-readme
+git checkout -B readme-conflicts-resolved-again
+git merge conflicting-readme-again -s ours
+
+git checkout conflicting-readme
+git checkout -B readme-conflicts-resolved-badly
+git merge conflicting-readme-again -s ours
 
 git checkout feature/enhanced-content
 git checkout -B content-conflicts-resolved
