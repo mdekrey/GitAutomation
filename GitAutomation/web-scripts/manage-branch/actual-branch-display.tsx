@@ -81,7 +81,6 @@ export class ActualBranchDisplay extends StatelessObservableComponent<{
     detectAllUpstream(branchName)
       .take(1)
       .map(branches => ({ name: branchName, branches }))
-      .multicast(this.upToDate)
-      .connect();
+      .subscribe(v => this.upToDate.next(v));
   };
 }
