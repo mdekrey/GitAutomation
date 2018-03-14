@@ -3,6 +3,7 @@ using GitAutomation.Work;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -16,10 +17,12 @@ namespace GitAutomation.EFCore.SecurityModel
     class EfPermissionManagement : IManageUserPermissions, IPrincipalValidation
     {
         private readonly IServiceProvider serviceProvider;
+        private readonly EfPermissionManagementOptions options;
 
-        public EfPermissionManagement(IServiceProvider serviceProvider)
+        public EfPermissionManagement(IServiceProvider serviceProvider, IOptions<EfPermissionManagementOptions> options)
         {
             this.serviceProvider = serviceProvider;
+            this.options = options.Value;
         }
 
         public void AddUserRole(string username, string role, IUnitOfWork work)
@@ -57,10 +60,10 @@ namespace GitAutomation.EFCore.SecurityModel
             // TODO - should cache this and clear it when an add/remove role instruction comes in for the given user
             return WithContext(async context =>
             {
-
                 var claimsIdentity = currentPrincipal.Identity as ClaimsIdentity;
+                var values = claimsIdentity.FindAll(options.ClaimType).Select(v => v.Value);
                 await (from r in context.UserRole
-                       where r.ClaimName == currentPrincipal.Identity.Name
+                       where values.Contains(r.ClaimName)
                        select r.Permission)
                     .ForEachAsync(role => claimsIdentity.AddClaim(new Claim(Constants.PermissionType, role)));
                 return currentPrincipal;
