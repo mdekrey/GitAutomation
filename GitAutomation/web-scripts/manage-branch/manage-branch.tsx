@@ -33,6 +33,7 @@ import { ReleaseToServiceLine } from "./release-to-service-line";
 import { ConsolidateMerged } from "./consolidate-merged";
 import { equals } from "../utils/ramda";
 import { Secured } from "../security/security-binding";
+import { confirmJsx } from "../utils/confirmation";
 
 const badInfoStyle = style({
   backgroundColor: "#880000",
@@ -348,14 +349,28 @@ class ManageBranchInputed extends StatelessObservableComponent<
       );
   };
   delete = () => {
-    deleteBranch(this.props.branchName)
-      .let(handleError)
-      .subscribe(this.goHome);
+    confirmJsx(
+      <>
+        Are you sure you want to delete {this.props.branchName} and all its
+        branches?
+      </>
+    ).subscribe(() =>
+      deleteBranch(this.props.branchName)
+        .let(handleError)
+        .subscribe(this.goHome)
+    );
   };
   deleteConfiguration = () => {
-    deleteBranchByMode(this.props.branchName, "GroupOnly")
-      .let(handleError)
-      .subscribe(this.goHome);
+    confirmJsx(
+      <>
+        Are you sure you want to delete {this.props.branchName}'s configuration
+        but leave its branches?
+      </>
+    ).subscribe(() =>
+      deleteBranchByMode(this.props.branchName, "GroupOnly")
+        .let(handleError)
+        .subscribe(this.goHome)
+    );
   };
   clearBadBranch = () => {
     clearBadBranchStatus(this.props.branchName)

@@ -6,6 +6,7 @@ import { Secured } from "../security/security-binding";
 import { BehaviorSubject } from "../utils/rxjs";
 import { detectAllUpstream, deleteBranchByMode } from "../api/basics";
 import { handleError } from "../handle-error";
+import { confirmJsx } from "../utils/confirmation";
 
 export class ActualBranchDisplay extends StatelessObservableComponent<{
   branches: IManageBranch["branches"];
@@ -72,10 +73,12 @@ export class ActualBranchDisplay extends StatelessObservableComponent<{
   }
 
   deleteSingleBranch = (branchName: string) => {
-    deleteBranchByMode(branchName, "ActualBranchOnly")
-      .take(1)
-      .let(handleError)
-      .subscribe();
+    confirmJsx(<>Delete {branchName} from git?</>).subscribe(() =>
+      deleteBranchByMode(branchName, "ActualBranchOnly")
+        .take(1)
+        .let(handleError)
+        .subscribe()
+    );
   };
   checkUpToDate = (branchName: string) => {
     detectAllUpstream(branchName)

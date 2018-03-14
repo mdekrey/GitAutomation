@@ -11,6 +11,7 @@ import { handleError } from "../handle-error";
 import { BranchSettings, IBranchSettingsData } from "./branch-settings";
 import { fromBranchDataToGraph } from "./data";
 import { Secured } from "../security/security-binding";
+import { confirmJsx } from "../utils/confirmation";
 
 export class NewBranch extends ContextComponent {
   private readonly branchData = new BehaviorSubject<IBranchData[]>([]);
@@ -99,19 +100,31 @@ export class NewBranch extends ContextComponent {
     });
   save = () => {
     const settings = this.branchSettings.value;
-    createBranch(settings.groupName, {
-      upstreamMergePolicy: settings.upstreamMergePolicy,
-      branchType: settings.branchType,
-      addUpstream: this.branchData.value
-        .filter(branch => branch.isUpstream)
-        .map(branch => branch.groupName)
-    })
-      .let(handleError)
-      .subscribe(() => {
-        this.context.injector.services.routeNavigate({
-          url: "/manage/" + settings.groupName,
-          replaceCurentHistory: false
-        });
-      });
+    const addUpstream = this.branchData.value
+      .filter(branch => branch.isUpstream)
+      .map(branch => branch.groupName);
+    const confirm =
+      addUpstream.length === 0
+        ? confirmJsx(
+            <>
+              This branch is configured without any upstream branches; it will
+              never get an actual branch created. Is that what you meant to do?
+            </>
+          )
+        : Observable.of(null);
+    confirm.subscribe(() =>
+      createBranch(settings.groupName, {
+        upstreamMergePolicy: settings.upstreamMergePolicy,
+        branchType: settings.branchType,
+        addUpstream
+      })
+        .let(handleError)
+        .subscribe(() => {
+          this.context.injector.services.routeNavigate({
+            url: "/manage/" + settings.groupName,
+            replaceCurentHistory: false
+          });
+        })
+    );
   };
 }
