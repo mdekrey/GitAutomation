@@ -301,16 +301,18 @@ class ManageBranchInputed extends StatelessObservableComponent<
           ))
           .asComponent()}
 
-        <section data-role="delete administrate">
-          <h3>Delete Branch</h3>
-          <p>This action cannot be undone.</p>
-          <button type="button" onClick={() => this.delete()}>
-            Delete
-          </button>
-          <button type="button" onClick={() => this.deleteConfiguration()}>
-            Delete Group
-          </button>
-        </section>
+        <Secured roleNames={["delete", "administrate"]}>
+          <section>
+            <h3>Delete Branch</h3>
+            <p>This action cannot be undone.</p>
+            <button type="button" onClick={() => this.delete()}>
+              Delete
+            </button>
+            <button type="button" onClick={() => this.deleteConfiguration()}>
+              Delete Group
+            </button>
+          </section>
+        </Secured>
       </>
     );
   }
