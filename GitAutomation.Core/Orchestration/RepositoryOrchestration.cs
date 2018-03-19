@@ -96,11 +96,11 @@ namespace GitAutomation.Orchestration
                                 // TODO - better logging
                                 return Observable.Return(new StaticRepositoryActionEntry($"Action {action.ActionType} encountered an exception: {ex.Message}\n\n{ex.ToString()}", isError: true));
                             })
+                            .Concat(checkIndexLock)
                             .Finally(() =>
                             {
                                 this.queueAlterations.OnNext(new QueueAlteration { Kind = QueueAlterationKind.Remove, Target = action });
                             })
-                            .Concat(checkIndexLock)
                     )
                     .Switch()
                 )
