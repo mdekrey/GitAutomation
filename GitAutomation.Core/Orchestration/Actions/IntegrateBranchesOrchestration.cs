@@ -432,14 +432,6 @@ namespace GitAutomation.Orchestration.Actions
 
             await doMerge(integrationBranch, details.LatestBranchName, $"Auto-merge branch '{integrationBranch}'");
 
-            using (var work = workFactory.CreateUnitOfWork())
-            {
-                settings.AddBranchPropagation(integrationBranch, details.GroupName, work);
-                settings.RemoveBranchPropagation(details.GroupName, integrationBranch, work);
-                settings.RemoveBranchPropagation(groupName, integrationBranch, work);
-                await work.CommitAsync();
-            }
-
 #pragma warning disable CS4014
             orchestration.EnqueueAction(new ConsolidateMergedAction(integrationBranch, details.GroupName));
 #pragma warning restore
