@@ -104,13 +104,16 @@ And then to run it...
 			}
 		}
 
+	Make sure you check the full config - some have linux-paths in the sample.
+
 2. Install the dotnet command line tools. Check for the major/minor version used in the GitAutomation/GitAutomation.csproj file; currently we use 2.0.
 
         <PackageReference Include="Microsoft.AspNetCore" Version="Major.Minor.0" />
 
 3. Install `yarn`.
-4. From your GitAutomation project folder, run `yarn && yarn start` to start watching the typescript files for UI changes.
-5. From your GitAutomation project folder, run `dotnet run -c Debug` to start the development server. (You could instead run the GitAutomation project in Visual Studio for this step.)
+4. Get a git server and postgres server running - I prefer running these via docker even when debugging outside.
+5. From your GitAutomation project folder, run `yarn && yarn start` to start watching the typescript files for UI changes.
+6. From your GitAutomation project folder, run `dotnet run -c Debug` to start the development server. (You could instead run the GitAutomation project in Visual Studio for this step.)
 
 # GraphQL
 
