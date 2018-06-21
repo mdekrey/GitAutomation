@@ -93,6 +93,25 @@ And then to run it...
 
 4. Run the tests via Visual Studio or run `dotnet test`. (Dockerfile for the tests to come.)
 
+# Developing outside of docker and Visual Studio
+
+1. Make sure the files mentioned above are in place, with one exception: Move the `configuration.json` into the GitAutomation project folder and rename it to `appsettings.local.json`. Also, merge in the following json:
+
+        {
+			"OS": {
+				"additional-configuration": null,
+				"addon-path": "..\\GitAutomation.AllAddons\\bin\\Debug\\netcoreapp2.0"
+			}
+		}
+
+2. Install the dotnet command line tools. Check for the major/minor version used in the GitAutomation/GitAutomation.csproj file; currently we use 2.0.
+
+        <PackageReference Include="Microsoft.AspNetCore" Version="Major.Minor.0" />
+
+3. Install `yarn`.
+4. From your GitAutomation project folder, run `yarn && yarn start` to start watching the typescript files for UI changes.
+5. From your GitAutomation project folder, run `dotnet run -c Debug` to start the development server. (You could instead run the GitAutomation project in Visual Studio for this step.)
+
 # GraphQL
 
 There is a GraphiQL page set up at `/graphiql.html`. It uses CDN versions of the graphql-toolbox, so you will need public internet access to use it. (It's for debugging purposes only.)

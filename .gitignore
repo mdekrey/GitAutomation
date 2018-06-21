@@ -8,6 +8,7 @@ node_modules
 .vscode
 .docker-yarn-cache
 linux-node-modules
+*.local.*
 
 /git-credentials*.txt
 /configuration*.json

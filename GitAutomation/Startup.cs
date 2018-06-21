@@ -26,10 +26,11 @@ namespace GitAutomation
             var builder = new ConfigurationBuilder()
                 .SetBasePath(env.ContentRootPath)
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true);
 
             var cfgPath = builder.Build().GetValue<string>("OS:additional-configuration");
-            if (cfgPath != null)
+            if (!string.IsNullOrEmpty(cfgPath))
             {
                 builder = builder.AddJsonFile(cfgPath, optional: false, reloadOnChange: true);
             }

@@ -23,6 +23,7 @@ namespace GitAutomation.AddonFramework
 
         public AddonAssemblyLoader(string rootFolder)
         {
+            rootFolder = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), rootFolder));
             if (Directory.Exists(rootFolder))
             {
                 // Build the assembly resolver, which finds paths based on a RuntimeLibrary alone. Doesn't seem to check runtime dirs, though.
@@ -36,9 +37,10 @@ namespace GitAutomation.AddonFramework
                     }).ToArray()
                 );
 
+                var os = RuntimeEnvironment.OperatingSystem == "Windows" ? "win" : RuntimeEnvironment.OperatingSystem;
                 // Figure out our runtime monikers, including fallbacks. We want to use our specific runtime first, of course, but then the
                 // fallbacks are ordered in priority order. Lastly, if no runtime matches, we'll use the empty-string version.
-                var runtimeFallbacks = DependencyContext.Default.RuntimeGraph.FirstOrDefault(v => v.Runtime == RuntimeEnvironment.OperatingSystem);
+                var runtimeFallbacks = DependencyContext.Default.RuntimeGraph.FirstOrDefault(v => v.Runtime == os);
                 this.orderedRuntimes = new[] { runtimeFallbacks.Runtime }.Concat(runtimeFallbacks.Fallbacks).Concat(new[] { "" }).ToList().AsReadOnly();
 
                 // Next, we find all the *.deps.json files. These say what depends on what, and gives us a dependency context. This is handy
