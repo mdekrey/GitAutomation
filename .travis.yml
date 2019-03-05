@@ -1,0 +1,35 @@
+language: c
+sudo: required
+services: docker
+
+branches:
+  only:
+  - latest
+  - /^rel\/.*$/
+  - /^rc\/.*$/
+  - /^line\/.*$/
+
+before_install:
+# needs at least docker 17.05 for the multi-phase builds
+  - sudo apt-get update
+  - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+
+install:
+- echo "branch ${TRAVIS_BRANCH} tag ${TRAVIS_TAG}"
+- TAG=$(./ci/branch-to-tag.sh)
+- echo "installing tag ${TAG}"
+# TODO: - sudo docker-compose -f docker-compose.ci.build.yml up --build
+- cp psql-credentials.sample.txt psql-credentials.txt
+
+script:
+- echo "building tag ${TAG}"
+# TODO: - sudo docker-compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.sqlserver.yml build
+
+after_success:
+ - echo "publishing tag ${TAG} for images:"
+ - docker images | grep gitautomation/ | grep latest | awk '{print $1}'
+ - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+ - for image in $(docker images | grep gitautomation/ | grep latest | awk '{print $1}'); do
+     docker tag $image:latest $image$TAG;
+     docker push $image$TAG;
+   done

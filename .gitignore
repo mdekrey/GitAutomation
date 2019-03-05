@@ -1,0 +1,13 @@
+.vs/
+bin
+obj
+node_modules
+*.user
+*.dbmdl
+*.jfm
+.vscode
+.docker-yarn-cache
+linux-node-modules
+
+/*.local.*
+/sql-eula.txt
