@@ -8,6 +8,7 @@ node_modules
 .vscode
 .docker-yarn-cache
 linux-node-modules
+*.local.*
 
 /git-credentials*.txt
 /configuration*.json
@@ -16,3 +17,4 @@ linux-node-modules
 /sql-eula.txt
 /psql-credentials*.txt
 !/psql-credentials.sample.txt
+!/psql-credentials-docker.sample.txt

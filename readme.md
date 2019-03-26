@@ -8,7 +8,14 @@ This currently a work in progress, as is noted by the Issues list, but will work
 
 ## Prerequisites
 
-You need docker for your operating system. That's it!
+You need:
+
+* Docker for Desktop for your operating system. In settings/preferences, enable Kubernetes.
+* Helm.
+
+For Windows, you may use [Chocolatey](https://chocolatey.org/docs/installation). We also write shell scripts that get run via mingw, which is installed with most git setups.
+
+    choco install -y docker-desktop helm
 
 # Running GitAutomation
 Currently, we're still in a pre-release mode; I think it could be sufficiently considered in an "alpha" state, though it is quite stable!
@@ -23,12 +30,39 @@ If you want to hack on GitAutomation...
 Local files that are not included in the repository include:
 
  * /configuration.json - the various configuration settings to use, including the git repo and persistence database. See the `configuration.sample.json` for format. This has several values that need to be replaced by you. For example, most of this file is set up to use GitHub; see [GitHub Setup](./GitAutomation.GitHub/github-setup.md).
+
+    * In Kubernetes for the developer setup, the database host will be `gitauto-psql-host` and the repository will be `http://tester@git-server/git/gittesting1.git`.
+
  * /git-credentials.txt - the password to use for the git repository. Not persisted in the docker image for security purposes.
- * /psql-credentials.txt - the environment variable definition for the postgres database. Not persisted in the docker image for security purposes.
+ * /psql-credentials.txt - the environment variable definition for the postgres database for kubernetes. Not persisted in the docker image for security purposes.
+ * /psql-credentials-docker.txt - the environment variable definition for the postgres database for docker-compose. Not persisted in the docker image for security purposes.
 
 When you add these files, they should be without line endings and without UTF headers or you'll get difficult-to-track errors.
 
 *Note*: Changing these files does not automatically change the values inside the docker containers. Since the default configuration does not preserve the database between runs, be careful when adjusting the secrets.
+
+## Setup
+
+Build your local images. From the **repository root**:
+
+    ./ci/dev-images.sh
+
+Create a namespace in kubernetes to hold all your gitauto work:
+
+    kubectl create namespace gitauto
+
+Create secrets for your configurations:
+
+    kubectl create secret generic --namespace gitauto gitauto-configuration-json --from-file=configuration.json=configuration.json
+    kubectl create secret generic --namespace gitauto gitauto-gitcredentials --from-file=gitcredentials=git-credentials.txt
+    kubectl create secret generic --namespace gitauto gitauto-psql-credentials --from-file=psql-credentials=psql-credentials.txt
+
+Then, from the `charts` folder:
+
+    helm install git-server --name git-server --namespace gitauto
+    helm install gitauto-psql-host --name gitauto-psql-host --namespace gitauto -f dev-secrets.yaml --set localdata.enabled=false
+    helm install gitautomation --name gitautomation --namespace gitauto -f dev-secrets.yaml
+
 
 ## Testing
 

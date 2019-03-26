@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "gitauto-psql-host.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "gitauto-psql-host.name" . }}
+    helm.sh/chart: {{ include "gitauto-psql-host.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "gitauto-psql-host.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "gitauto-psql-host.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: postgresql
+              containerPort: 5432
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+              - sh
+              - -c
+              - exec pg_isready -h localhost
+          readinessProbe:
+            initialDelaySeconds: 5
+            exec:
+              command:
+              - sh
+              - -c
+              - exec pg_isready -h localhost
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.localdata.enabled }}
+          env:
+          - name: POSTGRESQL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ required ".Values.postgresqlSecret.secretName must be supplied"  .Values.postgresqlSecret.secretName }}
+                key: {{ required ".Values.postgresqlSecret.key must be supplied"  .Values.postgresqlSecret.key }}
+          volumeMounts:
+          - mountPath: "/var/lib/postgresql/data"
+            name: data
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+{{- if .Values.localdata.enabled }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+{{- if .Values.localdata.storageClass }}
+{{- if (eq "-" .Values.localdata.storageClass) }}
+      storageClassName: ""
+{{- else }}
+      storageClassName: "{{ .Values.localdata.storageClass }}"
+{{- end }}
+{{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.localdata.size }}
+{{- end }}

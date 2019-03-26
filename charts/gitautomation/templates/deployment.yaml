@@ -38,9 +38,11 @@ spec:
           volumeMounts:
           - name: gitcredentials
             mountPath: "/run/secrets/gitcredentials"
+            subPath: gitcredentials
             readOnly: true
-          - name: configuration.json
+          - name: configuration-json
             mountPath: "/run/secrets/configuration.json"
+            subPath: configuration.json
             readOnly: true
           resources:
 {{ toYaml .Values.resources | indent 12 }}
@@ -63,9 +65,11 @@ spec:
           items:
           - key: {{ required ".Values.gitCredentials.key must be supplied" .Values.gitCredentials.key }}
             defaultMode: 0400
-      - name: configuration.json
+            path: gitcredentials
+      - name: configuration-json
         secret:
           secretName: {{ required ".Values.config.secretName must be supplied" .Values.config.secretName }}
           items:
           - key: {{ required ".Values.config.key must be supplied" .Values.config.key }}
             defaultMode: 0400
+            path: configuration.json

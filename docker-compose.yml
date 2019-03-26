@@ -20,7 +20,7 @@ services:
 
   psql:
     image: gitautomation/psql-host
-    env_file: ./psql-credentials.txt
+    env_file: ./psql-credentials-docker.txt
 #    build:
 #      context: ./GitAutomation.Postgres
 #      dockerfile: Dockerfile
@@ -39,7 +39,7 @@ services:
     image: gitautomation/github-addon
     volumes:
       - "addons:/export"
-      
+
   microsoft-team-services-addon:
     image: gitautomation/microsoft-team-services-addon
     volumes:
