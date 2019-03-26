@@ -43,3 +43,13 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+addons:
+  list:
+  - name: psql-addon
+    image: gitautomation/psql-addon
+  - name: github-addon
+    image: gitautomation/github-addon
+  storage:
+    # storageClass: "-"
+    size: 100Mi

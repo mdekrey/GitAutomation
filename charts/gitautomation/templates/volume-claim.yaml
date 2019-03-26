@@ -1,0 +1,26 @@
+apiVersion: "v1"
+kind: "PersistentVolumeClaim"
+metadata:
+{{- if .Values.addons.storage.annotations }}
+  annotations:
+    {{- toYaml .Values.addons.storage.annotations | nindent 4 }}
+{{- end }}
+  labels:
+    app: {{ template "gitautomation.name" . }}
+    helm.sh/chart: {{ include "gitautomation.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "gitautomation.fullname" . }}-addons
+spec:
+  accessModes:
+    - ReadWriteOnce
+{{- if .Values.addons.storage.storageClass }}
+{{- if (eq "-" .Values.addons.storage.storageClass) }}
+  storageClassName: ""
+{{- else }}
+  storageClassName: "{{ .Values.addons.storage.storageClass }}"
+{{- end }}
+{{- end }}
+  resources:
+    requests:
+      storage: "{{ .Values.addons.storage.size }}"

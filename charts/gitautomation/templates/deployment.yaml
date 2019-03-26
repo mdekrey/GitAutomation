@@ -44,6 +44,9 @@ spec:
             mountPath: "/run/secrets/configuration.json"
             subPath: configuration.json
             readOnly: true
+          - mountPath: "/extra-bins"
+            name: addons
+            readOnly: true
           resources:
 {{ toYaml .Values.resources | indent 12 }}
     {{- with .Values.nodeSelector }}
@@ -58,6 +61,18 @@ spec:
       tolerations:
 {{ toYaml . | indent 8 }}
     {{- end }}
+      initContainers:
+      {{- range .Values.addons.list }}
+        - name: "init-addon-{{ .name }}"
+          image: "{{ .image }}:{{ default $.Values.image.tag .tag }}"
+          imagePullPolicy: "{{ $.Values.image.pullPolicy }}"
+          resources:
+            {{- toYaml $.Values.resources | nindent 12 }}
+          volumeMounts:
+          - mountPath: "/export"
+            name: addons
+            readOnly: false
+      {{- end }}
       volumes:
       - name: gitcredentials
         secret:
@@ -73,3 +88,6 @@ spec:
           - key: {{ required ".Values.config.key must be supplied" .Values.config.key }}
             defaultMode: 0400
             path: configuration.json
+      - name: addons
+        persistentVolumeClaim:
+          claimName: {{ template "gitautomation.fullname" . }}-addons
