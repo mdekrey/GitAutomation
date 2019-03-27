@@ -41,29 +41,6 @@ When you add these files, they should be without line endings and without UTF he
 
 *Note*: Changing these files does not automatically change the values inside the docker containers. Since the default configuration does not preserve the database between runs, be careful when adjusting the secrets.
 
-## Setup
-
-Build your local images. From the **repository root**:
-
-    ./ci/build-images.sh
-
-Create a namespace in kubernetes to hold all your gitauto work:
-
-    kubectl create namespace gitauto
-
-Create secrets for your configurations:
-
-    kubectl create secret generic --namespace gitauto gitauto-configuration-json --from-file=configuration.json=configuration.json
-    kubectl create secret generic --namespace gitauto gitauto-gitcredentials --from-file=gitcredentials=git-credentials.txt
-    kubectl create secret generic --namespace gitauto gitauto-psql-credentials --from-file=psql-credentials=psql-credentials.txt
-
-Then, from the `charts` folder:
-
-    helm install git-server --name git-server --namespace gitauto
-    helm install gitauto-psql-host --name gitauto-psql-host --namespace gitauto -f dev-secrets.yaml --set localdata.enabled=false
-    helm install gitautomation --name gitautomation --namespace gitauto -f dev-secrets.yaml
-
-
 ## Testing
 
 As part of the debug compose file, there is a docker image that sets up a basic repository; you can set up and tear down the test suite's docker-compose to try out various features and techniques.
@@ -86,32 +63,52 @@ This is a bug, but the repositories have been updated to reflect it.
 This uses [.NET Core 2.0.0 SDK](https://github.com/dotnet/core/blob/master/release-notes/download-archives/2.0.0-download.md) to run. ([Permalink to that version.](https://github.com/dotnet/core/blob/5f845efbe93063325bf317dadd81ddce42fd3b63/release-notes/download-archives/2.0.0-download.md))
 
 1. Make sure the configuration files mentioned above are in place.
-2. `docker-compose -f docker-compose.ci.build.yml up --build`
+2. `./ci/build-images.sh`
 
     *Note:* If you have Visual Studio running during this step, it may hang while "Building ci-build".
 
-3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml build`
-4. Launch the sln file and build.
+3. Launch the sln file and build.
 
 And then to run it...
 
-5. Run the docker-compose project.
+4. Run the docker-compose project.
 
 To ensure updates to the secrets are seen within the containers, rebuild the docker-compose project.
 
 # Building via Docker
 
 1. Make sure the configuration files mentioned above are in place.
-2. `docker-compose -f docker-compose.ci.build.yml up --build`
-3. `docker-compose -f docker-compose.yml -f docker-compose.build.yml build`
+2. `./ci/build-images.sh`
 
 And then to run it...
 
-4. `docker-compose up`
+3. `docker-compose up`
 
     If you want to use the `git-server` repository, run it with files specified: `docker-compose -f docker-compose.yml -f docker-compose.override.yml up --build`
 
-5. `docker ps` to get the port mapping of the `gitautomation` image.
+4. `docker ps` to get the port mapping of the `gitautomation` image.
+
+# Kubernetes Setup
+
+Build your local images. From the **repository root**:
+
+    ./ci/build-images.sh
+
+Create a namespace in kubernetes to hold all your gitauto work:
+
+    kubectl create namespace gitauto
+
+Create secrets for your configurations:
+
+    kubectl create secret generic --namespace gitauto gitauto-configuration-json --from-file=configuration.json=configuration.json
+    kubectl create secret generic --namespace gitauto gitauto-gitcredentials --from-file=gitcredentials=git-credentials.txt
+    kubectl create secret generic --namespace gitauto gitauto-psql-credentials --from-file=psql-credentials=psql-credentials.txt
+
+Then, from the `charts` folder:
+
+    helm install git-server --name git-server --namespace gitauto
+    helm install gitauto-psql-host --name gitauto-psql-host --namespace gitauto -f dev-secrets.yaml --set localdata.enabled=false
+    helm install gitautomation --name gitautomation --namespace gitauto -f dev-secrets.yaml
 
 # To run the tests
 
@@ -121,7 +118,7 @@ And then to run it...
     * /GitAutomation.Core.Tests/configuration.json - See the corresponding `configuration.sample.json` for an example.
 	* /GitAutomation.Core.Tests/sql-credentials.txt - This should correspond to the configuration.json.
 
-3. Start the docker-compose file from the working directory of the tests:
+3. Start the docker-compose file from **the working directory of the tests**. This gets the target services running for the test environment.
 
         docker-compose up --build
 
