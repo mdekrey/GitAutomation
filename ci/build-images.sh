@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# This docker-compose file builds the files and dumps them to the local file system for caching purposes
+docker-compose -f docker-compose.ci.build.yml up --build
+
 docker build -t testing-git-server -f ./git-server/Dockerfile ./git-server
 docker build -t gitautomation/psql-host -f ./GitAutomation.Postgres/Dockerfile ./GitAutomation.Postgres
 

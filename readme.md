@@ -45,7 +45,7 @@ When you add these files, they should be without line endings and without UTF he
 
 Build your local images. From the **repository root**:
 
-    ./ci/dev-images.sh
+    ./ci/build-images.sh
 
 Create a namespace in kubernetes to hold all your gitauto work:
 

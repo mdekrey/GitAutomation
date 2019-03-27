@@ -17,13 +17,10 @@ before_install:
 install:
 - echo "branch ${TRAVIS_BRANCH} tag ${TRAVIS_TAG}"
 - TAG=$(./ci/branch-to-tag.sh)
-- echo "installing tag ${TAG}"
-- sudo docker-compose -f docker-compose.ci.build.yml up --build
-- cp psql-credentials-docker.sample.txt psql-credentials-docker.txt
 
 script:
 - echo "building tag ${TAG}"
-- sudo docker-compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.sqlserver.yml build
+- sudo ./ci/build-images.sh
 
 after_success:
  - echo "publishing tag ${TAG} for images:"
