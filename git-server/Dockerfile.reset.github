@@ -1,7 +1,7 @@
 # Resets a github repository to the same repeatable state each run
 # Run the following command, substituting your own username:
 #
-# docker build --build-arg remote=http://some.git.repo/foo/bar.git -t reset-git -f Dockerfile.reset . &&  docker run -ti --rm reset-git
+# docker build --build-arg username=mdekrey -t reset-github -f Dockerfile.reset.github . &&  docker run -ti --rm reset-github
 
 FROM buildpack-deps:jessie-scm
 
@@ -17,8 +17,8 @@ RUN /demo-repo.sh
 
 RUN git config credential.helper 'cache --timeout 900'
 
-ARG remote
-RUN git remote add origin $remote
+ARG username
+RUN git remote add origin https://$username@github.com/$username/GitAutomation-Testing.git
 CMD git fetch \
     && (eval "$(echo git push origin --delete `git branch -r | sed 's/  origin\///' | sed ':a;N;$!ba;s/\n/ /g'`)" || echo 1) \
     && git push origin -f original \

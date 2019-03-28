@@ -17,7 +17,7 @@ using GitAutomation.Mvc;
 
 namespace GitAutomation.GitLab
 {
-    public class RegisterGitLab : IRegisterAuthentication
+    public class RegisterGitLab : IRegisterAuthentication, IRegisterGitServiceApi
     {
         public void RegisterAuthentication(IServiceCollection services, AuthenticationBuilder authBuilder, IConfiguration configuration)
         {
@@ -62,6 +62,13 @@ namespace GitAutomation.GitLab
                         }
                     };
                 });
+        }
+
+        public void RegisterGitServiceApi(IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddSingleton<GitLabServiceApi>();
+            services.AddSingleton<IGitServiceApi>(sp => sp.GetRequiredService<GitLabServiceApi>());
+            services.Configure<GitLabServiceApiOptions>(configuration.GetSection("gitlab"));
         }
     }
 }
