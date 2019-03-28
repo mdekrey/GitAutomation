@@ -63,6 +63,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.Mvc", "GitAut
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.MicrosoftTeamServices", "GitAutomation.MicrosoftTeamServices\GitAutomation.MicrosoftTeamServices.csproj", "{B498BAF7-1726-4327-AC6A-9A828F34796B}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GitLab", "GitLab", "{3A1621C4-212D-4217-B8C7-A5AA7F07DBF1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitAutomation.GitLab", "GitAutomation.GitLab\GitAutomation.GitLab.csproj", "{A13F7F83-D8F4-4BEA-AE9F-1FC3DF10CE83}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		ci-docker|Any CPU = ci-docker|Any CPU
@@ -160,6 +164,12 @@ Global
 		{B498BAF7-1726-4327-AC6A-9A828F34796B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B498BAF7-1726-4327-AC6A-9A828F34796B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B498BAF7-1726-4327-AC6A-9A828F34796B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A13F7F83-D8F4-4BEA-AE9F-1FC3DF10CE83}.ci-docker|Any CPU.ActiveCfg = Debug|Any CPU
+		{A13F7F83-D8F4-4BEA-AE9F-1FC3DF10CE83}.ci-docker|Any CPU.Build.0 = Debug|Any CPU
+		{A13F7F83-D8F4-4BEA-AE9F-1FC3DF10CE83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A13F7F83-D8F4-4BEA-AE9F-1FC3DF10CE83}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A13F7F83-D8F4-4BEA-AE9F-1FC3DF10CE83}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A13F7F83-D8F4-4BEA-AE9F-1FC3DF10CE83}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -171,6 +181,7 @@ Global
 		{EE4FF41F-BAF5-45AF-96A5-59B9212A4F7A} = {1EFECA60-71D4-4BFD-B6B3-AF9B17AE5927}
 		{A127CEA4-3723-4D81-B31C-D13B9E4FF979} = {56587E7C-95B5-4E98-9339-3C4CDD88967C}
 		{E5951D67-7C93-41EF-8DBB-5ADD962AC3B4} = {7E4800CC-E08A-4302-A29B-3B707D53EDF5}
+		{A13F7F83-D8F4-4BEA-AE9F-1FC3DF10CE83} = {3A1621C4-212D-4217-B8C7-A5AA7F07DBF1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E0585210-A58F-49F8-AD50-BCD4EE1DD1E0}
