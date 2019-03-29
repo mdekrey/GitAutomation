@@ -2,9 +2,9 @@
 
 1. Head to your Applications page on your gitlab app, at a URL like https://gitlab.example.com/profile/applications to create GitAuto as an application.
 
-	Name: GitAuto
-	RedirectUri: https://gitauto.example.com/custom-oauth-signin
-	Scopes: read_user, openid
+	* Name: GitAuto
+	* RedirectUri: https://gitauto.example.com/custom-oauth-signin
+	* Scopes: read_user, openid
 
 2. Add these settings in your configuration.json for GitLab, replacing `APPLICATION_ID` and `SECRET` with the settings from your GitLab application page:
 
@@ -43,3 +43,14 @@
 		  },
 
 	*Note*: Self-signed certificates are not supported with the git integration at this time.
+
+5. Set up web hooks for push notifications from GitLab to GitAuto. In the "Integrations" section of your project:
+
+	* URL: https://gitauto.example.com/api/git
+	* Secret Token: (Currently unused; we don't use the content, and any user can trigger the underlying event.)
+	* Triggers:
+		* Push events
+		* Merge request events
+		* Pipeline events
+	* Uncheck "Enable SSL verification" if you use a self-signed certificate for gitauto
+
