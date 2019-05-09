@@ -9,7 +9,7 @@ namespace GitAutomation.DomainModels
     {
         public static readonly string EmptyCommit = new string('0', 40);
 
-        public BranchReserve(string reserveType, string flowType, string status, ImmutableSortedSet<string> upstream, string lastCommit)
+        public BranchReserve(string reserveType, string flowType, string status, ImmutableSortedSet<string> upstream, string lastCommit, ImmutableSortedDictionary<string, object> meta)
         {
             if (string.IsNullOrWhiteSpace(reserveType))
             {
@@ -36,6 +36,7 @@ namespace GitAutomation.DomainModels
             Status = status.Trim();
             Upstream = upstream;
             LastCommit = lastCommit.ToLower();
+            Meta = meta;
         }
 
         public string ReserveType { get; }
@@ -46,27 +47,30 @@ namespace GitAutomation.DomainModels
 
         public string LastCommit { get; }
 
+        public ImmutableSortedDictionary<string, object> Meta { get; }
+
 
         public Builder ToBuilder()
         {
-            return new Builder(ReserveType, FlowType, Status, Upstream, LastCommit);
+            return new Builder(ReserveType, FlowType, Status, Upstream, LastCommit, Meta);
         }
 
         public class Builder
         {
 
-            public Builder() : this("", "", "", ImmutableSortedSet<string>.Empty, EmptyCommit)
+            public Builder() : this("", "", "", ImmutableSortedSet<string>.Empty, EmptyCommit, ImmutableSortedDictionary<string, object>.Empty)
             {
 
             }
 
-            public Builder(string reserveType, string flowType, string status, ImmutableSortedSet<string> upstream, string lastCommit)
+            public Builder(string reserveType, string flowType, string status, ImmutableSortedSet<string> upstream, string lastCommit, ImmutableSortedDictionary<string, object> meta)
             {
                 ReserveType = reserveType;
                 FlowType = flowType;
                 Status = status;
                 Upstream = new HashSet<string>(upstream);
                 LastCommit = lastCommit;
+                Meta = new Dictionary<string, object>(meta);
             }
 
             public string ReserveType { get; set; }
@@ -74,16 +78,11 @@ namespace GitAutomation.DomainModels
             public string Status { get; set; }
             public HashSet<string> Upstream { get; set; }
             public string LastCommit { get; set; }
-
-            public Builder SetReserveType(string reserveType) { this.ReserveType = reserveType; return this; }
-            public Builder SetFlowType(string flowType) { this.FlowType = flowType; return this; }
-            public Builder SetStatus(string status) { this.Status = status; return this; }
-            public Builder SetUpstream(HashSet<string> upstream) { this.Upstream = upstream; return this; }
-            public Builder SetLastCommit(string lastCommit) { this.LastCommit = lastCommit; return this; }
+            public Dictionary<string, object> Meta { get; set; }
 
             public BranchReserve Build()
             {
-                return new BranchReserve(ReserveType, FlowType, Status, Upstream.ToImmutableSortedSet(), LastCommit);
+                return new BranchReserve(ReserveType, FlowType, Status, Upstream.ToImmutableSortedSet(), LastCommit, Meta.ToImmutableSortedDictionary());
             }
         }
     }

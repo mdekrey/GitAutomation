@@ -60,11 +60,6 @@ namespace GitAutomation.DomainModels
             }
 
             public Dictionary<string, BranchReserve.Builder> BranchReserves { get; set; }
-            public Builder SetBranchReserves(Dictionary<string, BranchReserve.Builder> branchReserves)
-            {
-                BranchReserves = branchReserves;
-                return this;
-            }
 
             public RepositoryStructure Build()
             {

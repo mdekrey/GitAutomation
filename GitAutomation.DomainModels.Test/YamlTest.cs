@@ -15,7 +15,14 @@ namespace GitAutomation
         {
             BranchReserves = {
                 { "line/1.0", new BranchReserve.Builder() { ReserveType = "ServiceLine", FlowType = "Auto", Status = "Stable", LastCommit = "0123456789012345678901234567890123456789" } },
-                { "feature/a", new BranchReserve.Builder() { ReserveType = "Feature", FlowType = "Manual", Status = "OutOfDate", Upstream = { "line/1.0" }, LastCommit = BranchReserve.EmptyCommit } },
+                { "feature/a", new BranchReserve.Builder() {
+                    ReserveType = "Feature",
+                    FlowType = "Manual",
+                    Status = "OutOfDate", 
+                    Upstream = { "line/1.0" }, 
+                    LastCommit = BranchReserve.EmptyCommit, 
+                    Meta = new Dictionary<string, object> { { "Owner", "mdekrey" } } }
+                },
                 { "feature/b", new BranchReserve.Builder() { ReserveType = "Feature", FlowType = "Manual", Status = "OutOfDate", Upstream = { "line/1.0" }, LastCommit = BranchReserve.EmptyCommit } },
                 { "rc/1.0.1", new BranchReserve.Builder() { ReserveType = "ReleaseCandidate", FlowType = "Auto", Status = "OutOfDate", Upstream = { "feature/b", "feature/a" }, LastCommit = BranchReserve.EmptyCommit } },
             }
@@ -29,6 +36,8 @@ BranchReserves:
     Upstream:
     - line/1.0
     LastCommit: 0000000000000000000000000000000000000000
+    Meta:
+      Owner: mdekrey
   feature/b:
     ReserveType: Feature
     FlowType: Manual
@@ -36,12 +45,14 @@ BranchReserves:
     Upstream:
     - line/1.0
     LastCommit: 0000000000000000000000000000000000000000
+    Meta: {}
   line/1.0:
     ReserveType: ServiceLine
     FlowType: Auto
     Status: Stable
     Upstream: []
     LastCommit: 0123456789012345678901234567890123456789
+    Meta: {}
   rc/1.0.1:
     ReserveType: ReleaseCandidate
     FlowType: Auto
@@ -50,12 +61,13 @@ BranchReserves:
     - feature/a
     - feature/b
     LastCommit: 0000000000000000000000000000000000000000
+    Meta: {}
 ".Trim();
 
         [TestMethod]
         public void TestSerializeRepository()
         {
-            var serializer = new Serializer();
+            var serializer = new SerializerBuilder().DisableAliases().Build();
             var result = serializer.Serialize(testRepository);
 
             Assert.AreEqual(testYaml, result.Trim());
