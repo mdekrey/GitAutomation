@@ -26,10 +26,10 @@ namespace GitAutomation
         {
             var repo = new RepositoryStructure.Builder()
             {
-                BranchReserves =
+                BranchReserves = new Dictionary<string, BranchReserve.Builder>
                 {
-                    { "a", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = { "b" } } },
-                    { "b", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = { "c" } } },
+                    { "a", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = new HashSet<string> { "b" } } },
+                    { "b", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = new HashSet<string>{ "c" } } },
                 }
             }.Build();
 
@@ -46,12 +46,12 @@ namespace GitAutomation
         {
             var repo = new RepositoryStructure.Builder()
             {
-                BranchReserves =
+                BranchReserves = new Dictionary<string, BranchReserve.Builder>
                 {
-                    { "a", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = { "b" } } },
-                    { "b", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = { "c" } } },
-                    { "c", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = { "a", "d" } } },
-                    { "d", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = { "c", "a" } } },
+                    { "a", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = new HashSet<string> { "b" } } },
+                    { "b", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = new HashSet<string> { "c" } } },
+                    { "c", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = new HashSet<string> { "a", "d" } } },
+                    { "d", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = new HashSet<string> { "c", "a" } } },
                 }
             }.Build();
 
@@ -70,12 +70,12 @@ namespace GitAutomation
         {
             var repo = new RepositoryStructure.Builder()
             {
-                BranchReserves =
+                BranchReserves = new Dictionary<string, BranchReserve.Builder>
                 {
-                    { "a", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = { "b" } } },
-                    { "b", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = { "c" } } },
-                    { "c", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = { "a", "d" } } },
-                    { "d", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = { "c", "a" } } },
+                    { "a", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = new HashSet<string> { "b" } } },
+                    { "b", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = new HashSet<string> { "c" } } },
+                    { "c", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = new HashSet<string> { "a", "d" } } },
+                    { "d", new BranchReserve.Builder() { FlowType = "Flow", ReserveType = "Reserve", Status = "Status", Upstream = new HashSet<string> { "c", "a" } } },
                 }
             }.Build();
 

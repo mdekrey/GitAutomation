@@ -13,18 +13,18 @@ namespace GitAutomation
     {
         private static RepositoryStructure testRepository = new RepositoryStructure.Builder()
         {
-            BranchReserves = {
+            BranchReserves = new Dictionary<string, BranchReserve.Builder> {
                 { "line/1.0", new BranchReserve.Builder() { ReserveType = "ServiceLine", FlowType = "Auto", Status = "Stable", LastCommit = "0123456789012345678901234567890123456789" } },
                 { "feature/a", new BranchReserve.Builder() {
                     ReserveType = "Feature",
                     FlowType = "Manual",
                     Status = "OutOfDate", 
-                    Upstream = { "line/1.0" }, 
+                    Upstream = new HashSet<string> { "line/1.0" }, 
                     LastCommit = BranchReserve.EmptyCommit, 
                     Meta = new Dictionary<string, object> { { "Owner", "mdekrey" } } }
                 },
-                { "feature/b", new BranchReserve.Builder() { ReserveType = "Feature", FlowType = "Manual", Status = "OutOfDate", Upstream = { "line/1.0" }, LastCommit = BranchReserve.EmptyCommit } },
-                { "rc/1.0.1", new BranchReserve.Builder() { ReserveType = "ReleaseCandidate", FlowType = "Auto", Status = "OutOfDate", Upstream = { "feature/b", "feature/a" }, LastCommit = BranchReserve.EmptyCommit } },
+                { "feature/b", new BranchReserve.Builder() { ReserveType = "Feature", FlowType = "Manual", Status = "OutOfDate", Upstream = new HashSet<string> { "line/1.0" }, LastCommit = BranchReserve.EmptyCommit } },
+                { "rc/1.0.1", new BranchReserve.Builder() { ReserveType = "ReleaseCandidate", FlowType = "Auto", Status = "OutOfDate", Upstream = new HashSet<string> { "feature/b", "feature/a" }, LastCommit = BranchReserve.EmptyCommit } },
             }
         }.Build();
         private static string testYaml = @"

@@ -8,12 +8,26 @@ namespace GitAutomation.DomainModels
 {
     public class RepositoryStructure
     {
-        public RepositoryStructure(ImmutableSortedDictionary<string, BranchReserve> branchReserves)
+        private readonly ImmutableDictionary<string, object> data;
+
+        private RepositoryStructure(ImmutableDictionary<string, object> data)
         {
-            BranchReserves = branchReserves;
+            this.data = data;
         }
 
-        public ImmutableSortedDictionary<string, BranchReserve> BranchReserves { get; }
+        public RepositoryStructure(ImmutableSortedDictionary<string, BranchReserve> branchReserves)
+        {
+            data = new Dictionary<string, object>
+            {
+                { nameof(BranchReserves), branchReserves },
+            }.ToImmutableDictionary();
+        }
+
+        public ImmutableSortedDictionary<string, BranchReserve> BranchReserves => (ImmutableSortedDictionary<string, BranchReserve>)data[nameof(BranchReserves)];
+        public RepositoryStructure SetBranchReserves(Func<ImmutableSortedDictionary<string, BranchReserve>, ImmutableSortedDictionary<string, BranchReserve>> map)
+        {
+            return new RepositoryStructure(data.SetItem(nameof(BranchReserves), map(BranchReserves)));
+        }
 
         public IEnumerable<ValidationError> GetValidationErrors()
         {
@@ -47,19 +61,24 @@ namespace GitAutomation.DomainModels
 
         public Builder ToBuilder()
         {
-            return new Builder(BranchReserves);
+            return new Builder(this);
         }
 
         public class Builder
         {
-            public Builder() : this(branchReserves: ImmutableSortedDictionary<string, BranchReserve>.Empty) { }
-
-            public Builder(IReadOnlyDictionary<string, BranchReserve> branchReserves)
+            private RepositoryStructure original;
+            public Builder(RepositoryStructure original)
             {
-                this.BranchReserves = branchReserves.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToBuilder());
+                this.original = original;
             }
 
-            public Dictionary<string, BranchReserve.Builder> BranchReserves { get; set; }
+            public Builder() : this(new RepositoryStructure(branchReserves: ImmutableSortedDictionary<string, BranchReserve>.Empty)) { }
+
+            public Dictionary<string, BranchReserve.Builder> BranchReserves
+            {
+                get => original.BranchReserves.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToBuilder()) ;
+                set { original = original.SetBranchReserves(_ => value.ToImmutableSortedDictionary(kvp => kvp.Key, kvp => kvp.Value.Build())); }
+            }
 
             public RepositoryStructure Build()
             {
