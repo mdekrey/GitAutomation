@@ -15,6 +15,36 @@ namespace GitAutomation.DomainModels
 
         public ImmutableSortedDictionary<string, BranchReserve> BranchReserves { get; }
 
+        public IEnumerable<ValidationError> GetValidationErrors()
+        {
+            var upstreamAllValid = true;
+            foreach (var reserve in BranchReserves)
+            {
+                foreach (var upstream in reserve.Value.Upstream)
+                {
+                    if (!BranchReserves.ContainsKey(upstream))
+                    {
+                        upstreamAllValid = false;
+                        yield return new ValidationError("ReserveUpstreamInvalid")
+                        {
+                            Arguments = { { "reserve", reserve.Key }, { "upstream", upstream } }
+                        };
+                    }
+                }
+            }
+
+            if (upstreamAllValid)
+            {
+                foreach (var cycle in Cycle.FindAllCycles(this).Select(c => c.ToString()).OrderBy(t => t))
+                {
+                    yield return new ValidationError("ReserveCycleDetected")
+                    {
+                        Arguments = { { "cycle", cycle.ToString() } }
+                    };
+                }
+            }
+        }
+
         public Builder ToBuilder()
         {
             return new Builder(BranchReserves);
