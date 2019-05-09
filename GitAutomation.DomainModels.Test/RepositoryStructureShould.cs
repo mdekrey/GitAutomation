@@ -4,17 +4,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using static GitAutomation.StringHelpers;
 
 namespace GitAutomation
 {
     [TestClass]
     public class RepositoryStructureShould
     {
-        private string[] ToComparableText<T>(IEnumerable<T> target, Func<T, String> toString) =>
-            (from t in target
-             let result = toString(t)
-             orderby result
-             select result).ToArray();
 
         private string ValidationErrorComparable(ValidationError error) =>
             $"{error.ErrorCode}: {{{ string.Join(", ", ToComparableText(error.Arguments, ArgumentComparable)) }}}";
