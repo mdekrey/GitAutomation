@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitAutomation.PowerShell", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitAutomation.PowerShell.Test", "GitAutomation.PowerShell.Test\GitAutomation.PowerShell.Test.csproj", "{BC72C4A3-A711-4FC5-A75F-66D0FE519813}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitAutomation.Web", "GitAutomation.Web\GitAutomation.Web.csproj", "{0781AF62-5D1F-4BA1-AA7B-BB1E2058CC99}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{BC72C4A3-A711-4FC5-A75F-66D0FE519813}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BC72C4A3-A711-4FC5-A75F-66D0FE519813}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BC72C4A3-A711-4FC5-A75F-66D0FE519813}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0781AF62-5D1F-4BA1-AA7B-BB1E2058CC99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0781AF62-5D1F-4BA1-AA7B-BB1E2058CC99}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0781AF62-5D1F-4BA1-AA7B-BB1E2058CC99}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0781AF62-5D1F-4BA1-AA7B-BB1E2058CC99}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
