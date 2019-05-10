@@ -11,12 +11,9 @@ param(
 
 function Clone-RepositoryConfiguration
 {
-	git clone "$repository" "$checkoutPath" -b "$branchName"
+	git clone "$repository" "$checkoutPath" -b "$branchName" 2>&1 | Write-Verbose
 	if ($LastExitCode -eq 0)
 	{
-		cd "$checkoutPath"
-		git config user.name "$userName"
-		git config user.email "$userEmail"
 		return 0
 	}
 	return 1
@@ -34,7 +31,7 @@ function Get-GitStatus ([string] $checkoutPath)
 {
 	Push-Location
 	cd "$checkoutPath"
-	git status
+	git status 2>&1 | Write-Verbose
 	$LastExitCode
 	Pop-Location
 }
@@ -49,14 +46,14 @@ Set-GitEnvironment -password "$password" -userEmail "$userEmail" -userName "$use
 # 4. Directory exists with no checkout without permissions
 # 5. No checkout
 
-$hasCheckout = [System.IO.File]::Exists($checkoutPath) -and (Get-GitStatus($checkoutPath) -eq 0)
+$hasCheckout = [System.IO.File]::Exists($checkoutPath) -and ((Get-GitStatus($checkoutPath)) -eq 0)
 
 if (!$hasCheckout)
 {
 	$cloned = Clone-RepositoryConfiguration
 	if ($cloned -eq 0)
 	{
-		${ "action": "ConfigurationReady" }
+		@{ "action" = "ConfigurationReady" }
 		return
 	}
 
@@ -65,36 +62,56 @@ if (!$hasCheckout)
 	# 2. The branch doesn't exist in the remote
 	# 3. The password is incorrect
 
-	if ((Get-ChildItem "$checkoutPath" | Measure-Object).Count -ne 0)
-	{
-		# The working directory is dirty
-		${ "action": "ConfigurationRepositoryCouldNotBeCloned" }
-		return
-	}
+	try {
+		New-Item -ItemType Directory -Force -Path "$checkoutPath" 2>&1 | Write-Verbose
+		if ((Get-ChildItem "$checkoutPath" | Measure-Object).Count -ne 0)
+		{
+			# The working directory is dirty
+			@{ "action" = "ConfigurationRepositoryCouldNotBeCloned" }
+			return
+		}
 
-	New-Item -ItemType Directory -Force -Path "$checkoutPath"
-	if ($LastExitCode -ne 0)
+		Push-Location
+		cd "$checkoutPath"
+		git init 2>&1 | Write-Verbose
+		if ($LastExitCode -ne 0)
+		{
+			# No permission to initialize
+			@{ "action" = "ConfigurationRepositoryCouldNotBeCloned" }
+			return
+		}
+		git remote add origin "$repository" 2>&1 | Write-Verbose
+		Pop-Location
+	}
+	catch
 	{
-		${ "action": "ConfigurationRepositoryCouldNotBeCloned" }
+		# We probably couldn't create the drive
+		@{ "action" = "ConfigurationRepositoryCouldNotBeCloned" }
 		return
 	}
-	Push-Location
-	cd "$checkoutPath"
-	git init
-	if ($LastExitCode -ne 0)
-	{
-		${ "action": "ConfigurationRepositoryCouldNotBeCloned" }
-		return
-	}
-	git add remote origin "$repository"
-	git push origin HEAD:"$branchName" -u
-	if ($LastExitCode -ne 0)
-	{
-		${ "action": "ConfigurationRepositoryPasswordIncorrect" }
-		return
-	}
-	Pop-Location
-	
-	${ "action": "ConfigurationReady" }
+}
+
+
+Push-Location
+git remote remove origin 2>&1 | Write-Verbose
+git remote add origin "$repository" 2>&1 | Write-Verbose
+
+cd "$checkoutPath"
+git fetch origin --prune --no-tags 2>&1 | Write-Verbose
+if ($LastExitCode -ne 0)
+{
+	@{ "action" = "ConfigurationRepositoryPasswordIncorrect" }
 	return
 }
+
+git checkout origin/gitauto-config 2>&1 | Write-Verbose
+if ($LastExitCode -ne 0)
+{
+	@{ "action" = "ConfigurationRepositoryNoBranch" }
+	return
+}
+
+Pop-Location
+	
+@{ "action" = "ConfigurationReady" }
+return

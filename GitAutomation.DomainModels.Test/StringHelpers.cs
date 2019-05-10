@@ -13,5 +13,8 @@ namespace GitAutomation
             orderby result
             select result).ToArray();
 
+
+        public static string FixLineEndings(this string text) =>
+            text.Replace("\r", "");
     }
 }

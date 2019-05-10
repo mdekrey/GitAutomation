@@ -70,7 +70,7 @@ BranchReserves:
             var serializer = new SerializerBuilder().DisableAliases().Build();
             var result = serializer.Serialize(testRepository);
 
-            Assert.AreEqual(testYaml, result.Trim());
+            Assert.AreEqual(testYaml.FixLineEndings(), result.FixLineEndings().Trim());
         }
 
         [TestMethod]

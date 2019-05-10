@@ -17,16 +17,21 @@ namespace GitAutomation.Web
 
         internal async Task LoadAsync()
         {
-
-            using (var psInstance = PowerShell.Create())
+            try
             {
-                psInstance
-                    .AddUnrestrictedCommand("./Scripts/Config/Clone.ps1")
-                    .BindParametersToPowerShell(options);
+                using (var psInstance = PowerShell.Create())
+                {
+                    psInstance
+                        .AddUnrestrictedCommand("./Scripts/Config/Clone.ps1")
+                        .BindParametersToPowerShell(options);
 
-                var results = await psInstance.InvokeAsync();
+                    var results = await psInstance.InvokeAsync();
+                }
             }
-
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
         }
     }
 }
