@@ -27,8 +27,19 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\GitAutomation.DomainModels\GitAutomation.DomainModels.csproj" />
+    <ProjectReference Include="..\GitAutomation.PowerShell\GitAutomation.PowerShell.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <TypeScriptCompile Include="ClientApp\src\App.tsx" />
     <TypeScriptCompile Include="ClientApp\src\index.tsx" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Scripts\Config\clone.ps1">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">

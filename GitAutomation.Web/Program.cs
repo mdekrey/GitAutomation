@@ -18,6 +18,10 @@ namespace GitAutomation.Web
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
+                .ConfigureAppConfiguration(config =>
+                {
+                    config.AddJsonFile("appsettings.local.json", optional: true);
+                })
                 .UseStartup<Startup>();
     }
 }

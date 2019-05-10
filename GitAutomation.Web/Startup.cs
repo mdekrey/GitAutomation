@@ -28,6 +28,9 @@ namespace GitAutomation.Web
             {
                 configuration.RootPath = "ClientApp/build";
             });
+
+            services.AddOptions<ConfigRepositoryOptions>().Configure(opt => Configuration.GetSection("configurationGit").Bind(opt));
+            services.AddSingleton<RepositoryConfigurationService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -64,6 +67,10 @@ namespace GitAutomation.Web
                     spa.UseReactDevelopmentServer(npmScript: "start");
                 }
             });
+
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+            app.ApplicationServices.GetRequiredService<RepositoryConfigurationService>().LoadAsync();
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         }
     }
 }

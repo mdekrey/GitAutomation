@@ -9,5 +9,5 @@ node_modules
 .docker-yarn-cache
 linux-node-modules
 
-/*.local.*
+*.local.*
 /sql-eula.txt
