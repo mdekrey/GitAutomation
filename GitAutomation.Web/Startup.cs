@@ -1,3 +1,4 @@
+using GitAutomation.Web.Scripts;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -30,6 +31,7 @@ namespace GitAutomation.Web
             });
 
             services.AddOptions<ConfigRepositoryOptions>().Configure(opt => Configuration.GetSection("configurationGit").Bind(opt));
+            services.AddSingleton<PowerShellScriptInvoker>();
             services.AddSingleton<RepositoryConfigurationService>();
         }
 

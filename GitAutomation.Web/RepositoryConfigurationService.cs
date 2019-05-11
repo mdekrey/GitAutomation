@@ -1,32 +1,33 @@
 ﻿using System;
 using System.Management.Automation;
 using System.Threading.Tasks;
+using GitAutomation.DomainModels;
 using GitAutomation.Extensions;
+using GitAutomation.Web.Scripts;
 using Microsoft.Extensions.Options;
+using static GitAutomation.DomainModels.RepositoryStructureReducer;
 
 namespace GitAutomation.Web
 {
     internal class RepositoryConfigurationService
     {
         private readonly ConfigRepositoryOptions options;
+        private readonly PowerShellScriptInvoker scriptInvoker;
 
-        public RepositoryConfigurationService(IOptions<ConfigRepositoryOptions> options)
+        public RepositoryConfigurationService(IOptions<ConfigRepositoryOptions> options, PowerShellScriptInvoker scriptInvoker)
         {
             this.options = options.Value;
+            this.scriptInvoker = scriptInvoker;
         }
 
         internal async Task LoadAsync()
         {
+            var streams = scriptInvoker.Invoke("$/Config/clone.ps1", new { }, options);
+
             try
             {
-                using (var psInstance = PowerShell.Create())
-                {
-                    psInstance
-                        .AddUnrestrictedCommand("./Scripts/Config/Clone.ps1")
-                        .BindParametersToPowerShell(options);
-
-                    var results = await psInstance.InvokeAsync();
-                }
+                await streams.Completion;
+                var result = streams.Success;
             }
             catch (Exception ex)
             {

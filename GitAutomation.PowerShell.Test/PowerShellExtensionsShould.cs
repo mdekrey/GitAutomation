@@ -71,7 +71,8 @@ for ($i = 0; $i -lt $responseCollection.length; $i++)
 
 
                 var actualResults = new List<string>();
-                await foreach (var entry in psInstance.InvokeEnumerableAsync<string>())
+                var streamResponses = psInstance.InvokeAllStreams<string>(disposePowerShell: false);
+                await foreach (var entry in streamResponses.SuccessAsync)
                 {
                     Console.WriteLine($"Got '{entry}' at {DateTime.Now}");
                     actualResults.Add(entry);
@@ -98,7 +99,7 @@ for ($i = 0; $i -lt $responseCollection.length; $i++)
 ");
 
                 var actualResults = new List<Foo>();
-                await foreach (var entry in psInstance.InvokeEnumerableAsync<Foo>())
+                await foreach (var entry in psInstance.InvokeAllStreams<Foo>(disposePowerShell: false).SuccessAsync)
                 {
                     Console.WriteLine($"Got '{entry}' at {DateTime.Now}");
                     actualResults.Add(entry);
@@ -106,6 +107,57 @@ for ($i = 0; $i -lt $responseCollection.length; $i++)
                 Assert.IsTrue(actualResults.Count == 1);
                 Assert.AreEqual("baz", actualResults[0].Name);
             }
+        }
+
+        [TestMethod]
+        public async Task BeAbleToAccessResultsAfterPowerShellIsDisposed()
+        {
+            PowerShellStreams<Foo> streams;
+            using (var psInstance = PowerShell.Create())
+            {
+                psInstance
+                    .AddScript(@"
+#!/usr/bin/env pwsh
+
+@{
+    ""Name"" = 'baz'
+}
+");
+
+                streams = psInstance.InvokeAllStreams<Foo>(disposePowerShell: false);
+                await streams.Completion;
+            }
+
+            var actualResults = new List<Foo>();
+            await foreach (var entry in streams.SuccessAsync)
+            {
+                Console.WriteLine($"Got '{entry}' at {DateTime.Now}");
+                actualResults.Add(entry);
+            }
+            Assert.IsTrue(actualResults.Count == 1);
+            Assert.AreEqual("baz", actualResults[0].Name);
+            Assert.IsTrue(streams.Success.Count == 1);
+            Assert.AreEqual("baz", streams.Success[0].Name);
+        }
+
+        [TestMethod]
+        public async Task BeAbleToAccessErrorsAfterPowerShellIsDisposed()
+        {
+            PowerShellStreams<Foo> streams;
+            using (var psInstance = PowerShell.Create())
+            {
+                psInstance
+                    .AddScript(@"
+#!/usr/bin/env pwsh
+
+Write-Error ""testing""
+");
+
+                streams = psInstance.InvokeAllStreams<Foo>(disposePowerShell: false);
+                await streams.Completion;
+            }
+
+            Assert.IsTrue(streams.Error.Count == 1);
         }
     }
 }

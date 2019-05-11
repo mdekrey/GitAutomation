@@ -1,18 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace GitAutomation.DomainModels
 {
     public static class RepositoryStructureReducer
     {
-        public struct StandardAction
-        {
-            public string Action { get; set; }
-            public Dictionary<string, object> Payload { get; set; }
-        }
-
         public static RepositoryStructure Reduce(this RepositoryStructure original, StandardAction action)
         {
             return action.Action switch

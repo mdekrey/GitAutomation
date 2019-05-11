@@ -38,7 +38,7 @@ namespace GitAutomation
         [TestMethod]
         public void StabilizeBranches()
         {
-            var actual = testRepository.Reduce(new RepositoryStructureReducer.StandardAction { Action = "StabilizeBranch", Payload = new Dictionary<string, object> { { "Branch", "feature/a" } } });
+            var actual = testRepository.Reduce(new StandardAction("StabilizeBranch", new Dictionary<string, object> { { "Branch", "feature/a" } }));
             var result = GetPatch(actual);
             Assert.AreEqual(Clean(@"
 -      Status: OutOfDate
@@ -49,7 +49,7 @@ namespace GitAutomation
         [TestMethod]
         public void SetBranchState()
         {
-            var actual = testRepository.Reduce(new RepositoryStructureReducer.StandardAction { Action = "SetBranchState", Payload = new Dictionary<string, object> { { "Branch", "feature/b" }, { "State", "Bananas" } } });
+            var actual = testRepository.Reduce(new StandardAction("SetBranchState", new Dictionary<string, object> { { "Branch", "feature/b" }, { "State", "Bananas" } }));
             var result = GetPatch(actual);
             Assert.AreEqual(Clean(@"
 -      Status: OutOfDate
@@ -60,10 +60,10 @@ namespace GitAutomation
         [TestMethod]
         public void SetLastCommit()
         {
-            var actual = testRepository.Reduce(new RepositoryStructureReducer.StandardAction { Action = "SetLastCommit", Payload = new Dictionary<string, object> {
+            var actual = testRepository.Reduce(new StandardAction("SetLastCommit", new Dictionary<string, object> {
                 { "Branch", "feature/a" },
                 { "LastCommit", testRepository.BranchReserves["line/1.0"].LastCommit }
-            } });
+            }));
             var result = GetPatch(actual);
             Assert.AreEqual(Clean(@"
 -      LastCommit: 0000000000000000000000000000000000000000
@@ -74,14 +74,11 @@ namespace GitAutomation
         [TestMethod]
         public void SetMeta()
         {
-            var actual = testRepository.Reduce(new RepositoryStructureReducer.StandardAction
-            {
-                Action = "SetMeta",
-                Payload = new Dictionary<string, object> {
+            var actual = testRepository.Reduce(new StandardAction("SetMeta",
+                new Dictionary<string, object> {
                 { "Branch", "feature/a" },
                 { "Meta", new Dictionary<string, object> { { "Owner", "anonymous" }, { "OriginalOwner", "mdekrey" } } }
-            }
-            });
+            }));
             var result = GetPatch(actual);
             Assert.AreEqual(Clean(@"
 -        Owner: mdekrey
@@ -94,13 +91,10 @@ namespace GitAutomation
         [TestMethod]
         public void RemoveBranch()
         {
-            var actual = testRepository.Reduce(new RepositoryStructureReducer.StandardAction
-            {
-                Action = "RemoveBranch",
-                Payload = new Dictionary<string, object> {
+            var actual = testRepository.Reduce(new StandardAction("RemoveBranch",
+                new Dictionary<string, object> {
                 { "Branch", "feature/a" }
-            }
-            });
+            }));
             var result = GetPatch(actual);
             Assert.AreEqual(Clean(@"
 -    feature/a:

@@ -26,31 +26,14 @@ namespace GitAutomation.Extensions
             return instance.AddScript(File.ReadAllText(scriptName), useLocalScope);
         }
 
-        public static async IAsyncEnumerable<T> InvokeEnumerableAsync<T>(this PowerShell psInstance)
+        public static PowerShellStreams<T> InvokeAllStreams<T>(this PowerShell psInstance, bool disposePowerShell = true)
         {
-            var collection = new PSDataCollection<T>();
-            var completionEvent = Task.Factory.FromAsync(psInstance.BeginInvoke(new PSDataCollection<PSObject>(), collection), psInstance.EndInvoke);
+            var input = new PSDataCollection<PSObject>();
+            var output = new PSDataCollection<T>();
+            var scriptCompletion = Task.Factory.FromAsync(psInstance.BeginInvoke(input, output), psInstance.EndInvoke);
 
-            var nextIndex = 0;
-
-            while (nextIndex < collection.Count || !completionEvent.IsCompleted)
-            {
-                if (nextIndex < collection.Count)
-                {
-                    yield return collection[nextIndex++];
-                    continue;
-                }
-
-                var dataAddedEvent = new TaskCompletionSource<object>();
-                void DataAdded(object sender, EventArgs e) { dataAddedEvent.SetResult(null); }
-                collection.DataAdded += DataAdded;
-
-                await Task.WhenAny(completionEvent, dataAddedEvent.Task);
-
-                collection.DataAdded -= DataAdded;
-            }
-
-            yield break;
+            return new PowerShellStreams<T>(psInstance, scriptCompletion, input, output, disposePowerShell);
         }
+
     }
 }
