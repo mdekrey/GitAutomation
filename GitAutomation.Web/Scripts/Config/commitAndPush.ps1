@@ -21,6 +21,7 @@ $result = With-Git $gitParams {
 	git push origin HEAD:"$branchName" | Out-Host
 	if ($LastExitCode -ne 0)
 	{
+		git checkout "origin/$branchName"
 		return Build-StandardAction "ConfigurationRepositoryCouldNotPush"
 	}
 	git checkout "origin/$branchName"
