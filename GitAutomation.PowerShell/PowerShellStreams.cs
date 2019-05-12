@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Management.Automation;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace GitAutomation
@@ -14,6 +15,7 @@ namespace GitAutomation
         private readonly Task scriptCompletion;
         private readonly PSDataCollection<PSObject> input;
         private readonly PSDataCollection<T> output;
+        private AggregateException exception;
         private ImmutableList<ErrorRecord> persistedError;
         private ImmutableList<DebugRecord> persistedDebug;
         private ImmutableList<InformationRecord> persistedInformation;
@@ -25,8 +27,9 @@ namespace GitAutomation
         {
             this.psInstance = psInstance;
             this.scriptCompletion = scriptCompletion
-                .ContinueWith(_ =>
+                .ContinueWith(t =>
                 {
+                    this.exception = t.Exception;
                     persistedError = psInstance.Streams.Error.ToImmutableList();
                     persistedDebug = psInstance.Streams.Debug.ToImmutableList();
                     persistedInformation = psInstance.Streams.Information.ToImmutableList();
@@ -42,6 +45,7 @@ namespace GitAutomation
 
         public PSDataCollection<PSObject> Input => input;
         public Task Completion => scriptCompletion;
+        public TaskAwaiter<PowerShellStreams<T>> GetAwaiter() => scriptCompletion.ContinueWith(_ => this).GetAwaiter();
 
         public ImmutableList<T> Success => output.ToImmutableList();
         public ImmutableList<ErrorRecord> Error => persistedError ?? psInstance.Streams.Error.ToImmutableList();
@@ -59,6 +63,8 @@ namespace GitAutomation
         public IAsyncEnumerable<ProgressRecord> ProgressAsync => persistedProgress?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Progress, scriptCompletion);
         public IAsyncEnumerable<VerboseRecord> VerboseAsync => persistedVerbose?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Verbose, scriptCompletion);
         public IAsyncEnumerable<WarningRecord> WarningAsync => persistedWarning?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Warning, scriptCompletion);
+
+        public AggregateException Exception => exception;
 
         private static async IAsyncEnumerable<U> AsAsync<U>(PSDataCollection<U> output, Task until)
         {

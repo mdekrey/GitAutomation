@@ -159,5 +159,25 @@ Write-Error ""testing""
 
             Assert.IsTrue(streams.Error.Count == 1);
         }
+
+        [TestMethod]
+        public async Task GiveAccessToExceptionWithoutThrowing()
+        {
+            PowerShellStreams<Foo> streams;
+            using (var psInstance = PowerShell.Create())
+            {
+                psInstance
+                    .AddScript(@"
+#!/usr/bin/env pwsh
+
+""no close-quote to throw exception on purpose
+");
+
+                streams = psInstance.InvokeAllStreams<Foo>(disposePowerShell: false);
+                await streams.Completion;
+            }
+
+            Assert.IsNotNull(streams.Exception);
+        }
     }
 }

@@ -25,6 +25,15 @@
   <ItemGroup>
     <None Remove="ClientApp\src\App.tsx" />
     <None Remove="ClientApp\src\index.tsx" />
+    <None Remove="Defaults\configuration.yaml" />
+    <None Remove="Defaults\meta.yaml" />
+    <None Remove="Defaults\reserves.yaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Defaults\configuration.yaml" />
+    <EmbeddedResource Include="Defaults\meta.yaml" />
+    <EmbeddedResource Include="Defaults\reserves.yaml" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,6 +47,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Scripts\Config\commitAndPush.ps1">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Scripts\Globals.ps1">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

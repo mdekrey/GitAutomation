@@ -10,7 +10,14 @@ namespace GitAutomation.Web.Scripts
 {
     public class PowerShellScriptInvoker
     {
-        public async Task<PowerShellStreams<StandardAction>> Invoke(string scriptPath, object loggedParameters, object hiddenParameters)
+        private readonly IDispatcher dispatcher;
+
+        public PowerShellScriptInvoker(IDispatcher dispatcher)
+        {
+            this.dispatcher = dispatcher;
+        }
+
+        public PowerShellStreams<StandardAction> Invoke(string scriptPath, object loggedParameters, object hiddenParameters)
         {
             var result = PowerShell.Create()
                 .AddUnrestrictedCommand("./Scripts/Globals.ps1")
@@ -18,8 +25,18 @@ namespace GitAutomation.Web.Scripts
                 .BindParametersToPowerShell(hiddenParameters)
                 .BindParametersToPowerShell(loggedParameters)
                 .InvokeAllStreams<StandardAction>();
-            await result.Completion;
+
+            Task.Run(() => ProcessActions(result));
+
             return result;
+        }
+
+        private async Task ProcessActions(PowerShellStreams<StandardAction> result)
+        {
+            await foreach (var action in result.SuccessAsync)
+            {
+                dispatcher.Dispatch(action);
+            }
         }
 
         private string ResolveScriptPath(string scriptPath)

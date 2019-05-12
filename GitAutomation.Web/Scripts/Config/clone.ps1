@@ -24,8 +24,9 @@ function Get-GitStatus ([string] $checkoutPath)
 	Push-Location
 	cd "$checkoutPath"
 	git status | Out-Host
-	$LastExitCode
+	$status = $LastExitCode
 	Pop-Location
+	return $status
 }
 
 $gitParams = Create-GitParams -password "$password" -userEmail "$userEmail" -userName "$userName" -checkoutPath "$checkoutPath"
@@ -38,19 +39,19 @@ Set-GitEnvironment -password "$password" -userEmail "$userEmail" -userName "$use
 # 4. Directory exists with no checkout without permissions
 # 5. No checkout
 
-if ((New-Item -ItemType Directory -Force -Path "$checkoutPath") -ne $checkoutPath)
+if ((New-Item -ItemType Directory -Force -Path "$checkoutPath").FullName -ne (Get-Item $checkoutPath).FullName)
 {
+	$checkoutPath | Write-Verbose
+	New-Item -ItemType Directory -Force -Path "$checkoutPath" | Write-Verbose
 	# The target directory could not be cloned
-	Build-StandardAction "ConfigurationDirectoryNotAccessible"
-	exit
+	return Build-StandardAction "ConfigurationDirectoryNotAccessible"
 }
 
-if (![System.IO.Directory]::Exists($checkoutPath) -and ((Get-GitStatus($checkoutPath)) -eq 0))
+if (![System.IO.Directory]::Exists($checkoutPath) -or ((Get-GitStatus($checkoutPath)) -ne 0))
 {
 	if ((Clone-RepositoryConfiguration) -eq 0)
 	{
-		Build-StandardAction "ConfigurationReady"
-		exit
+		return Build-StandardAction "ConfigurationReady"
 	}
 
 	# Couldn't clone; one of the following conditions is true:
@@ -66,44 +67,48 @@ if (![System.IO.Directory]::Exists($checkoutPath) -and ((Get-GitStatus($checkout
 			exit
 		}
 
-		With-Git $gitParams {
+		$result = With-Git $gitParams {
 			git init | Out-Host
 			if ($LastExitCode -ne 0)
 			{
 				# No permission to initialize
 				Build-StandardAction "ConfigurationRepositoryCouldNotBeCloned"
-				exit
+				return
 			}
 			git remote add origin "$repository" | Out-Host
+		}
+		if ($result)
+		{
+			return $result
 		}
 	}
 	catch
 	{
 		# We probably couldn't create the drive
-		Build-StandardAction "ConfigurationRepositoryCouldNotBeCloned"
-		exit
+		return Build-StandardAction "ConfigurationRepositoryCouldNotBeCloned"
 	}
 }
 
 
-With-Git $gitParams {
+$result = With-Git $gitParams {
 	git remote remove origin | Out-Host
 	git remote add origin "$repository" | Out-Host
 
 	git fetch origin --prune --no-tags | Out-Host
 	if ($LastExitCode -ne 0)
 	{
-		Build-StandardAction "ConfigurationRepositoryPasswordIncorrect"
-		exit
+		return Build-StandardAction "ConfigurationRepositoryPasswordIncorrect"
 	}
 
 	git checkout origin/gitauto-config | Out-Host
 	if ($LastExitCode -ne 0)
 	{
-		Build-StandardAction "ConfigurationRepositoryNoBranch"
-		exit
+		return Build-StandardAction "ConfigurationRepositoryNoBranch"
 	}
 }
+if ($result)
+{
+	return $result
+}
 	
-Build-StandardAction "ConfigurationReady"
-return
+return Build-StandardAction "ConfigurationReady"

@@ -1,0 +1,5 @@
+﻿ReserveTypes:
+    Feature:
+        Description: -
+            These represent the basic unit of business work that can be included or excluded from a release. In your ticketing system, they may correspond to epics, stories, bugs, or any other number of nomenclatures. They last until they are released, as bug fixes are applied directly to the features that the bug resulted from.
+        StateScripts: {}
