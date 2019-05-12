@@ -31,7 +31,7 @@ namespace GitAutomation
                 { "rc/1.0.1", new BranchReserve.Builder() { ReserveType = "ReleaseCandidate", FlowType = "Auto", Status = "OutOfDate", Upstream = new HashSet<string> { "feature/b", "feature/a" }, LastCommit = BranchReserve.EmptyCommit } },
             }
         }.Build();
-        private static readonly ISerializer serializer = Serialization.Serialization.Serializer;
+        private static readonly ISerializer serializer = Serialization.SerializationUtils.Serializer;
         private static readonly string originalYaml = serializer.Serialize(testRepository);
         private static readonly InlineDiffBuilder diffBuilder = new InlineDiffBuilder(new Differ());
 

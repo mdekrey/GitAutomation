@@ -23,6 +23,7 @@ $result = With-Git $gitParams {
 	{
 		return Build-StandardAction "ConfigurationRepositoryCouldNotPush"
 	}
+	git checkout "origin/$branchName"
 }
 if ($result)
 {

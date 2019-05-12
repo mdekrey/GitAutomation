@@ -67,7 +67,7 @@ branchReserves:
         [TestMethod]
         public void TestSerializeRepository()
         {
-            var serializer = Serialization.Serialization.Serializer;
+            var serializer = Serialization.SerializationUtils.Serializer;
             var result = serializer.Serialize(testRepository);
 
             Assert.AreEqual(testYaml.FixLineEndings(), result.FixLineEndings().Trim());
@@ -76,7 +76,7 @@ branchReserves:
         [TestMethod]
         public void TestDeserializeRepository()
         {
-            var deserializer = Serialization.Serialization.Deserializer;
+            var deserializer = Serialization.SerializationUtils.Deserializer;
             var result = deserializer.Deserialize<RepositoryStructure.Builder>(testYaml).Build();
 
             Assert.AreEqual(4, result.BranchReserves.Count);
