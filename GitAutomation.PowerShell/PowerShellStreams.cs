@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Management.Automation;
+using System.Management.Automation.Runspaces;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
@@ -11,11 +12,9 @@ namespace GitAutomation
 {
     public class PowerShellStreams<T>
     {
-        private PowerShell psInstance;
-        private readonly Task scriptCompletion;
-        private readonly PSDataCollection<PSObject> input;
         private readonly PSDataCollection<T> output;
-        private AggregateException exception;
+        private PowerShell psInstance;
+        // The following get set when the above gets unset
         private ImmutableList<ErrorRecord> persistedError;
         private ImmutableList<DebugRecord> persistedDebug;
         private ImmutableList<InformationRecord> persistedInformation;
@@ -25,11 +24,15 @@ namespace GitAutomation
 
         public PowerShellStreams(PowerShell psInstance, Task scriptCompletion, PSDataCollection<PSObject> input, PSDataCollection<T> output, bool disposePowerShell)
         {
+            this.output = output;
             this.psInstance = psInstance;
-            this.scriptCompletion = scriptCompletion
+            this.Parameters = (from command in psInstance.Commands.Commands
+                               from parameter in command.Parameters
+                               select parameter).ToImmutableList();
+            this.Completion = scriptCompletion
                 .ContinueWith(t =>
                 {
-                    this.exception = t.Exception;
+                    this.Exception = t.Exception;
                     persistedError = psInstance.Streams.Error.ToImmutableList();
                     persistedDebug = psInstance.Streams.Debug.ToImmutableList();
                     persistedInformation = psInstance.Streams.Information.ToImmutableList();
@@ -39,13 +42,13 @@ namespace GitAutomation
                 })
                 .ContinueWith(_ => { if (disposePowerShell) { psInstance.Dispose(); } })
                 .ContinueWith(_ => this.psInstance = null);
-            this.input = input;
-            this.output = output;
+            this.Input = input;
         }
 
-        public PSDataCollection<PSObject> Input => input;
-        public Task Completion => scriptCompletion;
-        public TaskAwaiter<PowerShellStreams<T>> GetAwaiter() => scriptCompletion.ContinueWith(_ => this).GetAwaiter();
+        public ImmutableList<CommandParameter> Parameters { get; }
+        public PSDataCollection<PSObject> Input { get; }
+        public Task Completion { get; }
+        public TaskAwaiter<PowerShellStreams<T>> GetAwaiter() => Completion.ContinueWith(_ => this).GetAwaiter();
 
         public ImmutableList<T> Success => output.ToImmutableList();
         public ImmutableList<ErrorRecord> Error => persistedError ?? psInstance.Streams.Error.ToImmutableList();
@@ -56,15 +59,15 @@ namespace GitAutomation
         public ImmutableList<WarningRecord> Warning => persistedWarning ?? psInstance.Streams.Warning.ToImmutableList();
 
 
-        public IAsyncEnumerable<T> SuccessAsync => AsAsync(output, scriptCompletion);
-        public IAsyncEnumerable<ErrorRecord> ErrorAsync => persistedError?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Error, scriptCompletion);
-        public IAsyncEnumerable<DebugRecord> DebugAsync => persistedDebug?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Debug, scriptCompletion);
-        public IAsyncEnumerable<InformationRecord> InformationAsync => persistedInformation?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Information, scriptCompletion);
-        public IAsyncEnumerable<ProgressRecord> ProgressAsync => persistedProgress?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Progress, scriptCompletion);
-        public IAsyncEnumerable<VerboseRecord> VerboseAsync => persistedVerbose?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Verbose, scriptCompletion);
-        public IAsyncEnumerable<WarningRecord> WarningAsync => persistedWarning?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Warning, scriptCompletion);
+        public IAsyncEnumerable<T> SuccessAsync => AsAsync(output, Completion);
+        public IAsyncEnumerable<ErrorRecord> ErrorAsync => persistedError?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Error, Completion);
+        public IAsyncEnumerable<DebugRecord> DebugAsync => persistedDebug?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Debug, Completion);
+        public IAsyncEnumerable<InformationRecord> InformationAsync => persistedInformation?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Information, Completion);
+        public IAsyncEnumerable<ProgressRecord> ProgressAsync => persistedProgress?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Progress, Completion);
+        public IAsyncEnumerable<VerboseRecord> VerboseAsync => persistedVerbose?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Verbose, Completion);
+        public IAsyncEnumerable<WarningRecord> WarningAsync => persistedWarning?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Warning, Completion);
 
-        public AggregateException Exception => exception;
+        public AggregateException Exception { get; private set; }
 
         private static async IAsyncEnumerable<U> AsAsync<U>(PSDataCollection<U> output, Task until)
         {

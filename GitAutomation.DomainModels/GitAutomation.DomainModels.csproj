@@ -9,12 +9,20 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
-    <PackageReference Include="YamlDotNet" Version="6.0.0" />
+    <None Remove="Serialization\Defaults\configuration.yaml" />
+    <None Remove="Serialization\Defaults\meta.yaml" />
+    <None Remove="Serialization\Defaults\structure.yaml" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Serialization\" />
+    <EmbeddedResource Include="Serialization\Defaults\configuration.yaml" />
+    <EmbeddedResource Include="Serialization\Defaults\meta.yaml" />
+    <EmbeddedResource Include="Serialization\Defaults\structure.yaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
+    <PackageReference Include="YamlDotNet" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>

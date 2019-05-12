@@ -25,15 +25,6 @@
   <ItemGroup>
     <None Remove="ClientApp\src\App.tsx" />
     <None Remove="ClientApp\src\index.tsx" />
-    <None Remove="Defaults\configuration.yaml" />
-    <None Remove="Defaults\meta.yaml" />
-    <None Remove="Defaults\reserves.yaml" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="Defaults\configuration.yaml" />
-    <EmbeddedResource Include="Defaults\meta.yaml" />
-    <EmbeddedResource Include="Defaults\reserves.yaml" />
   </ItemGroup>
 
   <ItemGroup>

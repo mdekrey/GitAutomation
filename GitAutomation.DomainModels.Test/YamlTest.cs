@@ -28,46 +28,46 @@ namespace GitAutomation
             }
         }.Build();
         private static string testYaml = @"
-BranchReserves:
+branchReserves:
   feature/a:
-    ReserveType: Feature
-    FlowType: Manual
-    Status: OutOfDate
-    Upstream:
+    reserveType: Feature
+    flowType: Manual
+    status: OutOfDate
+    upstream:
     - line/1.0
-    LastCommit: 0000000000000000000000000000000000000000
-    Meta:
+    lastCommit: 0000000000000000000000000000000000000000
+    meta:
       Owner: mdekrey
   feature/b:
-    ReserveType: Feature
-    FlowType: Manual
-    Status: OutOfDate
-    Upstream:
+    reserveType: Feature
+    flowType: Manual
+    status: OutOfDate
+    upstream:
     - line/1.0
-    LastCommit: 0000000000000000000000000000000000000000
-    Meta: {}
+    lastCommit: 0000000000000000000000000000000000000000
+    meta: {}
   line/1.0:
-    ReserveType: ServiceLine
-    FlowType: Auto
-    Status: Stable
-    Upstream: []
-    LastCommit: 0123456789012345678901234567890123456789
-    Meta: {}
+    reserveType: ServiceLine
+    flowType: Auto
+    status: Stable
+    upstream: []
+    lastCommit: 0123456789012345678901234567890123456789
+    meta: {}
   rc/1.0.1:
-    ReserveType: ReleaseCandidate
-    FlowType: Auto
-    Status: OutOfDate
-    Upstream:
+    reserveType: ReleaseCandidate
+    flowType: Auto
+    status: OutOfDate
+    upstream:
     - feature/a
     - feature/b
-    LastCommit: 0000000000000000000000000000000000000000
-    Meta: {}
+    lastCommit: 0000000000000000000000000000000000000000
+    meta: {}
 ".Trim();
 
         [TestMethod]
         public void TestSerializeRepository()
         {
-            var serializer = new SerializerBuilder().DisableAliases().Build();
+            var serializer = Serialization.Serialization.Serializer;
             var result = serializer.Serialize(testRepository);
 
             Assert.AreEqual(testYaml.FixLineEndings(), result.FixLineEndings().Trim());
@@ -76,7 +76,7 @@ BranchReserves:
         [TestMethod]
         public void TestDeserializeRepository()
         {
-            var deserializer = new DeserializerBuilder().Build();
+            var deserializer = Serialization.Serialization.Deserializer;
             var result = deserializer.Deserialize<RepositoryStructure.Builder>(testYaml).Build();
 
             Assert.AreEqual(4, result.BranchReserves.Count);
@@ -85,6 +85,7 @@ BranchReserves:
             Assert.AreEqual(2, result.BranchReserves["rc/1.0.1"].Upstream.Count);
             Assert.AreEqual("feature/a", result.BranchReserves["rc/1.0.1"].Upstream[0]);
             Assert.AreEqual("feature/b", result.BranchReserves["rc/1.0.1"].Upstream[1]);
+            Assert.AreEqual("mdekrey", result.BranchReserves["feature/a"].Meta["Owner"]);
         }
     }
 }

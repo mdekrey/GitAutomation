@@ -111,4 +111,4 @@ if ($result)
 	return $result
 }
 	
-return Build-StandardAction "ConfigurationReady"
+return Build-StandardAction "ConfigurationReadyToLoad"

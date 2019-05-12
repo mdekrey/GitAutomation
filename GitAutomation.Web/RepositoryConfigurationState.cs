@@ -5,42 +5,69 @@ namespace GitAutomation.Web
 {
     internal class RepositoryConfigurationState
     {
-        public RepositoryConfigurationState(RepositoryConfigurationStatus status, RepositoryConfiguration configuration, RepositoryStructure structure)
+        public RepositoryConfigurationState(
+            bool isCurrentWithDisk,
+            bool isPulled,
+            bool isPushed,
+            RepositoryConfigurationLastError lastError,
+            RepositoryConfiguration configuration,
+            RepositoryStructure structure)
         {
-            Status = status;
+            IsCurrentWithDisk = isCurrentWithDisk;
+            IsPulled = isPulled;
+            IsPushed = isPushed;
+            LastError = lastError;
             Configuration = configuration;
             Structure = structure;
         }
 
-        public enum RepositoryConfigurationStatus
+        public enum RepositoryConfigurationLastError
         {
-            NotReady,
+            None,
             Error_DirectoryNotAccessible,
             Error_FailedToClone,
             Error_PasswordIncorrect,
-            Ready
+            Error_FailedToPush,
+            Error_FailedToCommit,
         }
 
-        public RepositoryConfigurationStatus Status { get; }
+        public bool IsCurrentWithDisk { get; }
+        public bool IsPulled { get; }
+        public bool IsPushed { get; }
+        public RepositoryConfigurationLastError LastError { get; }
         public RepositoryConfiguration Configuration { get; }
         public RepositoryStructure Structure { get; }
 
         public static RepositoryConfigurationState ZeroState { get; } = new RepositoryConfigurationState(
-            RepositoryConfigurationStatus.NotReady,
-            new RepositoryConfiguration(),
-            new RepositoryStructure(ImmutableSortedDictionary<string, BranchReserve>.Empty));
+            isCurrentWithDisk: false,
+            isPulled: false,
+            isPushed: false,
+            lastError: RepositoryConfigurationLastError.None,
+            configuration: new RepositoryConfiguration(),
+            structure: new RepositoryStructure(ImmutableSortedDictionary<string, BranchReserve>.Empty));
 
         public RepositoryConfigurationState With(
-            RepositoryConfigurationStatus? status = null,
+            bool? isCurrentWithDisk = null,
+            bool? isPushed = null,
+            bool? isPulled = null,
+            RepositoryConfigurationLastError? lastError = null,
             RepositoryConfiguration configuration = null,
             RepositoryStructure structure = null)
         {
-            if ((status ?? Status) != Status || (configuration ?? Configuration) != Configuration || (structure ?? Structure) != Structure)
+            if ((isCurrentWithDisk ?? IsCurrentWithDisk) != IsCurrentWithDisk
+                || (isPushed ?? IsPushed) != IsPushed
+                || (isPulled ?? IsPulled) != IsPulled
+                || (lastError ?? LastError) != LastError 
+                || (configuration ?? Configuration) != Configuration 
+                || (structure ?? Structure) != Structure)
             {
                 return new RepositoryConfigurationState(
-                    status ?? Status,
-                    configuration ?? Configuration,
-                    structure ?? Structure);
+                    isCurrentWithDisk: isCurrentWithDisk ?? IsCurrentWithDisk,
+                    isPushed: isPushed ?? IsPushed,
+                    isPulled: isPulled ?? IsPulled,
+                    lastError: lastError ?? LastError,
+                    configuration: configuration ?? Configuration,
+                    structure: structure ?? Structure);
             }
             return this;
         }

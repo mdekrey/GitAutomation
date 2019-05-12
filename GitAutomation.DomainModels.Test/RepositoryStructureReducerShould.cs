@@ -31,7 +31,7 @@ namespace GitAutomation
                 { "rc/1.0.1", new BranchReserve.Builder() { ReserveType = "ReleaseCandidate", FlowType = "Auto", Status = "OutOfDate", Upstream = new HashSet<string> { "feature/b", "feature/a" }, LastCommit = BranchReserve.EmptyCommit } },
             }
         }.Build();
-        private static readonly ISerializer serializer = new SerializerBuilder().DisableAliases().Build();
+        private static readonly ISerializer serializer = Serialization.Serialization.Serializer;
         private static readonly string originalYaml = serializer.Serialize(testRepository);
         private static readonly InlineDiffBuilder diffBuilder = new InlineDiffBuilder(new Differ());
 
@@ -41,8 +41,8 @@ namespace GitAutomation
             var actual = testRepository.Reduce(new StandardAction("StabilizeBranch", new Dictionary<string, object> { { "Branch", "feature/a" } }));
             var result = GetPatch(actual);
             Assert.AreEqual(Clean(@"
--      Status: OutOfDate
-+      Status: Stable").Trim(), result);
+-      status: OutOfDate
++      status: Stable").Trim(), result);
             Assert.AreEqual("Stable", actual.BranchReserves["feature/a"].Status);
         }
 
@@ -52,8 +52,8 @@ namespace GitAutomation
             var actual = testRepository.Reduce(new StandardAction("SetBranchState", new Dictionary<string, object> { { "Branch", "feature/b" }, { "State", "Bananas" } }));
             var result = GetPatch(actual);
             Assert.AreEqual(Clean(@"
--      Status: OutOfDate
-+      Status: Bananas").Trim(), result);
+-      status: OutOfDate
++      status: Bananas").Trim(), result);
             Assert.AreEqual("Bananas", actual.BranchReserves["feature/b"].Status);
         }
 
@@ -66,8 +66,8 @@ namespace GitAutomation
             }));
             var result = GetPatch(actual);
             Assert.AreEqual(Clean(@"
--      LastCommit: 0000000000000000000000000000000000000000
-+      LastCommit: 0123456789012345678901234567890123456789").Trim(), result);
+-      lastCommit: 0000000000000000000000000000000000000000
++      lastCommit: 0123456789012345678901234567890123456789").Trim(), result);
             Assert.AreEqual("0123456789012345678901234567890123456789", actual.BranchReserves["feature/a"].LastCommit);
         }
 
@@ -98,13 +98,13 @@ namespace GitAutomation
             var result = GetPatch(actual);
             Assert.AreEqual(Clean(@"
 -    feature/a:
--      ReserveType: Feature
--      FlowType: Manual
--      Status: OutOfDate
--      Upstream:
+-      reserveType: Feature
+-      flowType: Manual
+-      status: OutOfDate
+-      upstream:
 -      - line/1.0
--      LastCommit: 0000000000000000000000000000000000000000
--      Meta:
+-      lastCommit: 0000000000000000000000000000000000000000
+-      meta:
 -        Owner: mdekrey
 -      - feature/a").Trim(), result);
             Assert.AreEqual(3, actual.BranchReserves.Count);
@@ -121,7 +121,7 @@ namespace GitAutomation
             return string.Join('\n', returnValue).Trim();
         }
 
-        private string Clean(string target) => target.Replace("\r", "");
+        private string Clean(string target) => target.FixLineEndings();
 
         private string Indicator(ChangeType type) =>
             type switch

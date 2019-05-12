@@ -1,13 +1,11 @@
 ﻿using System;
-using System.IO;
-using System.Linq;
-using System.Management.Automation;
 using System.Threading.Tasks;
 using GitAutomation.DomainModels;
-using GitAutomation.Extensions;
+using GitAutomation.Serialization.Defaults;
 using GitAutomation.Web.Scripts;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using static GitAutomation.DomainModels.RepositoryStructureReducer;
+using static GitAutomation.Web.RepositoryConfigurationState;
 
 namespace GitAutomation.Web
 {
@@ -15,15 +13,16 @@ namespace GitAutomation.Web
     {
         private readonly ConfigRepositoryOptions options;
         private readonly PowerShellScriptInvoker scriptInvoker;
-
+        private readonly ILogger logger;
         private RepositoryConfigurationState state = RepositoryConfigurationState.ZeroState;
         private PowerShellStreams<StandardAction> lastLoadResult;
         private PowerShellStreams<StandardAction> lastPushResult;
 
-        public RepositoryConfigurationService(IOptions<ConfigRepositoryOptions> options, PowerShellScriptInvoker scriptInvoker)
+        public RepositoryConfigurationService(IOptions<ConfigRepositoryOptions> options, PowerShellScriptInvoker scriptInvoker, ILogger<RepositoryConfigurationService> logger)
         {
             this.options = options.Value;
             this.scriptInvoker = scriptInvoker;
+            this.logger = logger;
         }
 
         internal async void BeginLoad()
@@ -36,10 +35,13 @@ namespace GitAutomation.Web
             state = (action.Action switch
             {
                 "ConfigurationDirectoryNotAccessible" => ConfigurationDirectoryNotAccessible(state),
-                "ConfigurationReady" => ConfigurationReady(state),
+                "ConfigurationReadyToLoad" => ConfigurationReadyToLoad(state),
                 "ConfigurationRepositoryCouldNotBeCloned" => ConfigurationRepositoryCouldNotBeCloned(state),
                 "ConfigurationRepositoryPasswordIncorrect" => ConfigurationRepositoryPasswordIncorrect(state),
                 "ConfigurationRepositoryNoBranch" => ConfigurationRepositoryNoBranch(state),
+                "ConfigurationRepositoryCouldNotCommit" => ConfigurationRepositoryCouldNotCommit(state),
+                "ConfigurationRepositoryCouldNotPush" => ConfigurationRepositoryCouldNotPush(state),
+                "ConfigurationPushSuccess" => ConfigurationPushSuccess(state),
                 _ => state,
             }).With(structure: RepositoryStructureReducer.Reduce(state.Structure, action));
         }
@@ -48,64 +50,59 @@ namespace GitAutomation.Web
         {
             Task.Run(() => CreateDefaultConfiguration());
 
-            return original;
+            return original.With(isPulled: true);
         }
 
         private RepositoryConfigurationState ConfigurationRepositoryPasswordIncorrect(RepositoryConfigurationState original) =>
-            original.With(status: RepositoryConfigurationState.RepositoryConfigurationStatus.Error_PasswordIncorrect);
+            original.With(isCurrentWithDisk: false, isPulled: false, lastError: RepositoryConfigurationLastError.Error_PasswordIncorrect);
 
         private RepositoryConfigurationState ConfigurationRepositoryCouldNotBeCloned(RepositoryConfigurationState original) =>
-            original.With(status: RepositoryConfigurationState.RepositoryConfigurationStatus.Error_FailedToClone);
+            original.With(isCurrentWithDisk: false, isPulled: false, lastError: RepositoryConfigurationLastError.Error_FailedToClone);
 
         private RepositoryConfigurationState ConfigurationDirectoryNotAccessible(RepositoryConfigurationState original) =>
-            original.With(status: RepositoryConfigurationState.RepositoryConfigurationStatus.Error_DirectoryNotAccessible);
+            original.With(isCurrentWithDisk: false, isPulled: false, lastError: RepositoryConfigurationLastError.Error_DirectoryNotAccessible);
 
-        private RepositoryConfigurationState ConfigurationReady(RepositoryConfigurationState original)
+        private RepositoryConfigurationState ConfigurationReadyToLoad(RepositoryConfigurationState original)
         {
             Task.Run(() => LoadFromDisk());
 
-            return original.With(RepositoryConfigurationState.RepositoryConfigurationStatus.NotReady);
+            return original.With(isPushed: true, isPulled: true, isCurrentWithDisk: false);
         }
+
+        private RepositoryConfigurationState ConfigurationRepositoryCouldNotCommit(RepositoryConfigurationState original) =>
+            original.With(isPushed: false, lastError: RepositoryConfigurationLastError.Error_FailedToCommit);
+
+        private RepositoryConfigurationState ConfigurationRepositoryCouldNotPush(RepositoryConfigurationState original) =>
+            original.With(isPushed: false, lastError: RepositoryConfigurationLastError.Error_FailedToPush);
+
+        private RepositoryConfigurationState ConfigurationPushSuccess(RepositoryConfigurationState original) =>
+            original.With(isPushed: true);
 
         private async Task CreateDefaultConfiguration()
         {
             try
             {
-                var assembly = this.GetType().Assembly;
-                var startsWith = $"{assembly.GetName().Name}.Defaults";
-                foreach (var resourceName in assembly.GetManifestResourceNames().Where(n => n.StartsWith(startsWith)))
-                {
-                    var remainingName = resourceName.Substring(startsWith.Length + 1);
-                    var outPath = Path.Join(options.CheckoutPath, string.Join('/', remainingName.Split('.', Math.Max(1, remainingName.Count(c => c == '.') - 1))));
-                    Directory.CreateDirectory(Path.GetDirectoryName(outPath));
-                    using (var stream = assembly.GetManifestResourceStream(resourceName))
-                    using (var file = File.Create(outPath))
-                    {
-                        await stream.CopyToAsync(file);
-                    }
-                }
+                await DefaultsWriter.WriteDefaultsToDirectory(options.CheckoutPath);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                logger.LogCritical(ex, "Could not write default configuration");
+                return;
             }
 
-            await Task.WhenAll(
-                    LoadFromDisk(),
-                    PushToRemote()
-                );
+            LoadFromDisk();
+            PushToRemote();
 
         }
 
-        private async Task LoadFromDisk()
+        private void LoadFromDisk()
         {
             // TODO - load from disk
         }
 
-        private async Task PushToRemote()
+        private void PushToRemote()
         {
             lastPushResult = scriptInvoker.Invoke("$/Config/commitAndPush.ps1", new { }, options);
-            await lastPushResult;
         }
     }
 }
