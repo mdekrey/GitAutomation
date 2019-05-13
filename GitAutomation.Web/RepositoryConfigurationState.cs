@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 
 namespace GitAutomation.Web
 {
-    internal class RepositoryConfigurationState
+    public class RepositoryConfigurationState
     {
         public RepositoryConfigurationState(
             bool isCurrentWithDisk,

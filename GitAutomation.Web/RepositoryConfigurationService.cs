@@ -11,13 +11,12 @@ using static GitAutomation.Web.RepositoryConfigurationState;
 
 namespace GitAutomation.Web
 {
-    internal class RepositoryConfigurationService : IDispatcher
+    public class RepositoryConfigurationService : IDispatcher
     {
         private readonly ConfigRepositoryOptions options;
         private readonly PowerShellScriptInvoker scriptInvoker;
         private readonly ILogger logger;
         private readonly IDispatcher dispatcher;
-        private RepositoryConfigurationState state = RepositoryConfigurationState.ZeroState;
         private PowerShellStreams<StandardAction> lastLoadResult;
         private PowerShellStreams<StandardAction> lastPushResult;
         private Meta meta;
@@ -30,6 +29,8 @@ namespace GitAutomation.Web
             this.dispatcher = dispatcher;
         }
 
+        public RepositoryConfigurationState State { get; private set; } = RepositoryConfigurationState.ZeroState;
+
         internal void BeginLoad()
         {
             this.lastLoadResult = scriptInvoker.Invoke("$/Config/clone.ps1", new { }, options);
@@ -37,19 +38,19 @@ namespace GitAutomation.Web
 
         public void Dispatch(StandardAction action)
         {
-            state = (action.Action switch
+            State = (action.Action switch
             {
-                "ConfigurationDirectoryNotAccessible" => ConfigurationDirectoryNotAccessible(state),
-                "ConfigurationReadyToLoad" => ConfigurationReadyToLoad(state),
-                "ConfigurationRepositoryCouldNotBeCloned" => ConfigurationRepositoryCouldNotBeCloned(state),
-                "ConfigurationRepositoryPasswordIncorrect" => ConfigurationRepositoryPasswordIncorrect(state),
-                "ConfigurationRepositoryNoBranch" => ConfigurationRepositoryNoBranch(state),
-                "ConfigurationRepositoryCouldNotCommit" => ConfigurationRepositoryCouldNotCommit(state),
-                "ConfigurationRepositoryCouldNotPush" => ConfigurationRepositoryCouldNotPush(state),
-                "ConfigurationPushSuccess" => ConfigurationPushSuccess(state),
-                "ConfigurationLoaded" => ConfigurationLoaded(state, (RepositoryConfiguration)action.Payload["configuration"], (RepositoryStructure)action.Payload["structure"]),
-                _ => state,
-            }).With(structure: RepositoryStructureReducer.Reduce(state.Structure, action));
+                "ConfigurationDirectoryNotAccessible" => ConfigurationDirectoryNotAccessible(State),
+                "ConfigurationReadyToLoad" => ConfigurationReadyToLoad(State),
+                "ConfigurationRepositoryCouldNotBeCloned" => ConfigurationRepositoryCouldNotBeCloned(State),
+                "ConfigurationRepositoryPasswordIncorrect" => ConfigurationRepositoryPasswordIncorrect(State),
+                "ConfigurationRepositoryNoBranch" => ConfigurationRepositoryNoBranch(State),
+                "ConfigurationRepositoryCouldNotCommit" => ConfigurationRepositoryCouldNotCommit(State),
+                "ConfigurationRepositoryCouldNotPush" => ConfigurationRepositoryCouldNotPush(State),
+                "ConfigurationPushSuccess" => ConfigurationPushSuccess(State),
+                "ConfigurationLoaded" => ConfigurationLoaded(State, (RepositoryConfiguration)action.Payload["configuration"], (RepositoryStructure)action.Payload["structure"]),
+                _ => State,
+            }).With(structure: RepositoryStructureReducer.Reduce(State.Structure, action));
         }
 
         private RepositoryConfigurationState ConfigurationRepositoryNoBranch(RepositoryConfigurationState original)
@@ -89,7 +90,7 @@ namespace GitAutomation.Web
 
         private async Task CreateDefaultConfiguration()
         {
-            var newOrphanBranch = await scriptInvoker.Invoke("$/Config/newOrphanBranch.ps1", new { }, options);
+            await scriptInvoker.Invoke("$/Config/newOrphanBranch.ps1", new { }, options);
 
             try
             {
