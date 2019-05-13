@@ -16,7 +16,8 @@ namespace GitAutomation.GraphQl
                 Name = "Test",
                 Meta = new Dictionary<string, object>
                 {
-                    { "Owner", "mdekrey" }
+                    { "Owner", "mdekrey" },
+                    { "owner", "nobody" }
                 },
                 Numbers = new[] { 1, 2, 3 }
             };
@@ -24,23 +25,18 @@ namespace GitAutomation.GraphQl
         [TestMethod]
         public void AllowSubsetsOfArbitraryObjects()
         {
-            var lexer = new Lexer();
-            var parser = new Parser(lexer);
-            var ast = parser.Parse(new Source(@"
+            var subset = @"
 {
   name
-  labels: meta { owner }
-}"));
-            var subset = ast.ToJson(subject);
+  labels: meta { owner: Owner }
+}".AsGraphQlAst().ToJson(subject);
             Assert.AreEqual(JToken.FromObject(new { name = "Test", labels = new { owner = "mdekrey" } }).ToString(), subset.ToString());
         }
 
         [TestMethod]
         public void AllowFragmentsOfArbitraryObjects()
         {
-            var lexer = new Lexer();
-            var parser = new Parser(lexer);
-            var ast = parser.Parse(new Source(@"
+            var subset = @"
 {
   name
   ...meta
@@ -48,38 +44,42 @@ namespace GitAutomation.GraphQl
 
 fragment meta on Whatever
 {
-    meta { owner }
+    meta { owner: Owner }
 }
-"));
-            var subset = ast.ToJson(subject);
+".AsGraphQlAst().ToJson(subject);
             Assert.AreEqual(JToken.FromObject(new { name = "Test", meta = new { owner = "mdekrey" } }).ToString(), subset.ToString());
+        }
+
+        [TestMethod]
+        public void AllowAccessToKeysAndProperties()
+        {
+            var subset = @"
+{
+  meta { Keys, Owner }
+}
+".AsGraphQlAst().ToJson(subject);
+            Assert.AreEqual(JToken.FromObject(new { meta = new { Keys = new[] { "Owner", "owner" }, Owner = "mdekrey" } }).ToString(), subset.ToString());
         }
 
         [TestMethod]
         public void SupportArrays()
         {
-            var lexer = new Lexer();
-            var parser = new Parser(lexer);
-            var ast = parser.Parse(new Source(@"
+            var subset = @"
 {
   name
   numbers
-}"));
-            var subset = ast.ToJson(subject);
+}".AsGraphQlAst().ToJson(subject);
             Assert.AreEqual(JToken.FromObject(new { name = "Test", numbers = new[] { 1, 2, 3 } }).ToString(), subset.ToString());
         }
 
         [TestMethod]
         public void IgnoreObjectsIfPropertiesArentMapped()
         {
-            var lexer = new Lexer();
-            var parser = new Parser(lexer);
-            var ast = parser.Parse(new Source(@"
+            var subset = @"
 {
   name
   meta
-}"));
-            var subset = ast.ToJson(subject);
+}".AsGraphQlAst().ToJson(subject);
             Assert.AreEqual(JToken.FromObject(new { name = "Test", meta = (object)null }).ToString(), subset.ToString());
         }
     }

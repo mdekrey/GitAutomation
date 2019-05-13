@@ -2,6 +2,7 @@
 using GraphQLParser.AST;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,28 +21,60 @@ namespace GitAutomation.Web.GraphQL
 
         public static JToken ToJson(this GraphQLDocument ast, object subject)
         {
-            // TODO - shouldn't pre-convert to JObject for all of this, as it precludes cycles, etc. Instead, fix the ToJsonObject method
-            return ToJson(ast, (ast.Definitions.First() as GraphQLOperationDefinition).SelectionSet, JToken.FromObject(subject));
+            return ToJson(ast, (ast.Definitions.First() as GraphQLOperationDefinition).SelectionSet, subject);
         }
 
-        private static JToken ToJson(GraphQLDocument ast, GraphQLSelectionSet currentNode, JToken subject)
+        private static JToken ToJson(GraphQLDocument ast, GraphQLSelectionSet currentNode, object subject)
         {
-            if (subject is JArray enumerable)
+            if (subject == null)
             {
-                return ToJsonArray(ast, currentNode, enumerable);
+                return JValue.CreateNull();
             }
-            else if (subject is JObject obj && currentNode != null)
+            else if (subject is IEnumerable enumerable && !(subject is string) && !(subject is IDictionary))
             {
-                return ToJsonObject(ast, currentNode, obj);
+                return ToJsonArray(ast, currentNode, enumerable.Cast<object>());
+            }
+            else if (currentNode != null)
+            {
+                return ToJsonObject(ast, currentNode, subject);
             }
             else
             {
-                return (subject is JValue) ? subject : JValue.CreateNull();
+                return JToken.FromObject(subject) as JValue ?? JValue.CreateNull();
             }
         }
 
-        private static JObject ToJsonObject(GraphQLDocument ast, GraphQLSelectionSet currentNode, JObject subject)
+        private static readonly Type[] indexerParameters = new[] { typeof(string) };
+
+        private static JObject ToJsonObject(GraphQLDocument ast, GraphQLSelectionSet currentNode, object subject)
         {
+            var subjType = subject.GetType();
+            var properties = subjType.GetProperties().ToDictionary(p => p.Name, StringComparer.InvariantCultureIgnoreCase);
+            var indexer = subjType.GetProperties()
+                .FirstOrDefault(p => 
+                    p.GetIndexParameters().Select(p => p.ParameterType).SequenceEqual(indexerParameters) 
+                    && p.Name == "Item"
+                );
+            object GetValue(string keyName)
+            {
+                try
+                {
+                    if (properties.ContainsKey(keyName))
+                    {
+                        return properties[keyName].GetValue(subject);
+                    }
+                    else
+                    {
+                        return indexer.GetValue(subject, new[] { keyName });
+                    }
+                }
+                catch
+                {
+                    // TODO - do something with errors
+                }
+                return null;
+            }
+
             var result = new JObject();
             foreach (var selection in currentNode.Selections)
             {
@@ -49,18 +82,7 @@ namespace GitAutomation.Web.GraphQL
                 {
                     var displayName = (fieldSelection.Alias ?? fieldSelection.Name).Value;
                     var actualName = fieldSelection.Name.Value;
-                    var prop = subject.Properties().FirstOrDefault(p => string.Compare(p.Name, actualName, true) == 0);
-                    if (prop != null)
-                    {
-                        result.Add(displayName, ToJson(ast, fieldSelection.SelectionSet, prop.Value));
-                    }
-                    else if (actualName == "_")
-                    {
-                        foreach (var p in subject.Properties())
-                        {
-                            result.Add(p.Name, ToJson(ast, fieldSelection.SelectionSet, p.Value));
-                        }
-                    }
+                    result.Add(displayName, ToJson(ast, fieldSelection.SelectionSet, GetValue(actualName)));
                 }
                 else if (selection is GraphQLFragmentSpread fragmentSpread)
                 {
@@ -75,7 +97,7 @@ namespace GitAutomation.Web.GraphQL
             return result;
         }
 
-        private static JArray ToJsonArray(GraphQLDocument ast, GraphQLSelectionSet currentNode, JArray enumerable)
+        private static JArray ToJsonArray(GraphQLDocument ast, GraphQLSelectionSet currentNode, IEnumerable<object> enumerable)
         {
             var result = new JArray();
 
