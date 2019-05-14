@@ -68,20 +68,16 @@ if (![System.IO.Directory]::Exists($checkoutPath) -or ((Get-GitStatus($checkoutP
 			exit
 		}
 
-		$result = With-Git $gitParams {
-			git init | Out-Host
-			if ($LastExitCode -ne 0)
-			{
-				# No permission to initialize
-				Build-StandardAction "ConfigurationRepositoryCouldNotBeCloned" @{ "startTimestamp" = $startTimestamp }
-				return
-			}
-			git remote add origin "$repository" | Out-Host
-		}
-		if ($result)
+		Start-Git $gitParams
+		git init | Out-Host
+		if ($LastExitCode -ne 0)
 		{
-			return $result
+			# No permission to initialize
+			Build-StandardAction "ConfigurationRepositoryCouldNotBeCloned" @{ "startTimestamp" = $startTimestamp }
+			return
 		}
+		git remote add origin "$repository" | Out-Host
+		End-Git $gitparams
 	}
 	catch
 	{
@@ -91,25 +87,21 @@ if (![System.IO.Directory]::Exists($checkoutPath) -or ((Get-GitStatus($checkoutP
 }
 
 
-$result = With-Git $gitParams {
-	git remote remove origin | Out-Host
-	git remote add origin "$repository" | Out-Host
+Start-Git $gitParams
+git remote remove origin | Out-Host
+git remote add origin "$repository" | Out-Host
 
-	git fetch origin --prune --no-tags | Out-Host
-	if ($LastExitCode -ne 0)
-	{
-		return Build-StandardAction "ConfigurationRepositoryPasswordIncorrect" @{ "startTimestamp" = $startTimestamp }
-	}
-
-	git checkout origin/gitauto-config | Out-Host
-	if ($LastExitCode -ne 0)
-	{
-		return Build-StandardAction "ConfigurationRepositoryNoBranch" @{ "startTimestamp" = $startTimestamp }
-	}
-}
-if ($result)
+git fetch origin --prune --no-tags | Out-Host
+if ($LastExitCode -ne 0)
 {
-	return $result
+	return Build-StandardAction "ConfigurationRepositoryPasswordIncorrect" @{ "startTimestamp" = $startTimestamp }
 }
+
+git checkout origin/gitauto-config | Out-Host
+if ($LastExitCode -ne 0)
+{
+	return Build-StandardAction "ConfigurationRepositoryNoBranch" @{ "startTimestamp" = $startTimestamp }
+}
+End-Git $gitparams
 	
 return Build-StandardAction "ConfigurationReadyToLoad" @{ "startTimestamp" = $startTimestamp }

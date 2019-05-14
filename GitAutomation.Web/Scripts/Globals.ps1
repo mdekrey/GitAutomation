@@ -16,6 +16,8 @@ function Create-GitParams (
 
 function Set-GitEnvironment ([string] $password, [string] $userEmail, [string] $userName)
 {
+	Set-Item -Path Env:GIT_AUTHOR_NAME -Value "$userName"
+	Set-Item -Path Env:GIT_AUTHOR_EMAIL -Value "$userEmail"
 	Set-Item -Path Env:GIT_COMMITTER_NAME -Value "$userName"
 	Set-Item -Path Env:GIT_COMMITTER_EMAIL -Value "$userEmail"
 	# TODO - password
@@ -29,7 +31,7 @@ function Build-StandardAction ([string] $action, [hashtable] $payload = @{})
 	}
 }
 
-function With-Git ([hashtable] $gitparams, [scriptblock] $script)
+function Start-Git ([hashtable] $gitparams)
 {
 	Set-GitEnvironment -password "$($gitparams.password)" -userEmail "$($gitparams.userEmail)" -userName "$($gitparams.userName)"
 	Push-Location
@@ -37,12 +39,11 @@ function With-Git ([hashtable] $gitparams, [scriptblock] $script)
 	if ((pwd).Path -ne (Get-Item $checkoutPath).FullName) {
 		throw "Could not cd to $checkoutPath"
 	}
+}
 
-	$result = $script.Invoke()
-	
+function End-Git ([hashtable] $gitparams)
+{
 	Pop-Location
-	return $result
-
 }
 
 $verbosepreference='continue'
