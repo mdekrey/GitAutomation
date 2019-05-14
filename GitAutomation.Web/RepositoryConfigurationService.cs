@@ -5,92 +5,94 @@ using GitAutomation.DomainModels;
 using GitAutomation.Serialization;
 using GitAutomation.Serialization.Defaults;
 using GitAutomation.Web.Scripts;
+using GitAutomation.Web.State;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using static GitAutomation.Web.RepositoryConfigurationState;
 
 namespace GitAutomation.Web
 {
-    public class RepositoryConfigurationService : IDispatcher
+    public class RepositoryConfigurationService : IDisposable
     {
         private readonly ConfigRepositoryOptions options;
         private readonly PowerShellScriptInvoker scriptInvoker;
         private readonly ILogger logger;
         private readonly IDispatcher dispatcher;
-        private PowerShellStreams<StandardAction> lastLoadResult;
-        private PowerShellStreams<StandardAction> lastPushResult;
+        private readonly IStateMachine stateMachine;
+        private readonly IDisposable subscription;
+        private IPowerShellStreams<StandardAction> lastLoadResult;
+        private IPowerShellStreams<StandardAction> lastPushResult;
         private Meta meta;
+        private DateTimeOffset lastNeedPullTimestamp;
+        private DateTimeOffset lastPulledTimestamp;
+        private DateTimeOffset lastStoredFieldModifiedTimestamp;
 
-        public RepositoryConfigurationService(IOptions<ConfigRepositoryOptions> options, PowerShellScriptInvoker scriptInvoker, ILogger<RepositoryConfigurationService> logger, IDispatcher dispatcher)
+        public RepositoryConfigurationService(IOptions<ConfigRepositoryOptions> options, PowerShellScriptInvoker scriptInvoker, ILogger<RepositoryConfigurationService> logger, IDispatcher dispatcher, IStateMachine stateMachine)
         {
             this.options = options.Value;
             this.scriptInvoker = scriptInvoker;
             this.logger = logger;
             this.dispatcher = dispatcher;
+            this.stateMachine = stateMachine;
+            subscription = stateMachine.StateUpdates.Subscribe(OnStateUpdated);
         }
 
-        public RepositoryConfigurationState State { get; private set; } = RepositoryConfigurationState.ZeroState;
-
-        internal void BeginLoad()
+        public void AssertStarted()
         {
-            this.lastLoadResult = scriptInvoker.Invoke("$/Config/clone.ps1", new { }, options);
+            System.Diagnostics.Debug.Assert(subscription != null);
         }
 
-        public void Dispatch(StandardAction action)
+        private void OnStateUpdated(RepositoryConfigurationState state)
         {
-            State = (action.Action switch
+            // FIXME - should I do this with switchmap/cancellation tokens?
+            if (state.NeedPullTimestamp > state.PulledTimestamp)
             {
-                "ConfigurationDirectoryNotAccessible" => ConfigurationDirectoryNotAccessible(State),
-                "ConfigurationReadyToLoad" => ConfigurationReadyToLoad(State),
-                "ConfigurationRepositoryCouldNotBeCloned" => ConfigurationRepositoryCouldNotBeCloned(State),
-                "ConfigurationRepositoryPasswordIncorrect" => ConfigurationRepositoryPasswordIncorrect(State),
-                "ConfigurationRepositoryNoBranch" => ConfigurationRepositoryNoBranch(State),
-                "ConfigurationRepositoryCouldNotCommit" => ConfigurationRepositoryCouldNotCommit(State),
-                "ConfigurationRepositoryCouldNotPush" => ConfigurationRepositoryCouldNotPush(State),
-                "ConfigurationPushSuccess" => ConfigurationPushSuccess(State),
-                "ConfigurationLoaded" => ConfigurationLoaded(State, (RepositoryConfiguration)action.Payload["configuration"], (RepositoryStructure)action.Payload["structure"]),
-                _ => State,
-            }).With(structure: RepositoryStructureReducer.Reduce(State.Structure, action));
+                if (lastNeedPullTimestamp != state.NeedPullTimestamp)
+                {
+                    lastNeedPullTimestamp = state.NeedPullTimestamp;
+                    BeginLoad(state.NeedPullTimestamp);
+                }
+            }
+            else if (state.PulledTimestamp > state.LoadedFromDiskTimestamp)
+            {
+                if (lastPulledTimestamp != state.PulledTimestamp)
+                {
+                    lastPulledTimestamp = state.PulledTimestamp;
+                    LoadFromDisk(state.PulledTimestamp);
+                }
+            }
+            else if (state.StoredFieldModifiedTimestamp > state.PushedTimestamp)
+            {
+                if (lastStoredFieldModifiedTimestamp != state.StoredFieldModifiedTimestamp)
+                {
+                    lastStoredFieldModifiedTimestamp = state.StoredFieldModifiedTimestamp;
+                    PushToRemote(state.StoredFieldModifiedTimestamp);
+                }
+            }
         }
 
-        private RepositoryConfigurationState ConfigurationRepositoryNoBranch(RepositoryConfigurationState original)
+        internal async Task BeginLoad(DateTimeOffset startTimestamp)
         {
-            Task.Run(() => CreateDefaultConfiguration());
-
-            return original.With(isPulled: true);
+            this.lastLoadResult = scriptInvoker.Invoke("$/Config/clone.ps1", new { startTimestamp }, options);
+            await lastLoadResult;
         }
 
-        private RepositoryConfigurationState ConfigurationRepositoryPasswordIncorrect(RepositoryConfigurationState original) =>
-            original.With(isCurrentWithDisk: false, isPulled: false, lastError: RepositoryConfigurationLastError.Error_PasswordIncorrect);
-
-        private RepositoryConfigurationState ConfigurationRepositoryCouldNotBeCloned(RepositoryConfigurationState original) =>
-            original.With(isCurrentWithDisk: false, isPulled: false, lastError: RepositoryConfigurationLastError.Error_FailedToClone);
-
-        private RepositoryConfigurationState ConfigurationDirectoryNotAccessible(RepositoryConfigurationState original) =>
-            original.With(isCurrentWithDisk: false, isPulled: false, lastError: RepositoryConfigurationLastError.Error_DirectoryNotAccessible);
-
-        private RepositoryConfigurationState ConfigurationReadyToLoad(RepositoryConfigurationState original)
+        private async Task LoadFromDisk(DateTimeOffset startTimestamp)
         {
-            Task.Run(() => LoadFromDisk());
+            if (!SerializationUtils.MetaExists(options.CheckoutPath))
+            {
+                await CreateDefaultConfiguration(startTimestamp);
+            }
 
-            return original.With(isPushed: true, isPulled: true, isCurrentWithDisk: false);
+            meta = await SerializationUtils.LoadMetaAsync(options.CheckoutPath);
+            var config = SerializationUtils.LoadConfigurationAsync(meta);
+            var structure = SerializationUtils.LoadStructureAsync(meta);
+            await Task.WhenAll(config, structure);
+            dispatcher.Dispatch(new StandardAction("ConfigurationLoaded", new Dictionary<string, object> { { "configuration", config.Result }, { "structure", structure.Result }, { "startTimestamp", startTimestamp } }));
         }
 
-        private RepositoryConfigurationState ConfigurationRepositoryCouldNotCommit(RepositoryConfigurationState original) =>
-            original.With(isPushed: false, lastError: RepositoryConfigurationLastError.Error_FailedToCommit);
-
-        private RepositoryConfigurationState ConfigurationRepositoryCouldNotPush(RepositoryConfigurationState original) =>
-            original.With(isPushed: false, lastError: RepositoryConfigurationLastError.Error_FailedToPush);
-
-        private RepositoryConfigurationState ConfigurationPushSuccess(RepositoryConfigurationState original) =>
-            original.With(isPushed: true);
-
-        private RepositoryConfigurationState ConfigurationLoaded(RepositoryConfigurationState original, RepositoryConfiguration repositoryConfiguration, RepositoryStructure repositoryStructure) =>
-            original.With(isCurrentWithDisk: true, configuration: repositoryConfiguration, structure: repositoryStructure);
-
-        private async Task CreateDefaultConfiguration()
+        private async Task CreateDefaultConfiguration(DateTimeOffset startTimestamp)
         {
-            await scriptInvoker.Invoke("$/Config/newOrphanBranch.ps1", new { }, options);
+            await scriptInvoker.Invoke("$/Config/newOrphanBranch.ps1", new { startTimestamp }, options);
 
             try
             {
@@ -101,25 +103,17 @@ namespace GitAutomation.Web
                 logger.LogCritical(ex, "Could not write default configuration");
                 return;
             }
-
-            LoadFromDisk();
-            PushToRemote();
-
         }
 
-        private async void LoadFromDisk()
+        private async Task PushToRemote(DateTimeOffset startTimestamp)
         {
-            meta = await SerializationUtils.LoadMetaAsync(options.CheckoutPath);
-            var config = SerializationUtils.LoadConfigurationAsync(meta);
-            var structure = SerializationUtils.LoadStructureAsync(meta);
-            await Task.WhenAll(config, structure);
-            dispatcher.Dispatch(new StandardAction("ConfigurationLoaded", new Dictionary<string, object> { { "configuration", config.Result }, { "structure", structure.Result } }));
-        }
-
-        private async void PushToRemote()
-        {
-            lastPushResult = scriptInvoker.Invoke("$/Config/commitAndPush.ps1", new { }, options);
+            lastPushResult = scriptInvoker.Invoke("$/Config/commitAndPush.ps1", new { startTimestamp }, options);
             await lastPushResult;
+        }
+
+        void IDisposable.Dispose()
+        {
+            subscription.Dispose();
         }
     }
 }

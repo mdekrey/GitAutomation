@@ -1,6 +1,7 @@
 using GitAutomation.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
@@ -81,6 +82,58 @@ for ($i = 0; $i -lt $responseCollection.length; $i++)
             }
         }
 
+        [TestMethod]
+        public async Task BeAbleToParseHashtables()
+        {
+
+            using (var psInstance = PowerShell.Create())
+            {
+                psInstance
+                    .AddScript(@"
+#!/usr/bin/env pwsh
+
+@{
+    ""Name"" = 'baz'
+}
+");
+
+                var actualResults = new List<Hashtable>();
+                await foreach (var entry in psInstance.InvokeAllStreams<Hashtable>(disposePowerShell: false).SuccessAsync)
+                {
+                    Console.WriteLine($"Got '{entry}' at {DateTime.Now}");
+                    actualResults.Add(entry);
+                }
+                Assert.IsTrue(actualResults.Count == 1);
+                Assert.AreEqual("baz", actualResults[0]["Name"]);
+            }
+        }
+
+        [TestMethod]
+        public async Task BeAbleToParseDictionaries()
+        {
+
+            using (var psInstance = PowerShell.Create())
+            {
+                psInstance
+                    .AddScript(@"
+#!/usr/bin/env pwsh
+
+@{
+    ""Name"" = 'baz'
+}
+");
+
+                var actualResults = new List<Dictionary<string, object>>();
+                await foreach (var entry in psInstance.InvokeAllStreams<Dictionary<string, object>, Hashtable>(ht => ht.Keys.Cast<string>().ToDictionary(k => k, k => ht[k]), disposePowerShell: false).SuccessAsync)
+                {
+                    Console.WriteLine($"Got '{entry}' at {DateTime.Now}");
+                    actualResults.Add(entry);
+                }
+                Assert.IsTrue(actualResults.Count == 1);
+                Assert.AreEqual("baz", actualResults[0]["Name"]);
+            }
+        }
+
         struct Foo { public string Name; }
 
         [TestMethod]
@@ -112,7 +165,7 @@ for ($i = 0; $i -lt $responseCollection.length; $i++)
         [TestMethod]
         public async Task BeAbleToAccessResultsAfterPowerShellIsDisposed()
         {
-            PowerShellStreams<Foo> streams;
+            IPowerShellStreams<Foo> streams;
             using (var psInstance = PowerShell.Create())
             {
                 psInstance
@@ -143,7 +196,7 @@ for ($i = 0; $i -lt $responseCollection.length; $i++)
         [TestMethod]
         public async Task BeAbleToAccessErrorsAfterPowerShellIsDisposed()
         {
-            PowerShellStreams<Foo> streams;
+            IPowerShellStreams<Foo> streams;
             using (var psInstance = PowerShell.Create())
             {
                 psInstance
@@ -163,7 +216,7 @@ Write-Error ""testing""
         [TestMethod]
         public async Task GiveAccessToExceptionWithoutThrowing()
         {
-            PowerShellStreams<Foo> streams;
+            IPowerShellStreams<Foo> streams;
             using (var psInstance = PowerShell.Create())
             {
                 psInstance

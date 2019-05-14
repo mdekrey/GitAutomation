@@ -1,4 +1,5 @@
 ﻿using GitAutomation.DomainModels;
+using System;
 using System.Collections.Immutable;
 
 namespace GitAutomation.Web
@@ -6,16 +7,20 @@ namespace GitAutomation.Web
     public class RepositoryConfigurationState
     {
         public RepositoryConfigurationState(
-            bool isCurrentWithDisk,
-            bool isPulled,
-            bool isPushed,
+            DateTimeOffset storedFieldModifiedTimestamp,
+            DateTimeOffset loadedFromDiskTimestamp,
+            DateTimeOffset needPullTimestamp,
+            DateTimeOffset pulledTimestamp,
+            DateTimeOffset pushedTimestamp,
             RepositoryConfigurationLastError lastError,
             RepositoryConfiguration configuration,
             RepositoryStructure structure)
         {
-            IsCurrentWithDisk = isCurrentWithDisk;
-            IsPulled = isPulled;
-            IsPushed = isPushed;
+            StoredFieldModifiedTimestamp = storedFieldModifiedTimestamp;
+            LoadedFromDiskTimestamp = loadedFromDiskTimestamp;
+            NeedPullTimestamp = needPullTimestamp;
+            PulledTimestamp = pulledTimestamp;
+            PushedTimestamp = pushedTimestamp;
             LastError = lastError;
             Configuration = configuration;
             Structure = structure;
@@ -31,40 +36,50 @@ namespace GitAutomation.Web
             Error_FailedToCommit,
         }
 
-        public bool IsCurrentWithDisk { get; }
-        public bool IsPulled { get; }
-        public bool IsPushed { get; }
+        public DateTimeOffset StoredFieldModifiedTimestamp { get; }
+        public DateTimeOffset LoadedFromDiskTimestamp { get; }
+        public DateTimeOffset NeedPullTimestamp { get; }
+        public DateTimeOffset PulledTimestamp { get; }
+        public DateTimeOffset PushedTimestamp { get; }
         public RepositoryConfigurationLastError LastError { get; }
         public RepositoryConfiguration Configuration { get; }
         public RepositoryStructure Structure { get; }
 
         public static RepositoryConfigurationState ZeroState { get; } = new RepositoryConfigurationState(
-            isCurrentWithDisk: false,
-            isPulled: false,
-            isPushed: false,
+            storedFieldModifiedTimestamp: DateTimeOffset.MinValue,
+            loadedFromDiskTimestamp: DateTimeOffset.MinValue,
+            needPullTimestamp: DateTimeOffset.Now,
+            pulledTimestamp: DateTimeOffset.MinValue,
+            pushedTimestamp: DateTimeOffset.MinValue,
             lastError: RepositoryConfigurationLastError.None,
             configuration: new RepositoryConfiguration(),
             structure: new RepositoryStructure(ImmutableSortedDictionary<string, BranchReserve>.Empty));
 
         public RepositoryConfigurationState With(
-            bool? isCurrentWithDisk = null,
-            bool? isPushed = null,
-            bool? isPulled = null,
+            DateTimeOffset? storedFieldModifiedTimestamp = null,
+            DateTimeOffset? loadedFromDiskTimestamp = null,
+            DateTimeOffset? needPullTimestamp = null,
+            DateTimeOffset? pulledTimestamp = null,
+            DateTimeOffset? pushedTimestamp = null,
             RepositoryConfigurationLastError? lastError = null,
             RepositoryConfiguration configuration = null,
             RepositoryStructure structure = null)
         {
-            if ((isCurrentWithDisk ?? IsCurrentWithDisk) != IsCurrentWithDisk
-                || (isPushed ?? IsPushed) != IsPushed
-                || (isPulled ?? IsPulled) != IsPulled
-                || (lastError ?? LastError) != LastError 
-                || (configuration ?? Configuration) != Configuration 
+            if ((storedFieldModifiedTimestamp ?? StoredFieldModifiedTimestamp) != StoredFieldModifiedTimestamp
+                || (loadedFromDiskTimestamp ?? LoadedFromDiskTimestamp) != LoadedFromDiskTimestamp
+                || (needPullTimestamp ?? NeedPullTimestamp) != NeedPullTimestamp
+                || (pulledTimestamp ?? PulledTimestamp) != PulledTimestamp
+                || (pushedTimestamp ?? PushedTimestamp) != PushedTimestamp
+                || (lastError ?? LastError) != LastError
+                || (configuration ?? Configuration) != Configuration
                 || (structure ?? Structure) != Structure)
             {
                 return new RepositoryConfigurationState(
-                    isCurrentWithDisk: isCurrentWithDisk ?? IsCurrentWithDisk,
-                    isPushed: isPushed ?? IsPushed,
-                    isPulled: isPulled ?? IsPulled,
+                    storedFieldModifiedTimestamp: storedFieldModifiedTimestamp ?? StoredFieldModifiedTimestamp,
+                    loadedFromDiskTimestamp: loadedFromDiskTimestamp ?? LoadedFromDiskTimestamp,
+                    needPullTimestamp: needPullTimestamp ?? NeedPullTimestamp,
+                    pulledTimestamp: pulledTimestamp ?? PulledTimestamp,
+                    pushedTimestamp: pushedTimestamp ?? PushedTimestamp,
                     lastError: lastError ?? LastError,
                     configuration: configuration ?? Configuration,
                     structure: structure ?? Structure);

@@ -10,9 +10,10 @@ using System.Threading.Tasks;
 
 namespace GitAutomation
 {
-    public class PowerShellStreams<T>
+    public class PowerShellStreams<T, TOriginalOutput> : IPowerShellStreams<T>
     {
-        private readonly PSDataCollection<T> output;
+        private readonly PSDataCollection<TOriginalOutput> output;
+        private readonly Func<TOriginalOutput, T> map;
         private PowerShell psInstance;
         // The following get set when the above gets unset
         private ImmutableList<ErrorRecord> persistedError;
@@ -22,9 +23,10 @@ namespace GitAutomation
         private ImmutableList<VerboseRecord> persistedVerbose;
         private ImmutableList<WarningRecord> persistedWarning;
 
-        public PowerShellStreams(PowerShell psInstance, Task scriptCompletion, PSDataCollection<PSObject> input, PSDataCollection<T> output, bool disposePowerShell)
+        public PowerShellStreams(PowerShell psInstance, Task scriptCompletion, PSDataCollection<PSObject> input, PSDataCollection<TOriginalOutput> output, Func<TOriginalOutput, T> map, bool disposePowerShell)
         {
             this.output = output;
+            this.map = map;
             this.psInstance = psInstance;
             this.Parameters = (from command in psInstance.Commands.Commands
                                from parameter in command.Parameters
@@ -48,9 +50,9 @@ namespace GitAutomation
         public ImmutableList<CommandParameter> Parameters { get; }
         public PSDataCollection<PSObject> Input { get; }
         public Task Completion { get; }
-        public TaskAwaiter<PowerShellStreams<T>> GetAwaiter() => Completion.ContinueWith(_ => this).GetAwaiter();
+        public TaskAwaiter<IPowerShellStreams<T>> GetAwaiter() => Completion.ContinueWith(_ => (IPowerShellStreams < T > )this).GetAwaiter();
 
-        public ImmutableList<T> Success => output.ToImmutableList();
+        public ImmutableList<T> Success => output.Select(map).ToImmutableList();
         public ImmutableList<ErrorRecord> Error => persistedError ?? psInstance.Streams.Error.ToImmutableList();
         public ImmutableList<DebugRecord> Debug => persistedDebug ?? psInstance.Streams.Debug.ToImmutableList();
         public ImmutableList<InformationRecord> Information => persistedInformation ?? psInstance.Streams.Information.ToImmutableList();
@@ -59,7 +61,7 @@ namespace GitAutomation
         public ImmutableList<WarningRecord> Warning => persistedWarning ?? psInstance.Streams.Warning.ToImmutableList();
 
 
-        public IAsyncEnumerable<T> SuccessAsync => AsAsync(output, Completion);
+        public IAsyncEnumerable<T> SuccessAsync => AsAsync(output, Completion).Select(map);
         public IAsyncEnumerable<ErrorRecord> ErrorAsync => persistedError?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Error, Completion);
         public IAsyncEnumerable<DebugRecord> DebugAsync => persistedDebug?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Debug, Completion);
         public IAsyncEnumerable<InformationRecord> InformationAsync => persistedInformation?.AsAsyncEnumerable() ?? AsAsync(psInstance.Streams.Information, Completion);

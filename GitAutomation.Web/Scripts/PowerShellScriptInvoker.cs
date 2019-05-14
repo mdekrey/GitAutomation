@@ -1,6 +1,7 @@
 ﻿using GitAutomation.DomainModels;
 using GitAutomation.Extensions;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
@@ -12,26 +13,37 @@ namespace GitAutomation.Web.Scripts
     {
         private readonly IDispatcher dispatcher;
 
+        class PowerShellStandardAction
+        {
+            public string Action { get; set; }
+            public Hashtable Payload { get; set; }
+
+            public StandardAction ToStandardAction()
+            {
+                return new StandardAction(Action, Payload.Keys.Cast<string>().ToDictionary(k => k, k => Payload[k]));
+            }
+        }
+
         public PowerShellScriptInvoker(IDispatcher dispatcher)
         {
             this.dispatcher = dispatcher;
         }
 
-        public PowerShellStreams<StandardAction> Invoke(string scriptPath, object loggedParameters, object hiddenParameters)
+        public IPowerShellStreams<StandardAction> Invoke(string scriptPath, object loggedParameters, object hiddenParameters)
         {
             var result = PowerShell.Create()
                 .AddUnrestrictedCommand("./Scripts/Globals.ps1")
                 .AddUnrestrictedCommand(ResolveScriptPath(scriptPath))
                 .BindParametersToPowerShell(hiddenParameters)
                 .BindParametersToPowerShell(loggedParameters)
-                .InvokeAllStreams<StandardAction>();
+                .InvokeAllStreams<StandardAction, PowerShellStandardAction>(ps => ps.ToStandardAction());
 
             Task.Run(() => ProcessActions(result));
 
             return result;
         }
 
-        private async Task ProcessActions(PowerShellStreams<StandardAction> result)
+        private async Task ProcessActions(IPowerShellStreams<StandardAction> result)
         {
             await foreach (var action in result.SuccessAsync)
             {

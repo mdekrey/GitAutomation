@@ -1,4 +1,5 @@
 ﻿using GitAutomation.Web.GraphQL;
+using GitAutomation.Web.State;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -10,17 +11,17 @@ namespace GitAutomation.Web.Controllers
     [Route("api/[controller]")]
     public class GraphQLController : Controller
     {
-        private readonly RepositoryConfigurationService repositoryConfigurationService;
+        private readonly IStateMachine stateMachine;
 
-        public GraphQLController(RepositoryConfigurationService repositoryConfigurationService)
+        public GraphQLController(IStateMachine stateMachine)
         {
-            this.repositoryConfigurationService = repositoryConfigurationService;
+            this.stateMachine = stateMachine;
         }
 
         [HttpPost]
         public IActionResult Post([FromBody] GraphQlBody body)
         {
-            return Ok(new { data = body.Query.AsGraphQlAst().ToJson(repositoryConfigurationService.State) });
+            return Ok(new { data = body.Query.AsGraphQlAst().ToJson(stateMachine.State) });
         }
 
         public class GraphQlBody

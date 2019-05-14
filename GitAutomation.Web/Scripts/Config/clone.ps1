@@ -6,7 +6,8 @@ param(
 	[string] $userEmail,
 	[string] $userName,
 	[string] $checkoutPath,
-	[string] $branchName
+	[string] $branchName,
+	[DateTimeOffset] $startTimestamp
 )
 
 function Clone-RepositoryConfiguration
@@ -44,14 +45,14 @@ if ((New-Item -ItemType Directory -Force -Path "$checkoutPath").FullName -ne (Ge
 	$checkoutPath | Write-Verbose
 	New-Item -ItemType Directory -Force -Path "$checkoutPath" | Write-Verbose
 	# The target directory could not be cloned
-	return Build-StandardAction "ConfigurationDirectoryNotAccessible"
+	return Build-StandardAction "ConfigurationDirectoryNotAccessible" @{ "startTimestamp" = $startTimestamp }
 }
 
 if (![System.IO.Directory]::Exists($checkoutPath) -or ((Get-GitStatus($checkoutPath)) -ne 0))
 {
 	if ((Clone-RepositoryConfiguration) -eq 0)
 	{
-		return Build-StandardAction "ConfigurationReady"
+		return Build-StandardAction "ConfigurationReady" @{ "startTimestamp" = $startTimestamp }
 	}
 
 	# Couldn't clone; one of the following conditions is true:
@@ -63,7 +64,7 @@ if (![System.IO.Directory]::Exists($checkoutPath) -or ((Get-GitStatus($checkoutP
 		if ((Get-ChildItem "$checkoutPath" | Measure-Object).Count -ne 0)
 		{
 			# The working directory is dirty
-			Build-StandardAction "ConfigurationRepositoryCouldNotBeCloned"
+			Build-StandardAction "ConfigurationRepositoryCouldNotBeCloned" @{ "startTimestamp" = $startTimestamp }
 			exit
 		}
 
@@ -72,7 +73,7 @@ if (![System.IO.Directory]::Exists($checkoutPath) -or ((Get-GitStatus($checkoutP
 			if ($LastExitCode -ne 0)
 			{
 				# No permission to initialize
-				Build-StandardAction "ConfigurationRepositoryCouldNotBeCloned"
+				Build-StandardAction "ConfigurationRepositoryCouldNotBeCloned" @{ "startTimestamp" = $startTimestamp }
 				return
 			}
 			git remote add origin "$repository" | Out-Host
@@ -85,7 +86,7 @@ if (![System.IO.Directory]::Exists($checkoutPath) -or ((Get-GitStatus($checkoutP
 	catch
 	{
 		# We probably couldn't create the drive
-		return Build-StandardAction "ConfigurationRepositoryCouldNotBeCloned"
+		return Build-StandardAction "ConfigurationRepositoryCouldNotBeCloned" @{ "startTimestamp" = $startTimestamp }
 	}
 }
 
@@ -97,13 +98,13 @@ $result = With-Git $gitParams {
 	git fetch origin --prune --no-tags | Out-Host
 	if ($LastExitCode -ne 0)
 	{
-		return Build-StandardAction "ConfigurationRepositoryPasswordIncorrect"
+		return Build-StandardAction "ConfigurationRepositoryPasswordIncorrect" @{ "startTimestamp" = $startTimestamp }
 	}
 
 	git checkout origin/gitauto-config | Out-Host
 	if ($LastExitCode -ne 0)
 	{
-		return Build-StandardAction "ConfigurationRepositoryNoBranch"
+		return Build-StandardAction "ConfigurationRepositoryNoBranch" @{ "startTimestamp" = $startTimestamp }
 	}
 }
 if ($result)
@@ -111,4 +112,4 @@ if ($result)
 	return $result
 }
 	
-return Build-StandardAction "ConfigurationReadyToLoad"
+return Build-StandardAction "ConfigurationReadyToLoad" @{ "startTimestamp" = $startTimestamp }

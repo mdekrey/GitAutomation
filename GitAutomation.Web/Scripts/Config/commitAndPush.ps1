@@ -6,7 +6,8 @@ param(
 	[string] $userEmail,
 	[string] $userName,
 	[string] $checkoutPath,
-	[string] $branchName
+	[string] $branchName,
+	[string] $startTimestamp
 )
 
 $gitParams = Create-GitParams -password "$password" -userEmail "$userEmail" -userName "$userName" -checkoutPath "$checkoutPath"
@@ -16,13 +17,13 @@ $result = With-Git $gitParams {
 	git commit -m "Update configuration" | Out-Host
 	if ($LastExitCode -ne 0)
 	{
-		return Build-StandardAction "ConfigurationRepositoryCouldNotCommit"
+		return Build-StandardAction "ConfigurationRepositoryCouldNotCommit" @{ "startTimestamp" = $startTimestamp }
 	}
 	git push origin HEAD:"$branchName" | Out-Host
 	if ($LastExitCode -ne 0)
 	{
 		git checkout "origin/$branchName"
-		return Build-StandardAction "ConfigurationRepositoryCouldNotPush"
+		return Build-StandardAction "ConfigurationRepositoryCouldNotPush" @{ "startTimestamp" = $startTimestamp }
 	}
 	git checkout "origin/$branchName"
 }
@@ -31,4 +32,4 @@ if ($result)
 	return $result
 }
 
-return Build-StandardAction "ConfigurationPushSuccess"
+return Build-StandardAction "ConfigurationPushSuccess" @{ "startTimestamp" = $startTimestamp }

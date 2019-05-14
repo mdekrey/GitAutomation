@@ -24,6 +24,12 @@ namespace GitAutomation.Serialization
                 .WithNamingConvention(new CamelCaseNamingConvention())
                 .Build();
 
+        public static bool MetaExists(string path)
+        {
+            var metaPath = Path.Combine(path, "meta.yaml");
+            return File.Exists(metaPath);
+        }
+
         public static async Task<Meta> LoadMetaAsync(string path)
         {
             var metaPath = Path.Combine(path, "meta.yaml");

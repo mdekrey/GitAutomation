@@ -1,5 +1,6 @@
 using GitAutomation.DomainModels;
 using GitAutomation.Web.Scripts;
+using GitAutomation.Web.State;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -35,8 +36,9 @@ namespace GitAutomation.Web
             services.AddSingleton<PowerShellScriptInvoker>();
             services.AddSingleton<RepositoryConfigurationService>();
 
-            services.AddSingleton<CompositeDispatcher>();
-            services.AddSingleton<IDispatcher>(sp => sp.GetRequiredService<CompositeDispatcher>());
+            services.AddSingleton<StateMachine>();
+            services.AddSingleton<IDispatcher>(sp => sp.GetRequiredService<StateMachine>());
+            services.AddSingleton<IStateMachine>(sp => sp.GetRequiredService<StateMachine>());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -70,13 +72,12 @@ namespace GitAutomation.Web
 
                 if (env.IsDevelopment())
                 {
-                    spa.UseReactDevelopmentServer(npmScript: "start");
+                    // FIXME: these scripts are being left around app is terminated
+                    //spa.UseReactDevelopmentServer(npmScript: "start");
                 }
             });
 
-            var svc = app.ApplicationServices.GetRequiredService<RepositoryConfigurationService>();
-            app.ApplicationServices.GetRequiredService<CompositeDispatcher>().AddDispatcher(svc);
-            svc.BeginLoad();
+            app.ApplicationServices.GetRequiredService<RepositoryConfigurationService>().AssertStarted();
         }
     }
 }

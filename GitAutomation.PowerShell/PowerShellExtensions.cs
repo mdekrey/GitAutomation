@@ -26,13 +26,18 @@ namespace GitAutomation.Extensions
             return instance.AddScript(File.ReadAllText(scriptName), useLocalScope);
         }
 
-        public static PowerShellStreams<T> InvokeAllStreams<T>(this PowerShell psInstance, bool disposePowerShell = true)
+        public static IPowerShellStreams<T> InvokeAllStreams<T>(this PowerShell psInstance, bool disposePowerShell = true)
+        {
+            return psInstance.InvokeAllStreams<T, T>(a => a, disposePowerShell);
+        }
+
+        public static IPowerShellStreams<T> InvokeAllStreams<T, TOriginalOutput>(this PowerShell psInstance, Func<TOriginalOutput, T> map, bool disposePowerShell = true)
         {
             var input = new PSDataCollection<PSObject>();
-            var output = new PSDataCollection<T>();
+            var output = new PSDataCollection<TOriginalOutput>();
             var scriptCompletion = Task.Factory.FromAsync(psInstance.BeginInvoke(input, output), psInstance.EndInvoke);
 
-            return new PowerShellStreams<T>(psInstance, scriptCompletion, input, output, disposePowerShell);
+            return new PowerShellStreams<T, TOriginalOutput>(psInstance, scriptCompletion, input, output, map, disposePowerShell);
         }
 
     }
