@@ -7,7 +7,7 @@ param(
 	[string] $userName,
 	[string] $checkoutPath,
 	[string] $branchName,
-	[string] $startTimestamp
+	[DateTimeOffset] $startTimestamp
 )
 
 $gitParams = Create-GitParams -password "$password" -userEmail "$userEmail" -userName "$userName" -checkoutPath "$checkoutPath"

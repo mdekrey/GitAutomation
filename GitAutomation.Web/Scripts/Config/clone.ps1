@@ -52,7 +52,7 @@ if (![System.IO.Directory]::Exists($checkoutPath) -or ((Get-GitStatus($checkoutP
 {
 	if ((Clone-RepositoryConfiguration) -eq 0)
 	{
-		return Build-StandardAction "ConfigurationReady" @{ "startTimestamp" = $startTimestamp }
+		return Build-StandardAction "ConfigurationReadyToLoad" @{ "startTimestamp" = $startTimestamp }
 	}
 
 	# Couldn't clone; one of the following conditions is true:

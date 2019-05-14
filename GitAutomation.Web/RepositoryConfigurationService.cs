@@ -78,7 +78,8 @@ namespace GitAutomation.Web
 
         private async Task LoadFromDisk(DateTimeOffset startTimestamp)
         {
-            if (!SerializationUtils.MetaExists(options.CheckoutPath))
+            var exists = SerializationUtils.MetaExists(options.CheckoutPath);
+            if (!exists)
             {
                 await CreateDefaultConfiguration(startTimestamp);
             }
@@ -88,6 +89,11 @@ namespace GitAutomation.Web
             var structure = SerializationUtils.LoadStructureAsync(meta);
             await Task.WhenAll(config, structure);
             dispatcher.Dispatch(new StandardAction("ConfigurationLoaded", new Dictionary<string, object> { { "configuration", config.Result }, { "structure", structure.Result }, { "startTimestamp", startTimestamp } }));
+            if (!exists)
+            {
+                // TODO - this action should probably be combined with updating the store
+                dispatcher.Dispatch(new StandardAction("ConfigurationWritten", new Dictionary<string, object> { { "startTimestamp", startTimestamp } }));
+            }
         }
 
         private async Task CreateDefaultConfiguration(DateTimeOffset startTimestamp)

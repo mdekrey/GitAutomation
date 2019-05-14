@@ -7,7 +7,7 @@ param(
 	[string] $userName,
 	[string] $checkoutPath,
 	[string] $branchName,
-	[string] $startTimestamp
+	[DateTimeOffset] $startTimestamp
 )
 
 $gitParams = Create-GitParams -password "$password" -userEmail "$userEmail" -userName "$userName" -checkoutPath "$checkoutPath"
@@ -22,4 +22,5 @@ $result = With-Git $gitParams {
 	git for-each-ref --format='%(refname:short)' refs/heads | ForEach-Object -Process {git branch -D $_} | Out-Host
 }
 
-Build-StandardAction "ConfigurationLocalModified" @{ "startTimestamp" = $startTimestamp }
+# TODO - can/should we do this from here?
+# Build-StandardAction "ConfigurationLocalModified" @{ "startTimestamp" = $startTimestamp }

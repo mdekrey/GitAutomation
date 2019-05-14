@@ -34,6 +34,7 @@ namespace GitAutomation.Web.State
                         "ConfigurationRepositoryCouldNotPush" => ConfigurationRepositoryCouldNotPush(original, action),
                         "ConfigurationPushSuccess" => ConfigurationPushSuccess(original, action),
                         "ConfigurationLoaded" => ConfigurationLoaded(original, action),
+                        "ConfigurationWritten" => ConfigurationWritten(original, action),
                         _ => original,
                     }).With(structure: RepositoryStructureReducer.Reduce(original.Structure, action))
                 );
@@ -89,6 +90,12 @@ namespace GitAutomation.Web.State
             return original.PulledTimestamp.IfStringMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(loadedFromDiskTimestamp: DateTimeOffset.Now, configuration: configuration, structure: structure))
                 .OrElse(original);
+        }
+
+        private RepositoryConfigurationState ConfigurationWritten(RepositoryConfigurationState original, StandardAction action)
+        {
+
+            return original.With(storedFieldModifiedTimestamp: DateTimeOffset.Now);
         }
 
     }
