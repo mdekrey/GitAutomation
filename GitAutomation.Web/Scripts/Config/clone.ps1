@@ -100,6 +100,15 @@ if ($LastExitCode -ne 0)
 git checkout origin/gitauto-config | Out-Host
 if ($LastExitCode -ne 0)
 {
+	# There can be a lot of noise in these, so we just ignore exit codes
+	git checkout $(git rev-parse HEAD) | Out-Host
+	git branch -D "$branchName" | Out-Host
+	git checkout --orphan "$branchName" | Out-Host
+	git reset --hard | Out-Host
+	git clean -fxd | Out-Host
+	# We clean all refs for better gc
+	git for-each-ref --format='%(refname:short)' refs/heads | ForEach-Object -Process {git branch -D $_} | Out-Host
+
 	return Build-StandardAction "ConfigurationRepositoryNoBranch" @{ "startTimestamp" = $startTimestamp }
 }
 End-Git $gitparams

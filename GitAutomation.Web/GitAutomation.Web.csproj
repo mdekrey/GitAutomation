@@ -40,9 +40,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Scripts\Config\newOrphanBranch.ps1">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="Scripts\Config\commitAndPush.ps1">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

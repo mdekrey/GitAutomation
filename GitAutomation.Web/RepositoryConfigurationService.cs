@@ -98,8 +98,6 @@ namespace GitAutomation.Web
 
         private async Task CreateDefaultConfiguration(DateTimeOffset startTimestamp)
         {
-            await scriptInvoker.Invoke("$/Config/newOrphanBranch.ps1", new { startTimestamp }, options);
-
             try
             {
                 await DefaultsWriter.WriteDefaultsToDirectory(options.CheckoutPath);
