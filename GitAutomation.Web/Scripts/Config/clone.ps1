@@ -22,8 +22,7 @@ function Clone-RepositoryConfiguration
 
 function Get-GitStatus ([string] $checkoutPath)
 {
-	Push-Location
-	cd "$checkoutPath"
+	Push-Location "$checkoutPath"
 	git status | Out-Host
 	$status = $LastExitCode
 	Pop-Location

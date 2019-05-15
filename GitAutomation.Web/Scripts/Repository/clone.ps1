@@ -71,7 +71,10 @@ foreach ($remote in $remotes.Keys)
 		git remote add $remote "$($remotes[$remote].repository)" | Out-Host
 	}
 
-	git fetch $remote --prune --no-tags | Out-Host
+	git config remote.$remote.fetch "+refs/heads/*:refs/heads/$remote/*"
+	git config remote.$remote.tagopt "--no-tags"
+	git config remote.$remote.mirror "true"
+	git remote update $remote --prune | Out-Host
 	if ($LastExitCode -ne 0)
 	{
 		return Build-StandardAction "TargetRepositoryPasswordIncorrect" @{ "startTimestamp" = $startTimestamp }
