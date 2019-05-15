@@ -48,8 +48,14 @@ if ((New-Item -ItemType Directory -Force -Path "$checkoutPath").FullName -ne (Ge
 	return Build-StandardAction "ConfigurationDirectoryNotAccessible" @{ "startTimestamp" = $startTimestamp }
 }
 
-if (![System.IO.Directory]::Exists($checkoutPath) -or ((Get-GitStatus($checkoutPath)) -ne 0))
+if ($(git rev-parse --git-dir) -ne '.')
 {
+	if ($LastExitCode -eq 0)
+	{
+		# A higher-up directory is a git repository
+		return Build-StandardAction "ConfigurationRepositoryNested" @{ "startTimestamp" = $startTimestamp }
+	}
+
 	if ((Clone-RepositoryConfiguration) -eq 0)
 	{
 		return Build-StandardAction "ConfigurationReadyToLoad" @{ "startTimestamp" = $startTimestamp }

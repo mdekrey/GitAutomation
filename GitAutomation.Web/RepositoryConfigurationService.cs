@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using GitAutomation.DomainModels;
 using GitAutomation.Serialization;
@@ -8,7 +9,7 @@ using GitAutomation.Web.Scripts;
 using GitAutomation.Web.State;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using static GitAutomation.Web.State.RepositoryConfigurationState.ConfigurationTimestampType;
+using static GitAutomation.DomainModels.RepositoryConfigurationState.ConfigurationTimestampType;
 
 namespace GitAutomation.Web
 {
@@ -18,7 +19,6 @@ namespace GitAutomation.Web
         private readonly PowerShellScriptInvoker scriptInvoker;
         private readonly ILogger logger;
         private readonly IDispatcher dispatcher;
-        private readonly IStateMachine stateMachine;
         private readonly IDisposable subscription;
         private IPowerShellStreams<StandardAction> lastLoadResult;
         private IPowerShellStreams<StandardAction> lastPushResult;
@@ -27,14 +27,13 @@ namespace GitAutomation.Web
         private DateTimeOffset lastPulledTimestamp;
         private DateTimeOffset lastStoredFieldModifiedTimestamp;
 
-        public RepositoryConfigurationService(IOptions<ConfigRepositoryOptions> options, PowerShellScriptInvoker scriptInvoker, ILogger<RepositoryConfigurationService> logger, IDispatcher dispatcher, IStateMachine stateMachine)
+        public RepositoryConfigurationService(IOptions<ConfigRepositoryOptions> options, PowerShellScriptInvoker scriptInvoker, ILogger<RepositoryConfigurationService> logger, IDispatcher dispatcher, IStateMachine<AppState> stateMachine)
         {
             this.options = options.Value;
             this.scriptInvoker = scriptInvoker;
             this.logger = logger;
             this.dispatcher = dispatcher;
-            this.stateMachine = stateMachine;
-            subscription = stateMachine.StateUpdates.Subscribe(OnStateUpdated);
+            subscription = stateMachine.StateUpdates.Select(state => state.Configuration).Subscribe(OnStateUpdated);
         }
 
         public void AssertStarted()

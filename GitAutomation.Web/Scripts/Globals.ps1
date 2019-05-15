@@ -18,13 +18,28 @@ function Create-GitParams (
 	}
 }
 
-function Set-GitEnvironment ([string] $password, [string] $committerEmail, [string] $committerName, [string] $authorEmail, [string] $authorName)
+
+function Set-GitAuthor ([string] $authorEmail, [string] $authorName)
 {
 	Set-Item -Path Env:GIT_AUTHOR_NAME -Value "$authorName"
 	Set-Item -Path Env:GIT_AUTHOR_EMAIL -Value "$authorEmail"
+}
+function Set-GitCommitter ([string] $committerEmail, [string] $committerName)
+{
 	Set-Item -Path Env:GIT_COMMITTER_NAME -Value "$committerName"
 	Set-Item -Path Env:GIT_COMMITTER_EMAIL -Value "$committerEmail"
+}
+
+function Set-GitPassword ([string] $password)
+{
 	# TODO - password
+}
+
+function Set-GitEnvironment ([string] $password, [string] $committerEmail, [string] $committerName, [string] $authorEmail, [string] $authorName)
+{
+	Set-GitAuthor -authorEmail $authorEmail -authorName $authorName
+	Set-GitCommitter -committerEmail $committerEmail -committerName $committerName
+	Set-GitPassword $password
 }
 
 function Build-StandardAction ([string] $action, [hashtable] $payload = @{})
@@ -38,8 +53,7 @@ function Build-StandardAction ([string] $action, [hashtable] $payload = @{})
 function Start-Git ([hashtable] $gitparams)
 {
 	Set-GitEnvironment -password "$($gitparams.password)" -authorEmail "$($gitparams.authorEmail)" -authorName "$($gitparams.authorName)" -committerEmail "$($gitparams.committerEmail)" -committerName "$($gitparams.committerName)"
-	Push-Location
-	cd "$checkoutPath"
+	Push-Location $checkoutPath
 	if ((pwd).Path -ne (Get-Item $checkoutPath).FullName) {
 		throw "Could not cd to $checkoutPath"
 	}

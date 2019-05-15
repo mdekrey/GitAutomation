@@ -33,12 +33,14 @@ namespace GitAutomation.Web
             });
 
             services.AddOptions<ConfigRepositoryOptions>().Configure(opt => Configuration.GetSection("configurationGit").Bind(opt));
+            services.AddOptions<TargetRepositoryOptions>().Configure(opt => Configuration.GetSection("targetGit").Bind(opt));
             services.AddSingleton<PowerShellScriptInvoker>();
             services.AddSingleton<RepositoryConfigurationService>();
+            services.AddSingleton<TargetBranchesService>();
 
-            services.AddSingleton<StateMachine>();
-            services.AddSingleton<IDispatcher>(sp => sp.GetRequiredService<StateMachine>());
-            services.AddSingleton<IStateMachine>(sp => sp.GetRequiredService<StateMachine>());
+            services.AddSingleton(_ => new StateMachine<AppState>(AppState.Reducer, AppState.ZeroState));
+            services.AddSingleton<IDispatcher>(sp => sp.GetRequiredService<StateMachine<AppState>>());
+            services.AddSingleton<IStateMachine<AppState>>(sp => sp.GetRequiredService<StateMachine<AppState>>());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -78,6 +80,7 @@ namespace GitAutomation.Web
             });
 
             app.ApplicationServices.GetRequiredService<RepositoryConfigurationService>().AssertStarted();
+            app.ApplicationServices.GetRequiredService<TargetBranchesService>().AssertStarted();
         }
     }
 }

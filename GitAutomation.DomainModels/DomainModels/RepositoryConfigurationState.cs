@@ -1,9 +1,8 @@
-﻿using GitAutomation.DomainModels;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
-namespace GitAutomation.Web.State
+namespace GitAutomation.DomainModels
 {
     public class RepositoryConfigurationState
     {
@@ -36,6 +35,7 @@ namespace GitAutomation.Web.State
             Error_PasswordIncorrect,
             Error_FailedToPush,
             Error_FailedToCommit,
+            Error_NestedGitRepository,
         }
 
         public ImmutableSortedDictionary<ConfigurationTimestampType, DateTimeOffset> Timestamps { get; }
@@ -57,10 +57,10 @@ namespace GitAutomation.Web.State
             structure: new RepositoryStructure(ImmutableSortedDictionary<string, BranchReserve>.Empty));
 
         public RepositoryConfigurationState With(
-            Func<ImmutableSortedDictionary<ConfigurationTimestampType, DateTimeOffset>, ImmutableSortedDictionary<ConfigurationTimestampType, DateTimeOffset>> timestampFunc = null,
+            Func<ImmutableSortedDictionary<ConfigurationTimestampType, DateTimeOffset>, ImmutableSortedDictionary<ConfigurationTimestampType, DateTimeOffset>>? timestampFunc = null,
             RepositoryConfigurationLastError? lastError = null,
-            RepositoryConfiguration configuration = null,
-            RepositoryStructure structure = null)
+            RepositoryConfiguration? configuration = null,
+            RepositoryStructure? structure = null)
         {
             var timestamps = timestampFunc?.Invoke(Timestamps) ?? Timestamps;
             if ((timestamps ?? Timestamps) != Timestamps

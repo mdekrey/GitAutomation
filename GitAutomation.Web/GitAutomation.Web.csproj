@@ -14,7 +14,6 @@
     <PackageReference Include="GraphQL-Parser" Version="4.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.0.0-preview5-19227-01" />
     <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="3.0.0-preview5-19227-01" />
-    <PackageReference Include="System.Reactive" Version="4.1.5" />
   </ItemGroup>
 
   <ItemGroup>
@@ -49,7 +48,7 @@
     <None Update="Scripts\Config\clone.ps1">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Scripts\Repository\cloneBare.ps1">
+    <None Update="Scripts\Repository\clone.ps1">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Scripts\Repository\gitBranchStates.ps1">

@@ -11,9 +11,9 @@ namespace GitAutomation.Web.Controllers
     [Route("api/[controller]")]
     public class GraphQLController : Controller
     {
-        private readonly IStateMachine stateMachine;
+        private readonly IStateMachine<AppState> stateMachine;
 
-        public GraphQLController(IStateMachine stateMachine)
+        public GraphQLController(IStateMachine<AppState> stateMachine)
         {
             this.stateMachine = stateMachine;
         }

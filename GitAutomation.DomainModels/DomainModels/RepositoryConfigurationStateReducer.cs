@@ -1,18 +1,18 @@
 ﻿using System;
-using GitAutomation.DomainModels;
 using GitAutomation.Optionals;
-using static GitAutomation.Web.State.RepositoryConfigurationState;
-using static GitAutomation.Web.State.RepositoryConfigurationState.ConfigurationTimestampType;
+using static GitAutomation.DomainModels.RepositoryConfigurationState;
+using static GitAutomation.DomainModels.RepositoryConfigurationState.ConfigurationTimestampType;
 
-namespace GitAutomation.Web.State
+namespace GitAutomation.DomainModels
 {
     public class RepositoryConfigurationStateReducer
     {
-        internal static RepositoryConfigurationState Reduce(RepositoryConfigurationState original, StandardAction action) =>
+        public static RepositoryConfigurationState Reduce(RepositoryConfigurationState original, StandardAction action) =>
             (action.Action switch
             {
                 "ConfigurationDirectoryNotAccessible" => ConfigurationDirectoryNotAccessible(original, action),
                 "ConfigurationReadyToLoad" => ConfigurationReadyToLoad(original, action),
+                "ConfigurationRepositoryNested" => ConfigurationRepositoryNested(original, action),
                 "ConfigurationRepositoryCouldNotBeCloned" => ConfigurationRepositoryCouldNotBeCloned(original, action),
                 "ConfigurationRepositoryPasswordIncorrect" => ConfigurationRepositoryPasswordIncorrect(original, action),
                 "ConfigurationRepositoryNoBranch" => ConfigurationRepositoryNoBranch(original, action),
@@ -48,6 +48,11 @@ namespace GitAutomation.Web.State
         private static RepositoryConfigurationState ConfigurationReadyToLoad(RepositoryConfigurationState original, StandardAction action) =>
             original.Timestamps[NeedPull].IfStringMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(timestampFunc: ts => ts.SetItem(Pulled, DateTimeOffset.Now)))
+            .OrElse(original);
+
+        private static RepositoryConfigurationState ConfigurationRepositoryNested(RepositoryConfigurationState original, StandardAction action) =>
+            original.Timestamps[StoredFieldModified].IfStringMatch(action.Payload["startTimestamp"])
+                .Map(timestamp => original.With(lastError: RepositoryConfigurationLastError.Error_NestedGitRepository))
             .OrElse(original);
 
         private static RepositoryConfigurationState ConfigurationRepositoryCouldNotCommit(RepositoryConfigurationState original, StandardAction action) =>
