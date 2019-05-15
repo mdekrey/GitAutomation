@@ -2,24 +2,28 @@
 
 function Create-GitParams (
     [Parameter(Mandatory=$true)] [string] $password,
-	[Parameter(Mandatory=$true)] [string] $userEmail,
-	[Parameter(Mandatory=$true)] [string] $userName,
+	[Parameter(Mandatory=$true)] [string] $authorEmail,
+	[Parameter(Mandatory=$true)] [string] $authorName,
+	[Parameter(Mandatory=$true)] [string] $committerEmail,
+	[Parameter(Mandatory=$true)] [string] $committerName,
 	[Parameter(Mandatory=$true)] [string] $checkoutPath)
 {
 	return @{
 		"password" = $password;
-		"userEmail" = $userEmail;
-		"userName" = $userName;
+		"authorEmail" = $authorEmail;
+		"authorName" = $authorName;
+		"committerEmail" = $committerEmail;
+		"committerName" = $committerName;
 		"checkoutPath" = $checkoutPath
 	}
 }
 
-function Set-GitEnvironment ([string] $password, [string] $userEmail, [string] $userName)
+function Set-GitEnvironment ([string] $password, [string] $committerEmail, [string] $committerName, [string] $authorEmail, [string] $authorName)
 {
-	Set-Item -Path Env:GIT_AUTHOR_NAME -Value "$userName"
-	Set-Item -Path Env:GIT_AUTHOR_EMAIL -Value "$userEmail"
-	Set-Item -Path Env:GIT_COMMITTER_NAME -Value "$userName"
-	Set-Item -Path Env:GIT_COMMITTER_EMAIL -Value "$userEmail"
+	Set-Item -Path Env:GIT_AUTHOR_NAME -Value "$authorName"
+	Set-Item -Path Env:GIT_AUTHOR_EMAIL -Value "$authorEmail"
+	Set-Item -Path Env:GIT_COMMITTER_NAME -Value "$committerName"
+	Set-Item -Path Env:GIT_COMMITTER_EMAIL -Value "$committerEmail"
 	# TODO - password
 }
 
@@ -33,7 +37,7 @@ function Build-StandardAction ([string] $action, [hashtable] $payload = @{})
 
 function Start-Git ([hashtable] $gitparams)
 {
-	Set-GitEnvironment -password "$($gitparams.password)" -userEmail "$($gitparams.userEmail)" -userName "$($gitparams.userName)"
+	Set-GitEnvironment -password "$($gitparams.password)" -authorEmail "$($gitparams.authorEmail)" -authorName "$($gitparams.authorName)" -committerEmail "$($gitparams.committerEmail)" -committerName "$($gitparams.committerName)"
 	Push-Location
 	cd "$checkoutPath"
 	if ((pwd).Path -ne (Get-Item $checkoutPath).FullName) {

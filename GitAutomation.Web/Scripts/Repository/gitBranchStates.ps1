@@ -8,7 +8,7 @@ param(
 	[string] $checkoutPath
 )
 
-$gitParams = Create-GitParams -password "$password" -userEmail "$userEmail" -userName "$userName" -checkoutPath "$checkoutPath"
+$gitParams = Create-GitParams -password "$password" -authorEmail "$userEmail" -authorName "$userName" -committerEmail "$userEmail" -committerName "$userName" -checkoutPath "$checkoutPath"
 
 Start-Git $gitParams
 $allRefs = (git for-each-ref --format='%(refname:short) {%(objectname)}' refs/remotes | ForEach-Object -Process {

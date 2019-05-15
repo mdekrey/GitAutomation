@@ -10,7 +10,7 @@ param(
 	[DateTimeOffset] $startTimestamp
 )
 
-$gitParams = Create-GitParams -password "$password" -userEmail "$userEmail" -userName "$userName" -checkoutPath "$checkoutPath"
+$gitParams = Create-GitParams -password "$password" -authorEmail "$userEmail" -authorName "$userName" -committerEmail "$userEmail" -committerName "$userName" -checkoutPath "$checkoutPath"
 
 Start-Git $gitParams
 	git add . | Out-Host

@@ -30,8 +30,8 @@ function Get-GitStatus ([string] $checkoutPath)
 	return $status
 }
 
-$gitParams = Create-GitParams -password "$password" -userEmail "$userEmail" -userName "$userName" -checkoutPath "$checkoutPath"
-Set-GitEnvironment -password "$password" -userEmail "$userEmail" -userName "$userName"
+$gitParams = Create-GitParams -password "$password" -authorEmail "$userEmail" -authorName "$userName" -committerEmail "$userEmail" -committerName "$userName" -checkoutPath "$checkoutPath"
+Set-GitEnvironment -password "$password" -authorEmail "$userEmail" -authorName "$userName" -committerEmail "$userEmail" -committerName "$userName"
 
 # Could be in the following states:
 # 1. Already cloned with correct branch
