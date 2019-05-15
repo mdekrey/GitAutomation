@@ -8,6 +8,7 @@ using GitAutomation.Web.Scripts;
 using GitAutomation.Web.State;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using static GitAutomation.Web.State.RepositoryConfigurationState.ConfigurationTimestampType;
 
 namespace GitAutomation.Web
 {
@@ -44,28 +45,28 @@ namespace GitAutomation.Web
         private void OnStateUpdated(RepositoryConfigurationState state)
         {
             // FIXME - should I do this with switchmap/cancellation tokens?
-            if (state.NeedPullTimestamp > state.PulledTimestamp)
+            if (state.Timestamps[NeedPull] > state.Timestamps[Pulled])
             {
-                if (lastNeedPullTimestamp != state.NeedPullTimestamp)
+                if (lastNeedPullTimestamp != state.Timestamps[NeedPull])
                 {
-                    lastNeedPullTimestamp = state.NeedPullTimestamp;
-                    BeginLoad(state.NeedPullTimestamp);
+                    lastNeedPullTimestamp = state.Timestamps[NeedPull];
+                    BeginLoad(state.Timestamps[NeedPull]);
                 }
             }
-            else if (state.PulledTimestamp > state.LoadedFromDiskTimestamp)
+            else if (state.Timestamps[Pulled] > state.Timestamps[LoadedFromDisk])
             {
-                if (lastPulledTimestamp != state.PulledTimestamp)
+                if (lastPulledTimestamp != state.Timestamps[Pulled])
                 {
-                    lastPulledTimestamp = state.PulledTimestamp;
-                    LoadFromDisk(state.PulledTimestamp);
+                    lastPulledTimestamp = state.Timestamps[Pulled];
+                    LoadFromDisk(state.Timestamps[Pulled]);
                 }
             }
-            else if (state.StoredFieldModifiedTimestamp > state.PushedTimestamp)
+            else if (state.Timestamps[StoredFieldModified] > state.Timestamps[Pushed])
             {
-                if (lastStoredFieldModifiedTimestamp != state.StoredFieldModifiedTimestamp)
+                if (lastStoredFieldModifiedTimestamp != state.Timestamps[StoredFieldModified])
                 {
-                    lastStoredFieldModifiedTimestamp = state.StoredFieldModifiedTimestamp;
-                    PushToRemote(state.StoredFieldModifiedTimestamp);
+                    lastStoredFieldModifiedTimestamp = state.Timestamps[StoredFieldModified];
+                    PushToRemote(state.Timestamps[StoredFieldModified]);
                 }
             }
         }
