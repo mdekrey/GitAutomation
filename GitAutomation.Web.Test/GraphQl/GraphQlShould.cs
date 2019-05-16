@@ -73,14 +73,14 @@ fragment meta on Whatever
         }
 
         [TestMethod]
-        public void IgnoreObjectsIfPropertiesArentMapped()
+        public void ProvideFullObjectsIfPropertiesArentMapped()
         {
             var subset = @"
 {
   name
   meta
 }".AsGraphQlAst().ToJson(subject);
-            Assert.AreEqual(JToken.FromObject(new { name = "Test", meta = (object)null }).ToString(), subset.ToString());
+            Assert.AreEqual(JToken.FromObject(new { name = "Test", meta = new { Owner = "mdekrey", owner = "nobody" } }).ToString(), subset.ToString());
         }
     }
 }
