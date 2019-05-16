@@ -40,7 +40,7 @@ namespace GitAutomation.Web.GraphQL
             }
             else
             {
-                return JToken.FromObject(subject) as JValue ?? JValue.CreateNull();
+                return JToken.FromObject(subject);
             }
         }
 

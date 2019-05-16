@@ -1,6 +1,8 @@
 ﻿using GitAutomation.Optionals;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Text;
 using static GitAutomation.DomainModels.TargetBranchesState.TimestampType;
 
@@ -17,6 +19,7 @@ namespace GitAutomation.DomainModels
             "TargetRepositoryCouldNotBeInitialized" => TargetRepositoryCouldNotBeInitialized(original, action),
             "TargetRepositoryPasswordIncorrect" => TargetRepositoryPasswordIncorrect(original, action),
             "TargetFetched" => TargetFetched(original, action),
+            "TargetRefs" => TargetRefs(original, action),
             _ => original
         };
 
@@ -49,5 +52,21 @@ namespace GitAutomation.DomainModels
             original.Timestamps[NeededFetch].IfStringMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(timestampFunc: t => t.SetItem(Fetched, DateTimeOffset.Now)))
                 .OrElse(original);
+
+        struct RefEntry
+        {
+#pragma warning disable CS0649 // These "unused" properties are for deserialization
+            public string Commit;
+            public string Name;
+#pragma warning enable CS0649
+        }
+
+        private static TargetBranchesState TargetRefs(TargetBranchesState original, StandardAction action) =>
+            original.Timestamps[Fetched].IfStringMatch(action.Payload["startTimestamp"])
+                .Map(timestamp => original.With(
+                    timestampFunc: t => t.SetItem(LoadedFromDisk, DateTimeOffset.Now), 
+                    branches: JsonConvert.DeserializeObject<RefEntry[]>(action.Payload["allRefs"].ToString()).ToImmutableDictionary(k => k.Name, k => k.Commit)))
+                .OrElse(original);
+
     }
 }

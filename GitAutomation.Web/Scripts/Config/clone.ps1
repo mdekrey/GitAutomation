@@ -20,15 +20,6 @@ function Clone-RepositoryConfiguration
 	return 1
 }
 
-function Get-GitStatus ([string] $checkoutPath)
-{
-	Push-Location "$checkoutPath"
-	git status | Out-Host
-	$status = $LastExitCode
-	Pop-Location
-	return $status
-}
-
 $gitParams = Create-GitParams -password "$password" -authorEmail "$userEmail" -authorName "$userName" -committerEmail "$userEmail" -committerName "$userName" -checkoutPath "$checkoutPath"
 Set-GitEnvironment -password "$password" -authorEmail "$userEmail" -authorName "$userName" -committerEmail "$userEmail" -committerName "$userName"
 
@@ -47,7 +38,8 @@ if ((New-Item -ItemType Directory -Force -Path "$checkoutPath").FullName -ne (Ge
 	return Build-StandardAction "ConfigurationDirectoryNotAccessible" @{ "startTimestamp" = $startTimestamp }
 }
 
-if ($(git rev-parse --git-dir) -ne '.')
+Push-Location "$checkoutPath"
+if ($(git rev-parse --git-dir) -ne '.git')
 {
 	if ($LastExitCode -eq 0)
 	{
@@ -90,6 +82,7 @@ if ($(git rev-parse --git-dir) -ne '.')
 		return Build-StandardAction "ConfigurationRepositoryCouldNotBeCloned" @{ "startTimestamp" = $startTimestamp }
 	}
 }
+	Pop-Location
 
 
 Start-Git $gitParams

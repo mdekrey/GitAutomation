@@ -51,7 +51,7 @@ namespace GitAutomation.DomainModels
             .OrElse(original);
 
         private static RepositoryConfigurationState ConfigurationRepositoryNested(RepositoryConfigurationState original, StandardAction action) =>
-            original.Timestamps[StoredFieldModified].IfStringMatch(action.Payload["startTimestamp"])
+            original.Timestamps[NeedPull].IfStringMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(lastError: RepositoryConfigurationLastError.Error_NestedGitRepository))
             .OrElse(original);
 
