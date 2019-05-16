@@ -77,9 +77,10 @@ foreach ($remote in $remotes.Keys)
 	git remote update $remote --prune | Out-Host
 	if ($LastExitCode -ne 0)
 	{
+		# TODO - bad error code, should not halt, and should specify which remote
 		return Build-StandardAction "TargetRepositoryPasswordIncorrect" @{ "startTimestamp" = $startTimestamp }
 	}
 }
 Pop-Location
 	
-return Build-StandardAction "TargetReadyToFetch" @{ "startTimestamp" = $startTimestamp }
+return Build-StandardAction "TargetFetched" @{ "startTimestamp" = $startTimestamp }

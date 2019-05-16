@@ -23,7 +23,6 @@ namespace GitAutomation.Web
         private readonly IDisposable subscription;
         private IPowerShellStreams<StandardAction> lastFetchResult;
         private IPowerShellStreams<StandardAction> lastLoadFromDiskResult;
-        private Meta meta;
         private DateTimeOffset lastNeedFetchTimestamp;
         private DateTimeOffset lastFetchedTimestamp;
         private DateTimeOffset lastStoredFieldModifiedTimestamp;
@@ -72,8 +71,8 @@ namespace GitAutomation.Web
 
         private async Task LoadFromDisk(DateTimeOffset startTimestamp)
         {
-            this.lastFetchResult = scriptInvoker.Invoke("$/Repository/gitBranchStates.ps1", new { startTimestamp }, options);
-            await lastFetchResult;
+            this.lastLoadFromDiskResult = scriptInvoker.Invoke("$/Repository/gitBranchStates.ps1", new { startTimestamp }, options);
+            await lastLoadFromDiskResult;
         }
 
         void IDisposable.Dispose()

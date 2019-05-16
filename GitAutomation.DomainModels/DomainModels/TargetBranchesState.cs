@@ -20,6 +20,8 @@ namespace GitAutomation.DomainModels
             Error_DirectoryNotAccessible,
             Error_FailedToClone,
             Error_PasswordIncorrect,
+            Error_DirectoryNested,
+            Error_DirectoryDirty,
         }
 
         public TargetBranchesState(
