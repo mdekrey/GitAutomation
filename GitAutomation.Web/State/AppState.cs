@@ -33,10 +33,10 @@ namespace GitAutomation.Web.State
             return this;
         }
 
-        internal static AppState Reducer(AppState original, StandardAction action, IAgentSpecification agentSpecification)
+        internal static AppState Reducer(AppState original, StandardAction action)
         {
-            return original.With(RepositoryConfigurationStateReducer.Reduce(original.Configuration, action, agentSpecification),
-                TargetRepositoryReducer.Reduce(original.Target, action, agentSpecification));
+            return original.With(RepositoryConfigurationStateReducer.Reduce(original.Configuration, action),
+                TargetRepositoryReducer.Reduce(original.Target, action));
         }
 #nullable restore
     }

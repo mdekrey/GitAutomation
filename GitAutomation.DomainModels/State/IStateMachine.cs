@@ -1,10 +1,12 @@
-﻿using System;
+﻿using GitAutomation.DomainModels;
+using System;
 
-namespace GitAutomation.Web.State
+namespace GitAutomation.State
 {
     public interface IStateMachine<T>
     {
         T State { get; }
-        IObservable<T> StateUpdates { get; }
+        IAgentSpecification LastChangeBy { get; }
+        IObservable<StateUpdateEvent<T>> StateUpdates { get; }
     }
 }

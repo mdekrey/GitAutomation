@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using GitAutomation.DomainModels;
 using GitAutomation.Serialization;
 using GitAutomation.Serialization.Defaults;
+using GitAutomation.State;
 using GitAutomation.Web.Scripts;
 using GitAutomation.Web.State;
 using Microsoft.Extensions.Logging;
@@ -29,7 +30,7 @@ namespace GitAutomation.Web
             this.options = options.Value;
             this.scriptInvoker = scriptInvoker;
             this.logger = logger;
-            subscription = stateMachine.StateUpdates.Select(state => state.Target).Subscribe(OnStateUpdated);
+            subscription = stateMachine.StateUpdates.Select(state => state.State.Target).Subscribe(OnStateUpdated);
         }
 
         public void AssertStarted()

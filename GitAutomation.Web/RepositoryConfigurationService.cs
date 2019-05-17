@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using GitAutomation.DomainModels;
 using GitAutomation.Serialization;
 using GitAutomation.Serialization.Defaults;
+using GitAutomation.State;
 using GitAutomation.Web.Scripts;
 using GitAutomation.Web.State;
 using Microsoft.Extensions.Logging;
@@ -33,7 +34,10 @@ namespace GitAutomation.Web
             this.scriptInvoker = scriptInvoker;
             this.logger = logger;
             this.dispatcher = dispatcher;
-            subscription = stateMachine.StateUpdates.Select(state => state.Configuration).Subscribe(OnStateUpdated);
+            subscription = stateMachine.StateUpdates
+                .Select(state => new { state.State.Configuration, state.LastChangeBy })
+                .DistinctUntilChanged(k => k.Configuration)
+                .Subscribe(e => OnStateUpdated(e.Configuration, e.LastChangeBy));
         }
 
         public void AssertStarted()
@@ -41,7 +45,7 @@ namespace GitAutomation.Web
             System.Diagnostics.Debug.Assert(subscription != null);
         }
 
-        private void OnStateUpdated(RepositoryConfigurationState state)
+        private void OnStateUpdated(RepositoryConfigurationState state, IAgentSpecification modifiedBy)
         {
             // FIXME - should I do this with switchmap/cancellation tokens?
             if (state.Timestamps[NeedPull] > state.Timestamps[Pulled])
@@ -65,7 +69,7 @@ namespace GitAutomation.Web
                 if (lastStoredFieldModifiedTimestamp != state.Timestamps[StoredFieldModified])
                 {
                     lastStoredFieldModifiedTimestamp = state.Timestamps[StoredFieldModified];
-                    PushToRemote(state.Timestamps[StoredFieldModified]);
+                    PushToRemote(state.Timestamps[StoredFieldModified], modifiedBy);
                 }
             }
         }
@@ -109,8 +113,9 @@ namespace GitAutomation.Web
             }
         }
 
-        private async Task PushToRemote(DateTimeOffset startTimestamp)
+        private async Task PushToRemote(DateTimeOffset startTimestamp, IAgentSpecification modifiedBy)
         {
+            // TODO - convert agent to user name/email
             lastPushResult = scriptInvoker.Invoke("$/Config/commitAndPush.ps1", new { startTimestamp }, options, SystemAgent.Instance);
             await lastPushResult;
         }

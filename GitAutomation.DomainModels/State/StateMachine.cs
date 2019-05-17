@@ -3,19 +3,20 @@ using System;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
-namespace GitAutomation.Web.State
+namespace GitAutomation.State
 {
     public class StateMachine<T> : IDispatcher, IStateMachine<T>
     {
-        private readonly BehaviorSubject<T> state;
-        private readonly Func<T, StandardAction, IAgentSpecification, T> reducer;
+        private readonly BehaviorSubject<StateUpdateEvent<T>> state;
+        private readonly Func<T, StandardAction, T> reducer;
 
-        public T State => state.Value;
-        public IObservable<T> StateUpdates => state.AsObservable();
+        public T State => state.Value.State;
+        public IAgentSpecification LastChangeBy => state.Value.LastChangeBy;
+        public IObservable<StateUpdateEvent<T>> StateUpdates => state.AsObservable();
 
-        public StateMachine(Func<T, StandardAction, IAgentSpecification, T> reducer, T zeroState)
+        public StateMachine(Func<T, StandardAction, T> reducer, T zeroState)
         {
-            this.state = new BehaviorSubject<T>(zeroState);
+            this.state = new BehaviorSubject<StateUpdateEvent<T>>(new StateUpdateEvent<T>(zeroState, SystemAgent.Instance));
             this.reducer = reducer;
         }
 
@@ -24,7 +25,9 @@ namespace GitAutomation.Web.State
             lock (state)
             {
                 var original = state.Value;
-                state.OnNext(reducer(original, action, agent));
+                // TODO - authorization
+                var newState = reducer(original.State, action);
+                state.OnNext(new StateUpdateEvent<T>(newState, agent));
             }
         }
 
