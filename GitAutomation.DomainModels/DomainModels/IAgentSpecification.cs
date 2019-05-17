@@ -4,8 +4,7 @@ using System.Text;
 
 namespace GitAutomation.DomainModels
 {
-    public interface IDispatcher
+    public interface IAgentSpecification
     {
-        void Dispatch(StandardAction action, IAgentSpecification agentSpecification);
     }
 }

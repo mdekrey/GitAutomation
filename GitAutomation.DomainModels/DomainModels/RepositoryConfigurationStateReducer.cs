@@ -7,7 +7,7 @@ namespace GitAutomation.DomainModels
 {
     public class RepositoryConfigurationStateReducer
     {
-        public static RepositoryConfigurationState Reduce(RepositoryConfigurationState original, StandardAction action) =>
+        public static RepositoryConfigurationState Reduce(RepositoryConfigurationState original, StandardAction action, IAgentSpecification agentSpecification) =>
             (action.Action switch
             {
                 "ConfigurationDirectoryNotAccessible" => ConfigurationDirectoryNotAccessible(original, action),

@@ -29,7 +29,7 @@ namespace GitAutomation.Web.Scripts
             this.dispatcher = dispatcher;
         }
 
-        public IPowerShellStreams<StandardAction> Invoke(string scriptPath, object loggedParameters, object hiddenParameters)
+        public IPowerShellStreams<StandardAction> Invoke(string scriptPath, object loggedParameters, object hiddenParameters, IAgentSpecification agentSpecification)
         {
             var result = PowerShell.Create()
                 .AddUnrestrictedCommand("./Scripts/Globals.ps1")
@@ -38,16 +38,16 @@ namespace GitAutomation.Web.Scripts
                 .BindParametersToPowerShell(loggedParameters)
                 .InvokeAllStreams<StandardAction, PowerShellStandardAction>(ps => ps.ToStandardAction());
 
-            Task.Run(() => ProcessActions(result));
+            Task.Run(() => ProcessActions(result, agentSpecification));
 
             return result;
         }
 
-        private async Task ProcessActions(IPowerShellStreams<StandardAction> result)
+        private async Task ProcessActions(IPowerShellStreams<StandardAction> result, IAgentSpecification agentSpecification)
         {
             await foreach (var action in result.SuccessAsync)
             {
-                dispatcher.Dispatch(action);
+                dispatcher.Dispatch(action, agentSpecification);
             }
         }
 

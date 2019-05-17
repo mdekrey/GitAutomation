@@ -72,7 +72,7 @@ namespace GitAutomation.Web
 
         internal async Task BeginLoad(DateTimeOffset startTimestamp)
         {
-            this.lastLoadResult = scriptInvoker.Invoke("$/Config/clone.ps1", new { startTimestamp }, options);
+            this.lastLoadResult = scriptInvoker.Invoke("$/Config/clone.ps1", new { startTimestamp }, options, SystemAgent.Instance);
             await lastLoadResult;
         }
 
@@ -88,11 +88,11 @@ namespace GitAutomation.Web
             var config = SerializationUtils.LoadConfigurationAsync(meta);
             var structure = SerializationUtils.LoadStructureAsync(meta);
             await Task.WhenAll(config, structure);
-            dispatcher.Dispatch(new StandardAction("ConfigurationLoaded", new Dictionary<string, object> { { "configuration", config.Result }, { "structure", structure.Result }, { "startTimestamp", startTimestamp } }));
+            dispatcher.Dispatch(new StandardAction("ConfigurationLoaded", new Dictionary<string, object> { { "configuration", config.Result }, { "structure", structure.Result }, { "startTimestamp", startTimestamp } }), SystemAgent.Instance);
             if (!exists)
             {
                 // TODO - this action should probably be combined with updating the store
-                dispatcher.Dispatch(new StandardAction("ConfigurationWritten", new Dictionary<string, object> { { "startTimestamp", startTimestamp } }));
+                dispatcher.Dispatch(new StandardAction("ConfigurationWritten", new Dictionary<string, object> { { "startTimestamp", startTimestamp } }), SystemAgent.Instance);
             }
         }
 
@@ -111,7 +111,7 @@ namespace GitAutomation.Web
 
         private async Task PushToRemote(DateTimeOffset startTimestamp)
         {
-            lastPushResult = scriptInvoker.Invoke("$/Config/commitAndPush.ps1", new { startTimestamp }, options);
+            lastPushResult = scriptInvoker.Invoke("$/Config/commitAndPush.ps1", new { startTimestamp }, options, SystemAgent.Instance);
             await lastPushResult;
         }
 

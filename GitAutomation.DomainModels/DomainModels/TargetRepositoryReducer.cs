@@ -10,7 +10,7 @@ namespace GitAutomation.DomainModels
 {
     public class TargetRepositoryReducer
     {
-        public static TargetRepositoryState Reduce(TargetRepositoryState original, StandardAction action) =>
+        public static TargetRepositoryState Reduce(TargetRepositoryState original, StandardAction action, IAgentSpecification agentSpecification) =>
             action.Action switch
         {
             "TargetDirectoryNotAccessible" => TargetDirectoryNotAccessible(original, action),
