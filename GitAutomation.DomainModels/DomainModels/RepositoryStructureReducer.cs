@@ -11,9 +11,9 @@ namespace GitAutomation.DomainModels
             {
                 "StabilizeBranch" => StabilizeBranch(original, (string)action.Payload["Branch"]),
                 "SetBranchState" => SetBranchState(original, (string)action.Payload["Branch"], (string)action.Payload["State"]),
-                "SetLastCommit" => SetLastCommit(original, (string)action.Payload["Branch"], (string)action.Payload["LastCommit"]),
+                "SetOutputCommit" => SetOutputCommit(original, (string)action.Payload["Branch"], (string)action.Payload["OutputCommit"]),
                 "SetMeta" => SetMeta(original, (string)action.Payload["Branch"], (IDictionary<string, object>)action.Payload["Meta"]),
-                "RemoveBranch" => RemoveBranch(original, (string)action.Payload["Branch"]),
+                "RemoveReserve" => RemoveReserve(original, (string)action.Payload["Branch"]),
                 _ => original
             };
         }
@@ -24,13 +24,13 @@ namespace GitAutomation.DomainModels
         private static RepositoryStructure SetBranchState(RepositoryStructure original, string branchReserveName, string status) =>
             original.SetBranchReserves(b => b.UpdateItem(branchReserveName, branch => branch.SetStatus(status)));
 
-        private static RepositoryStructure SetLastCommit(RepositoryStructure original, string branchReserveName, string lastCommit) =>
-            original.SetBranchReserves(b => b.UpdateItem(branchReserveName, branch => branch.SetLastCommit(lastCommit)));
+        private static RepositoryStructure SetOutputCommit(RepositoryStructure original, string branchReserveName, string lastCommit) =>
+            original.SetBranchReserves(b => b.UpdateItem(branchReserveName, branch => branch.SetOutputCommit(lastCommit)));
 
         private static RepositoryStructure SetMeta(RepositoryStructure original, string branchReserveName, IDictionary<string, object> meta) =>
             original.SetBranchReserves(b => b.UpdateItem(branchReserveName, branch => branch.SetMeta(oldMeta => oldMeta.SetItems(meta))));
 
-        private static RepositoryStructure RemoveBranch(RepositoryStructure original, string branchReserveName) =>
+        private static RepositoryStructure RemoveReserve(RepositoryStructure original, string branchReserveName) =>
             original.SetBranchReserves(b =>
                 b.Remove(branchReserveName)
                  .SetItems(b.Keys

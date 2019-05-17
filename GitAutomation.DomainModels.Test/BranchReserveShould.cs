@@ -34,7 +34,7 @@ namespace GitAutomation.DomainModels.Test
                 FlowType = "Auto",
                 Status = "Stable",
                 Upstream = new HashSet<string>(),
-                LastCommit = BranchReserve.EmptyCommit,
+                OutputCommit = BranchReserve.EmptyCommit,
                 Meta = new Dictionary<string, object>()
             }.Build();
             var builder = original.ToBuilder();
@@ -60,8 +60,9 @@ namespace GitAutomation.DomainModels.Test
         [TestMethod]
         public void PreventInvalidParameters()
         {
-            Assert.ThrowsException<ArgumentException>(() => new BranchReserve("Normal", "Auto", "Stable", null, BranchReserve.EmptyCommit, ImmutableSortedDictionary<string, object>.Empty));
-            Assert.ThrowsException<ArgumentException>(() => new BranchReserve("Normal", "Auto", "Stable", ImmutableSortedSet<string>.Empty, "", ImmutableSortedDictionary<string, object>.Empty));
+            Assert.ThrowsException<ArgumentException>(() => new BranchReserve("Normal", "Auto", "Stable", null, ImmutableSortedDictionary<string, BranchReserveBranch>.Empty, BranchReserve.EmptyCommit, ImmutableSortedDictionary<string, object>.Empty));
+            Assert.ThrowsException<ArgumentException>(() => new BranchReserve("Normal", "Auto", "Stable", ImmutableSortedSet<string>.Empty, null, BranchReserve.EmptyCommit, ImmutableSortedDictionary<string, object>.Empty));
+            Assert.ThrowsException<ArgumentException>(() => new BranchReserve("Normal", "Auto", "Stable", ImmutableSortedSet<string>.Empty, ImmutableSortedDictionary<string, BranchReserveBranch>.Empty, "", ImmutableSortedDictionary<string, object>.Empty));
         }
     }
 }

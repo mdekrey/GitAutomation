@@ -5,7 +5,7 @@ using System.Text;
 
 namespace GitAutomation.DomainModels
 {
-    public class TargetBranchesState
+    public class TargetRepositoryState
     {
         public enum TimestampType
         {
@@ -14,7 +14,7 @@ namespace GitAutomation.DomainModels
             LoadedFromDisk,
         }
 
-        public enum TargetBranchesLastError
+        public enum TargetLastError
         {
             None,
             Error_DirectoryNotAccessible,
@@ -24,9 +24,9 @@ namespace GitAutomation.DomainModels
             Error_DirectoryDirty,
         }
 
-        public TargetBranchesState(
+        public TargetRepositoryState(
             ImmutableSortedDictionary<TimestampType, DateTimeOffset> timestamps,
-            TargetBranchesLastError lastError,
+            TargetLastError lastError,
             ImmutableDictionary<string, string> branches)
         {
             Timestamps = timestamps;
@@ -35,22 +35,22 @@ namespace GitAutomation.DomainModels
         }
 
         public ImmutableSortedDictionary<TimestampType, DateTimeOffset> Timestamps { get; }
-        public TargetBranchesLastError LastError { get; }
+        public TargetLastError LastError { get; }
         public ImmutableDictionary<string, string> Branches { get; }
 
-        public static TargetBranchesState ZeroState { get; } = new TargetBranchesState(
+        public static TargetRepositoryState ZeroState { get; } = new TargetRepositoryState(
             timestamps: ImmutableSortedDictionary.CreateRange(new Dictionary<TimestampType, DateTimeOffset>
             {
                 { TimestampType.LoadedFromDisk, DateTimeOffset.MinValue },
                 { TimestampType.NeededFetch, DateTimeOffset.Now },
                 { TimestampType.Fetched, DateTimeOffset.MinValue },
             }),
-            lastError: TargetBranchesLastError.None,
+            lastError: TargetLastError.None,
             branches: ImmutableDictionary<string, string>.Empty);
 
-        public TargetBranchesState With(
+        public TargetRepositoryState With(
             Func<ImmutableSortedDictionary<TimestampType, DateTimeOffset>, ImmutableSortedDictionary<TimestampType, DateTimeOffset>>? timestampFunc = null,
-            TargetBranchesLastError? lastError = null,
+            TargetLastError? lastError = null,
             ImmutableDictionary<string, string>? branches = null)
         {
             var timestamps = timestampFunc?.Invoke(Timestamps) ?? Timestamps;
@@ -58,7 +58,7 @@ namespace GitAutomation.DomainModels
                 || (lastError ?? LastError) != LastError
                 || (branches ?? Branches) != Branches)
             {
-                return new TargetBranchesState(
+                return new TargetRepositoryState(
                     timestamps: timestamps ?? Timestamps,
                     lastError: lastError ?? LastError,
                     branches: branches ?? Branches);

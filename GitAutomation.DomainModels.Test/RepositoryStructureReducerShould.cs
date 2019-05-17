@@ -18,17 +18,39 @@ namespace GitAutomation
         private static readonly RepositoryStructure testRepository = new RepositoryStructure.Builder()
         {
             BranchReserves = new Dictionary<string, BranchReserve.Builder> {
-                { "line/1.0", new BranchReserve.Builder() { ReserveType = "ServiceLine", FlowType = "Auto", Status = "Stable", LastCommit = "0123456789012345678901234567890123456789" } },
+                { "line/1.0", new BranchReserve.Builder() {
+                    ReserveType = "ServiceLine",
+                    FlowType = "Auto",
+                    Status = "Stable",
+                    OutputCommit = "0123456789012345678901234567890123456789",
+                    IncludedBranches = { { "line/1.0", new BranchReserveBranch.Builder { LastCommit = "0123456789012345678901234567890123456789" } } } } },
                 { "feature/a", new BranchReserve.Builder() {
                     ReserveType = "Feature",
                     FlowType = "Manual",
                     Status = "OutOfDate",
                     Upstream = new HashSet<string> { "line/1.0" },
-                    LastCommit = BranchReserve.EmptyCommit,
+                    IncludedBranches = { { "feature/a", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } } },
+                    OutputCommit = BranchReserve.EmptyCommit,
                     Meta = new Dictionary<string, object> { { "Owner", "mdekrey" } } }
                 },
-                { "feature/b", new BranchReserve.Builder() { ReserveType = "Feature", FlowType = "Manual", Status = "OutOfDate", Upstream = new HashSet<string> { "line/1.0" }, LastCommit = BranchReserve.EmptyCommit } },
-                { "rc/1.0.1", new BranchReserve.Builder() { ReserveType = "ReleaseCandidate", FlowType = "Auto", Status = "OutOfDate", Upstream = new HashSet<string> { "feature/b", "feature/a" }, LastCommit = BranchReserve.EmptyCommit } },
+                { "feature/b", new BranchReserve.Builder() {
+                    ReserveType = "Feature",
+                    FlowType = "Manual",
+                    Status = "OutOfDate",
+                    Upstream = new HashSet<string> { "line/1.0" },
+                    IncludedBranches = { { "feature/b", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } } },
+                    OutputCommit = BranchReserve.EmptyCommit } },
+                { "rc/1.0.1", new BranchReserve.Builder() {
+                    ReserveType = "ReleaseCandidate",
+                    FlowType = "Auto",
+                    Status = "OutOfDate",
+                    Upstream = new HashSet<string> { "feature/b", "feature/a" },
+                    IncludedBranches = {
+                        { "rc/1.0.1", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } },
+                        { "rc/1.0.1-1", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } },
+                        { "rc/1.0.1-2", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } }
+                    },
+                    OutputCommit = BranchReserve.EmptyCommit } },
             }
         }.Build();
         private static readonly ISerializer serializer = Serialization.SerializationUtils.Serializer;
@@ -58,17 +80,17 @@ namespace GitAutomation
         }
 
         [TestMethod]
-        public void SetLastCommit()
+        public void SetOutputCommit()
         {
-            var actual = testRepository.Reduce(new StandardAction("SetLastCommit", new Dictionary<string, object> {
+            var actual = testRepository.Reduce(new StandardAction("SetOutputCommit", new Dictionary<string, object> {
                 { "Branch", "feature/a" },
-                { "LastCommit", testRepository.BranchReserves["line/1.0"].LastCommit }
+                { "OutputCommit", testRepository.BranchReserves["line/1.0"].OutputCommit }
             }));
             var result = GetPatch(actual);
             Assert.AreEqual(Clean(@"
--      lastCommit: 0000000000000000000000000000000000000000
-+      lastCommit: 0123456789012345678901234567890123456789").Trim(), result);
-            Assert.AreEqual("0123456789012345678901234567890123456789", actual.BranchReserves["feature/a"].LastCommit);
+-      outputCommit: 0000000000000000000000000000000000000000
++      outputCommit: 0123456789012345678901234567890123456789").Trim(), result);
+            Assert.AreEqual("0123456789012345678901234567890123456789", actual.BranchReserves["feature/a"].OutputCommit);
         }
 
         [TestMethod]
@@ -89,9 +111,9 @@ namespace GitAutomation
         }
 
         [TestMethod]
-        public void RemoveBranch()
+        public void RemoveReserve()
         {
-            var actual = testRepository.Reduce(new StandardAction("RemoveBranch",
+            var actual = testRepository.Reduce(new StandardAction("RemoveReserve",
                 new Dictionary<string, object> {
                 { "Branch", "feature/a" }
             }));
@@ -103,7 +125,11 @@ namespace GitAutomation
 -      status: OutOfDate
 -      upstream:
 -      - line/1.0
--      lastCommit: 0000000000000000000000000000000000000000
+-      includedBranches:
+-        feature/a:
+-          lastCommit: 0000000000000000000000000000000000000000
+-          meta: {}
+-      outputCommit: 0000000000000000000000000000000000000000
 -      meta:
 -        Owner: mdekrey
 -      - feature/a").Trim(), result);
@@ -116,8 +142,8 @@ namespace GitAutomation
             var diff = diffBuilder.BuildDiffModel(originalYaml, actualYaml);
 
             var returnValue = from line in diff.Lines
-                         where line.Type != ChangeType.Unchanged
-                         select $"{Indicator(line.Type)} {line.Text}";
+                              where line.Type != ChangeType.Unchanged
+                              select $"{Indicator(line.Type)} {line.Text}";
             return string.Join('\n', returnValue).Trim();
         }
 
@@ -125,12 +151,12 @@ namespace GitAutomation
 
         private string Indicator(ChangeType type) =>
             type switch
-            {
-                ChangeType.Deleted => "- ",
-                ChangeType.Inserted => "+ ",
-                ChangeType.Imaginary => "? ",
-                ChangeType.Modified => "* ",
-                _ => "  "
-            };
+        {
+            ChangeType.Deleted => "- ",
+            ChangeType.Inserted => "+ ",
+            ChangeType.Imaginary => "? ",
+            ChangeType.Modified => "* ",
+            _ => "  "
+        };
     }
 }

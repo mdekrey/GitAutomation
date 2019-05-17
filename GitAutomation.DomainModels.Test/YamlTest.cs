@@ -14,17 +14,39 @@ namespace GitAutomation
         private static RepositoryStructure testRepository = new RepositoryStructure.Builder()
         {
             BranchReserves = new Dictionary<string, BranchReserve.Builder> {
-                { "line/1.0", new BranchReserve.Builder() { ReserveType = "ServiceLine", FlowType = "Auto", Status = "Stable", LastCommit = "0123456789012345678901234567890123456789" } },
+                { "line/1.0", new BranchReserve.Builder() {
+                    ReserveType = "ServiceLine",
+                    FlowType = "Auto",
+                    Status = "Stable",
+                    OutputCommit = "0123456789012345678901234567890123456789",
+                    IncludedBranches = { { "line/1.0", new BranchReserveBranch.Builder { LastCommit = "0123456789012345678901234567890123456789" } } } } },
                 { "feature/a", new BranchReserve.Builder() {
                     ReserveType = "Feature",
                     FlowType = "Manual",
-                    Status = "OutOfDate", 
-                    Upstream = new HashSet<string> { "line/1.0" }, 
-                    LastCommit = BranchReserve.EmptyCommit, 
+                    Status = "OutOfDate",
+                    Upstream = new HashSet<string> { "line/1.0" },
+                    IncludedBranches = { { "feature/a", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } } },
+                    OutputCommit = BranchReserve.EmptyCommit,
                     Meta = new Dictionary<string, object> { { "Owner", "mdekrey" } } }
                 },
-                { "feature/b", new BranchReserve.Builder() { ReserveType = "Feature", FlowType = "Manual", Status = "OutOfDate", Upstream = new HashSet<string> { "line/1.0" }, LastCommit = BranchReserve.EmptyCommit } },
-                { "rc/1.0.1", new BranchReserve.Builder() { ReserveType = "ReleaseCandidate", FlowType = "Auto", Status = "OutOfDate", Upstream = new HashSet<string> { "feature/b", "feature/a" }, LastCommit = BranchReserve.EmptyCommit } },
+                { "feature/b", new BranchReserve.Builder() {
+                    ReserveType = "Feature",
+                    FlowType = "Manual",
+                    Status = "OutOfDate",
+                    Upstream = new HashSet<string> { "line/1.0" },
+                    IncludedBranches = { { "feature/b", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } } },
+                    OutputCommit = BranchReserve.EmptyCommit } },
+                { "rc/1.0.1", new BranchReserve.Builder() {
+                    ReserveType = "ReleaseCandidate",
+                    FlowType = "Auto",
+                    Status = "OutOfDate",
+                    Upstream = new HashSet<string> { "feature/b", "feature/a" },
+                    IncludedBranches = {
+                        { "rc/1.0.1", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } },
+                        { "rc/1.0.1-1", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } },
+                        { "rc/1.0.1-2", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } }
+                    },
+                    OutputCommit = BranchReserve.EmptyCommit } },
             }
         }.Build();
         private static string testYaml = @"
@@ -35,7 +57,11 @@ branchReserves:
     status: OutOfDate
     upstream:
     - line/1.0
-    lastCommit: 0000000000000000000000000000000000000000
+    includedBranches:
+      feature/a:
+        lastCommit: 0000000000000000000000000000000000000000
+        meta: {}
+    outputCommit: 0000000000000000000000000000000000000000
     meta:
       Owner: mdekrey
   feature/b:
@@ -44,14 +70,22 @@ branchReserves:
     status: OutOfDate
     upstream:
     - line/1.0
-    lastCommit: 0000000000000000000000000000000000000000
+    includedBranches:
+      feature/b:
+        lastCommit: 0000000000000000000000000000000000000000
+        meta: {}
+    outputCommit: 0000000000000000000000000000000000000000
     meta: {}
   line/1.0:
     reserveType: ServiceLine
     flowType: Auto
     status: Stable
     upstream: []
-    lastCommit: 0123456789012345678901234567890123456789
+    includedBranches:
+      line/1.0:
+        lastCommit: 0123456789012345678901234567890123456789
+        meta: {}
+    outputCommit: 0123456789012345678901234567890123456789
     meta: {}
   rc/1.0.1:
     reserveType: ReleaseCandidate
@@ -60,8 +94,19 @@ branchReserves:
     upstream:
     - feature/a
     - feature/b
-    lastCommit: 0000000000000000000000000000000000000000
+    includedBranches:
+      rc/1.0.1:
+        lastCommit: 0000000000000000000000000000000000000000
+        meta: {}
+      rc/1.0.1-1:
+        lastCommit: 0000000000000000000000000000000000000000
+        meta: {}
+      rc/1.0.1-2:
+        lastCommit: 0000000000000000000000000000000000000000
+        meta: {}
+    outputCommit: 0000000000000000000000000000000000000000
     meta: {}
+
 ".Trim();
 
         [TestMethod]

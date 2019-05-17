@@ -4,13 +4,13 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
-using static GitAutomation.DomainModels.TargetBranchesState.TimestampType;
+using static GitAutomation.DomainModels.TargetRepositoryState.TimestampType;
 
 namespace GitAutomation.DomainModels
 {
-    public class TargetBranchesReducer
+    public class TargetRepositoryReducer
     {
-        public static TargetBranchesState Reduce(TargetBranchesState original, StandardAction action) =>
+        public static TargetRepositoryState Reduce(TargetRepositoryState original, StandardAction action) =>
             action.Action switch
         {
             "TargetDirectoryNotAccessible" => TargetDirectoryNotAccessible(original, action),
@@ -23,32 +23,32 @@ namespace GitAutomation.DomainModels
             _ => original
         };
 
-        private static TargetBranchesState TargetDirectoryNotAccessible(TargetBranchesState original, StandardAction action) =>
+        private static TargetRepositoryState TargetDirectoryNotAccessible(TargetRepositoryState original, StandardAction action) =>
             original.Timestamps[NeededFetch].IfStringMatch(action.Payload["startTimestamp"])
-                .Map(timestamp => original.With(lastError: TargetBranchesState.TargetBranchesLastError.Error_DirectoryNotAccessible))
+                .Map(timestamp => original.With(lastError: TargetRepositoryState.TargetLastError.Error_DirectoryNotAccessible))
                 .OrElse(original);
 
-        private static TargetBranchesState TargetRepositoryNested(TargetBranchesState original, StandardAction action) =>
+        private static TargetRepositoryState TargetRepositoryNested(TargetRepositoryState original, StandardAction action) =>
             original.Timestamps[NeededFetch].IfStringMatch(action.Payload["startTimestamp"])
-                .Map(timestamp => original.With(lastError: TargetBranchesState.TargetBranchesLastError.Error_DirectoryNested))
+                .Map(timestamp => original.With(lastError: TargetRepositoryState.TargetLastError.Error_DirectoryNested))
                 .OrElse(original);
 
-        private static TargetBranchesState TargetRepositoryDirty(TargetBranchesState original, StandardAction action) =>
+        private static TargetRepositoryState TargetRepositoryDirty(TargetRepositoryState original, StandardAction action) =>
             original.Timestamps[NeededFetch].IfStringMatch(action.Payload["startTimestamp"])
-                .Map(timestamp => original.With(lastError: TargetBranchesState.TargetBranchesLastError.Error_DirectoryDirty))
+                .Map(timestamp => original.With(lastError: TargetRepositoryState.TargetLastError.Error_DirectoryDirty))
                 .OrElse(original);
 
-        private static TargetBranchesState TargetRepositoryCouldNotBeInitialized(TargetBranchesState original, StandardAction action) =>
+        private static TargetRepositoryState TargetRepositoryCouldNotBeInitialized(TargetRepositoryState original, StandardAction action) =>
             original.Timestamps[NeededFetch].IfStringMatch(action.Payload["startTimestamp"])
-                .Map(timestamp => original.With(lastError: TargetBranchesState.TargetBranchesLastError.Error_FailedToClone))
+                .Map(timestamp => original.With(lastError: TargetRepositoryState.TargetLastError.Error_FailedToClone))
                 .OrElse(original);
 
-        private static TargetBranchesState TargetRepositoryPasswordIncorrect(TargetBranchesState original, StandardAction action) =>
+        private static TargetRepositoryState TargetRepositoryPasswordIncorrect(TargetRepositoryState original, StandardAction action) =>
             original.Timestamps[NeededFetch].IfStringMatch(action.Payload["startTimestamp"])
-                .Map(timestamp => original.With(lastError: TargetBranchesState.TargetBranchesLastError.Error_PasswordIncorrect))
+                .Map(timestamp => original.With(lastError: TargetRepositoryState.TargetLastError.Error_PasswordIncorrect))
                 .OrElse(original);
 
-        private static TargetBranchesState TargetFetched(TargetBranchesState original, StandardAction action) =>
+        private static TargetRepositoryState TargetFetched(TargetRepositoryState original, StandardAction action) =>
             original.Timestamps[NeededFetch].IfStringMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(timestampFunc: t => t.SetItem(Fetched, DateTimeOffset.Now)))
                 .OrElse(original);
@@ -61,7 +61,7 @@ namespace GitAutomation.DomainModels
 #pragma warning enable CS0649
         }
 
-        private static TargetBranchesState TargetRefs(TargetBranchesState original, StandardAction action) =>
+        private static TargetRepositoryState TargetRefs(TargetRepositoryState original, StandardAction action) =>
             original.Timestamps[Fetched].IfStringMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(
                     timestampFunc: t => t.SetItem(LoadedFromDisk, DateTimeOffset.Now), 

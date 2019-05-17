@@ -9,19 +9,19 @@ namespace GitAutomation.Web.State
     public class AppState
     {
 #nullable enable
-        public AppState(RepositoryConfigurationState configuration, TargetBranchesState target)
+        public AppState(RepositoryConfigurationState configuration, TargetRepositoryState target)
         {
             Configuration = configuration;
             Target = target;
         }
 
-        public static AppState ZeroState { get; } = new AppState(RepositoryConfigurationState.ZeroState, TargetBranchesState.ZeroState);
+        public static AppState ZeroState { get; } = new AppState(RepositoryConfigurationState.ZeroState, TargetRepositoryState.ZeroState);
         public RepositoryConfigurationState Configuration { get; }
-        public TargetBranchesState Target { get; }
+        public TargetRepositoryState Target { get; }
 
         public AppState With(
             RepositoryConfigurationState? configuration = null, 
-            TargetBranchesState? target = null)
+            TargetRepositoryState? target = null)
         {
             if ((configuration ?? Configuration) != Configuration
                 || (target ?? Target) != Target)
@@ -36,7 +36,7 @@ namespace GitAutomation.Web.State
         internal static AppState Reducer(AppState original, StandardAction action)
         {
             return original.With(RepositoryConfigurationStateReducer.Reduce(original.Configuration, action),
-                TargetBranchesReducer.Reduce(original.Target, action));
+                TargetRepositoryReducer.Reduce(original.Target, action));
         }
 #nullable restore
     }

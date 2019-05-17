@@ -9,31 +9,26 @@ using GitAutomation.Web.Scripts;
 using GitAutomation.Web.State;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using static GitAutomation.DomainModels.TargetBranchesState.TimestampType;
+using static GitAutomation.DomainModels.TargetRepositoryState.TimestampType;
 
 namespace GitAutomation.Web
 {
-    public class TargetBranchesService : IDisposable
+    public class TargetRepositoryService : IDisposable
     {
         private readonly TargetRepositoryOptions options;
         private readonly PowerShellScriptInvoker scriptInvoker;
         private readonly ILogger logger;
-        private readonly IDispatcher dispatcher;
-        private readonly IStateMachine<AppState> stateMachine;
         private readonly IDisposable subscription;
         private IPowerShellStreams<StandardAction> lastFetchResult;
         private IPowerShellStreams<StandardAction> lastLoadFromDiskResult;
         private DateTimeOffset lastNeedFetchTimestamp;
         private DateTimeOffset lastFetchedTimestamp;
-        private DateTimeOffset lastStoredFieldModifiedTimestamp;
 
-        public TargetBranchesService(IOptions<TargetRepositoryOptions> options, PowerShellScriptInvoker scriptInvoker, ILogger<TargetBranchesService> logger, IDispatcher dispatcher, IStateMachine<AppState> stateMachine)
+        public TargetRepositoryService(IOptions<TargetRepositoryOptions> options, PowerShellScriptInvoker scriptInvoker, ILogger<TargetRepositoryService> logger, IStateMachine<AppState> stateMachine)
         {
             this.options = options.Value;
             this.scriptInvoker = scriptInvoker;
             this.logger = logger;
-            this.dispatcher = dispatcher;
-            this.stateMachine = stateMachine;
             subscription = stateMachine.StateUpdates.Select(state => state.Target).Subscribe(OnStateUpdated);
         }
 
@@ -42,7 +37,7 @@ namespace GitAutomation.Web
             System.Diagnostics.Debug.Assert(subscription != null);
         }
 
-        private void OnStateUpdated(TargetBranchesState state)
+        private void OnStateUpdated(TargetRepositoryState state)
         {
             // FIXME - should I do this with switchmap/cancellation tokens?
             if (state.Timestamps[NeededFetch] > state.Timestamps[Fetched])

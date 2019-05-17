@@ -17,7 +17,7 @@ namespace GitAutomation.DomainModels
             this.data = data;
         }
 
-        public BranchReserve(string reserveType, string flowType, string status, ImmutableSortedSet<string> upstream, string lastCommit, ImmutableSortedDictionary<string, object> meta)
+        public BranchReserve(string reserveType, string flowType, string status, ImmutableSortedSet<string> upstream, ImmutableSortedDictionary<string, BranchReserveBranch> includedBranches, string outputCommit, ImmutableSortedDictionary<string, object> meta)
         {
             if (reserveType == null)
             {
@@ -35,9 +35,17 @@ namespace GitAutomation.DomainModels
             {
                 throw new ArgumentException($"Upstream list cannot be null", nameof(upstream));
             }
-            else if (!Regex.IsMatch(lastCommit.ToLower(), "^[0-9a-f]{40}$"))
+            else if (includedBranches == null)
             {
-                throw new ArgumentException($"Invalid commit '{lastCommit}'", nameof(lastCommit));
+                throw new ArgumentException($"Included Branches list cannot be null", nameof(includedBranches));
+            }
+            else if (meta == null)
+            {
+                throw new ArgumentException($"Meta cannot be null", nameof(meta));
+            }
+            else if (!Regex.IsMatch(outputCommit.ToLower(), "^[0-9a-f]{40}$"))
+            {
+                throw new ArgumentException($"Invalid commit '{outputCommit}'", nameof(outputCommit));
             }
             data = new Dictionary<string, object>
             {
@@ -45,7 +53,8 @@ namespace GitAutomation.DomainModels
                 { nameof(FlowType), flowType.Trim() },
                 { nameof(Status), status.Trim() },
                 { nameof(Upstream), upstream },
-                { nameof(LastCommit), lastCommit.ToLower() },
+                { nameof(IncludedBranches), includedBranches },
+                { nameof(OutputCommit), outputCommit.ToLower() },
                 { nameof(Meta), meta },
             }.ToImmutableDictionary();
         }
@@ -72,10 +81,16 @@ namespace GitAutomation.DomainModels
             return new BranchReserve(data.SetItem(nameof(Upstream), map(Upstream)));
         }
 
-        public string LastCommit => (string)data[nameof(LastCommit)];
-        public BranchReserve SetLastCommit(string value)
+        public ImmutableSortedDictionary<string, BranchReserveBranch> IncludedBranches => (ImmutableSortedDictionary<string, BranchReserveBranch>)data[nameof(IncludedBranches)];
+        public BranchReserve SetIncludedBranches(Func<ImmutableSortedDictionary<string, BranchReserveBranch>, ImmutableSortedDictionary<string, BranchReserveBranch>> map)
         {
-            return new BranchReserve(data.SetItem(nameof(LastCommit), value));
+            return new BranchReserve(data.SetItem(nameof(IncludedBranches), map(IncludedBranches)));
+        }
+
+        public string OutputCommit => (string)data[nameof(OutputCommit)];
+        public BranchReserve SetOutputCommit(string value)
+        {
+            return new BranchReserve(data.SetItem(nameof(OutputCommit), value));
         }
 
         public ImmutableSortedDictionary<string, object> Meta => (ImmutableSortedDictionary<string, object>)data[nameof(Meta)];
@@ -92,9 +107,12 @@ namespace GitAutomation.DomainModels
 
         public class Builder
         {
+            private HashSet<string>? upstream;
+            private Dictionary<string, BranchReserveBranch.Builder>? includedBranches;
+            private Dictionary<string, object>? meta;
             private BranchReserve original;
 
-            public Builder() : this(new BranchReserve("", "", "", ImmutableSortedSet<string>.Empty, EmptyCommit, ImmutableSortedDictionary<string, object>.Empty))
+            public Builder() : this(new BranchReserve("", "", "", ImmutableSortedSet<string>.Empty, ImmutableSortedDictionary<string, BranchReserveBranch>.Empty, EmptyCommit, ImmutableSortedDictionary<string, object>.Empty))
             {
             }
 
@@ -120,22 +138,52 @@ namespace GitAutomation.DomainModels
             }
             public HashSet<string> Upstream
             {
-                get => new HashSet<string>(original.Upstream);
-                set { original = original.SetUpstream(_ => value.ToImmutableSortedSet()); }
+                get => upstream = upstream ?? new HashSet<string>(original.Upstream);
+                set
+                {
+                    original = original.SetUpstream(_ => value.ToImmutableSortedSet());
+                    upstream = null;
+                }
             }
-            public string LastCommit
+            public Dictionary<string, BranchReserveBranch.Builder> IncludedBranches
             {
-                get => original.LastCommit;
-                set { original = original.SetLastCommit(value); }
+                get => includedBranches = includedBranches ?? original.IncludedBranches.ToDictionary(k => k.Key, k => k.Value.ToBuilder());
+                set
+                {
+                    original = original.SetIncludedBranches(_ => value.ToImmutableSortedDictionary(kvp => kvp.Key, kvp => kvp.Value.Build()));
+                    includedBranches = null;
+                }
+            }
+            public string OutputCommit
+            {
+                get => original.OutputCommit;
+                set { original = original.SetOutputCommit(value); }
             }
             public Dictionary<string, object> Meta
             {
-                get => new Dictionary<string, object>(original.Meta);
-                set { original = original.SetMeta(_ => value.ToImmutableSortedDictionary()); }
+                get => meta = meta ?? new Dictionary<string, object>(original.Meta);
+                set
+                {
+                    original = original.SetMeta(_ => value.ToImmutableSortedDictionary());
+                    meta = null;
+                }
             }
 
             public BranchReserve Build()
             {
+                if (upstream != null)
+                {
+                    Upstream = upstream;
+                }
+                if (includedBranches != null)
+                {
+                    IncludedBranches = includedBranches;
+                }
+                if (meta != null)
+                {
+                    Meta = meta;
+                }
+
                 return original;
             }
         }
