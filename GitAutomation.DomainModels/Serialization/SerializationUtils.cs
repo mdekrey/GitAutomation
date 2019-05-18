@@ -1,4 +1,5 @@
 ﻿using GitAutomation.DomainModels;
+using GitAutomation.DomainModels.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -38,9 +39,9 @@ namespace GitAutomation.Serialization
             return meta;
         }
 
-        public static async Task<RepositoryConfiguration> LoadConfigurationAsync(Meta meta)
+        public static async Task<ConfigurationRepository> LoadConfigurationAsync(Meta meta)
         {
-            return await ReadYamlFileAsync<RepositoryConfiguration>(meta.Configuration);
+            return await ReadYamlFileAsync<ConfigurationRepository>(meta.Configuration);
         }
 
         public static async Task<RepositoryStructure> LoadStructureAsync(Meta meta)

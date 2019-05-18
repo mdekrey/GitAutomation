@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
-namespace GitAutomation.DomainModels
+namespace GitAutomation.DomainModels.Configuration
 {
-    public class RepositoryConfigurationState
+    public class ConfigurationRepositoryState
     {
         public enum ConfigurationTimestampType
         {
@@ -15,10 +15,10 @@ namespace GitAutomation.DomainModels
             Pushed,
         }
 
-        public RepositoryConfigurationState(
+        public ConfigurationRepositoryState(
             ImmutableSortedDictionary<ConfigurationTimestampType, DateTimeOffset> timestamps,
             RepositoryConfigurationLastError lastError,
-            RepositoryConfiguration configuration,
+            ConfigurationRepository configuration,
             RepositoryStructure structure)
         {
             Timestamps = timestamps;
@@ -40,10 +40,10 @@ namespace GitAutomation.DomainModels
 
         public ImmutableSortedDictionary<ConfigurationTimestampType, DateTimeOffset> Timestamps { get; }
         public RepositoryConfigurationLastError LastError { get; }
-        public RepositoryConfiguration Configuration { get; }
+        public ConfigurationRepository Configuration { get; }
         public RepositoryStructure Structure { get; }
 
-        public static RepositoryConfigurationState ZeroState { get; } = new RepositoryConfigurationState(
+        public static ConfigurationRepositoryState ZeroState { get; } = new ConfigurationRepositoryState(
             timestamps: ImmutableSortedDictionary.CreateRange(new Dictionary<ConfigurationTimestampType, DateTimeOffset>
             {
                 { ConfigurationTimestampType.StoredFieldModified, DateTimeOffset.MinValue },
@@ -53,13 +53,13 @@ namespace GitAutomation.DomainModels
                 { ConfigurationTimestampType.Pushed, DateTimeOffset.MinValue },
             }),
             lastError: RepositoryConfigurationLastError.None,
-            configuration: new RepositoryConfiguration(),
+            configuration: new ConfigurationRepository(),
             structure: new RepositoryStructure(ImmutableSortedDictionary<string, BranchReserve>.Empty));
 
-        public RepositoryConfigurationState With(
+        public ConfigurationRepositoryState With(
             Func<ImmutableSortedDictionary<ConfigurationTimestampType, DateTimeOffset>, ImmutableSortedDictionary<ConfigurationTimestampType, DateTimeOffset>>? timestampFunc = null,
             RepositoryConfigurationLastError? lastError = null,
-            RepositoryConfiguration? configuration = null,
+            ConfigurationRepository? configuration = null,
             RepositoryStructure? structure = null)
         {
             var timestamps = timestampFunc?.Invoke(Timestamps) ?? Timestamps;
@@ -68,7 +68,7 @@ namespace GitAutomation.DomainModels
                 || (configuration ?? Configuration) != Configuration
                 || (structure ?? Structure) != Structure)
             {
-                return new RepositoryConfigurationState(
+                return new ConfigurationRepositoryState(
                     timestamps: timestamps ?? Timestamps,
                     lastError: lastError ?? LastError,
                     configuration: configuration ?? Configuration,

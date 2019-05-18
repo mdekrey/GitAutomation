@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using GitAutomation.DomainModels;
+using GitAutomation.DomainModels.Configuration;
 using GitAutomation.Serialization;
 using GitAutomation.Serialization.Defaults;
 using GitAutomation.State;
@@ -10,7 +11,7 @@ using GitAutomation.Web.Scripts;
 using GitAutomation.Web.State;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using static GitAutomation.DomainModels.RepositoryConfigurationState.ConfigurationTimestampType;
+using static GitAutomation.DomainModels.Configuration.ConfigurationRepositoryState.ConfigurationTimestampType;
 
 namespace GitAutomation.Web
 {
@@ -45,7 +46,7 @@ namespace GitAutomation.Web
             System.Diagnostics.Debug.Assert(subscription != null);
         }
 
-        private void OnStateUpdated(RepositoryConfigurationState state, IAgentSpecification modifiedBy)
+        private void OnStateUpdated(ConfigurationRepositoryState state, IAgentSpecification modifiedBy)
         {
             // FIXME - should I do this with switchmap/cancellation tokens?
             if (state.Timestamps[NeedPull] > state.Timestamps[Pulled])

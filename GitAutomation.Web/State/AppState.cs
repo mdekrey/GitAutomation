@@ -1,4 +1,5 @@
 ﻿using GitAutomation.DomainModels;
+using GitAutomation.DomainModels.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,18 +10,18 @@ namespace GitAutomation.Web.State
     public class AppState
     {
 #nullable enable
-        public AppState(RepositoryConfigurationState configuration, TargetRepositoryState target)
+        public AppState(ConfigurationRepositoryState configuration, TargetRepositoryState target)
         {
             Configuration = configuration;
             Target = target;
         }
 
-        public static AppState ZeroState { get; } = new AppState(RepositoryConfigurationState.ZeroState, TargetRepositoryState.ZeroState);
-        public RepositoryConfigurationState Configuration { get; }
+        public static AppState ZeroState { get; } = new AppState(ConfigurationRepositoryState.ZeroState, TargetRepositoryState.ZeroState);
+        public ConfigurationRepositoryState Configuration { get; }
         public TargetRepositoryState Target { get; }
 
         public AppState With(
-            RepositoryConfigurationState? configuration = null, 
+            ConfigurationRepositoryState? configuration = null, 
             TargetRepositoryState? target = null)
         {
             if ((configuration ?? Configuration) != Configuration
@@ -35,7 +36,7 @@ namespace GitAutomation.Web.State
 
         internal static AppState Reducer(AppState original, StandardAction action)
         {
-            return original.With(RepositoryConfigurationStateReducer.Reduce(original.Configuration, action),
+            return original.With(ConfigurationRepositoryStateReducer.Reduce(original.Configuration, action),
                 TargetRepositoryReducer.Reduce(original.Target, action));
         }
 #nullable restore

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace GitAutomation.DomainModels
+namespace GitAutomation.DomainModels.Configuration
 {
     public class ReserveConfiguration
     {
