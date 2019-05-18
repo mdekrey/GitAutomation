@@ -1,16 +1,16 @@
-import React, { Component } from 'react';
-import { Route } from 'react-router';
+import React from 'react';
+import { Route, Switch } from 'react-router';
 import { Layout } from './components/Layout';
 import { Home } from './components/Home';
 
-export default class App extends Component {
-  static displayName = App.name;
-
-  render () {
-    return (
-      <Layout>
+export function App() {
+  const prerenderedLoginScreen = null; // TODO - authentication
+  return (
+    <Layout>
+      <Switch>
+        {prerenderedLoginScreen}
         <Route exact path='/' component={Home} />
-      </Layout>
-    );
-  }
+      </Switch>
+    </Layout>
+  );
 }

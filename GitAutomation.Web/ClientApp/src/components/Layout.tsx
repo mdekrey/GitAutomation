@@ -1,13 +1,5 @@
-import React, { Component } from 'react';
+import React from "react"
 
-export class Layout extends Component {
-  static displayName = Layout.name;
-
-  render () {
-    return (
-      <div>
-        {this.props.children}
-      </div>
-    );
-  }
+export function Layout({ children }: { children?: React.ReactNode }) {
+  return <div>{children}</div>
 }
