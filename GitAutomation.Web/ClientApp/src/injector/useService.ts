@@ -7,5 +7,9 @@ export const useService = <TService extends keyof InjectedServices>(
   deps?: DependencyList
 ) => {
   const injector = useContext(injectorContext);
-  return useMemo(() => injector.resolve(service), [injector, ...(deps || [])]);
+  return useMemo(
+    () => injector.resolve(service),
+    // eslint-disable-next-line
+    deps || [injector, service]
+  );
 };

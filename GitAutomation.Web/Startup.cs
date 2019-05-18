@@ -1,5 +1,6 @@
 using GitAutomation.DomainModels;
 using GitAutomation.State;
+using GitAutomation.Web.Hubs;
 using GitAutomation.Web.Scripts;
 using GitAutomation.Web.State;
 using Microsoft.AspNetCore.Builder;
@@ -9,6 +10,8 @@ using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
+using System.Threading.Tasks;
 
 namespace GitAutomation.Web
 {
@@ -32,6 +35,8 @@ namespace GitAutomation.Web
             {
                 configuration.RootPath = "ClientApp/build";
             });
+
+            services.AddSignalR();
 
             services.AddOptions<ConfigRepositoryOptions>().Configure(opt => Configuration.GetSection("configurationGit").Bind(opt));
             services.AddOptions<TargetRepositoryOptions>().Configure(opt => Configuration.GetSection("TargetRepository:Git").Bind(opt));
@@ -69,6 +74,11 @@ namespace GitAutomation.Web
                     template: "{controller}/{action=Index}/{id?}");
             });
 
+            app.UseSignalR(options =>
+            {
+                options.MapHub<GraphQLHub>("/hub");
+            });
+
             app.UseSpa(spa =>
             {
                 spa.Options.SourcePath = "ClientApp";
@@ -77,6 +87,7 @@ namespace GitAutomation.Web
                 {
                     // FIXME: these scripts are being left around app is terminated
                     //spa.UseReactDevelopmentServer(npmScript: "start");
+                    SpaProxyingExtensions.UseProxyToSpaDevelopmentServer(spa, () => Task.FromResult(new UriBuilder("http", "localhost", 3000).Uri));
                 }
             });
 

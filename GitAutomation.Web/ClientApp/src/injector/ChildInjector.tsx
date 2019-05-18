@@ -16,6 +16,7 @@ export const ChildInjector = ({
       result.beginScope(scope);
     }
     return result;
+    // eslint-disable-next-line
   }, [injector]);
   return (
     <injectorContext.Provider value={childInjector}>
