@@ -1,0 +1,67 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  background-color: white;
+  color: #282c34;
+
+  --button-color: #52a70c;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+input {
+  background-color: transparent;
+  color: #282c34;
+  border: 1px solid #000;
+  font-size: 1.5rem;
+}
+
+a {
+  cursor: pointer;
+  color: var(--button-color);
+}
+
+a.button {
+  display: inline-block;
+  color: white;
+  background-color: var(--button-color);
+  padding: 5px;
+  text-decoration: none;
+  box-shadow: 2px 2px 3px 0px #ccc;
+  outline: none;
+}
+
+/* a.button-margin {
+  margin: 2px 7px 5px 0px;
+} */
+
+a:active,
+a:focus {
+  --button-color: #377fc0;
+  box-shadow: 2px 2px 6px 0px #ccc;
+  text-decoration: underline;
+}
+
+.card {
+  background-color: white;
+  border: 1px solid #eee;
+  box-shadow: 2px 2px 3px 0px #ccc;
+  padding: 1em;
+  margin: 1em;
+}
+
+.action-row {
+  display: grid;
+  grid-gap: 10px;
+  margin: 2px 0px;
+  justify-items: end;
+}

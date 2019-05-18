@@ -1,0 +1,30 @@
+.Home_layout {
+  display: grid;
+  grid-template-rows: 1fr auto 2fr;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    ". ."
+    "first second"
+    ". .";
+  height: 100vh;
+  margin: auto;
+  max-width: 1200px;
+}
+
+@media (max-width: 1200px) {
+  .Home_layout {
+    display: block;
+  }
+}
+
+.Home_first {
+  grid-area: first;
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.Home_second {
+  grid-area: second;
+  max-height: 70vh;
+  overflow: auto;
+}
