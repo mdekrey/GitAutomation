@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`can have separate scopes from child injectors 1`] = `"Target scope 'Race' has not been started for service 'opponentVehicle'."`;
+
+exports[`cannot resolve a scoped variable before starting the scope 1`] = `"Target scope 'Singleton' has not been started for service 'playerVehicle'."`;
+
+exports[`cannot resolve a service after ending scope 1`] = `"Target scope 'Race' has not been started for service 'opponentVehicle'."`;
+
+exports[`cannot resolve a service in a lower scope 1`] = `
+"When resolving Service 'playerVehicle' in Scope 'Singleton'...
+  Error: Target scope 'Race' is more specific than allowed 'Singleton' for service 'track'."
+`;
