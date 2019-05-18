@@ -1,5 +1,6 @@
 ﻿using GraphQLParser;
 using GraphQLParser.AST;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
@@ -11,6 +12,14 @@ namespace GitAutomation.Web.GraphQL
 {
     public static class GraphQlSyntaxExtensions
     {
+        private static readonly JsonSerializer serializer = new JsonSerializer()
+        {
+            Converters =
+            {
+                new Newtonsoft.Json.Converters.StringEnumConverter()
+            }
+        };
+
         public static GraphQLDocument AsGraphQlAst(this string graphqlQuery)
         {
             var lexer = new Lexer();
@@ -40,7 +49,7 @@ namespace GitAutomation.Web.GraphQL
             }
             else
             {
-                return JToken.FromObject(subject);
+                return JToken.FromObject(subject, serializer);
             }
         }
 
