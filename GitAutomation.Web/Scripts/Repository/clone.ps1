@@ -16,15 +16,6 @@ function Init-BareRepository
 	return 1
 }
 
-function Get-GitStatus ([string] $checkoutPath)
-{
-	Push-Location "$checkoutPath"
-	git status | Out-Host
-	$status = $LastExitCode
-	Pop-Location
-	return $status
-}
-
 # Could be in the following states:
 # 1. Already cloned 
 # 3. Directory exists with no clone with permissions
@@ -45,7 +36,7 @@ if ($(git rev-parse --git-dir) -ne '.')
 	if ($LastExitCode -eq 0)
 	{
 		# A higher-up directory is a git repository
-		return Build-StandardAction "TargetRepository:GitNested" @{ "startTimestamp" = $startTimestamp }
+		return Build-StandardAction "TargetRepository:GitNested" @{ "startTimestamp" = $startTimestamp; "value" = $(git rev-parse --git-dir) }
 	}
 
 	if ((Get-ChildItem "$checkoutPath" | Measure-Object).Count -ne 0)
