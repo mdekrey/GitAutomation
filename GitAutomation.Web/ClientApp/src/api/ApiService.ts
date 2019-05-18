@@ -1,6 +1,6 @@
-import { map, switchMap, shareReplay, tap } from "rxjs/operators";
 import * as signalR from "@aspnet/signalr";
 import { Observable } from "rxjs";
+import { map, switchMap, shareReplay } from "rxjs/operators";
 import { BranchReserve } from "./BranchReserve";
 import { ReserveConfiguration } from "./ReserveConfiguration";
 
@@ -31,10 +31,7 @@ export class ApiService {
   private graphQl$(gql: string) {
     return this.connection
       .pipe(switchMap(connection => adapt(connection.stream("Query", gql))))
-      .pipe(
-        map(d => JSON.parse(d)),
-        tap(v => console.log(v))
-      );
+      .pipe(map(d => JSON.parse(d)));
   }
 
   get reserveTypes$() {
