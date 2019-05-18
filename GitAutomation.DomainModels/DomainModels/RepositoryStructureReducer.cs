@@ -9,16 +9,16 @@ namespace GitAutomation.DomainModels
         {
             return action.Action switch
             {
-                "StabilizeBranch" => StabilizeBranch(original, (string)action.Payload["Branch"]),
-                "SetBranchState" => SetBranchState(original, (string)action.Payload["Branch"], (string)action.Payload["State"]),
-                "SetOutputCommit" => SetOutputCommit(original, (string)action.Payload["Branch"], (string)action.Payload["OutputCommit"]),
-                "SetMeta" => SetMeta(original, (string)action.Payload["Branch"], (IDictionary<string, object>)action.Payload["Meta"]),
-                "RemoveReserve" => RemoveReserve(original, (string)action.Payload["Branch"]),
+                "RepositoryStructure:StabilizeReserve" => StabilizeReserve(original, (string)action.Payload["Reserve"]),
+                "RepositoryStructure:SetReserveState" => SetBranchState(original, (string)action.Payload["Reserve"], (string)action.Payload["State"]),
+                "RepositoryStructure:SetOutputCommit" => SetOutputCommit(original, (string)action.Payload["Reserve"], (string)action.Payload["OutputCommit"]),
+                "RepositoryStructure:SetMeta" => SetMeta(original, (string)action.Payload["Reserve"], (IDictionary<string, object>)action.Payload["Meta"]),
+                "RepositoryStructure:RemoveReserve" => RemoveReserve(original, (string)action.Payload["Reserve"]),
                 _ => original
             };
         }
 
-        private static RepositoryStructure StabilizeBranch(RepositoryStructure original, string branchReserveName) =>
+        private static RepositoryStructure StabilizeReserve(RepositoryStructure original, string branchReserveName) =>
             SetBranchState(original, branchReserveName, "Stable");
 
         private static RepositoryStructure SetBranchState(RepositoryStructure original, string branchReserveName, string status) =>

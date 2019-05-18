@@ -13,13 +13,13 @@ namespace GitAutomation.DomainModels
         public static TargetRepositoryState Reduce(TargetRepositoryState original, StandardAction action) =>
             action.Action switch
         {
-            "TargetDirectoryNotAccessible" => TargetDirectoryNotAccessible(original, action),
-            "TargetRepositoryNested" => TargetRepositoryNested(original, action),
-            "TargetRepositoryDirty" => TargetRepositoryDirty(original, action),
-            "TargetRepositoryCouldNotBeInitialized" => TargetRepositoryCouldNotBeInitialized(original, action),
-            "TargetRepositoryPasswordIncorrect" => TargetRepositoryPasswordIncorrect(original, action),
-            "TargetFetched" => TargetFetched(original, action),
-            "TargetRefs" => TargetRefs(original, action),
+            "TargetRepository:DirectoryNotAccessible" => TargetDirectoryNotAccessible(original, action),
+            "TargetRepository:GitNested" => TargetRepositoryNested(original, action),
+            "TargetRepository:GitDirty" => TargetRepositoryDirty(original, action),
+            "TargetRepository:GitCouldNotBeInitialized" => TargetRepositoryCouldNotBeInitialized(original, action),
+            "TargetRepository:GitPasswordIncorrect" => TargetRepositoryPasswordIncorrect(original, action),
+            "TargetRepository:Fetched" => TargetFetched(original, action),
+            "TargetRepository:Refs" => TargetRefs(original, action),
             _ => original
         };
 

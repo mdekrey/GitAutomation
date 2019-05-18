@@ -10,17 +10,17 @@ namespace GitAutomation.DomainModels.Configuration
         public static ConfigurationRepositoryState Reduce(ConfigurationRepositoryState original, StandardAction action) =>
             (action.Action switch
             {
-                "ConfigurationDirectoryNotAccessible" => ConfigurationDirectoryNotAccessible(original, action),
-                "ConfigurationReadyToLoad" => ConfigurationReadyToLoad(original, action),
-                "ConfigurationRepositoryNested" => ConfigurationRepositoryNested(original, action),
-                "ConfigurationRepositoryCouldNotBeCloned" => ConfigurationRepositoryCouldNotBeCloned(original, action),
-                "ConfigurationRepositoryPasswordIncorrect" => ConfigurationRepositoryPasswordIncorrect(original, action),
-                "ConfigurationRepositoryNoBranch" => ConfigurationRepositoryNoBranch(original, action),
-                "ConfigurationRepositoryCouldNotCommit" => ConfigurationRepositoryCouldNotCommit(original, action),
-                "ConfigurationRepositoryCouldNotPush" => ConfigurationRepositoryCouldNotPush(original, action),
-                "ConfigurationPushSuccess" => ConfigurationPushSuccess(original, action),
-                "ConfigurationLoaded" => ConfigurationLoaded(original, action),
-                "ConfigurationWritten" => ConfigurationWritten(original, action),
+                "ConfigurationRepository:DirectoryNotAccessible" => ConfigurationDirectoryNotAccessible(original, action),
+                "ConfigurationRepository:ReadyToLoad" => ConfigurationReadyToLoad(original, action),
+                "ConfigurationRepository:GitNested" => ConfigurationRepositoryNested(original, action),
+                "ConfigurationRepository:GitCouldNotClone" => ConfigurationRepositoryCouldNotBeCloned(original, action),
+                "ConfigurationRepository:GitPasswordIncorrect" => ConfigurationRepositoryPasswordIncorrect(original, action),
+                "ConfigurationRepository:GitNoBranch" => ConfigurationRepositoryNoBranch(original, action),
+                "ConfigurationRepository:GitCouldNotCommit" => ConfigurationRepositoryCouldNotCommit(original, action),
+                "ConfigurationRepository:GitCouldNotPush" => ConfigurationRepositoryCouldNotPush(original, action),
+                "ConfigurationRepository:GitPushSuccess" => ConfigurationPushSuccess(original, action),
+                "ConfigurationRepository:Loaded" => ConfigurationLoaded(original, action),
+                "ConfigurationRepository:Written" => ConfigurationWritten(original, action),
                 _ => original,
             }).With(structure: RepositoryStructureReducer.Reduce(original.Structure, action));
 

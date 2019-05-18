@@ -93,11 +93,11 @@ namespace GitAutomation.Web
             var config = SerializationUtils.LoadConfigurationAsync(meta);
             var structure = SerializationUtils.LoadStructureAsync(meta);
             await Task.WhenAll(config, structure);
-            dispatcher.Dispatch(new StandardAction("ConfigurationLoaded", new Dictionary<string, object> { { "configuration", config.Result }, { "structure", structure.Result }, { "startTimestamp", startTimestamp } }), SystemAgent.Instance);
+            dispatcher.Dispatch(new StandardAction("ConfigurationRepository:Loaded", new Dictionary<string, object> { { "configuration", config.Result }, { "structure", structure.Result }, { "startTimestamp", startTimestamp } }), SystemAgent.Instance);
             if (!exists)
             {
                 // TODO - this action should probably be combined with updating the store
-                dispatcher.Dispatch(new StandardAction("ConfigurationWritten", new Dictionary<string, object> { { "startTimestamp", startTimestamp } }), SystemAgent.Instance);
+                dispatcher.Dispatch(new StandardAction("ConfigurationRepository:Written", new Dictionary<string, object> { { "startTimestamp", startTimestamp } }), SystemAgent.Instance);
             }
         }
 

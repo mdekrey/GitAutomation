@@ -17,15 +17,15 @@ Start-Git $gitParams
 	git commit -m "Update configuration" | Out-Host
 	if ($LastExitCode -ne 0)
 	{
-		return Build-StandardAction "ConfigurationRepositoryCouldNotCommit" @{ "startTimestamp" = $startTimestamp }
+		return Build-StandardAction "ConfigurationRepository:GitCouldNotCommit" @{ "startTimestamp" = $startTimestamp }
 	}
 	git push origin HEAD:"$branchName" | Out-Host
 	if ($LastExitCode -ne 0)
 	{
 		git checkout "origin/$branchName"
-		return Build-StandardAction "ConfigurationRepositoryCouldNotPush" @{ "startTimestamp" = $startTimestamp }
+		return Build-StandardAction "ConfigurationRepository:GitCouldNotPush" @{ "startTimestamp" = $startTimestamp }
 	}
 	git checkout "origin/$branchName"
 End-Git $gitParams
 
-return Build-StandardAction "ConfigurationPushSuccess" @{ "startTimestamp" = $startTimestamp }
+return Build-StandardAction "ConfigurationRepository:GitPushSuccess" @{ "startTimestamp" = $startTimestamp }

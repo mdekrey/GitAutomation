@@ -10,5 +10,5 @@ $allRefs = (git for-each-ref --format='%(refname:short) {%(objectname)}' refs/he
 	$r = [regex]::match($_, '^heads/(?<name>.+) \{(?<commit>[0-9a-f]{40})\}')
 	return @{ "name" = $r.Groups['name'].Value; "commit" = $r.Groups['commit'].Value }
 })
-Build-StandardAction "TargetRefs" @{ "startTimestamp" = $startTimestamp; "allRefs" = $allRefs | ConvertTo-Json }
+Build-StandardAction "TargetRepository:Refs" @{ "startTimestamp" = $startTimestamp; "allRefs" = $allRefs | ConvertTo-Json }
 Pop-Location
