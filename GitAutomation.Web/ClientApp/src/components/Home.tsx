@@ -1,6 +1,6 @@
 import React from "react";
 import { useService } from "../injector";
-import { useObservable } from "../rxjs";
+import { useObservable, useIdle, IdleState } from "../rxjs";
 import "../api";
 
 export function Home() {
@@ -8,7 +8,12 @@ export function Home() {
   const reserveTypes = useObservable(api.reserveTypes$, undefined, [api]);
   const branches = useObservable(api.branches$, undefined, [api]);
   const reserves = useObservable(api.reserves$, undefined, [api]);
-
+  const state = useIdle([reserveTypes, branches, reserves]);
+  if (state === IdleState.InitialIdle) {
+    return null;
+  } else if (state === IdleState.Loading) {
+    return <h1>Loading</h1>;
+  }
   return (
     <div>
       <h1>Hello, world!</h1>

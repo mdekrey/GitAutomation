@@ -12,50 +12,45 @@ function adapt<T = any>(stream: signalR.IStreamResult<T>): Observable<T> {
 }
 
 export class ApiService {
-  private readonly connection: Observable<signalR.HubConnection>;
-
-  constructor() {
-    const connection = new signalR.HubConnectionBuilder()
-      .withUrl("/hub")
-      .build();
-    this.connection = new Observable<signalR.HubConnection>(observer => {
-      connection
+  private readonly connection: signalR.HubConnection = new signalR.HubConnectionBuilder()
+    .withUrl("/hub")
+    .build();
+  private readonly connectivity = new Observable<signalR.HubConnection>(
+    observer => {
+      this.connection
         .start()
-        .then(() => observer.next(connection), err => observer.error(err));
+        .then(() => observer.next(this.connection), err => observer.error(err));
       return () => {
-        connection.stop();
+        this.connection.stop();
       };
-    }).pipe(shareReplay(1));
-  }
+    }
+  ).pipe(shareReplay(1));
 
   private graphQl$(gql: string) {
-    return this.connection
+    return this.connectivity
       .pipe(switchMap(connection => adapt(connection.stream("Query", gql))))
       .pipe(map(d => JSON.parse(d)));
   }
 
-  get reserveTypes$() {
-    return this.graphQl$(
-      `{ Configuration { Configuration { ReserveTypes } } }`
-    ).pipe(
-      map(data => data.Configuration.Configuration.ReserveTypes),
-      map(data => data as Record<string, ReserveConfiguration>)
-    );
-  }
+  public readonly reserveTypes$ = this.graphQl$(
+    `{ Configuration { Configuration { ReserveTypes } } }`
+  ).pipe(
+    map(data => data.Configuration.Configuration.ReserveTypes),
+    map(data => data as Record<string, ReserveConfiguration>),
+    shareReplay(1)
+  );
 
-  get reserves$() {
-    return this.graphQl$(
-      `{ Configuration { Structure { BranchReserves } } }`
-    ).pipe(
-      map(data => data.Configuration.Structure.BranchReserves),
-      map(data => data as Record<string, BranchReserve>)
-    );
-  }
+  public readonly reserves$ = this.graphQl$(
+    `{ Configuration { Structure { BranchReserves } } }`
+  ).pipe(
+    map(data => data.Configuration.Structure.BranchReserves),
+    map(data => data as Record<string, BranchReserve>),
+    shareReplay(1)
+  );
 
-  get branches$() {
-    return this.graphQl$(`{ Target { Branches } }`).pipe(
-      map(data => data.Target.Branches),
-      map(data => data as Record<string, string>)
-    );
-  }
+  public readonly branches$ = this.graphQl$(`{ Target { Branches } }`).pipe(
+    map(data => data.Target.Branches),
+    map(data => data as Record<string, string>),
+    shareReplay(1)
+  );
 }
