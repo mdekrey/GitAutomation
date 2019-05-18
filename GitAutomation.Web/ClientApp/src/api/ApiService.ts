@@ -26,31 +26,36 @@ export class ApiService {
     }
   ).pipe(shareReplay(1));
 
-  private graphQl$(gql: string) {
+  private graphQl$<T>(
+    gql: string,
+    select: (d: any) => any,
+    cast: (d: any) => T
+  ) {
     return this.connectivity
       .pipe(switchMap(connection => adapt(connection.stream("Query", gql))))
-      .pipe(map(d => JSON.parse(d)));
+      .pipe(
+        map(d => JSON.parse(d)),
+        map(select),
+        map(cast),
+        shareReplay(1)
+      );
   }
 
   public readonly reserveTypes$ = this.graphQl$(
-    `{ Configuration { Configuration { ReserveTypes } } }`
-  ).pipe(
-    map(data => data.Configuration.Configuration.ReserveTypes),
-    map(data => data as Record<string, ReserveConfiguration>),
-    shareReplay(1)
+    `{ Configuration { Configuration { ReserveTypes } } }`,
+    data => data.Configuration.Configuration.ReserveTypes,
+    data => data as Record<string, ReserveConfiguration>
   );
 
   public readonly reserves$ = this.graphQl$(
-    `{ Configuration { Structure { BranchReserves } } }`
-  ).pipe(
-    map(data => data.Configuration.Structure.BranchReserves),
-    map(data => data as Record<string, BranchReserve>),
-    shareReplay(1)
+    `{ Configuration { Structure { BranchReserves } } }`,
+    data => data.Configuration.Structure.BranchReserves,
+    data => data as Record<string, BranchReserve>
   );
 
-  public readonly branches$ = this.graphQl$(`{ Target { Branches } }`).pipe(
-    map(data => data.Target.Branches),
-    map(data => data as Record<string, string>),
-    shareReplay(1)
+  public readonly branches$ = this.graphQl$(
+    `{ Target { Branches } }`,
+    data => data.Target.Branches,
+    data => data as Record<string, string>
   );
 }
