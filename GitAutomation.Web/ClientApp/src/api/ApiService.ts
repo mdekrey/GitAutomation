@@ -54,4 +54,16 @@ export class ApiService {
         )
       );
   }
+
+  get branches$() {
+    return this.connection
+      .pipe(
+        switchMap(connection =>
+          adapt(connection.stream("Query", `{ Target { Branches } }`))
+        )
+      )
+      .pipe(
+        map(data => JSON.parse(data).Target.Branches as Record<string, string>)
+      );
+  }
 }
