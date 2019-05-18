@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Text;
 using YamlDotNet.Serialization;
 
@@ -24,7 +25,7 @@ namespace GitAutomation
                     ReserveType = "Feature",
                     FlowType = "Manual",
                     Status = "OutOfDate",
-                    Upstream = new HashSet<string> { "line/1.0" },
+                    Upstream = { { "line/1.0", new UpstreamReserve("0123456789012345678901234567890000000000").ToBuilder()} },
                     IncludedBranches = { { "feature/a", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } } },
                     OutputCommit = BranchReserve.EmptyCommit,
                     Meta = new Dictionary<string, object> { { "Owner", "mdekrey" } } }
@@ -33,14 +34,14 @@ namespace GitAutomation
                     ReserveType = "Feature",
                     FlowType = "Manual",
                     Status = "OutOfDate",
-                    Upstream = new HashSet<string> { "line/1.0" },
+                    Upstream = { { "line/1.0", new UpstreamReserve("0123456789012345678901234567890000000000").ToBuilder() } },
                     IncludedBranches = { { "feature/b", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } } },
                     OutputCommit = BranchReserve.EmptyCommit } },
                 { "rc/1.0.1", new BranchReserve.Builder() {
                     ReserveType = "ReleaseCandidate",
                     FlowType = "Auto",
                     Status = "OutOfDate",
-                    Upstream = new HashSet<string> { "feature/b", "feature/a" },
+                    Upstream = { { "feature/b", UpstreamReserve.Default.ToBuilder() }, { "feature/a", UpstreamReserve.Default.ToBuilder() } },
                     IncludedBranches = {
                         { "rc/1.0.1", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } },
                         { "rc/1.0.1-1", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } },
@@ -56,7 +57,10 @@ branchReserves:
     flowType: Manual
     status: OutOfDate
     upstream:
-    - line/1.0
+      line/1.0:
+        lastOutput: 0123456789012345678901234567890000000000
+        role: Source
+        meta: {}
     includedBranches:
       feature/a:
         lastCommit: 0000000000000000000000000000000000000000
@@ -69,7 +73,10 @@ branchReserves:
     flowType: Manual
     status: OutOfDate
     upstream:
-    - line/1.0
+      line/1.0:
+        lastOutput: 0123456789012345678901234567890000000000
+        role: Source
+        meta: {}
     includedBranches:
       feature/b:
         lastCommit: 0000000000000000000000000000000000000000
@@ -80,7 +87,7 @@ branchReserves:
     reserveType: ServiceLine
     flowType: Auto
     status: Stable
-    upstream: []
+    upstream: {}
     includedBranches:
       line/1.0:
         lastCommit: 0123456789012345678901234567890123456789
@@ -92,8 +99,14 @@ branchReserves:
     flowType: Auto
     status: OutOfDate
     upstream:
-    - feature/a
-    - feature/b
+      feature/a:
+        lastOutput: 0000000000000000000000000000000000000000
+        role: Source
+        meta: {}
+      feature/b:
+        lastOutput: 0000000000000000000000000000000000000000
+        role: Source
+        meta: {}
     includedBranches:
       rc/1.0.1:
         lastCommit: 0000000000000000000000000000000000000000
@@ -106,7 +119,6 @@ branchReserves:
         meta: {}
     outputCommit: 0000000000000000000000000000000000000000
     meta: {}
-
 ".Trim();
 
         [TestMethod]
@@ -128,8 +140,8 @@ branchReserves:
             Assert.AreEqual("ServiceLine", result.BranchReserves["line/1.0"].ReserveType);
             Assert.AreEqual("OutOfDate", result.BranchReserves["rc/1.0.1"].Status);
             Assert.AreEqual(2, result.BranchReserves["rc/1.0.1"].Upstream.Count);
-            Assert.AreEqual("feature/a", result.BranchReserves["rc/1.0.1"].Upstream[0]);
-            Assert.AreEqual("feature/b", result.BranchReserves["rc/1.0.1"].Upstream[1]);
+            Assert.AreEqual("feature/a", result.BranchReserves["rc/1.0.1"].Upstream.Keys.First());
+            Assert.AreEqual("feature/b", result.BranchReserves["rc/1.0.1"].Upstream.Keys.Skip(1).First());
             Assert.AreEqual("mdekrey", result.BranchReserves["feature/a"].Meta["Owner"]);
         }
     }

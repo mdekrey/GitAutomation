@@ -34,7 +34,7 @@ namespace GitAutomation.DomainModels
             original.SetBranchReserves(b =>
                 b.Remove(branchReserveName)
                  .SetItems(b.Keys
-                            .Where(k => b[k].Upstream.Contains(branchReserveName))
+                            .Where(k => b[k].Upstream.ContainsKey(branchReserveName))
                             .ToDictionary(
                                 k => k, 
                                 k => b[k].SetUpstream(upstream => upstream.Remove(branchReserveName))

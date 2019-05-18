@@ -45,9 +45,10 @@ namespace GitAutomation.DomainModels
 
         private static IEnumerable<Cycle> FindAllCycles(HashSet<string> alreadyVisited, RepositoryStructure repo, string currentNode)
         {
-            for (int i = 0; i < repo.BranchReserves[currentNode].Upstream.Count; i++)
+            var upstreams = repo.BranchReserves[currentNode].Upstream.Keys.ToArray();
+            for (int i = 0; i < upstreams.Length; i++)
             {
-                var upstream = repo.BranchReserves[currentNode].Upstream[i];
+                var upstream = upstreams[i];
                 if (alreadyVisited.Contains(upstream))
                 {
                     yield return new Cycle(upstream, currentNode);

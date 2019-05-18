@@ -28,7 +28,7 @@ namespace GitAutomation
                     ReserveType = "Feature",
                     FlowType = "Manual",
                     Status = "OutOfDate",
-                    Upstream = new HashSet<string> { "line/1.0" },
+                    Upstream = { { "line/1.0", new UpstreamReserve("0123456789012345678901234567890000000000").ToBuilder()  } },
                     IncludedBranches = { { "feature/a", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } } },
                     OutputCommit = BranchReserve.EmptyCommit,
                     Meta = new Dictionary<string, object> { { "Owner", "mdekrey" } } }
@@ -37,14 +37,14 @@ namespace GitAutomation
                     ReserveType = "Feature",
                     FlowType = "Manual",
                     Status = "OutOfDate",
-                    Upstream = new HashSet<string> { "line/1.0" },
+                    Upstream = { { "line/1.0", new UpstreamReserve("0123456789012345678901234567890000000000").ToBuilder() } },
                     IncludedBranches = { { "feature/b", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } } },
                     OutputCommit = BranchReserve.EmptyCommit } },
                 { "rc/1.0.1", new BranchReserve.Builder() {
                     ReserveType = "ReleaseCandidate",
                     FlowType = "Auto",
                     Status = "OutOfDate",
-                    Upstream = new HashSet<string> { "feature/b", "feature/a" },
+                    Upstream = { { "feature/b", new UpstreamReserve(BranchReserve.EmptyCommit).ToBuilder() }, { "feature/a", new UpstreamReserve(BranchReserve.EmptyCommit).ToBuilder() } },
                     IncludedBranches = {
                         { "rc/1.0.1", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } },
                         { "rc/1.0.1-1", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } },
@@ -124,7 +124,10 @@ namespace GitAutomation
 -      flowType: Manual
 -      status: OutOfDate
 -      upstream:
--      - line/1.0
+-        line/1.0:
+-          lastOutput: 0123456789012345678901234567890000000000
+-          role: Source
+-          meta: {}
 -      includedBranches:
 -        feature/a:
 -          lastCommit: 0000000000000000000000000000000000000000
@@ -132,7 +135,10 @@ namespace GitAutomation
 -      outputCommit: 0000000000000000000000000000000000000000
 -      meta:
 -        Owner: mdekrey
--      - feature/a").Trim(), result);
+-        feature/a:
+-          lastOutput: 0000000000000000000000000000000000000000
+-          role: Source
+-          meta: {}").Trim(), result);
             Assert.AreEqual(3, actual.BranchReserves.Count);
         }
 

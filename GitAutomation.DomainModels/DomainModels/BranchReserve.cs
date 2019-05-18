@@ -17,7 +17,7 @@ namespace GitAutomation.DomainModels
             this.data = data;
         }
 
-        public BranchReserve(string reserveType, string flowType, string status, ImmutableSortedSet<string> upstream, ImmutableSortedDictionary<string, BranchReserveBranch> includedBranches, string outputCommit, ImmutableSortedDictionary<string, object> meta)
+        public BranchReserve(string reserveType, string flowType, string status, ImmutableSortedDictionary<string, UpstreamReserve> upstream, ImmutableSortedDictionary<string, BranchReserveBranch> includedBranches, string outputCommit, ImmutableSortedDictionary<string, object> meta)
         {
             if (reserveType == null)
             {
@@ -75,8 +75,8 @@ namespace GitAutomation.DomainModels
             return new BranchReserve(data.SetItem(nameof(Status), value));
         }
 
-        public ImmutableSortedSet<string> Upstream => (ImmutableSortedSet<string>)data[nameof(Upstream)];
-        public BranchReserve SetUpstream(Func<ImmutableSortedSet<string>, ImmutableSortedSet<string>> map)
+        public ImmutableSortedDictionary<string, UpstreamReserve> Upstream => (ImmutableSortedDictionary<string, UpstreamReserve>)data[nameof(Upstream)];
+        public BranchReserve SetUpstream(Func<ImmutableSortedDictionary<string, UpstreamReserve>, ImmutableSortedDictionary<string, UpstreamReserve>> map)
         {
             return new BranchReserve(data.SetItem(nameof(Upstream), map(Upstream)));
         }
@@ -107,12 +107,19 @@ namespace GitAutomation.DomainModels
 
         public class Builder
         {
-            private HashSet<string>? upstream;
+            private Dictionary<string, UpstreamReserve.Builder>? upstream;
             private Dictionary<string, BranchReserveBranch.Builder>? includedBranches;
             private Dictionary<string, object>? meta;
             private BranchReserve original;
 
-            public Builder() : this(new BranchReserve("", "", "", ImmutableSortedSet<string>.Empty, ImmutableSortedDictionary<string, BranchReserveBranch>.Empty, EmptyCommit, ImmutableSortedDictionary<string, object>.Empty))
+            public Builder() : this(new BranchReserve(
+                reserveType: "",
+                flowType: "",
+                status: "",
+                upstream: ImmutableSortedDictionary<string, UpstreamReserve>.Empty,
+                includedBranches: ImmutableSortedDictionary<string, BranchReserveBranch>.Empty,
+                outputCommit: EmptyCommit,
+                meta: ImmutableSortedDictionary<string, object>.Empty))
             {
             }
 
@@ -136,12 +143,12 @@ namespace GitAutomation.DomainModels
                 get => original.Status;
                 set { original = original.SetStatus(value); }
             }
-            public HashSet<string> Upstream
+            public Dictionary<string, UpstreamReserve.Builder> Upstream
             {
-                get => upstream = upstream ?? new HashSet<string>(original.Upstream);
+                get => upstream = upstream ?? original.Upstream.ToDictionary(k => k.Key, k => k.Value.ToBuilder());
                 set
                 {
-                    original = original.SetUpstream(_ => value.ToImmutableSortedSet());
+                    original = original.SetUpstream(_ => value.ToImmutableSortedDictionary(kvp => kvp.Key, kvp => kvp.Value.Build()));
                     upstream = null;
                 }
             }

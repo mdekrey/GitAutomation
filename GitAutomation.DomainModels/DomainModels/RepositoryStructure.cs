@@ -36,12 +36,12 @@ namespace GitAutomation.DomainModels
             {
                 foreach (var upstream in reserve.Value.Upstream)
                 {
-                    if (!BranchReserves.ContainsKey(upstream))
+                    if (!BranchReserves.ContainsKey(upstream.Key))
                     {
                         upstreamAllValid = false;
                         yield return new ValidationError("ReserveUpstreamInvalid")
                         {
-                            Arguments = { { "reserve", reserve.Key }, { "upstream", upstream } }
+                            Arguments = { { "reserve", reserve.Key }, { "upstream", upstream.Key } }
                         };
                     }
                 }
