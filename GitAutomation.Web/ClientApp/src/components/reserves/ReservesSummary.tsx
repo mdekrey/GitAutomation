@@ -1,8 +1,7 @@
 import React from "react";
 import { BranchReserve } from "../../api";
 import { TextParagraph } from "../loading";
-import { Link } from "react-router-dom";
-import { ActionBar } from "../common";
+import { ActionBar, LinkButton } from "../common";
 
 export function ReservesSummary({
   reserves,
@@ -36,11 +35,11 @@ export function ReservesSummary({
             </dl>
           )}
           <ActionBar>
-            <Link to={"/create-reserve"} className="button button-margin">
+            <LinkButton to={"/create-reserve"} className="button button-margin">
               Create a Reserve
-            </Link>
+            </LinkButton>
             {reservesKeys.length === 0 ? null : (
-              <Link to={"/reserve-flows"}>View flows</Link>
+              <LinkButton to={"/reserve-flows"}>View flows</LinkButton>
             )}
           </ActionBar>
         </>

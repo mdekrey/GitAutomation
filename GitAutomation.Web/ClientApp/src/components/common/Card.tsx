@@ -14,7 +14,7 @@ export function Card({
   return (
     <CardContext.Provider
       value={jsx => {
-        setActionBar(jsx ? <div className="Card_action-row">{jsx}</div> : null);
+        setActionBar(jsx);
         return null;
       }}>
       <div className={`Card_card ${className}`}>
@@ -29,10 +29,17 @@ export function ActionBar({ children }: { children?: React.ReactNode }) {
   const [output, setOutput] = React.useState(children);
   const setActionBar = React.useContext(CardContext);
   React.useEffect(() => {
-    setOutput(setActionBar(children));
+    setOutput(
+      setActionBar(
+        <div className="Card_action-row">
+          <div className="Card_filler" />
+          {children}
+        </div>
+      )
+    );
     return () => {
       setActionBar(null);
     };
-  }, [children]);
+  }, [children, setActionBar]);
   return <>{output}</>;
 }

@@ -1,51 +1,22 @@
 import React from "react";
-import { TextLine, TextParagraph } from "../loading";
-import { Link } from "react-router-dom";
 import "./CreateReserve.css";
-import { Card, ActionBar } from "../common";
+import { useService } from "../../injector";
+import { useObservable, useIdle, IdleState } from "../../rxjs";
+import { ReserveSelection } from "./ReserveSelection";
 
-export function CreateReserve({  }: {}) {
+export function CreateReserve() {
+  const api = useService("api");
+  const reserveTypes = useObservable(api.reserveTypes$, undefined, [api]);
+  const state = useIdle([reserveTypes]);
+  if (state === IdleState.InitialIdle) {
+    return null;
+  } else if (state === IdleState.Loading) {
+    return <h1>Loading</h1>;
+  }
+
   return (
     <>
-      <h1>Create Reserve</h1>
-      <div className="CreateReserve_reserves">
-        <Card className="CreateReserve_reserveCard">
-          <h2>
-            <TextLine />
-          </h2>
-          <TextParagraph />
-
-          <ActionBar>
-            <Link to={"/create-reserve"} className="button button-margin">
-              Select
-            </Link>
-          </ActionBar>
-        </Card>
-        <Card className="CreateReserve_reserveCard">
-          <h2>
-            <TextLine />
-          </h2>
-          <TextParagraph />
-
-          <ActionBar>
-            <Link to={"/create-reserve"} className="button button-margin">
-              Select
-            </Link>
-          </ActionBar>
-        </Card>
-        <Card className="CreateReserve_reserveCard">
-          <h2>
-            <TextLine />
-          </h2>
-          <TextParagraph />
-
-          <ActionBar>
-            <Link to={"/create-reserve"} className="button button-margin">
-              Select
-            </Link>
-          </ActionBar>
-        </Card>
-      </div>
+      <ReserveSelection reserveTypes={reserveTypes} />
     </>
   );
 }

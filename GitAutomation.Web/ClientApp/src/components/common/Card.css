@@ -15,12 +15,23 @@
   margin: 1em;
 }
 
+.Card_contents > :first-child {
+  margin-top: 0;
+}
+
 .Card_action-row {
-  padding: 1em;
+  padding: 0.5em;
   display: grid;
   grid-gap: 10px;
   margin: 2px 0px 0px;
-  justify-items: end;
-  grid-area: "actions";
+  grid-auto-columns: auto;
+  grid-template-columns: 1fr auto;
+  grid-area: actions;
+  grid-template-areas: "none .";
   background-color: #f8f8f8;
+  grid-auto-flow: column;
+}
+
+.Card_action-row .Card_filler {
+  grid-area: none;
 }

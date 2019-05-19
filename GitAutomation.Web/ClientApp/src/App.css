@@ -24,29 +24,3 @@ input {
   border: 1px solid #000;
   font-size: 1.5rem;
 }
-
-a {
-  cursor: pointer;
-  color: var(--button-color);
-}
-
-a.button {
-  display: inline-block;
-  color: white;
-  background-color: var(--button-color);
-  padding: 5px;
-  text-decoration: none;
-  box-shadow: 2px 2px 3px 0px #ccc;
-  outline: none;
-}
-
-/* a.button-margin {
-  margin: 2px 7px 5px 0px;
-} */
-
-a:active,
-a:focus {
-  --button-color: #377fc0;
-  box-shadow: 2px 2px 6px 0px #ccc;
-  text-decoration: underline;
-}
