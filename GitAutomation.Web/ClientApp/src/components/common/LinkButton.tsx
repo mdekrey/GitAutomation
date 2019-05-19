@@ -1,20 +1,11 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import "./Button";
+import { ButtonStyle, DisabledStyle } from "./Button";
 
-export function LinkButton({ className = "", ...props }: PropsOf<Link>) {
-  return <Link {...props} className={`button ${className}`} />;
+export function LinkButton(props: PropsOf<Link>) {
+  return <ButtonStyle Component={Link} {...props} />;
 }
 
-export function DisabledLinkButton({
-  className = "",
-  ...props
-}: PropsOf<Link>) {
-  return (
-    <Link
-      onClick={e => e.preventDefault()}
-      {...props}
-      className={`button disabled ${className}`}
-    />
-  );
+export function DisabledLinkButton({ ...props }: PropsOf<Link>) {
+  return <ButtonStyle Component={[Link, DisabledStyle]} {...props} />;
 }

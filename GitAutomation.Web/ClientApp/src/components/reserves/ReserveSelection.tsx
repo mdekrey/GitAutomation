@@ -1,13 +1,22 @@
 import React from "react";
 import { TextLine, TextParagraph } from "../loading";
 import "./CreateReserve.css";
-import { Card, ActionBar, LinkButton, DisabledLinkButton } from "../common";
+import {
+  Button,
+  Card,
+  CardContents,
+  CardActionBar,
+  DisabledButton,
+  ButtonStyle,
+} from "../common";
 import { ReserveConfiguration } from "../../api";
 
 export function ReserveSelection({
   reserveTypes,
+  onSelectReserveType,
 }: {
   reserveTypes: Record<string, ReserveConfiguration> | undefined;
+  onSelectReserveType: (reserveType: string) => void;
 }) {
   return (
     <>
@@ -19,6 +28,7 @@ export function ReserveSelection({
               key={t}
               reserveName={t}
               reserveType={reserveTypes[t]}
+              onSelect={() => onSelectReserveType(t)}
             />
           ))
         ) : (
@@ -37,41 +47,46 @@ export function ReserveSelection({
 function ReserveSelectionCard({
   reserveName,
   reserveType,
+  onSelect,
 }: {
   reserveName?: string;
   reserveType?: ReserveConfiguration;
+  onSelect?: () => void;
 }) {
   return (
     <Card>
-      <h2>
-        {reserveType ? reserveType.Title : <TextLine />}
-        {reserveType && reserveType.Color ? (
-          <span
-            className="ReserveSelection_dot"
-            style={
-              {
-                "--dot-color": `#${reserveType.Color}`,
-              } as any
-            }
-          />
-        ) : null}
-      </h2>
-      {reserveType ? <p>{reserveType.Description}</p> : <TextParagraph />}
+      <CardContents>
+        <h2>
+          {reserveType ? reserveType.Title : <TextLine />}
+          {reserveType && reserveType.Color ? (
+            <span
+              className="ReserveSelection_dot"
+              style={
+                {
+                  "--dot-color": `#${reserveType.Color}`,
+                } as any
+              }
+            />
+          ) : null}
+        </h2>
+        {reserveType ? <p>{reserveType.Description}</p> : <TextParagraph />}
+      </CardContents>
 
-      <ActionBar>
+      <CardActionBar>
         {reserveType && reserveType.HelpLink ? (
-          <a href={reserveType.HelpLink} className="button" target="_blank">
+          <ButtonStyle
+            Component="a"
+            href={reserveType.HelpLink}
+            target="_blank">
             More Info
-          </a>
+          </ButtonStyle>
         ) : null}
-        {reserveName ? (
-          <LinkButton to={`?type=${reserveName}`}>Select</LinkButton>
+        {onSelect ? (
+          <Button onClick={onSelect}>Select</Button>
         ) : (
-          <>
-            <DisabledLinkButton to="#">Select</DisabledLinkButton>
-          </>
+          <DisabledButton>Select</DisabledButton>
         )}
-      </ActionBar>
+      </CardActionBar>
     </Card>
   );
 }

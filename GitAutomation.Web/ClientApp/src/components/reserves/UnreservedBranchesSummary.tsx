@@ -2,6 +2,7 @@ import React from "react";
 import { BranchReserve } from "../../api";
 import { TextParagraph } from "../loading";
 import { Link } from "react-router-dom";
+import { CardContents } from "../common";
 
 export function determineUnreservedBranches(
   reserves: Record<string, BranchReserve> | undefined,
@@ -25,7 +26,7 @@ export function UnreservedBranchesSummary({
   unreservedBranches: string[] | undefined;
 }) {
   return (
-    <>
+    <CardContents>
       <h2>Unreserved Branches</h2>
 
       <p className="hint">
@@ -50,6 +51,6 @@ export function UnreservedBranchesSummary({
           ))}
         </ul>
       )}
-    </>
+    </CardContents>
   );
 }

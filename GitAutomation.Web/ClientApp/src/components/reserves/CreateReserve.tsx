@@ -8,6 +8,8 @@ export function CreateReserve() {
   const api = useService("api");
   const reserveTypes = useObservable(api.reserveTypes$, undefined, [api]);
   const state = useIdle([reserveTypes]);
+  const [reserveType, setReserveType] = React.useState();
+
   if (state === IdleState.InitialIdle) {
     return null;
   } else if (state === IdleState.Loading) {
@@ -16,7 +18,10 @@ export function CreateReserve() {
 
   return (
     <>
-      <ReserveSelection reserveTypes={reserveTypes} />
+      <ReserveSelection
+        reserveTypes={reserveTypes}
+        onSelectReserveType={setReserveType}
+      />
     </>
   );
 }
