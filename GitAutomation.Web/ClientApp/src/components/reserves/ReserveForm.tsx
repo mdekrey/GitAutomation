@@ -20,14 +20,13 @@ export interface CreateReserveFormFields {
 export function ReserveForm({
   form,
   onUpdateForm,
-  reserveTypes,
-  flowTypes,
 }: {
   form: CreateReserveFormFields;
   onUpdateForm: (form: CreateReserveFormFields) => void;
-  reserveTypes: Record<string, ReserveConfiguration> | undefined;
-  flowTypes: string[] | undefined;
 }) {
+  const api = useService("api");
+  const flowTypes = useObservable(api.flowType$, undefined, [api]);
+
   if (form.flowType === null && flowTypes) {
     onUpdateForm({ ...form, flowType: flowTypes[0] });
   }
@@ -48,11 +47,7 @@ export function ReserveForm({
         label="Reserve Type"
         target={
           <>
-            {!reserveTypes || !form.type ? (
-              <TextLine />
-            ) : (
-              <ReserveLabel reserveType={reserveTypes[form.type]} />
-            )}
+            <ReserveLabel reserveName={form.type} />
             <Button
               style={{ marginLeft: "0.5em" }}
               onClick={e => onUpdateForm({ ...form, type: null })}>

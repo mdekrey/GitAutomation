@@ -65,7 +65,7 @@ namespace GitAutomation.DomainModels
             original.Timestamps[Fetched].IfStringMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(
                     timestampFunc: t => t.SetItem(LoadedFromDisk, DateTimeOffset.Now), 
-                    branches: JsonConvert.DeserializeObject<RefEntry[]>(action.Payload["allRefs"].ToString()).ToImmutableDictionary(k => k.Name, k => k.Commit)))
+                    branches: JsonConvert.DeserializeObject<RefEntry[]>(action.Payload["allRefs"].ToString()).ToImmutableSortedDictionary(k => k.Name, k => k.Commit)))
                 .OrElse(original);
 
     }

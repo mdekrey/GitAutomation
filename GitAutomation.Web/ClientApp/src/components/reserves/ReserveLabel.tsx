@@ -1,13 +1,15 @@
 import React from "react";
 import { TextLine } from "../loading";
 import "./CreateReserve.css";
-import { ReserveConfiguration } from "../../api";
+import { useService } from "../../injector";
+import { useObservable } from "../../rxjs";
 
-export function ReserveLabel({
-  reserveType,
-}: {
-  reserveType: ReserveConfiguration | undefined;
-}) {
+export function ReserveLabel({ reserveName }: { reserveName: string | null }) {
+  const api = useService("api");
+  const reserveTypes = useObservable(api.reserveTypes$, undefined, [api]);
+  const reserveType =
+    reserveName && reserveTypes ? reserveTypes[reserveName] : null;
+
   return reserveType ? (
     <>
       {reserveType.Title}

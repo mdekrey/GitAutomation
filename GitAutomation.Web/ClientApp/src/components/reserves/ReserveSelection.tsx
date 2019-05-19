@@ -11,14 +11,17 @@ import {
   ButtonStyle,
 } from "../common";
 import { ReserveConfiguration } from "../../api";
+import { useService } from "../../injector";
+import { useObservable } from "../../rxjs";
 
 export function ReserveSelection({
-  reserveTypes,
   onSelectReserveType,
 }: {
-  reserveTypes: Record<string, ReserveConfiguration> | undefined;
   onSelectReserveType: (reserveType: string) => void;
 }) {
+  const api = useService("api");
+  const reserveTypes = useObservable(api.reserveTypes$, undefined, [api]);
+
   return (
     <>
       <h1>Reserve Selection</h1>
@@ -27,6 +30,7 @@ export function ReserveSelection({
           Object.keys(reserveTypes).map(t => (
             <ReserveSelectionCard
               key={t}
+              reserveName={t}
               reserveType={reserveTypes[t]}
               onSelect={() => onSelectReserveType(t)}
             />
@@ -45,9 +49,11 @@ export function ReserveSelection({
 }
 
 function ReserveSelectionCard({
+  reserveName,
   reserveType,
   onSelect,
 }: {
+  reserveName?: string;
   reserveType?: ReserveConfiguration;
   onSelect?: () => void;
 }) {
@@ -55,7 +61,7 @@ function ReserveSelectionCard({
     <Card>
       <CardContents>
         <h2>
-          <ReserveLabel reserveType={reserveType} />
+          <ReserveLabel reserveName={reserveName || null} />
         </h2>
         {reserveType ? <p>{reserveType.Description}</p> : <TextParagraph />}
       </CardContents>

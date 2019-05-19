@@ -2,19 +2,20 @@ import React from "react";
 import { useService } from "../injector";
 import { useObservable, useIdle, IdleState } from "../rxjs";
 import "../api";
-import {
-  ReservesSummary,
-  UnreservedBranchesSummary,
-  determineUnreservedBranches,
-} from "./reserves";
+import { ReservesSummary, UnreservedBranchesSummary } from "./reserves";
 import "./Home.css";
 import { Card } from "./common";
 
 export function Home() {
   const api = useService("api");
-  const branches = useObservable(api.branches$, undefined, [api]);
+  const unreservedBranchesService = useService("unreservedBranches");
+  const unreservedBranches = useObservable(
+    unreservedBranchesService.unreservedBranches$,
+    undefined,
+    [unreservedBranchesService]
+  );
   const reserves = useObservable(api.reserves$, undefined, [api]);
-  const state = useIdle([branches, reserves]);
+  const state = useIdle([unreservedBranches, reserves]);
   if (state === IdleState.InitialIdle) {
     return null;
   } else if (state === IdleState.Loading) {
@@ -26,9 +27,7 @@ export function Home() {
         <ReservesSummary reserves={reserves} />
       </Card>
       <Card className="Home_second">
-        <UnreservedBranchesSummary
-          unreservedBranches={determineUnreservedBranches(reserves, branches)}
-        />
+        <UnreservedBranchesSummary unreservedBranches={unreservedBranches} />
       </Card>
     </div>
   );
