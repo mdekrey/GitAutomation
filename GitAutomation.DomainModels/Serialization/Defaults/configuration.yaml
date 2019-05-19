@@ -1,7 +1,53 @@
 ﻿reserveTypes:
     feature:
+        title: Feature
+        helpLink: http://scaledgitflow.com#98b7
         description: These represent the basic unit of business work that can be included or excluded from a release. 
             In your ticketing system, they may correspond to epics, stories, bugs, or any other number of
             nomenclatures. They last until they are released, as bug fixes are applied directly to the features that
             the bug resulted from.
+        color: "377fc0"
+        stateScripts: {}
+    rc:
+        title: Release Candidate
+        helpLink: http://scaledgitflow.com#3ce6
+        description: These progress from being release candidates to released versions. No work should be done directly
+            on a release candidate.
+        color: "6f256f"
+        stateScripts: {}
+    line:
+        title: Service Line
+        helpLink: http://scaledgitflow.com#2fa1
+        description: These represent released versions of the product where patch releases and hotfixes are supported.
+            When a product only needs one of these, it is often referred to as "master". No work should be done
+            directly on a service line.
+        color: "6fce1f"
+        stateScripts: {}
+    hotfix:
+        title: Hot Fix
+        helpLink: http://scaledgitflow.com#7a21
+        description: These are patches to an existing service line that can get tested individually. They act as a 
+            feature and release candidate as one, and are intended for quick individual fixes.
+        color: "ff733b"
+        stateScripts: {}
+    infrastructure:
+        title: Infrastructure
+        helpLink: http://scaledgitflow.com#efa9
+        description: These are for development not tied to a specific feature, but can assist multiple features. These
+            branches are be tied to a specific need of the development team, such as a database change, a framework
+            update, etc. that has cross-cutting concerns, but may not have any business value and may not be tracked
+            directly by management for QA. As a result, infrastructure does not release without a host feature and
+            often releases in association with multiple features. (Some teams prefer to have other names, such as 
+            "framework" or "architecture" for these types of branches, especially given various business
+            methodologies.)
+        color: "377fc0"
+        stateScripts: {}
+    integration:
+        title: Integration
+        helpLink: http://scaledgitflow.com#1f74
+        description: These are for multiple features that have overlapping functionality, especially in the cases of
+            merge conflicts, but also when there are special cases, such as bugs, that only occur when two or more
+            specific branches (feature, infrastructure, or another integration branch) are merged together. Only these
+            special cases should be worked on an integration branch.
+        color: "626262"
         stateScripts: {}

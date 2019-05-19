@@ -92,7 +92,14 @@ namespace GitAutomation.Web
             meta = await SerializationUtils.LoadMetaAsync(options.CheckoutPath);
             var config = SerializationUtils.LoadConfigurationAsync(meta);
             var structure = SerializationUtils.LoadStructureAsync(meta);
-            await Task.WhenAll(config, structure);
+            try
+            {
+                await Task.WhenAll(config, structure);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Unable to load configuration");
+            }
             dispatcher.Dispatch(new StandardAction("ConfigurationRepository:Loaded", new Dictionary<string, object> { { "configuration", config.Result }, { "structure", structure.Result }, { "startTimestamp", startTimestamp } }), SystemAgent.Instance);
             if (!exists)
             {

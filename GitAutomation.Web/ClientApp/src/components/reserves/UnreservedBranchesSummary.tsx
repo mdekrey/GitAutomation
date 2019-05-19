@@ -1,7 +1,7 @@
 import React from "react";
 import { BranchReserve } from "../../api";
 import { TextParagraph } from "../loading";
-import { LinkButton } from "../common";
+import { Link } from "react-router-dom";
 
 export function determineUnreservedBranches(
   reserves: Record<string, BranchReserve> | undefined,
@@ -43,9 +43,9 @@ export function UnreservedBranchesSummary({
         <ul>
           {unreservedBranches.map(key => (
             <li key={key}>
-              <LinkButton to={`/create-reserve?branch=${key}`}>
+              <Link to={`/create-reserve?branch=${key}`}>
                 Create reserve for {key}
-              </LinkButton>
+              </Link>
             </li>
           ))}
         </ul>
