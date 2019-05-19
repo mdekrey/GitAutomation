@@ -1,0 +1,15 @@
+.Label_label {
+  display: block;
+  margin-bottom: 1em;
+}
+.Label_contents {
+  font-size: 0.8em;
+  font-weight: bold;
+}
+.Label_contents::after {
+  content: ":";
+}
+.Label_target {
+  display: block;
+  padding-left: 0.5em;
+}

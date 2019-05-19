@@ -1,5 +1,6 @@
 import React from "react";
-import { TextLine, TextParagraph } from "../loading";
+import { TextParagraph } from "../loading";
+import { ReserveLabel } from "./ReserveLabel";
 import "./CreateReserve.css";
 import {
   Button,
@@ -26,7 +27,6 @@ export function ReserveSelection({
           Object.keys(reserveTypes).map(t => (
             <ReserveSelectionCard
               key={t}
-              reserveName={t}
               reserveType={reserveTypes[t]}
               onSelect={() => onSelectReserveType(t)}
             />
@@ -45,11 +45,9 @@ export function ReserveSelection({
 }
 
 function ReserveSelectionCard({
-  reserveName,
   reserveType,
   onSelect,
 }: {
-  reserveName?: string;
   reserveType?: ReserveConfiguration;
   onSelect?: () => void;
 }) {
@@ -57,17 +55,7 @@ function ReserveSelectionCard({
     <Card>
       <CardContents>
         <h2>
-          {reserveType ? reserveType.Title : <TextLine />}
-          {reserveType && reserveType.Color ? (
-            <span
-              className="ReserveSelection_dot"
-              style={
-                {
-                  "--dot-color": `#${reserveType.Color}`,
-                } as any
-              }
-            />
-          ) : null}
+          <ReserveLabel reserveType={reserveType} />
         </h2>
         {reserveType ? <p>{reserveType.Description}</p> : <TextParagraph />}
       </CardContents>

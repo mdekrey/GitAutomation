@@ -1,5 +1,5 @@
 import * as signalR from "@aspnet/signalr";
-import { Observable } from "rxjs";
+import { Observable, of } from "rxjs";
 import { map, switchMap, shareReplay } from "rxjs/operators";
 import { BranchReserve } from "./BranchReserve";
 import { ReserveConfiguration } from "./ReserveConfiguration";
@@ -58,4 +58,6 @@ export class ApiService {
     data => data.Target.Branches,
     data => data as Record<string, string>
   );
+
+  public readonly flowType$ = of(["Automatic"]);
 }
