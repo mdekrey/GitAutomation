@@ -59,5 +59,5 @@ export class ApiService {
     data => data as Record<string, string>
   );
 
-  public readonly flowType$ = of(["Automatic"]);
+  public readonly flowTypes$ = of(["Automatic"]);
 }

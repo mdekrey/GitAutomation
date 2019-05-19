@@ -1,10 +1,17 @@
 import React from "react";
 import "./CreateReserve.css";
-import { useService } from "../../injector";
-import { useObservable } from "../../rxjs";
 import { ReserveSelection } from "./ReserveSelection";
 import { RouteComponentProps } from "react-router-dom";
 import { ReserveForm, CreateReserveFormFields } from "./ReserveForm";
+import {
+  Card,
+  CardContents,
+  CardActionBar,
+  Button,
+  DisabledButton,
+} from "../common";
+import { useObservable } from "../../rxjs";
+import { of } from "rxjs";
 
 export function CreateReserve({ location }: RouteComponentProps) {
   const params = new URLSearchParams(location.search);
@@ -23,6 +30,7 @@ export function CreateReserve({ location }: RouteComponentProps) {
       flowType: null,
     }
   );
+  const valid = useObservable(isValid(reserveForm), false, [reserveForm]);
 
   if (reserveForm.type === null) {
     return (
@@ -31,5 +39,31 @@ export function CreateReserve({ location }: RouteComponentProps) {
       />
     );
   }
-  return <ReserveForm form={reserveForm} onUpdateForm={setReserveForm} />;
+  return (
+    <Card>
+      <CardContents>
+        <ReserveForm form={reserveForm} onUpdateForm={setReserveForm} />
+      </CardContents>
+      <CardActionBar>
+        {valid ? (
+          <Button onClick={createReserve}>Create Reserve</Button>
+        ) : (
+          <DisabledButton>Create Reserve</DisabledButton>
+        )}
+      </CardActionBar>
+    </Card>
+  );
+
+  function isValid(reserveForm: CreateReserveFormFields) {
+    // TODO - check if name is valid with server
+    const valid = reserveForm.name && reserveForm.flowType && reserveForm.type;
+    return of(Boolean(valid));
+  }
+
+  async function createReserve() {
+    const valid = await isValid(reserveForm).toPromise();
+    if (valid) {
+      console.log(reserveForm);
+    }
+  }
 }

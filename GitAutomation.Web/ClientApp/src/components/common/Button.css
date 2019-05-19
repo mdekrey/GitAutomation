@@ -19,7 +19,9 @@ a {
   } */
 
 a:active,
-a:focus {
+a:focus,
+.button:focus,
+.button:active {
   --button-color: #377fc0;
   box-shadow: 2px 2px 6px 0px #ccc;
   text-decoration: underline;

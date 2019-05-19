@@ -1,12 +1,9 @@
 import React from "react";
 import "./CreateReserve.css";
 import { useService } from "../../injector";
-import { useObservable, useIdle, IdleState } from "../../rxjs";
-import { ReserveSelection } from "./ReserveSelection";
-import { RouteComponentProps } from "react-router-dom";
-import { ReserveConfiguration } from "../../api";
-import { TextLine } from "../loading";
+import { useObservable } from "../../rxjs";
 import { ReserveLabel } from "./ReserveLabel";
+import { MultiReserveSelector } from "./MultiReserveSelector";
 import { Button, Label } from "../common";
 
 export interface CreateReserveFormFields {
@@ -25,7 +22,13 @@ export function ReserveForm({
   onUpdateForm: (form: CreateReserveFormFields) => void;
 }) {
   const api = useService("api");
-  const flowTypes = useObservable(api.flowType$, undefined, [api]);
+  const flowTypes = useObservable(api.flowTypes$, undefined, [api]);
+  const unreservedBranchesService = useService("unreservedBranches");
+  const unreservedBranches = useObservable(
+    unreservedBranchesService.unreservedBranches$,
+    undefined,
+    [unreservedBranchesService]
+  );
 
   if (form.flowType === null && flowTypes) {
     onUpdateForm({ ...form, flowType: flowTypes[0] });
@@ -72,8 +75,32 @@ export function ReserveForm({
           </select>
         }
       />
-      <Label label="Original Branch" target="TODO - Selector" />
-      <Label label="Upstream Reserves" target="TODO - Selector" />
+      <Label
+        label="Original Branch"
+        target={
+          <select
+            value={form.originalBranch || ""}
+            onChange={e =>
+              onUpdateForm({ ...form, originalBranch: e.currentTarget.value })
+            }>
+            <option value="">Create new branch</option>
+            {(unreservedBranches || []).map(b => (
+              <option value={b} key={b}>
+                {b}
+              </option>
+            ))}
+          </select>
+        }
+      />
+      <Label
+        label="Upstream Reserves"
+        target={
+          <MultiReserveSelector
+            value={form.upstream}
+            onChange={upstream => onUpdateForm({ ...form, upstream })}
+          />
+        }
+      />
     </>
   );
 }
