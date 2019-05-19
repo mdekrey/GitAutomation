@@ -8,6 +8,7 @@ import {
   determineUnreservedBranches,
 } from "./reserves";
 import "./Home.css";
+import { Card } from "./common";
 
 export function Home() {
   const api = useService("api");
@@ -21,14 +22,14 @@ export function Home() {
   }
   return (
     <div className="Home_layout">
-      <div className="card Home_first">
+      <Card className="Home_first">
         <ReservesSummary reserves={reserves} />
-      </div>
-      <div className="card Home_second">
+      </Card>
+      <Card className="Home_second">
         <UnreservedBranchesSummary
           unreservedBranches={determineUnreservedBranches(reserves, branches)}
         />
-      </div>
+      </Card>
     </div>
   );
 }

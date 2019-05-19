@@ -50,18 +50,3 @@ a:focus {
   box-shadow: 2px 2px 6px 0px #ccc;
   text-decoration: underline;
 }
-
-.card {
-  background-color: white;
-  border: 1px solid #eee;
-  box-shadow: 2px 2px 3px 0px #ccc;
-  padding: 1em;
-  margin: 1em;
-}
-
-.action-row {
-  display: grid;
-  grid-gap: 10px;
-  margin: 2px 0px;
-  justify-items: end;
-}

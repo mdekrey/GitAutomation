@@ -1,6 +1,6 @@
 import React from "react";
 import { BranchReserve } from "../../api";
-import { TextLine } from "../loading";
+import { TextParagraph } from "../loading";
 import { Link } from "react-router-dom";
 
 export function determineUnreservedBranches(
@@ -32,11 +32,7 @@ export function UnreservedBranchesSummary({
         Branches that aren't allocated don't serve a purpose in gitauto.
       </p>
       {unreservedBranches === undefined ? (
-        <>
-          <TextLine />
-          <TextLine />
-          <TextLine />
-        </>
+        <TextParagraph />
       ) : unreservedBranches.length === 0 ? (
         <>
           <p>
