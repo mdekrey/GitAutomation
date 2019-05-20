@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace GitAutomation.DomainModels
@@ -13,6 +15,7 @@ namespace GitAutomation.DomainModels
                 "RepositoryStructure:SetReserveState" => SetBranchState(original, (string)action.Payload["Reserve"], (string)action.Payload["State"]),
                 "RepositoryStructure:SetOutputCommit" => SetOutputCommit(original, (string)action.Payload["Reserve"], (string)action.Payload["OutputCommit"]),
                 "RepositoryStructure:SetMeta" => SetMeta(original, (string)action.Payload["Reserve"], (IDictionary<string, object>)action.Payload["Meta"]),
+                "RepositoryStructure:CreateReserve" => CreateReserve(original, action.Payload),
                 "RepositoryStructure:RemoveReserve" => RemoveReserve(original, (string)action.Payload["Reserve"]),
                 _ => original
             };
@@ -29,6 +32,34 @@ namespace GitAutomation.DomainModels
 
         private static RepositoryStructure SetMeta(RepositoryStructure original, string branchReserveName, IDictionary<string, object> meta) =>
             original.SetBranchReserves(b => b.UpdateItem(branchReserveName, branch => branch.SetMeta(oldMeta => oldMeta.SetItems(meta))));
+
+        private static RepositoryStructure CreateReserve(RepositoryStructure original, Dictionary<string, object> payload)
+        {
+            var name = payload["Name"] as string;
+            var type = payload["Type"] as string;
+            var flowType = payload["FlowType"] as string;
+            var upstream = (payload["Upstream"] as System.Collections.IEnumerable).Cast<string>();
+            var originalBranch = payload["OriginalBranch"] as string;
+
+            var result = original.SetBranchReserves(b => b.Add(name, new BranchReserve(
+                reserveType: type,
+                flowType: flowType,
+                status: "OutOfDate",
+                upstream: upstream.ToImmutableSortedDictionary(b => b, b => new UpstreamReserve(BranchReserve.EmptyCommit)),
+                includedBranches: originalBranch == null ? ImmutableSortedDictionary<string, BranchReserveBranch>.Empty
+                    : new Dictionary<string, BranchReserveBranch>
+                    {
+                        { originalBranch, new BranchReserveBranch(BranchReserve.EmptyCommit) }
+                    }.ToImmutableSortedDictionary(),
+                outputCommit: BranchReserve.EmptyCommit,
+                meta: ImmutableSortedDictionary<string, object>.Empty
+            )));
+            if (result.GetValidationErrors().Any())
+            {
+                return original;
+            }
+            return result;
+        }
 
         private static RepositoryStructure RemoveReserve(RepositoryStructure original, string branchReserveName) =>
             original.SetBranchReserves(b =>

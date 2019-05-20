@@ -7,22 +7,30 @@ namespace GitAutomation.DomainModels.Configuration
 {
     public class ConfigurationRepositoryStateReducer
     {
-        public static ConfigurationRepositoryState Reduce(ConfigurationRepositoryState original, StandardAction action) =>
-            (action.Action switch
+        public static ConfigurationRepositoryState Reduce(ConfigurationRepositoryState original, StandardAction action)
+        {
+            var result = original.With(structure: RepositoryStructureReducer.Reduce(original.Structure, action));
+            if (result.Structure != original.Structure)
             {
-                "ConfigurationRepository:DirectoryNotAccessible" => ConfigurationDirectoryNotAccessible(original, action),
-                "ConfigurationRepository:ReadyToLoad" => ConfigurationReadyToLoad(original, action),
-                "ConfigurationRepository:GitNested" => ConfigurationRepositoryNested(original, action),
-                "ConfigurationRepository:GitCouldNotClone" => ConfigurationRepositoryCouldNotBeCloned(original, action),
-                "ConfigurationRepository:GitPasswordIncorrect" => ConfigurationRepositoryPasswordIncorrect(original, action),
-                "ConfigurationRepository:GitNoBranch" => ConfigurationRepositoryNoBranch(original, action),
-                "ConfigurationRepository:GitCouldNotCommit" => ConfigurationRepositoryCouldNotCommit(original, action),
-                "ConfigurationRepository:GitCouldNotPush" => ConfigurationRepositoryCouldNotPush(original, action),
-                "ConfigurationRepository:GitPushSuccess" => ConfigurationPushSuccess(original, action),
-                "ConfigurationRepository:Loaded" => ConfigurationLoaded(original, action),
-                "ConfigurationRepository:Written" => ConfigurationWritten(original, action),
+                result = ConfigurationWritten(result);
+            }
+
+            return (action.Action switch
+            {
+                "ConfigurationRepository:DirectoryNotAccessible" => ConfigurationDirectoryNotAccessible(result, action),
+                "ConfigurationRepository:ReadyToLoad" => ConfigurationReadyToLoad(result, action),
+                "ConfigurationRepository:GitNested" => ConfigurationRepositoryNested(result, action),
+                "ConfigurationRepository:GitCouldNotClone" => ConfigurationRepositoryCouldNotBeCloned(result, action),
+                "ConfigurationRepository:GitPasswordIncorrect" => ConfigurationRepositoryPasswordIncorrect(result, action),
+                "ConfigurationRepository:GitNoBranch" => ConfigurationRepositoryNoBranch(result, action),
+                "ConfigurationRepository:GitCouldNotCommit" => ConfigurationRepositoryCouldNotCommit(result, action),
+                "ConfigurationRepository:GitCouldNotPush" => ConfigurationRepositoryCouldNotPush(result, action),
+                "ConfigurationRepository:GitPushSuccess" => ConfigurationPushSuccess(result, action),
+                "ConfigurationRepository:Loaded" => ConfigurationLoaded(result, action),
+                "ConfigurationRepository:Written" => ConfigurationWritten(result),
                 _ => original,
-            }).With(structure: RepositoryStructureReducer.Reduce(original.Structure, action));
+            });
+        }
 
         private static ConfigurationRepositoryState ConfigurationRepositoryNoBranch(ConfigurationRepositoryState original, StandardAction action) =>
             original.Timestamps[NeedPull]
@@ -80,7 +88,7 @@ namespace GitAutomation.DomainModels.Configuration
                 .OrElse(original);
         }
 
-        private static ConfigurationRepositoryState ConfigurationWritten(ConfigurationRepositoryState original, StandardAction action) =>
+        private static ConfigurationRepositoryState ConfigurationWritten(ConfigurationRepositoryState original) =>
             original.With(timestampFunc: ts => ts.SetItem(StoredFieldModified, DateTimeOffset.Now));
 
     }

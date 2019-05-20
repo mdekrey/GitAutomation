@@ -70,7 +70,7 @@ namespace GitAutomation.Web
                 if (lastStoredFieldModifiedTimestamp != state.Timestamps[StoredFieldModified])
                 {
                     lastStoredFieldModifiedTimestamp = state.Timestamps[StoredFieldModified];
-                    PushToRemote(state.Timestamps[StoredFieldModified], modifiedBy);
+                    PushToRemote(state.Timestamps[StoredFieldModified], state, modifiedBy);
                 }
             }
         }
@@ -121,7 +121,7 @@ namespace GitAutomation.Web
             }
         }
 
-        private async Task PushToRemote(DateTimeOffset startTimestamp, IAgentSpecification modifiedBy)
+        private async Task PushToRemote(DateTimeOffset startTimestamp, ConfigurationRepositoryState state, IAgentSpecification modifiedBy)
         {
             // TODO - convert agent to user name/email
             lastPushResult = scriptInvoker.Invoke("$/Config/commitAndPush.ps1", new { startTimestamp }, options, SystemAgent.Instance);

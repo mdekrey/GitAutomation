@@ -10,10 +10,12 @@ import {
   Button,
   DisabledButton,
 } from "../common";
-import { useObservable } from "../../rxjs";
-import { of } from "rxjs";
+import { useObservable, useSubscription } from "../../rxjs";
+import { of, Subscription } from "rxjs";
+import { useService } from "../../injector";
 
-export function CreateReserve({ location }: RouteComponentProps) {
+export function CreateReserve({ history, location }: RouteComponentProps) {
+  const api = useService("api");
   const params = new URLSearchParams(location.search);
   const branch = params.get("branch");
   const [reserveForm, setReserveForm] = React.useState<CreateReserveFormFields>(
@@ -31,7 +33,13 @@ export function CreateReserve({ location }: RouteComponentProps) {
     }
   );
   const valid = useObservable(isValid(reserveForm), false, [reserveForm]);
+  const [submitting, setSubmitting] = React.useState(false);
+  const cancellation = React.useMemo(() => new Subscription(), []);
+  useSubscription(() => cancellation, []);
 
+  if (submitting) {
+    return <h1>Submitting</h1>;
+  }
   if (reserveForm.type === null) {
     return (
       <ReserveSelection
@@ -63,7 +71,21 @@ export function CreateReserve({ location }: RouteComponentProps) {
   async function createReserve() {
     const valid = await isValid(reserveForm).toPromise();
     if (valid) {
-      console.log(reserveForm);
+      setSubmitting(true);
+      cancellation.add(
+        api
+          .submitAction({
+            action: "RepositoryStructure:CreateReserve",
+            payload: {
+              Name: reserveForm.name,
+              Type: reserveForm.type,
+              OriginalBranch: reserveForm.originalBranch,
+              Upstream: reserveForm.upstream,
+              FlowType: reserveForm.flowType,
+            },
+          })
+          .subscribe(() => history.push("/"), () => history.push("/"))
+      );
     }
   }
 }

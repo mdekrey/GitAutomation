@@ -1,5 +1,6 @@
 import * as signalR from "@aspnet/signalr";
 import { Observable, of } from "rxjs";
+import { ajax } from "rxjs/ajax";
 import { map, switchMap, shareReplay } from "rxjs/operators";
 import { BranchReserve } from "./BranchReserve";
 import { ReserveConfiguration } from "./ReserveConfiguration";
@@ -60,4 +61,13 @@ export class ApiService {
   );
 
   public readonly flowTypes$ = of(["Automatic"]);
+
+  public submitAction(action: {
+    action: string;
+    payload: Record<string, any>;
+  }) {
+    return ajax.post("/api/action", action, {
+      "Content-Type": "application/json",
+    });
+  }
 }
