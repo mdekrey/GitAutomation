@@ -84,11 +84,6 @@ export function MultiReserveSelector({
   }
 
   function addSelectedReserve() {
-    // if (value.indexOf(selectingReserve) === -1) {
-    //   const result = [...value, selectingReserve];
-    //   result.sort();
-    //   onChange(result);
-    // }
     setSelectingReserve("");
   }
 
