@@ -40,14 +40,27 @@ export function MultiReserveSelector({
           </select>
 
           {selectingReserve ? (
-            <Button onClick={addSelectedReserve}>Add</Button>
+            <Button
+              onClick={e => {
+                addSelectedReserve();
+                e.preventDefault();
+              }}>
+              Add
+            </Button>
           ) : null}
         </>
       ) : null}
       <ul>
-        {value.map(e => (
-          <li>
-            {e} <Button onClick={() => removeReserve(e)}>Remove</Button>
+        {value.map(entry => (
+          <li key={entry}>
+            {entry}{" "}
+            <Button
+              onClick={e => {
+                removeReserve(entry);
+                e.preventDefault();
+              }}>
+              Remove
+            </Button>
           </li>
         ))}
       </ul>
@@ -55,7 +68,7 @@ export function MultiReserveSelector({
   );
 
   function addSelectedReserve() {
-    if (reserves.indexOf(selectingReserve) !== -1) {
+    if (value.indexOf(selectingReserve) === -1) {
       const result = [...value, selectingReserve];
       result.sort();
       onChange(result);
@@ -64,6 +77,7 @@ export function MultiReserveSelector({
   }
 
   function removeReserve(reserve: string) {
+    console.log("removing...");
     const result = value.filter(r => r !== reserve);
     onChange(result);
   }

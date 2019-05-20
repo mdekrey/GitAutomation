@@ -38,7 +38,7 @@ namespace GitAutomation.DomainModels
             var name = payload["Name"] as string;
             var type = payload["Type"] as string;
             var flowType = payload["FlowType"] as string;
-            var upstream = (payload["Upstream"] as System.Collections.IEnumerable).Cast<string>();
+            var upstream = ((Newtonsoft.Json.Linq.JToken)payload["Upstream"]).ToObject<string[]>();
             var originalBranch = payload["OriginalBranch"] as string;
 
             var result = original.SetBranchReserves(b => b.Add(name, new BranchReserve(

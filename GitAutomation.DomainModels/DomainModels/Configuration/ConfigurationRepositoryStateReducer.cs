@@ -28,7 +28,7 @@ namespace GitAutomation.DomainModels.Configuration
                 "ConfigurationRepository:GitPushSuccess" => ConfigurationPushSuccess(result, action),
                 "ConfigurationRepository:Loaded" => ConfigurationLoaded(result, action),
                 "ConfigurationRepository:Written" => ConfigurationWritten(result),
-                _ => original,
+                _ => result,
             });
         }
 

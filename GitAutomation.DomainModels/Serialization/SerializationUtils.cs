@@ -60,5 +60,26 @@ namespace GitAutomation.Serialization
             }
         }
 
+        public static async Task SaveStructureAsync(Meta meta, RepositoryStructure structure)
+        {
+            await WriteYamlFileAsync(meta.Structure, structure);
+        }
+
+        public static async Task SaveConfigurationAsync(Meta meta, ConfigurationRepository configuration)
+        {
+            await WriteYamlFileAsync(meta.Configuration, configuration);
+        }
+        private static Task WriteYamlFileAsync<T>(string path, T data)
+        {
+            return Task.Run(() =>
+            {
+                using (var file = File.Open(path, FileMode.Create))
+                using (var texWriter = new StreamWriter(file))
+                {
+                    Serializer.Serialize(texWriter, data);
+                }
+            });
+        }
+
     }
 }

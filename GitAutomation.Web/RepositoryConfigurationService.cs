@@ -123,6 +123,11 @@ namespace GitAutomation.Web
 
         private async Task PushToRemote(DateTimeOffset startTimestamp, ConfigurationRepositoryState state, IAgentSpecification modifiedBy)
         {
+            await Task.WhenAll(
+                SerializationUtils.SaveConfigurationAsync(meta, state.Configuration),
+                SerializationUtils.SaveStructureAsync(meta, state.Structure)
+            );
+
             // TODO - convert agent to user name/email
             lastPushResult = scriptInvoker.Invoke("$/Config/commitAndPush.ps1", new { startTimestamp }, options, SystemAgent.Instance);
             await lastPushResult;
