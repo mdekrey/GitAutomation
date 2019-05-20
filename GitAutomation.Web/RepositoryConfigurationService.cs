@@ -148,7 +148,7 @@ namespace GitAutomation.Web
             while (await configurationChanges.OutputAvailableAsync())
             {
                 var change = await configurationChanges.ReceiveAsync();
-                // TODO - separate commit/push
+                // TODO - separate commit/push, but consider pulling before pushing... causing us to backslide "committed" changes. Maybe we shouldn't separate commit/push.
                 await PushToRemote(change.Timestamp, change.State, change.ModifiedBy);
             }
         }
