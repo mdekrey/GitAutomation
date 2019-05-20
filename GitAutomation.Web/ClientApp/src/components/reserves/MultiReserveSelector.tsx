@@ -7,7 +7,7 @@ import { map } from "rxjs/operators";
 import { Button } from "../common";
 
 export function MultiReserveSelector({
-  value,
+  value: currentReserves,
   onChange,
 }: {
   value: string[];
@@ -23,20 +23,20 @@ export function MultiReserveSelector({
   if (allReserves && allReserves.length === 0) {
     return <>No reserves available.</>;
   }
-  const reserves = (allReserves || []).filter(
-    r => value.indexOf(r) === -1 || r === selectingReserve
+  const remainingReserves = (allReserves || []).filter(
+    r => currentReserves.indexOf(r) === -1 || r === selectingReserve
   );
   return (
     <>
-      {reserves.length ? (
+      {remainingReserves.length ? (
         <>
           <select
             value={selectingReserve}
             onChange={e => handleSelectingReserveChange(e.currentTarget.value)}>
             <option value="">
-              {value.length ? "Select another..." : "Select..."}
+              {currentReserves.length ? "Select another..." : "Select..."}
             </option>
-            {reserves.map(b => (
+            {remainingReserves.map(b => (
               <option value={b} key={b}>
                 {b}
               </option>
@@ -55,7 +55,7 @@ export function MultiReserveSelector({
         </>
       ) : null}
       <ul>
-        {value.map(entry => (
+        {currentReserves.map(entry => (
           <li key={entry}>
             {entry}{" "}
             {entry !== selectingReserve ? (
@@ -74,7 +74,7 @@ export function MultiReserveSelector({
   );
 
   function handleSelectingReserveChange(newSelectingReserve: string) {
-    const result = value.filter(v => v !== selectingReserve);
+    const result = currentReserves.filter(v => v !== selectingReserve);
     if (newSelectingReserve) {
       result.push(newSelectingReserve);
     }
@@ -88,7 +88,7 @@ export function MultiReserveSelector({
   }
 
   function removeReserve(reserve: string) {
-    const result = value.filter(r => r !== reserve);
+    const result = currentReserves.filter(r => r !== reserve);
     onChange(result);
   }
 }
