@@ -15,13 +15,11 @@ namespace GitAutomation.Serialization
     {
         private static readonly ReaderWriterLockSlim lockSlim = new ReaderWriterLockSlim();
 
-        public static ISerializer Serializer { get; } 
-            = new SerializerBuilder()
+        public static ISerializer Serializer => new SerializerBuilder()
                 .DisableAliases()
                 .WithNamingConvention(new CamelCaseNamingConvention())
                 .Build();
-        public static IDeserializer Deserializer { get; } 
-            = new DeserializerBuilder()
+        public static IDeserializer Deserializer => new DeserializerBuilder()
                 .WithNamingConvention(new CamelCaseNamingConvention())
                 .Build();
 
