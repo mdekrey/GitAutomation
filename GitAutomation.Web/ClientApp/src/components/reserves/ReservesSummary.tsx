@@ -1,40 +1,57 @@
 import React from "react";
 import { BranchReserve } from "../../api";
-import { TextParagraph } from "../loading";
+import { TextLine, TextParagraph } from "../loading";
 import { CardContents, CardActionBar, LinkButton } from "../common";
+import { ReserveLabel } from "./ReserveLabel";
 
 export function ReservesSummary({
-  reserves,
+  reserves = {},
 }: {
   reserves: Record<string, BranchReserve> | undefined;
 }) {
   const reservesKeys = Object.keys(reserves || {});
+  const groups = reservesKeys.reduce<Record<string, string[]>>(
+    (prev, current) => {
+      const target = prev[reserves[current].ReserveType] || [];
+      prev[reserves[current].ReserveType] = target;
+      target.push(current);
+      return prev;
+    },
+    {}
+  );
+  const reserveTypes = Object.keys(groups);
+  reserveTypes.sort();
   return (
     <>
       <CardContents>
         <h2>Reserves</h2>
         {reserves === undefined ? (
-          <TextParagraph />
+          <>
+            <TextLine />
+            <TextLine />
+            <TextParagraph />
+          </>
         ) : (
           <>
-            {reservesKeys.length === 0 ? (
+            {reserveTypes.length === 0 ? (
               <>
                 <p>No reserves.</p>
-                <p className="hint">
-                  A reserve sets the rules for one or more branches,{" "}
-                  <em>reserving</em> them for a specific purpose.
-                </p>
               </>
             ) : (
-              <dl>
-                {reservesKeys.map(key => (
-                  <React.Fragment key={key}>
-                    <dt>{key}</dt>
-                    <dd>{reserves[key].ReserveType}</dd>
-                  </React.Fragment>
+              <ul>
+                {reserveTypes.map(reserveType => (
+                  <li key={reserveType}>
+                    <ReserveLabel reserveName={reserveType} />
+                    &nbsp;&mdash;&nbsp;
+                    {groups[reserveType].length}
+                  </li>
                 ))}
-              </dl>
+              </ul>
             )}
+            <p className="hint">
+              A reserve sets the rules for one or more branches,{" "}
+              <em>reserving</em> them for a specific purpose.
+            </p>
           </>
         )}
       </CardContents>

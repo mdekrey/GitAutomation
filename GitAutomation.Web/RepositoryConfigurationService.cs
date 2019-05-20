@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using GitAutomation.DomainModels;
 using GitAutomation.DomainModels.Configuration;
 using GitAutomation.Serialization;
@@ -29,6 +30,25 @@ namespace GitAutomation.Web
         private DateTimeOffset lastPulledTimestamp;
         private DateTimeOffset lastStoredFieldModifiedTimestamp;
 
+        private readonly struct ConfigurationChange
+        {
+            public ConfigurationChange(DateTimeOffset timestamp, ConfigurationRepositoryState state, IAgentSpecification modifiedBy)
+            {
+                Timestamp = timestamp;
+                State = state;
+                ModifiedBy = modifiedBy;
+            }
+
+            public DateTimeOffset Timestamp { get; }
+            public ConfigurationRepositoryState State { get; }
+            public IAgentSpecification ModifiedBy { get; }
+
+        }
+
+
+        // TODO - this would be better with an action block
+        private readonly BufferBlock<ConfigurationChange> configurationChanges = new BufferBlock<ConfigurationChange>();
+
         public RepositoryConfigurationService(IOptions<ConfigRepositoryOptions> options, PowerShellScriptInvoker scriptInvoker, ILogger<RepositoryConfigurationService> logger, IDispatcher dispatcher, IStateMachine<AppState> stateMachine)
         {
             this.options = options.Value;
@@ -39,6 +59,8 @@ namespace GitAutomation.Web
                 .Select(state => new { state.State.Configuration, state.LastChangeBy })
                 .DistinctUntilChanged(k => k.Configuration)
                 .Subscribe(e => OnStateUpdated(e.Configuration, e.LastChangeBy));
+
+            Task.Run(ConfigurationChangeCommitter);
         }
 
         public void AssertStarted()
@@ -70,7 +92,7 @@ namespace GitAutomation.Web
                 if (lastStoredFieldModifiedTimestamp != state.Timestamps[StoredFieldModified])
                 {
                     lastStoredFieldModifiedTimestamp = state.Timestamps[StoredFieldModified];
-                    PushToRemote(state.Timestamps[StoredFieldModified], state, modifiedBy);
+                    configurationChanges.Post(new ConfigurationChange(state.Timestamps[StoredFieldModified], state, modifiedBy));
                 }
             }
         }
@@ -118,6 +140,16 @@ namespace GitAutomation.Web
             {
                 logger.LogCritical(ex, "Could not write default configuration");
                 return;
+            }
+        }
+
+        private async Task ConfigurationChangeCommitter()
+        {
+            while (await configurationChanges.OutputAvailableAsync())
+            {
+                var change = await configurationChanges.ReceiveAsync();
+                // TODO - separate commit/push
+                await PushToRemote(change.Timestamp, change.State, change.ModifiedBy);
             }
         }
 
