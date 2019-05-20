@@ -55,11 +55,10 @@ export function MultiReserveSelector({
         </>
       ) : null}
       <ul>
-        {value
-          .filter(r => r !== selectingReserve)
-          .map(entry => (
-            <li key={entry}>
-              {entry}{" "}
+        {value.map(entry => (
+          <li key={entry}>
+            {entry}{" "}
+            {entry !== selectingReserve ? (
               <Button
                 onClick={e => {
                   removeReserve(entry);
@@ -67,8 +66,9 @@ export function MultiReserveSelector({
                 }}>
                 Remove
               </Button>
-            </li>
-          ))}
+            ) : null}
+          </li>
+        ))}
       </ul>
     </>
   );
@@ -93,7 +93,6 @@ export function MultiReserveSelector({
   }
 
   function removeReserve(reserve: string) {
-    console.log("removing...");
     const result = value.filter(r => r !== reserve);
     onChange(result);
   }
