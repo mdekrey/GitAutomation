@@ -23,15 +23,19 @@ export function MultiReserveSelector({
   if (allReserves && allReserves.length === 0) {
     return <>No reserves available.</>;
   }
-  const reserves = (allReserves || []).filter(r => value.indexOf(r) === -1);
+  const reserves = (allReserves || []).filter(
+    r => value.indexOf(r) === -1 || r === selectingReserve
+  );
   return (
     <>
       {reserves.length ? (
         <>
           <select
             value={selectingReserve}
-            onChange={e => setSelectingReserve(e.currentTarget.value)}>
-            <option value="">Select...</option>
+            onChange={e => handleSelectingReserveChange(e.currentTarget.value)}>
+            <option value="">
+              {value.length ? "Select another..." : "Select..."}
+            </option>
             {reserves.map(b => (
               <option value={b} key={b}>
                 {b}
@@ -51,28 +55,40 @@ export function MultiReserveSelector({
         </>
       ) : null}
       <ul>
-        {value.map(entry => (
-          <li key={entry}>
-            {entry}{" "}
-            <Button
-              onClick={e => {
-                removeReserve(entry);
-                e.preventDefault();
-              }}>
-              Remove
-            </Button>
-          </li>
-        ))}
+        {value
+          .filter(r => r !== selectingReserve)
+          .map(entry => (
+            <li key={entry}>
+              {entry}{" "}
+              <Button
+                onClick={e => {
+                  removeReserve(entry);
+                  e.preventDefault();
+                }}>
+                Remove
+              </Button>
+            </li>
+          ))}
       </ul>
     </>
   );
 
-  function addSelectedReserve() {
-    if (value.indexOf(selectingReserve) === -1) {
-      const result = [...value, selectingReserve];
-      result.sort();
-      onChange(result);
+  function handleSelectingReserveChange(newSelectingReserve: string) {
+    const result = value.filter(v => v !== selectingReserve);
+    if (newSelectingReserve) {
+      result.push(newSelectingReserve);
     }
+    result.sort();
+    setSelectingReserve(newSelectingReserve);
+    onChange(result);
+  }
+
+  function addSelectedReserve() {
+    // if (value.indexOf(selectingReserve) === -1) {
+    //   const result = [...value, selectingReserve];
+    //   result.sort();
+    //   onChange(result);
+    // }
     setSelectingReserve("");
   }
 
