@@ -1,5 +1,5 @@
 import React from "react";
-import { TextParagraph } from "../loading";
+import { TextLine } from "../loading";
 import { Link } from "react-router-dom";
 import { CardContents } from "../common";
 
@@ -16,7 +16,17 @@ export function UnreservedBranchesSummary({
         Branches that aren't allocated don't serve a purpose in gitauto.
       </p>
       {unreservedBranches === undefined ? (
-        <TextParagraph />
+        <ul>
+          <li>
+            <TextLine />
+          </li>
+          <li>
+            <TextLine />
+          </li>
+          <li>
+            <TextLine />
+          </li>
+        </ul>
       ) : unreservedBranches.length === 0 ? (
         <>
           <p>

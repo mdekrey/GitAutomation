@@ -1,13 +1,17 @@
 .TextLine_line {
   display: inline-block;
   width: 70%;
-  height: 1.3em;
+  height: 1.1em;
+  margin: 0.1em 0;
   background-color: #eee;
+  vertical-align: bottom;
 }
 
 .TextLine_paragraph {
   display: inline-block;
   width: 100%;
-  height: 1.3em;
+  height: 1.1em;
+  margin: 0.1em 0;
   background-color: #eee;
+  vertical-align: bottom;
 }

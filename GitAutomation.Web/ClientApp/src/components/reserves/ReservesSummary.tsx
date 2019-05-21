@@ -1,6 +1,6 @@
 import React from "react";
 import { BranchReserve } from "../../api";
-import { TextLine, TextParagraph } from "../loading";
+import { TextLine } from "../loading";
 import { CardContents, CardActionBar, LinkButton } from "../common";
 import { ReserveLabel } from "./ReserveLabel";
 
@@ -25,12 +25,22 @@ export function ReservesSummary({
     <>
       <CardContents>
         <h2>Reserves</h2>
+        <p className="hint">
+          A reserve sets the rules for one or more branches, <em>reserving</em>{" "}
+          them for a specific purpose.
+        </p>
         {reserves === undefined ? (
-          <>
-            <TextLine />
-            <TextLine />
-            <TextParagraph />
-          </>
+          <ul>
+            <li>
+              <TextLine />
+            </li>
+            <li>
+              <TextLine />
+            </li>
+            <li>
+              <TextLine />
+            </li>
+          </ul>
         ) : (
           <>
             {reserveTypes.length === 0 ? (
@@ -48,10 +58,6 @@ export function ReservesSummary({
                 ))}
               </ul>
             )}
-            <p className="hint">
-              A reserve sets the rules for one or more branches,{" "}
-              <em>reserving</em> them for a specific purpose.
-            </p>
           </>
         )}
       </CardContents>
