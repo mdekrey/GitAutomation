@@ -34,47 +34,47 @@ namespace GitAutomation.DomainModels.Configuration
 
         private static ConfigurationRepositoryState ConfigurationRepositoryNoBranch(ConfigurationRepositoryState original, StandardAction action) =>
             original.Timestamps[NeedPull]
-                    .IfStringMatch(action.Payload["startTimestamp"])
+                    .IfApproximateMatch(action.Payload["startTimestamp"])
                     .Map(timestamp => original.With(timestampFunc: ts => ts.SetItem(Pulled, DateTimeOffset.Now)))
                     .OrElse(original);
 
         private static ConfigurationRepositoryState ConfigurationRepositoryPasswordIncorrect(ConfigurationRepositoryState original, StandardAction action) =>
-            original.Timestamps[NeedPull].IfStringMatch(action.Payload["startTimestamp"])
+            original.Timestamps[NeedPull].IfApproximateMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(timestampFunc: ts => ts.SetItem(NeedPull, DateTimeOffset.Now), lastError: RepositoryConfigurationLastError.Error_PasswordIncorrect))
             .OrElse(original);
 
         private static ConfigurationRepositoryState ConfigurationRepositoryCouldNotBeCloned(ConfigurationRepositoryState original, StandardAction action) =>
-            original.Timestamps[NeedPull].IfStringMatch(action.Payload["startTimestamp"])
+            original.Timestamps[NeedPull].IfApproximateMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(timestampFunc: ts => ts.SetItem(NeedPull, DateTimeOffset.Now), lastError: RepositoryConfigurationLastError.Error_FailedToClone))
             .OrElse(original);
 
         private static ConfigurationRepositoryState ConfigurationDirectoryNotAccessible(ConfigurationRepositoryState original, StandardAction action) =>
-            original.Timestamps[NeedPull].IfStringMatch(action.Payload["startTimestamp"])
+            original.Timestamps[NeedPull].IfApproximateMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(timestampFunc: ts => ts.SetItem(NeedPull, DateTimeOffset.Now), lastError: RepositoryConfigurationLastError.Error_DirectoryNotAccessible))
             .OrElse(original);
 
         private static ConfigurationRepositoryState ConfigurationReadyToLoad(ConfigurationRepositoryState original, StandardAction action) =>
-            original.Timestamps[NeedPull].IfStringMatch(action.Payload["startTimestamp"])
+            original.Timestamps[NeedPull].IfApproximateMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(timestampFunc: ts => ts.SetItem(Pulled, DateTimeOffset.Now)))
             .OrElse(original);
 
         private static ConfigurationRepositoryState ConfigurationRepositoryNested(ConfigurationRepositoryState original, StandardAction action) =>
-            original.Timestamps[NeedPull].IfStringMatch(action.Payload["startTimestamp"])
+            original.Timestamps[NeedPull].IfApproximateMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(lastError: RepositoryConfigurationLastError.Error_NestedGitRepository))
             .OrElse(original);
 
         private static ConfigurationRepositoryState ConfigurationRepositoryCouldNotCommit(ConfigurationRepositoryState original, StandardAction action) =>
-            original.Timestamps[StoredFieldModified].IfStringMatch(action.Payload["startTimestamp"])
+            original.Timestamps[StoredFieldModified].IfApproximateMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(lastError: RepositoryConfigurationLastError.Error_FailedToCommit))
             .OrElse(original);
 
         private static ConfigurationRepositoryState ConfigurationRepositoryCouldNotPush(ConfigurationRepositoryState original, StandardAction action) =>
-            original.Timestamps[StoredFieldModified].IfStringMatch(action.Payload["startTimestamp"])
+            original.Timestamps[StoredFieldModified].IfApproximateMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(lastError: RepositoryConfigurationLastError.Error_FailedToPush))
             .OrElse(original);
 
         private static ConfigurationRepositoryState ConfigurationPushSuccess(ConfigurationRepositoryState original, StandardAction action) =>
-            original.Timestamps[StoredFieldModified].IfStringMatch(action.Payload["startTimestamp"])
+            original.Timestamps[StoredFieldModified].IfApproximateMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(timestampFunc: ts => ts.SetItem(Pushed, DateTimeOffset.Now)))
             .OrElse(original);
 
@@ -83,7 +83,7 @@ namespace GitAutomation.DomainModels.Configuration
             var configuration = (ConfigurationRepository)action.Payload["configuration"];
             var structure = (RepositoryStructure)action.Payload["structure"];
 
-            return original.Timestamps[Pulled].IfStringMatch(action.Payload["startTimestamp"])
+            return original.Timestamps[Pulled].IfApproximateMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(timestampFunc: ts => ts.SetItem(LoadedFromDisk, DateTimeOffset.Now), configuration: configuration, structure: structure))
                 .OrElse(original);
         }

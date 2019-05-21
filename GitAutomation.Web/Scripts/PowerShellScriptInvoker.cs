@@ -1,5 +1,7 @@
 ﻿using GitAutomation.DomainModels;
 using GitAutomation.Extensions;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,41 +14,51 @@ namespace GitAutomation.Web.Scripts
     public class PowerShellScriptInvoker
     {
         private readonly IDispatcher dispatcher;
+        private readonly ILogger logger;
 
-        class PowerShellStandardAction
-        {
-            public string Action { get; set; }
-            public Hashtable Payload { get; set; }
-
-            public StandardAction ToStandardAction()
-            {
-                return new StandardAction(Action, Payload.Keys.Cast<string>().ToDictionary(k => k, k => Payload[k]));
-            }
-        }
-
-        public PowerShellScriptInvoker(IDispatcher dispatcher)
+        public PowerShellScriptInvoker(IDispatcher dispatcher, ILogger<PowerShellScriptInvoker> logger)
         {
             this.dispatcher = dispatcher;
+            this.logger = logger;
         }
 
         public IPowerShellStreams<StandardAction> Invoke(string scriptPath, object loggedParameters, object hiddenParameters, IAgentSpecification agentSpecification)
         {
+            var invocationId = Guid.NewGuid();
+            logger.LogInformation($"Invoking {scriptPath} ({invocationId}) with {JsonConvert.SerializeObject(loggedParameters)} as {agentSpecification}");
             var result = PowerShell.Create()
                 .AddUnrestrictedCommand("./Scripts/Globals.ps1")
                 .AddUnrestrictedCommand(ResolveScriptPath(scriptPath))
                 .BindParametersToPowerShell(hiddenParameters)
                 .BindParametersToPowerShell(loggedParameters)
-                .InvokeAllStreams<StandardAction, PowerShellStandardAction>(ps => ps.ToStandardAction());
+                .InvokeAllStreams<StandardAction, string>(ps => JsonConvert.DeserializeObject<StandardAction>(ps));
 
-            Task.Run(() => ProcessActions(result, agentSpecification));
+            Task.Run(() => ProcessError(result, invocationId));
+            Task.Run(() => ProcessActions(result, agentSpecification, invocationId));
 
             return result;
         }
 
-        private async Task ProcessActions(IPowerShellStreams<StandardAction> result, IAgentSpecification agentSpecification)
+        private async Task ProcessError(IPowerShellStreams<StandardAction> result, Guid invocationId)
+        {
+            await foreach (var errorRecord in result.ErrorAsync)
+            {
+                if (errorRecord.FullyQualifiedErrorId == "NativeCommandError" || errorRecord.FullyQualifiedErrorId == "NativeCommandErrorMessage")
+                {
+                    logger.LogDebug($"Script({invocationId}) provided output on the error stream: ${errorRecord.Exception.Message}\n${errorRecord.ScriptStackTrace}");
+                }
+                else
+                {
+                    logger.LogError(errorRecord.Exception, $"Script({invocationId}) encountered an exception at ${errorRecord.ScriptStackTrace}");
+                }
+            }
+        }
+
+        private async Task ProcessActions(IPowerShellStreams<StandardAction> result, IAgentSpecification agentSpecification, Guid invocationId)
         {
             await foreach (var action in result.SuccessAsync)
             {
+                logger.LogDebug($"Dispatching script({invocationId}) action {JsonConvert.SerializeObject(action)}");
                 dispatcher.Dispatch(action, agentSpecification);
             }
         }

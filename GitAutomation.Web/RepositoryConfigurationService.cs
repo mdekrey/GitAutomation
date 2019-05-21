@@ -29,7 +29,6 @@ namespace GitAutomation.Web
         private IPowerShellStreams<StandardAction> lastLoadResult;
         private IPowerShellStreams<StandardAction> lastPushResult;
         private Meta meta;
-        private ImmutableSortedDictionary<ConfigurationRepositoryState.ConfigurationTimestampType, DateTimeOffset> lastTimestamps;
 
         private readonly struct ConfigurationChange
         {
@@ -47,7 +46,7 @@ namespace GitAutomation.Web
         }
 
 
-        // TODO - this would be better with an action block
+        private ImmutableSortedDictionary<ConfigurationRepositoryState.ConfigurationTimestampType, DateTimeOffset> lastTimestamps;
         private readonly BufferBlock<ConfigurationChange> configurationChanges = new BufferBlock<ConfigurationChange>();
         private readonly ActionBlock<Unit> changeProcessor;
 
@@ -82,18 +81,17 @@ namespace GitAutomation.Web
 
         private async Task DoRepositoryAction()
         {
-            // FIXME - should I do this with switchmap/cancellation tokens?
             if (lastTimestamps[StoredFieldModified] > lastTimestamps[Pushed])
             {
                 await ConfigurationChangeCommitter();
             }
             else if (lastTimestamps[NeedPull] > lastTimestamps[Pulled])
             {
-                    await BeginLoad(lastTimestamps[NeedPull]);
+                await BeginLoad(lastTimestamps[NeedPull]);
             }
             else if (lastTimestamps[Pulled] > lastTimestamps[LoadedFromDisk])
             {
-                 await   LoadFromDisk(lastTimestamps[Pulled]);
+                await LoadFromDisk(lastTimestamps[Pulled]);
             }
         }
 

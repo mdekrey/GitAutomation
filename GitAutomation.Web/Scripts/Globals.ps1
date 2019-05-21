@@ -47,7 +47,7 @@ function Build-StandardAction ([string] $action, [hashtable] $payload = @{})
 	@{ 
 		"action" = $action;
 		"payload" = $payload
-	}
+	} | ConvertTo-Json -Depth 10
 }
 
 function Start-Git ([hashtable] $gitparams)

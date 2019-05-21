@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using GitAutomation.DomainModels;
-using GitAutomation.Serialization;
-using GitAutomation.Serialization.Defaults;
 using GitAutomation.State;
 using GitAutomation.Web.Scripts;
 using GitAutomation.Web.State;
@@ -22,14 +22,15 @@ namespace GitAutomation.Web
         private readonly IDisposable subscription;
         private IPowerShellStreams<StandardAction> lastFetchResult;
         private IPowerShellStreams<StandardAction> lastLoadFromDiskResult;
-        private DateTimeOffset lastNeedFetchTimestamp;
-        private DateTimeOffset lastFetchedTimestamp;
+        private ImmutableSortedDictionary<TargetRepositoryState.TimestampType, DateTimeOffset> lastTimestamps;
+        private readonly ActionBlock<Unit> changeProcessor;
 
         public TargetRepositoryService(IOptions<TargetRepositoryOptions> options, PowerShellScriptInvoker scriptInvoker, ILogger<TargetRepositoryService> logger, IStateMachine<AppState> stateMachine)
         {
             this.options = options.Value;
             this.scriptInvoker = scriptInvoker;
             this.logger = logger;
+            changeProcessor = new ActionBlock<Unit>(_ => DoRepositoryAction());
             subscription = stateMachine.StateUpdates.Select(state => state.State.Target).Subscribe(OnStateUpdated);
         }
 
@@ -40,22 +41,19 @@ namespace GitAutomation.Web
 
         private void OnStateUpdated(TargetRepositoryState state)
         {
-            // FIXME - should I do this with switchmap/cancellation tokens?
-            if (state.Timestamps[NeededFetch] > state.Timestamps[Fetched])
+            lastTimestamps = state.Timestamps;
+            changeProcessor.Post(Unit.Default);
+        }
+
+        private async Task DoRepositoryAction()
+        {
+            if (lastTimestamps[NeededFetch] > lastTimestamps[Fetched])
             {
-                if (lastNeedFetchTimestamp != state.Timestamps[NeededFetch])
-                {
-                    lastNeedFetchTimestamp = state.Timestamps[NeededFetch];
-                    BeginFetch(state.Timestamps[NeededFetch]);
-                }
+                await BeginFetch(lastTimestamps[NeededFetch]);
             }
-            else if (state.Timestamps[Fetched] > state.Timestamps[LoadedFromDisk])
+            else if (lastTimestamps[Fetched] > lastTimestamps[LoadedFromDisk])
             {
-                if (lastFetchedTimestamp != state.Timestamps[Fetched])
-                {
-                    lastFetchedTimestamp = state.Timestamps[Fetched];
-                    LoadFromDisk(state.Timestamps[Fetched]);
-                }
+                await LoadFromDisk(lastTimestamps[Fetched]);
             }
         }
 

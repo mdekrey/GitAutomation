@@ -6,13 +6,23 @@ namespace GitAutomation.Optionals
 {
     public static class OptionalExtensions
     {
-        public static Optional<T> IfStringMatch<T>(this T original, object target)
+        public static Optional<DateTimeOffset> IfApproximateMatch(this DateTimeOffset original, object target)
         {
-            if (original?.ToString() == target?.ToString())
+            try
             {
-                return Optional<T>.Of(original);
+                var diff = target is DateTimeOffset dto ? (original - dto) : target is DateTime dt ? (original - dt) : (original - DateTimeOffset.Parse(target.ToString()));
+                if (Math.Abs(diff.TotalSeconds) < 1)
+                {
+                    return Optional<DateTimeOffset>.Of(original);
+                }
+                return Optional<DateTimeOffset>.Empty;
             }
-            return Optional<T>.Empty;
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                
+                return Optional<DateTimeOffset>.Empty;
+            }
         }
     }
 }
