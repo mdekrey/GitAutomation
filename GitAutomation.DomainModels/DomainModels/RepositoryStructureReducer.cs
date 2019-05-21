@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -14,7 +15,7 @@ namespace GitAutomation.DomainModels
                 "RepositoryStructure:StabilizeReserve" => StabilizeReserve(original, (string)action.Payload["Reserve"]),
                 "RepositoryStructure:SetReserveState" => SetBranchState(original, (string)action.Payload["Reserve"], (string)action.Payload["State"]),
                 "RepositoryStructure:SetOutputCommit" => SetOutputCommit(original, (string)action.Payload["Reserve"], (string)action.Payload["OutputCommit"]),
-                "RepositoryStructure:SetMeta" => SetMeta(original, (string)action.Payload["Reserve"], (IDictionary<string, object>)action.Payload["Meta"]),
+                "RepositoryStructure:SetMeta" => SetMeta(original, (string)action.Payload["Reserve"], action.Payload["Meta"].ToObject<Dictionary<string, object>>()),
                 "RepositoryStructure:CreateReserve" => CreateReserve(original, action.Payload),
                 "RepositoryStructure:RemoveReserve" => RemoveReserve(original, (string)action.Payload["Reserve"]),
                 _ => original
@@ -33,23 +34,29 @@ namespace GitAutomation.DomainModels
         private static RepositoryStructure SetMeta(RepositoryStructure original, string branchReserveName, IDictionary<string, object> meta) =>
             original.SetBranchReserves(b => b.UpdateItem(branchReserveName, branch => branch.SetMeta(oldMeta => oldMeta.SetItems(meta))));
 
-        private static RepositoryStructure CreateReserve(RepositoryStructure original, Dictionary<string, object> payload)
-        {
-            var name = payload["Name"] as string;
-            var type = payload["Type"] as string;
-            var flowType = payload["FlowType"] as string;
-            var upstream = ((Newtonsoft.Json.Linq.JToken)payload["Upstream"]).ToObject<string[]>();
-            var originalBranch = payload["OriginalBranch"] as string;
 
-            var result = original.SetBranchReserves(b => b.Add(name, new BranchReserve(
-                reserveType: type,
-                flowType: flowType,
+        class CreateReservePayload
+        {
+            public string Name { get; set; } = "";
+            public string Type { get; set; } = "";
+            public string FlowType { get; set; } = "";
+            public string[] Upstream { get; set; } = Array.Empty<string>();
+            public string OriginalBranch { get; set; } = "";
+        }
+
+        private static RepositoryStructure CreateReserve(RepositoryStructure original, JToken payload)
+        {
+            var data = payload.ToObject<CreateReservePayload>();
+
+            var result = original.SetBranchReserves(b => b.Add(data.Name, new BranchReserve(
+                reserveType: data.Type,
+                flowType: data.FlowType,
                 status: "Stable",
-                upstream: upstream.ToImmutableSortedDictionary(b => b, b => new UpstreamReserve(BranchReserve.EmptyCommit)),
-                includedBranches: originalBranch == null ? ImmutableSortedDictionary<string, BranchReserveBranch>.Empty
+                upstream: data.Upstream.ToImmutableSortedDictionary(b => b, b => new UpstreamReserve(BranchReserve.EmptyCommit)),
+                includedBranches: data.OriginalBranch == null ? ImmutableSortedDictionary<string, BranchReserveBranch>.Empty
                     : new Dictionary<string, BranchReserveBranch>
                     {
-                        { originalBranch, new BranchReserveBranch(BranchReserve.EmptyCommit) }
+                        { data.OriginalBranch, new BranchReserveBranch(BranchReserve.EmptyCommit) }
                     }.ToImmutableSortedDictionary(),
                 outputCommit: BranchReserve.EmptyCommit,
                 meta: ImmutableSortedDictionary<string, object>.Empty

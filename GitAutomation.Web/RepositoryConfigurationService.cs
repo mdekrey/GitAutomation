@@ -15,6 +15,7 @@ using GitAutomation.Web.Scripts;
 using GitAutomation.Web.State;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
 using static GitAutomation.DomainModels.Configuration.ConfigurationRepositoryState.ConfigurationTimestampType;
 
 namespace GitAutomation.Web
@@ -120,13 +121,13 @@ namespace GitAutomation.Web
             {
                 logger.LogError(ex, "Unable to load configuration");
             }
-            dispatcher.Dispatch(new StandardAction("ConfigurationRepository:Loaded", new Dictionary<string, object> { { "configuration", config.Result }, { "structure", structure.Result }, { "startTimestamp", startTimestamp } }), SystemAgent.Instance);
+            dispatcher.Dispatch(new StandardAction("ConfigurationRepository:Loaded", new { configuration= config.Result, structure= structure.Result, startTimestamp }), SystemAgent.Instance);
             // clear out any interim config changes, as they're now out of date...
             configurationChanges.TryReceiveAll(out var _);
             if (!exists)
             {
                 // this action is not combined with updating the store as the Loaded action does not know that we aren't overriding it from a normal load
-                dispatcher.Dispatch(new StandardAction("ConfigurationRepository:Written", new Dictionary<string, object> { { "startTimestamp", startTimestamp } }), SystemAgent.Instance);
+                dispatcher.Dispatch(new StandardAction("ConfigurationRepository:Written", new{ startTimestamp }), SystemAgent.Instance);
             }
         }
 

@@ -80,8 +80,8 @@ namespace GitAutomation.DomainModels.Configuration
 
         private static ConfigurationRepositoryState ConfigurationLoaded(ConfigurationRepositoryState original, StandardAction action)
         {
-            var configuration = (ConfigurationRepository)action.Payload["configuration"];
-            var structure = (RepositoryStructure)action.Payload["structure"];
+            var configuration = action.Payload["configuration"].ToObject<ConfigurationRepository>();
+            var structure = action.Payload["structure"].ToObject<RepositoryStructure>();
 
             return original.Timestamps[Pulled].IfApproximateMatch(action.Payload["startTimestamp"])
                 .Map(timestamp => original.With(timestampFunc: ts => ts.SetItem(LoadedFromDisk, DateTimeOffset.Now), configuration: configuration, structure: structure))

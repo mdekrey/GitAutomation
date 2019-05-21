@@ -60,7 +60,7 @@ namespace GitAutomation
         [TestMethod]
         public void StabilizeBranches()
         {
-            var actual = testRepository.Reduce(new StandardAction("RepositoryStructure:StabilizeReserve", new Dictionary<string, object> { { "Reserve", "feature/a" } }));
+            var actual = testRepository.Reduce(new StandardAction("RepositoryStructure:StabilizeReserve", new { Reserve = "feature/a" }));
             var result = GetPatch(actual);
             Assert.AreEqual(Clean(@"
 -      status: OutOfDate
@@ -71,7 +71,7 @@ namespace GitAutomation
         [TestMethod]
         public void SetBranchState()
         {
-            var actual = testRepository.Reduce(new StandardAction("RepositoryStructure:SetReserveState", new Dictionary<string, object> { { "Reserve", "feature/b" }, { "State", "Bananas" } }));
+            var actual = testRepository.Reduce(new StandardAction("RepositoryStructure:SetReserveState", new { Reserve = "feature/b" , State = "Bananas" }));
             var result = GetPatch(actual);
             Assert.AreEqual(Clean(@"
 -      status: OutOfDate
@@ -82,9 +82,10 @@ namespace GitAutomation
         [TestMethod]
         public void SetOutputCommit()
         {
-            var actual = testRepository.Reduce(new StandardAction("RepositoryStructure:SetOutputCommit", new Dictionary<string, object> {
-                { "Reserve", "feature/a" },
-                { "OutputCommit", testRepository.BranchReserves["line/1.0"].OutputCommit }
+            var actual = testRepository.Reduce(new StandardAction("RepositoryStructure:SetOutputCommit", new
+            {
+                Reserve= "feature/a",
+                testRepository.BranchReserves["line/1.0"].OutputCommit
             }));
             var result = GetPatch(actual);
             Assert.AreEqual(Clean(@"
@@ -97,9 +98,9 @@ namespace GitAutomation
         public void SetMeta()
         {
             var actual = testRepository.Reduce(new StandardAction("RepositoryStructure:SetMeta",
-                new Dictionary<string, object> {
-                { "Reserve", "feature/a" },
-                { "Meta", new Dictionary<string, object> { { "Owner", "anonymous" }, { "OriginalOwner", "mdekrey" } } }
+                new {
+                Reserve = "feature/a",
+                Meta = new Dictionary<string, object> { { "Owner", "anonymous" }, { "OriginalOwner", "mdekrey" } }
             }));
             var result = GetPatch(actual);
             Assert.AreEqual(Clean(@"
@@ -114,8 +115,8 @@ namespace GitAutomation
         public void RemoveReserve()
         {
             var actual = testRepository.Reduce(new StandardAction("RepositoryStructure:RemoveReserve",
-                new Dictionary<string, object> {
-                { "Reserve", "feature/a" }
+                new {
+                Reserve = "feature/a"
             }));
             var result = GetPatch(actual);
             Assert.AreEqual(Clean(@"

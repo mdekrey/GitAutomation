@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
@@ -7,14 +8,17 @@ namespace GitAutomation.DomainModels
 {
     public struct StandardAction
     {
-        public StandardAction(string action, Dictionary<string, object> payload)
+        public StandardAction(string action, object payload) : this(action, JToken.FromObject(payload))
+        {
+        }
+        public StandardAction(string action, JToken payload)
         {
             Action = action;
-            Payload = new Dictionary<string, object>(payload);
+            Payload = payload;
         }
 
         public string Action { get; set; }
-        public Dictionary<string, object> Payload { get; set; }
+        public JToken Payload { get; set; }
     }
 
 }
