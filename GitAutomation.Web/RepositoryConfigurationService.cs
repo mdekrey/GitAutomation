@@ -149,7 +149,6 @@ namespace GitAutomation.Web
             {
                 foreach (var change in changes)
                 {
-                    // TODO - separate commit/push, but consider pulling before pushing... causing us to backslide "committed" changes. Maybe we shouldn't separate commit/push.
                     await CommitChange(change.Timestamp, change.State, change.ModifiedBy);
                 }
                 await PushToRemote(changes.Select(c => c.Timestamp).Max());
