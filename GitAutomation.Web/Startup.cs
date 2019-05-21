@@ -43,6 +43,7 @@ namespace GitAutomation.Web
             services.AddSingleton<PowerShellScriptInvoker>();
             services.AddSingleton<RepositoryConfigurationService>();
             services.AddSingleton<TargetRepositoryService>();
+            services.AddSingleton<ReserveAutomationService>();
 
             services.AddSingleton(_ => new StateMachine<AppState>(AppState.Reducer, AppState.ZeroState));
             services.AddSingleton<IDispatcher>(sp => sp.GetRequiredService<StateMachine<AppState>>());
@@ -93,6 +94,7 @@ namespace GitAutomation.Web
 
             app.ApplicationServices.GetRequiredService<RepositoryConfigurationService>().AssertStarted();
             app.ApplicationServices.GetRequiredService<TargetRepositoryService>().AssertStarted();
+            app.ApplicationServices.GetRequiredService<ReserveAutomationService>().AssertStarted();
         }
     }
 }

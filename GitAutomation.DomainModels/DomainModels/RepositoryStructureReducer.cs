@@ -44,7 +44,7 @@ namespace GitAutomation.DomainModels
             var result = original.SetBranchReserves(b => b.Add(name, new BranchReserve(
                 reserveType: type,
                 flowType: flowType,
-                status: "OutOfDate",
+                status: "Stable",
                 upstream: upstream.ToImmutableSortedDictionary(b => b, b => new UpstreamReserve(BranchReserve.EmptyCommit)),
                 includedBranches: originalBranch == null ? ImmutableSortedDictionary<string, BranchReserveBranch>.Empty
                     : new Dictionary<string, BranchReserveBranch>

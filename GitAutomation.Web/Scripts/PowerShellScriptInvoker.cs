@@ -1,10 +1,12 @@
 ﻿using GitAutomation.DomainModels;
 using GitAutomation.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Threading.Tasks;
@@ -15,11 +17,13 @@ namespace GitAutomation.Web.Scripts
     {
         private readonly IDispatcher dispatcher;
         private readonly ILogger logger;
+        private readonly string customPath;
 
-        public PowerShellScriptInvoker(IDispatcher dispatcher, ILogger<PowerShellScriptInvoker> logger)
+        public PowerShellScriptInvoker(IDispatcher dispatcher, ILogger<PowerShellScriptInvoker> logger, IOptions<ConfigRepositoryOptions> options)
         {
             this.dispatcher = dispatcher;
             this.logger = logger;
+            customPath = options.Value.CheckoutPath;
         }
 
         public IPowerShellStreams<StandardAction> Invoke(string scriptPath, object loggedParameters, object hiddenParameters, IAgentSpecification agentSpecification)
@@ -65,9 +69,16 @@ namespace GitAutomation.Web.Scripts
 
         private string ResolveScriptPath(string scriptPath)
         {
+            if (scriptPath.Contains("/.") || scriptPath.Contains("\\"))
+            {
+                throw new InvalidOperationException($"Invalid path found: {scriptPath}");
+            }
             if (scriptPath.StartsWith("$/"))
             {
                 return "./Scripts" + scriptPath.Substring(1);
+            } else if (scriptPath.StartsWith("./"))
+            {
+                return Path.Combine(customPath, scriptPath.Substring(2));
             }
             else
             {

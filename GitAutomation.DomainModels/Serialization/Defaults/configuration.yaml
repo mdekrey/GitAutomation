@@ -7,14 +7,16 @@
             nomenclatures. They last until they are released, as bug fixes are applied directly to the features that
             the bug resulted from.
         color: "377fc0"
-        stateScripts: {}
+        stateScripts: 
+            Stable: $/Repository/Common/handleStableBranch.ps1
     rc:
         title: Release Candidate
         helpLink: http://scaledgitflow.com#3ce6
         description: These progress from being release candidates to released versions. No work should be done directly
             on a release candidate.
         color: "6f256f"
-        stateScripts: {}
+        stateScripts: 
+            Stable: $/Repository/Common/handleStableBranch.ps1
     line:
         title: Service Line
         helpLink: http://scaledgitflow.com#2fa1
@@ -22,14 +24,16 @@
             When a product only needs one of these, it is often referred to as "master". No work should be done
             directly on a service line.
         color: "6fce1f"
-        stateScripts: {}
+        stateScripts: 
+            Stable: $/Repository/Common/handleStableBranch.ps1
     hotfix:
         title: Hot Fix
         helpLink: http://scaledgitflow.com#7a21
         description: These are patches to an existing service line that can get tested individually. They act as a 
             feature and release candidate as one, and are intended for quick individual fixes.
         color: "ff733b"
-        stateScripts: {}
+        stateScripts: 
+            Stable: $/Repository/Common/handleStableBranch.ps1
     infrastructure:
         title: Infrastructure
         helpLink: http://scaledgitflow.com#efa9
@@ -41,7 +45,8 @@
             "framework" or "architecture" for these types of branches, especially given various business
             methodologies.)
         color: "377fc0"
-        stateScripts: {}
+        stateScripts: 
+            Stable: $/Repository/Common/handleStableBranch.ps1
     integration:
         title: Integration
         helpLink: http://scaledgitflow.com#1f74
@@ -50,4 +55,5 @@
             specific branches (feature, infrastructure, or another integration branch) are merged together. Only these
             special cases should be worked on an integration branch.
         color: "626262"
-        stateScripts: {}
+        stateScripts: 
+            Stable: $/Repository/Common/handleStableBranch.ps1
