@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
@@ -26,9 +29,7 @@ namespace GitAutomation.Web
         private IPowerShellStreams<StandardAction> lastLoadResult;
         private IPowerShellStreams<StandardAction> lastPushResult;
         private Meta meta;
-        private DateTimeOffset lastNeedPullTimestamp;
-        private DateTimeOffset lastPulledTimestamp;
-        private DateTimeOffset lastStoredFieldModifiedTimestamp;
+        private ImmutableSortedDictionary<ConfigurationRepositoryState.ConfigurationTimestampType, DateTimeOffset> lastTimestamps;
 
         private readonly struct ConfigurationChange
         {
@@ -48,6 +49,7 @@ namespace GitAutomation.Web
 
         // TODO - this would be better with an action block
         private readonly BufferBlock<ConfigurationChange> configurationChanges = new BufferBlock<ConfigurationChange>();
+        private readonly ActionBlock<Unit> changeProcessor;
 
         public RepositoryConfigurationService(IOptions<ConfigRepositoryOptions> options, PowerShellScriptInvoker scriptInvoker, ILogger<RepositoryConfigurationService> logger, IDispatcher dispatcher, IStateMachine<AppState> stateMachine)
         {
@@ -55,12 +57,11 @@ namespace GitAutomation.Web
             this.scriptInvoker = scriptInvoker;
             this.logger = logger;
             this.dispatcher = dispatcher;
+            changeProcessor = new ActionBlock<Unit>(_ => DoRepositoryAction());
             subscription = stateMachine.StateUpdates
                 .Select(state => new { state.State.Configuration, state.LastChangeBy })
                 .DistinctUntilChanged(k => k.Configuration)
                 .Subscribe(e => OnStateUpdated(e.Configuration, e.LastChangeBy));
-
-            Task.Run(ConfigurationChangeCommitter);
         }
 
         public void AssertStarted()
@@ -70,30 +71,29 @@ namespace GitAutomation.Web
 
         private void OnStateUpdated(ConfigurationRepositoryState state, IAgentSpecification modifiedBy)
         {
+            if (lastTimestamps != null && lastTimestamps[StoredFieldModified] != state.Timestamps[StoredFieldModified])
+            {
+                configurationChanges.Post(new ConfigurationChange(state.Timestamps[StoredFieldModified], state, modifiedBy));
+            }
+
+            lastTimestamps = state.Timestamps;
+            changeProcessor.Post(Unit.Default);
+        }
+
+        private async Task DoRepositoryAction()
+        {
             // FIXME - should I do this with switchmap/cancellation tokens?
-            if (state.Timestamps[NeedPull] > state.Timestamps[Pulled])
+            if (lastTimestamps[StoredFieldModified] > lastTimestamps[Pushed])
             {
-                if (lastNeedPullTimestamp != state.Timestamps[NeedPull])
-                {
-                    lastNeedPullTimestamp = state.Timestamps[NeedPull];
-                    BeginLoad(state.Timestamps[NeedPull]);
-                }
+                await ConfigurationChangeCommitter();
             }
-            else if (state.Timestamps[Pulled] > state.Timestamps[LoadedFromDisk])
+            else if (lastTimestamps[NeedPull] > lastTimestamps[Pulled])
             {
-                if (lastPulledTimestamp != state.Timestamps[Pulled])
-                {
-                    lastPulledTimestamp = state.Timestamps[Pulled];
-                    LoadFromDisk(state.Timestamps[Pulled]);
-                }
+                    await BeginLoad(lastTimestamps[NeedPull]);
             }
-            else if (state.Timestamps[StoredFieldModified] > state.Timestamps[Pushed])
+            else if (lastTimestamps[Pulled] > lastTimestamps[LoadedFromDisk])
             {
-                if (lastStoredFieldModifiedTimestamp != state.Timestamps[StoredFieldModified])
-                {
-                    lastStoredFieldModifiedTimestamp = state.Timestamps[StoredFieldModified];
-                    configurationChanges.Post(new ConfigurationChange(state.Timestamps[StoredFieldModified], state, modifiedBy));
-                }
+                 await   LoadFromDisk(lastTimestamps[Pulled]);
             }
         }
 
@@ -123,9 +123,11 @@ namespace GitAutomation.Web
                 logger.LogError(ex, "Unable to load configuration");
             }
             dispatcher.Dispatch(new StandardAction("ConfigurationRepository:Loaded", new Dictionary<string, object> { { "configuration", config.Result }, { "structure", structure.Result }, { "startTimestamp", startTimestamp } }), SystemAgent.Instance);
+            // clear out any interim config changes, as they're now out of date...
+            configurationChanges.TryReceiveAll(out var _);
             if (!exists)
             {
-                // TODO - this action should probably be combined with updating the store
+                // this action is not combined with updating the store as the Loaded action does not know that we aren't overriding it from a normal load
                 dispatcher.Dispatch(new StandardAction("ConfigurationRepository:Written", new Dictionary<string, object> { { "startTimestamp", startTimestamp } }), SystemAgent.Instance);
             }
         }
@@ -145,15 +147,18 @@ namespace GitAutomation.Web
 
         private async Task ConfigurationChangeCommitter()
         {
-            while (await configurationChanges.OutputAvailableAsync())
+            if (configurationChanges.TryReceiveAll(out var changes))
             {
-                var change = await configurationChanges.ReceiveAsync();
-                // TODO - separate commit/push, but consider pulling before pushing... causing us to backslide "committed" changes. Maybe we shouldn't separate commit/push.
-                await PushToRemote(change.Timestamp, change.State, change.ModifiedBy);
+                foreach (var change in changes)
+                {
+                    // TODO - separate commit/push, but consider pulling before pushing... causing us to backslide "committed" changes. Maybe we shouldn't separate commit/push.
+                    await CommitChange(change.Timestamp, change.State, change.ModifiedBy);
+                }
+                await PushToRemote(changes.Select(c => c.Timestamp).Max());
             }
         }
 
-        private async Task PushToRemote(DateTimeOffset startTimestamp, ConfigurationRepositoryState state, IAgentSpecification modifiedBy)
+        private async Task CommitChange(DateTimeOffset startTimestamp, ConfigurationRepositoryState state, IAgentSpecification modifiedBy)
         {
             await Task.WhenAll(
                 SerializationUtils.SaveConfigurationAsync(meta, state.Configuration),
@@ -161,7 +166,13 @@ namespace GitAutomation.Web
             );
 
             // TODO - convert agent to user name/email
-            lastPushResult = scriptInvoker.Invoke("$/Config/commitAndPush.ps1", new { startTimestamp }, options, SystemAgent.Instance);
+            lastPushResult = scriptInvoker.Invoke("$/Config/commit.ps1", new { startTimestamp }, options, SystemAgent.Instance);
+            await lastPushResult;
+        }
+
+        private async Task PushToRemote(DateTimeOffset startTimestamp)
+        {
+            lastPushResult = scriptInvoker.Invoke("$/Config/push.ps1", new { startTimestamp }, options, SystemAgent.Instance);
             await lastPushResult;
         }
 

@@ -40,7 +40,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Scripts\Config\commitAndPush.ps1">
+    <None Update="Scripts\Config\commit.ps1">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Config\push.ps1">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Scripts\Globals.ps1">
