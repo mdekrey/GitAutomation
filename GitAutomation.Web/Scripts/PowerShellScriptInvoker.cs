@@ -76,10 +76,12 @@ namespace GitAutomation.Web.Scripts
             if (scriptPath.StartsWith("$/"))
             {
                 return "./Scripts" + scriptPath.Substring(1);
-            } else if (scriptPath.StartsWith("./"))
-            {
-                return Path.Combine(customPath, scriptPath.Substring(2));
             }
+            // This could be arbitrary script execution if someone compromises a git repo. Don't have this on by default.
+            //else if (scriptPath.StartsWith("./"))
+            //{
+            //    return Path.Combine(customPath, scriptPath.Substring(2));
+            //}
             else
             {
                 throw new NotImplementedException($"Unknown script path {scriptPath}");
