@@ -40,6 +40,7 @@ namespace GitAutomation.Web
 
             services.AddOptions<ConfigRepositoryOptions>().Configure(opt => Configuration.GetSection("configurationGit").Bind(opt));
             services.AddOptions<TargetRepositoryOptions>().Configure(opt => Configuration.GetSection("targetGit").Bind(opt));
+            services.AddOptions<AutomationOptions>().Configure(opt => Configuration.GetSection("automation").Bind(opt));
             services.AddSingleton<PowerShellScriptInvoker>();
             services.AddSingleton<RepositoryConfigurationService>();
             services.AddSingleton<TargetRepositoryService>();

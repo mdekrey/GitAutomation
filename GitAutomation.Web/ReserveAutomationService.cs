@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -17,7 +18,8 @@ namespace GitAutomation.Web
 {
     public class ReserveAutomationService
     {
-        private readonly TargetRepositoryOptions options;
+        private readonly TargetRepositoryOptions targetRepositoryOptions;
+        private readonly AutomationOptions automationOptions;
         private readonly PowerShellScriptInvoker scriptInvoker;
         private readonly ILogger logger;
         private readonly IStateMachine<AppState> stateMachine;
@@ -26,8 +28,6 @@ namespace GitAutomation.Web
         private IPowerShellStreams<StandardAction> lastLoadFromDiskResult;
         private readonly ConcurrentDictionary<string, SingleReserveAutomation> reserves = new ConcurrentDictionary<string, SingleReserveAutomation>();
         private readonly ActionBlock<string> reserveProcessor;
-
-        public IPowerShellStreams<StandardAction> LastScript { get; private set; }
 
         readonly struct ReserveFullState
         {
@@ -52,6 +52,7 @@ namespace GitAutomation.Web
 
             public string Name { get; }
             public ReserveFullState Data { get; private set; }
+            public IPowerShellStreams<StandardAction> LastScript { get; set; }
 
             public SingleReserveAutomation(string name, IStateMachine<AppState> stateMachine, ReserveAutomationService service)
             {
@@ -93,9 +94,10 @@ namespace GitAutomation.Web
             reserveProcessor.Post(name);
         }
 
-        public ReserveAutomationService(IOptions<TargetRepositoryOptions> options, PowerShellScriptInvoker scriptInvoker, ILogger<TargetRepositoryService> logger, IStateMachine<AppState> stateMachine)
+        public ReserveAutomationService(IOptions<TargetRepositoryOptions> options, IOptions<AutomationOptions> automationOptions, PowerShellScriptInvoker scriptInvoker, ILogger<TargetRepositoryService> logger, IStateMachine<AppState> stateMachine)
         {
-            this.options = options.Value;
+            this.targetRepositoryOptions = options.Value;
+            this.automationOptions = automationOptions.Value;
             this.scriptInvoker = scriptInvoker;
             this.logger = logger;
             this.stateMachine = stateMachine;
@@ -118,16 +120,20 @@ namespace GitAutomation.Web
                 {
                     return;
                 }
+
                 var reserve = reserveFullState.Data.Reserve;
                 var scripts = stateMachine.State.Configuration.Configuration.ReserveTypes[reserve.ReserveType].StateScripts;
                 if (scripts.TryGetValue(reserve.Status, out var scriptName))
                 {
-                    LastScript = await scriptInvoker.Invoke(
+                    var path = Path.Combine(automationOptions.WorkspacePath, Path.GetRandomFileName());
+                    Directory.CreateDirectory(path);
+                    reserveFullState.LastScript = await scriptInvoker.Invoke(
                         scriptName, 
-                        new { reserveFullState.Name, reserveFullState.Data.BranchDetails, reserveFullState.Data.Reserve, reserveFullState.Data.UpstreamReserves }, 
-                        new { /* TODO - we will need to access git */ }, 
+                        new { reserveFullState.Name, reserveFullState.Data.BranchDetails, reserveFullState.Data.Reserve, reserveFullState.Data.UpstreamReserves, workingPath = path, workingRemote = automationOptions.WorkingRemote }, 
+                        targetRepositoryOptions, 
                         SystemAgent.Instance
                     );
+                    Directory.Delete(path, recursive: true);
                 }
             }
         }

@@ -31,9 +31,6 @@ param(
 $changedBranches = $branchDetails.Keys | ? { $branchDetails[$_] -ne $reserve.IncludedBranches[$_].LastCommit }
 $changedReserves = $upstreamReserves.Keys | ? { $upstreamReserves[$_].OutputCommit -ne $reserve.Upstream[$_] }
 
-$changedBranches | ConvertTo-Json -Depth 5 | Write-Error
-$upstreamReserves | ConvertTo-Json -Depth 5 | Write-Error
-
 if ($changedBranches.Count -or $changedReserves.Count)
 {
 	$branchChanges = @{}
