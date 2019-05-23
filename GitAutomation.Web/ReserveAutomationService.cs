@@ -31,7 +31,7 @@ namespace GitAutomation.Web
 
         readonly struct ReserveFullState
         {
-            public ReserveFullState(BranchReserve reserve, IEnumerable<string> branchDetails, IEnumerable<BranchReserve> upstreamReserves)
+            public ReserveFullState(BranchReserve reserve, Dictionary<string, string> branchDetails, Dictionary<string,BranchReserve> upstreamReserves)
             {
                 Reserve = reserve;
                 BranchDetails = branchDetails;
@@ -39,9 +39,9 @@ namespace GitAutomation.Web
             }
 
             public BranchReserve Reserve { get; }
-            public IEnumerable<string> BranchDetails { get; }
-            public IEnumerable<BranchReserve> UpstreamReserves { get; }
-            public bool IsValid => !UpstreamReserves.Any(r => r == null);
+            public Dictionary<string, string> BranchDetails { get; }
+            public Dictionary<string, BranchReserve> UpstreamReserves { get; }
+            public bool IsValid => !UpstreamReserves.Values.Any(r => r == null);
         }
 
         class SingleReserveAutomation : IDisposable
@@ -64,8 +64,8 @@ namespace GitAutomation.Web
                         var reserves = state.State.Configuration.Structure.BranchReserves;
                         var branches = state.State.Target.Branches;
                         var reserve = reserves[name];
-                        var branchDetails = reserve.IncludedBranches.Keys.Select(k => branches.ContainsKey(k) ? branches[k] : BranchReserve.EmptyCommit);
-                        var upstreamReserves = reserve.Upstream.Keys.Select(upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : null);
+                        var branchDetails = reserve.IncludedBranches.Keys.ToDictionary(k => k, k => branches.ContainsKey(k) ? branches[k] : BranchReserve.EmptyCommit);
+                        var upstreamReserves = reserve.Upstream.Keys.ToDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : null);
                         return new ReserveFullState (reserve, branchDetails, upstreamReserves );
                     })
                     // TODO - this isn't fast, but it does work
@@ -122,7 +122,12 @@ namespace GitAutomation.Web
                 var scripts = stateMachine.State.Configuration.Configuration.ReserveTypes[reserve.ReserveType].StateScripts;
                 if (scripts.TryGetValue(reserve.Status, out var scriptName))
                 {
-                    LastScript = await scriptInvoker.Invoke(scriptName, reserveFullState, new { /* TODO - we will need to access git */ }, SystemAgent.Instance);
+                    LastScript = await scriptInvoker.Invoke(
+                        scriptName, 
+                        new { reserveFullState.Name, reserveFullState.Data.BranchDetails, reserveFullState.Data.Reserve, reserveFullState.Data.UpstreamReserves }, 
+                        new { /* TODO - we will need to access git */ }, 
+                        SystemAgent.Instance
+                    );
                 }
             }
         }

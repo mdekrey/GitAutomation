@@ -165,6 +165,7 @@ namespace GitAutomation.Web
 
             // TODO - convert agent to user name/email
             lastPushResult = scriptInvoker.Invoke("$/Config/commit.ps1", new { startTimestamp }, options, SystemAgent.Instance);
+            // TODO - I'm concerned there's a race condition in here given that committed changes are cleared out after a load from disk, not after fetch...
             await lastPushResult;
         }
 

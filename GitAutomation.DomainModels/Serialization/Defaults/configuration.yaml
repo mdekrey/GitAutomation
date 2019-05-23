@@ -9,6 +9,7 @@
         color: "377fc0"
         stateScripts: 
             Stable: $/Repository/Common/handleStableBranch.ps1
+            OutOfDate: $/Repository/Common/handleOutOfDateBranch.ps1
     rc:
         title: Release Candidate
         helpLink: http://scaledgitflow.com#3ce6
@@ -17,6 +18,7 @@
         color: "6f256f"
         stateScripts: 
             Stable: $/Repository/Common/handleStableBranch.ps1
+            OutOfDate: $/Repository/Common/handleOutOfDateBranch.ps1
     line:
         title: Service Line
         helpLink: http://scaledgitflow.com#2fa1
@@ -26,6 +28,7 @@
         color: "6fce1f"
         stateScripts: 
             Stable: $/Repository/Common/handleStableBranch.ps1
+            OutOfDate: $/Repository/Common/handleOutOfDateBranch.ps1
     hotfix:
         title: Hot Fix
         helpLink: http://scaledgitflow.com#7a21
@@ -34,6 +37,7 @@
         color: "ff733b"
         stateScripts: 
             Stable: $/Repository/Common/handleStableBranch.ps1
+            OutOfDate: $/Repository/Common/handleOutOfDateBranch.ps1
     infrastructure:
         title: Infrastructure
         helpLink: http://scaledgitflow.com#efa9
@@ -47,6 +51,7 @@
         color: "377fc0"
         stateScripts: 
             Stable: $/Repository/Common/handleStableBranch.ps1
+            OutOfDate: $/Repository/Common/handleOutOfDateBranch.ps1
     integration:
         title: Integration
         helpLink: http://scaledgitflow.com#1f74

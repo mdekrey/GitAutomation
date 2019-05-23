@@ -16,8 +16,10 @@ namespace GitAutomation.DomainModels
                 "RepositoryStructure:SetReserveState" => SetBranchState(original, (string)action.Payload["Reserve"], (string)action.Payload["State"]),
                 "RepositoryStructure:SetOutputCommit" => SetOutputCommit(original, (string)action.Payload["Reserve"], (string)action.Payload["OutputCommit"]),
                 "RepositoryStructure:SetMeta" => SetMeta(original, (string)action.Payload["Reserve"], action.Payload["Meta"].ToObject<Dictionary<string, object>>()),
-                "RepositoryStructure:CreateReserve" => CreateReserve(original, action.Payload),
+                "RepositoryStructure:CreateReserve" => CreateReserve(original, action.Payload.ToObject<CreateReservePayload>()),
                 "RepositoryStructure:RemoveReserve" => RemoveReserve(original, (string)action.Payload["Reserve"]),
+                "RepositoryStructure:SetOutOfDate" => SetReserveOutOfDate(original, action.Payload.ToObject<SetReserveOutOfDatePayload>()),
+                "RepositoryStructure:StabilizeNoUpstream" => StabilizeNoUpstream(original, action.Payload.ToObject<StabilizeNoUpstreamPayload>()),
                 _ => original
             };
         }
@@ -44,10 +46,9 @@ namespace GitAutomation.DomainModels
             public string OriginalBranch { get; set; } = "";
         }
 
-        private static RepositoryStructure CreateReserve(RepositoryStructure original, JToken payload)
+        private static RepositoryStructure CreateReserve(RepositoryStructure original, CreateReservePayload data)
         {
-            var data = payload.ToObject<CreateReservePayload>();
-
+            // TODO - add owner meta
             var result = original.SetBranchReserves(b => b.Add(data.Name, new BranchReserve(
                 reserveType: data.Type,
                 flowType: data.FlowType,
@@ -56,7 +57,13 @@ namespace GitAutomation.DomainModels
                 includedBranches: data.OriginalBranch == null ? ImmutableSortedDictionary<string, BranchReserveBranch>.Empty
                     : new Dictionary<string, BranchReserveBranch>
                     {
-                        { data.OriginalBranch, new BranchReserveBranch(BranchReserve.EmptyCommit) }
+                        { data.OriginalBranch, new BranchReserveBranch(
+                            BranchReserve.EmptyCommit, 
+                            new Dictionary<string, string>()
+                            {
+                                { "Role", "Output" }
+                            }.ToImmutableSortedDictionary()
+                        ) }
                     }.ToImmutableSortedDictionary(),
                 outputCommit: BranchReserve.EmptyCommit,
                 meta: ImmutableSortedDictionary<string, object>.Empty
@@ -79,5 +86,44 @@ namespace GitAutomation.DomainModels
                             )
                  )
             );
+
+        class SetReserveOutOfDatePayload
+        {
+#nullable disable
+            public string Reserve { get; set; }
+            public Dictionary<string, string> BranchCommits { get; set; }
+            public Dictionary<string, string> ReserveOutputCommits { get; set; }
+#nullable restore
+        }
+
+        private static RepositoryStructure SetReserveOutOfDate(RepositoryStructure original, SetReserveOutOfDatePayload payload) =>
+            original.SetBranchReserves(br =>
+                br.SetItem(payload.Reserve, br[payload.Reserve]
+                    .SetStatus("OutOfDate")
+                    .SetIncludedBranches(branches => payload.BranchCommits.Aggregate(branches, (b, kvp) => b.SetItem(kvp.Key, b[kvp.Key].SetLastCommit(kvp.Value))))
+                    .SetUpstream(reserves => payload.ReserveOutputCommits.Aggregate(reserves, (r, kvp) => r.SetItem(kvp.Key, r[kvp.Key].SetLastOutput(kvp.Value))))
+                    )
+            );
+
+        class StabilizeNoUpstreamPayload
+        {
+#nullable disable
+            public string Reserve { get; set; }
+            public Dictionary<string, string> BranchCommits { get; set; }
+        }
+
+        private static RepositoryStructure StabilizeNoUpstream(RepositoryStructure original, StabilizeNoUpstreamPayload payload) =>
+            original.SetBranchReserves(br => {
+                var targetReserve = br[payload.Reserve]
+                    .SetStatus("Stable")
+                    .SetIncludedBranches(branches => payload.BranchCommits.Aggregate(branches, (b, kvp) => b.SetItem(kvp.Key, b[kvp.Key].SetLastCommit(kvp.Value))));
+                var outputBranch = targetReserve.IncludedBranches.Where(branch => branch.Value.Meta.TryGetValue("Role", out var role) && role == "Output").ToArray();
+                if (outputBranch.Length == 1)
+                {
+                    targetReserve = targetReserve.SetOutputCommit(outputBranch[0].Value.LastCommit);
+                }
+                return br.SetItem(payload.Reserve, targetReserve);
+#nullable restore
+            });
     }
 }

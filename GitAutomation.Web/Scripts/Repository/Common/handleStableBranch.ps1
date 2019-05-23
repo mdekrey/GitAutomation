@@ -1,7 +1,51 @@
 ﻿#!/usr/bin/env pwsh
 
 param(
-	[string] $name
+	[string] $name,
+	[GitAutomation.DomainModels.BranchReserve] $reserve,
+	[HashTable] $branchDetails,
+	[HashTable] $upstreamReserves
 )
 
-return Build-StandardAction "RepositoryStructure:SetReserveState" @{ "Reserve" = $name; "State" = "OutOfDate" }
+# reserve:
+# {
+#   "ReserveType": "line",
+#   "FlowType": "Automatic",
+#   "Status": "Stable",
+#   "Upstream": {},
+#   "IncludedBranches": {
+#     "origin/line/0.7": {
+#       "LastCommit": "0000000000000000000000000000000000000000",
+#       "Meta": {
+#         "Role": "Output"
+#       }
+#     }
+#   },
+#   "OutputCommit": "0000000000000000000000000000000000000000",
+#   "Meta": {}
+# }
+
+# branchDetails:
+# { "origin/line/0.7": "---commit---" }
+
+$changedBranches = $branchDetails.Keys | ? { $branchDetails[$_] -ne $reserve.IncludedBranches[$_].LastCommit }
+$changedReserves = $upstreamReserves.Keys | ? { $upstreamReserves[$_].OutputCommit -ne $reserve.Upstream[$_] }
+
+$changedBranches | ConvertTo-Json -Depth 5 | Write-Error
+$upstreamReserves | ConvertTo-Json -Depth 5 | Write-Error
+
+if ($changedBranches.Count -or $changedReserves.Count)
+{
+	$branchChanges = @{}
+	$changedBranches | % { $branchChanges[$_] = $branchDetails[$_] }
+	
+	$reserveChanges = @{}
+	$changedReserves | % { $reserveChanges[$_] = $upstreamReserves[$_].OutputCommit }
+
+	if (-not $upstreamReserves.Keys.Count)
+	{
+		return Build-StandardAction "RepositoryStructure:StabilizeNoUpstream" @{ "Reserve" = $name; "BranchCommits" = $branchChanges }
+	} 
+
+	return Build-StandardAction "RepositoryStructure:SetOutOfDate" @{ "Reserve" = $name; "BranchCommits" = $branchChanges; "ReserveOutputCommits" = $reserveChanges }
+}
