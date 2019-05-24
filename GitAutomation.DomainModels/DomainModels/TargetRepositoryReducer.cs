@@ -20,8 +20,13 @@ namespace GitAutomation.DomainModels
             "TargetRepository:GitPasswordIncorrect" => TargetRepositoryPasswordIncorrect(original, action),
             "TargetRepository:Fetched" => TargetFetched(original, action),
             "TargetRepository:Refs" => TargetRefs(original, action),
+            "NeedFetch" => NeedFetch(original),
+            "PushedReserve" => NeedFetch(original),
             _ => original
         };
+
+        private static TargetRepositoryState NeedFetch(TargetRepositoryState original) =>
+            original.With(timestampFunc: t => t.SetItem(NeededFetch, DateTimeOffset.Now));
 
         private static TargetRepositoryState TargetDirectoryNotAccessible(TargetRepositoryState original, StandardAction action) =>
             original.Timestamps[NeededFetch].IfApproximateMatch(action.Payload["startTimestamp"])

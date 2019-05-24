@@ -129,7 +129,15 @@ namespace GitAutomation.Web
                     Directory.CreateDirectory(path);
                     reserveFullState.LastScript = await scriptInvoker.Invoke(
                         scriptName, 
-                        new { reserveFullState.Name, reserveFullState.Data.BranchDetails, reserveFullState.Data.Reserve, reserveFullState.Data.UpstreamReserves, workingPath = path, workingRemote = automationOptions.WorkingRemote }, 
+                        new {
+                            reserveFullState.Name,
+                            reserveFullState.Data.BranchDetails,
+                            reserveFullState.Data.Reserve,
+                            reserveFullState.Data.UpstreamReserves,
+                            workingPath = path,
+                            automationOptions.WorkingRemote,
+                            automationOptions.DefaultRemote
+                        }, 
                         targetRepositoryOptions, 
                         SystemAgent.Instance
                     );

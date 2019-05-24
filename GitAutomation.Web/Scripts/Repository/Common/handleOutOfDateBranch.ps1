@@ -8,7 +8,7 @@ param(
 	[Hashtable] $remotes,
 	[string] $checkoutPath,
 	[string] $workingPath,
-	[string] $workingRemote,
+	[string] $defaultRemote,
 	[string] $userEmail,
 	[string] $userName
 )
@@ -75,8 +75,14 @@ if ($unstableBranches.Count -ne 0)
 	return
 }
 
+$newOutputBranch = $false
 $outputBranch = $reserve.IncludedBranches.Keys | ? { $reserve.IncludedBranches[$_].Meta.Role -eq "Output" }
-if ($outputBranch.Count -ne 1)
+if ($outputBranch.Count -eq 0)
+{
+	$outputBranch = "$defaultRemote/$name"
+	$newOutputBranch = $true
+}
+elseif ($outputBranch.Count -ne 1)
 {
 	"Exactly one output branch expected. The following branches were marked as Output" | Write-Verbose
 	$outputBranch | Write-Verbose
@@ -87,12 +93,23 @@ Push-Location "$workingPath"
 Set-GitAuthor -authorEmail $userEmail -authorName $userName
 Set-GitCommitter -committerEmail $userEmail -committerName $userName
 
-git clone --shared --origin $workingRemote --no-checkout $checkoutPath . | Write-Verbose
-git checkout "$workingRemote/$outputBranch" | Write-Verbose
+$push = $False
+git clone --shared --no-checkout $checkoutPath . | Write-Verbose
+git checkout "origin/$outputBranch" | Write-Verbose
+if ($newOutputBranch -and $LastExitCode -eq 0)
+{
+	"Default output branch '$outputBranch' already exists but was not allocated to reserve." | Write-Verbose
+	return
+}
+elseif ($newOutputBranch)
+{
+	$push = $True
+	git checkout $upstreamReserves[$upstreamReserves.Keys[0]].OutputCommit | Write-Verbose
+}
+
 
 $finalState = "Stable"
 $upstreamNeeded = @()
-$push = $False
 foreach ($_ in $upstreamReserves.Keys)
 {
 	$commit = $upstreamReserves[$_].OutputCommit
@@ -128,11 +145,34 @@ $outputBranchRemoteName = $branchParts[1]
 
 if ($push) {
 	Set-GitPassword "$($remotes[$baseRemote].password)"
-	git remote add $remote "$($remotes[$remote].repository)" | Write-Verbose
-	# git push $remote "HEAD:$outputBranchRemoteName" | Write-Verbose
+	git push "$($remotes[$baseRemote].repository)" "HEAD:refs/heads/$outputBranchRemoteName" | Write-Verbose
 }
 
 @{ "Conflicts" = $upstreamNeeded; "State" = $finalState; "Push" = $push } | ConvertTo-Json | Write-Verbose
+
+if ($finalState -eq "Stable")
+{
+	$payload = @{ "Reserve" = $name; "BranchCommits" = @{ } }
+	$payload.BranchCommits[$outputBranch] = git rev-parse HEAD
+	if ($newOutputBranch)
+	{
+		$payload.NewOutput = $outputBranch
+	}
+	
+	$reserveChanges = @{}
+	$changedReserves | % { $reserveChanges[$_] = $upstreamReserves[$_].OutputCommit }
+	$payload.ReserveOutputCommits = $reserveChanges
+
+	return Build-StandardAction "PushedReserve" $payload
+}
+elseif ($finalState -eq "NeedsUpdate")
+{
+
+}
+elseif ($finalState -eq "Conflicted")
+{
+
+}
 
 Pop-Location
 

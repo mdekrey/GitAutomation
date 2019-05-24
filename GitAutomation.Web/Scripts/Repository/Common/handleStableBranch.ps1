@@ -29,7 +29,7 @@ param(
 # { "origin/line/0.7": "---commit---" }
 
 $changedBranches = $branchDetails.Keys | ? { $branchDetails[$_] -ne $reserve.IncludedBranches[$_].LastCommit }
-$changedReserves = $upstreamReserves.Keys | ? { $upstreamReserves[$_].OutputCommit -ne $reserve.Upstream[$_] }
+$changedReserves = $upstreamReserves.Keys | ? { $upstreamReserves[$_].OutputCommit -ne $reserve.Upstream[$_].LastOutput }
 
 if ($changedBranches.Count -or $changedReserves.Count)
 {

@@ -10,5 +10,6 @@ namespace GitAutomation.Web
         public int WorkerCount { get; set; }
         public string WorkspacePath { get; set; }
         public string WorkingRemote { get; set; }
+        public string DefaultRemote { get; set; }
     }
 }
