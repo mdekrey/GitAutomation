@@ -20,8 +20,8 @@ namespace GitAutomation.DomainModels
             "TargetRepository:GitPasswordIncorrect" => TargetRepositoryPasswordIncorrect(original, action),
             "TargetRepository:Fetched" => TargetFetched(original, action),
             "TargetRepository:Refs" => TargetRefs(original, action),
-            "NeedFetch" => NeedFetch(original),
-            "PushedReserve" => NeedFetch(original),
+            "TargetRepository:NeedFetch" => NeedFetch(original),
+            "RepositoryStructure:PushedReserve" => NeedFetch(original),
             _ => original
         };
 

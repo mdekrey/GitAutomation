@@ -64,6 +64,17 @@ namespace GitAutomation.DomainModels
             return new Builder(this);
         }
 
+        public override bool Equals(object obj)
+        {
+            return obj is RepositoryStructure structure &&
+                   EqualityComparer<ImmutableDictionary<string, object>>.Default.Equals(data, structure.data);
+        }
+
+        public override int GetHashCode()
+        {
+            return 1768953197 + EqualityComparer<ImmutableDictionary<string, object>>.Default.GetHashCode(data);
+        }
+
         public class Builder
         {
             private RepositoryStructure original;

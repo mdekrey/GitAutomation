@@ -22,7 +22,7 @@ namespace GitAutomation.DomainModels
                 // Complex reducers
                 "RepositoryStructure:SetOutOfDate" => SetReserveOutOfDate(original, action.Payload.ToObject<SetReserveOutOfDatePayload>()),
                 "RepositoryStructure:StabilizeNoUpstream" => StabilizeNoUpstream(original, action.Payload.ToObject<StabilizeNoUpstreamPayload>()),
-                "PushedReserve" => PushedReserve(original, action.Payload.ToObject<StabilizePushedReservePayload>()),
+                "RepositoryStructure:PushedReserve" => PushedReserve(original, action.Payload.ToObject<StabilizePushedReservePayload>()),
                 "TargetRepository:Refs" => ClearPushOnReserves(original),
                 _ => original
             };

@@ -163,7 +163,7 @@ if ($finalState -eq "Stable")
 	$changedReserves | % { $reserveChanges[$_] = $upstreamReserves[$_].OutputCommit }
 	$payload.ReserveOutputCommits = $reserveChanges
 
-	return Build-StandardAction "PushedReserve" $payload
+	return Build-StandardAction "RepositoryStructure:PushedReserve" $payload
 }
 elseif ($finalState -eq "NeedsUpdate")
 {
