@@ -95,7 +95,7 @@ if ($LastExitCode -ne 0)
 	return Build-StandardAction "ConfigurationRepository:GitPasswordIncorrect" @{ "startTimestamp" = $startTimestamp }
 }
 
-git checkout origin/gitauto-config | Out-Host
+git checkout "origin/$branchName" | Out-Host
 if ($LastExitCode -ne 0)
 {
 	# There can be a lot of noise in these, so we just ignore exit codes

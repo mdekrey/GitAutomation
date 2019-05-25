@@ -4,12 +4,11 @@ using System.Linq;
 using GitAutomation.Web.GraphQL;
 using GraphQLParser;
 using GraphQLParser.AST;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
+using Xunit;
 
 namespace GitAutomation.GraphQl
 {
-    [TestClass]
     public class GraphQlShould
     {
         private static readonly object subject = new {
@@ -22,7 +21,7 @@ namespace GitAutomation.GraphQl
                 Numbers = new[] { 1, 2, 3 }
             };
 
-        [TestMethod]
+        [Fact]
         public void AllowSubsetsOfArbitraryObjects()
         {
             var subset = @"
@@ -30,10 +29,10 @@ namespace GitAutomation.GraphQl
   name
   labels: meta { owner: Owner }
 }".AsGraphQlAst().ToJson(subject);
-            Assert.AreEqual(JToken.FromObject(new { name = "Test", labels = new { owner = "mdekrey" } }).ToString(), subset.ToString());
+            Assert.Equal(JToken.FromObject(new { name = "Test", labels = new { owner = "mdekrey" } }).ToString(), subset.ToString());
         }
 
-        [TestMethod]
+        [Fact]
         public void AllowFragmentsOfArbitraryObjects()
         {
             var subset = @"
@@ -47,10 +46,10 @@ fragment meta on Whatever
     meta { owner: Owner }
 }
 ".AsGraphQlAst().ToJson(subject);
-            Assert.AreEqual(JToken.FromObject(new { name = "Test", meta = new { owner = "mdekrey" } }).ToString(), subset.ToString());
+            Assert.Equal(JToken.FromObject(new { name = "Test", meta = new { owner = "mdekrey" } }).ToString(), subset.ToString());
         }
 
-        [TestMethod]
+        [Fact]
         public void AllowAccessToKeysAndProperties()
         {
             var subset = @"
@@ -58,10 +57,10 @@ fragment meta on Whatever
   meta { Keys, Owner }
 }
 ".AsGraphQlAst().ToJson(subject);
-            Assert.AreEqual(JToken.FromObject(new { meta = new { Keys = new[] { "Owner", "owner" }, Owner = "mdekrey" } }).ToString(), subset.ToString());
+            Assert.Equal(JToken.FromObject(new { meta = new { Keys = new[] { "Owner", "owner" }, Owner = "mdekrey" } }).ToString(), subset.ToString());
         }
 
-        [TestMethod]
+        [Fact]
         public void SupportArrays()
         {
             var subset = @"
@@ -69,10 +68,10 @@ fragment meta on Whatever
   name
   numbers
 }".AsGraphQlAst().ToJson(subject);
-            Assert.AreEqual(JToken.FromObject(new { name = "Test", numbers = new[] { 1, 2, 3 } }).ToString(), subset.ToString());
+            Assert.Equal(JToken.FromObject(new { name = "Test", numbers = new[] { 1, 2, 3 } }).ToString(), subset.ToString());
         }
 
-        [TestMethod]
+        [Fact]
         public void ProvideFullObjectsIfPropertiesArentMapped()
         {
             var subset = @"
@@ -80,7 +79,7 @@ fragment meta on Whatever
   name
   meta
 }".AsGraphQlAst().ToJson(subject);
-            Assert.AreEqual(JToken.FromObject(new { name = "Test", meta = new { Owner = "mdekrey", owner = "nobody" } }).ToString(), subset.ToString());
+            Assert.Equal(JToken.FromObject(new { name = "Test", meta = new { Owner = "mdekrey", owner = "nobody" } }).ToString(), subset.ToString());
         }
     }
 }
