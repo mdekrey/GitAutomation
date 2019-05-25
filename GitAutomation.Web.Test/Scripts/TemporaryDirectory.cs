@@ -7,7 +7,7 @@ namespace GitAutomation.Scripts
     {
         public TemporaryDirectory()
         {
-            var directory = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "temp", System.IO.Path.GetRandomFileName());
+            var directory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "git-test-scripts", System.IO.Path.GetRandomFileName());
             if (Directory.Exists(directory) )
             {
                 throw new InvalidOperationException($"Directory '{directory}' already exists!");

@@ -18,6 +18,7 @@ namespace GitAutomation.Scripts
         }
 
         public TemporaryDirectory TemporaryDirectory { get; } = new TemporaryDirectory();
+        public string Path => TemporaryDirectory.Path;
 
         public TemporaryDirectory CreateCopy()
         {
