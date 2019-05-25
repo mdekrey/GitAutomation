@@ -7,20 +7,28 @@ namespace GitAutomation.Scripts
 {
     public class GitDirectory : IDisposable
     {
-        public GitDirectory()
+        public GitDirectory() : this(new TemporaryDirectory())
         {
-            using (var ps = PowerShell.Create())
+        }
+
+        public GitDirectory(TemporaryDirectory temporaryDirectory)
+        {
+            TemporaryDirectory = temporaryDirectory;
+            if (!Directory.Exists(System.IO.Path.Combine(temporaryDirectory.Path, ".git")))
             {
-                ps.AddScript($"cd \"{TemporaryDirectory.Path}\"");
-                ps.AddScript("git init");
-                ps.Invoke();
+                using (var ps = PowerShell.Create())
+                {
+                    ps.AddScript($"cd \"{TemporaryDirectory.Path}\"");
+                    ps.AddScript("git init");
+                    ps.Invoke();
+                }
             }
         }
 
-        public TemporaryDirectory TemporaryDirectory { get; } = new TemporaryDirectory();
+        public TemporaryDirectory TemporaryDirectory { get; }
         public string Path => TemporaryDirectory.Path;
 
-        public TemporaryDirectory CreateCopy()
+        public GitDirectory CreateCopy()
         {
             var result = new TemporaryDirectory();
 
@@ -31,7 +39,7 @@ namespace GitAutomation.Scripts
                 ps.Invoke();
             }
 
-            return result;
+            return new GitDirectory(result);
         }
 
         public void Dispose()

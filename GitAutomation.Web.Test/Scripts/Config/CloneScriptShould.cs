@@ -60,7 +60,7 @@ namespace GitAutomation.Scripts.Config
 
                 // Act to receive the expected FSA's
                 var timestamp = DateTimeOffset.Now;
-                var result = Invoke(ps => StandardParameters(ps, directory, tempDir, timestamp));
+                var result = Invoke(ps => StandardParameters(ps, directory.TemporaryDirectory, tempDir, timestamp));
 
                 // Assert that we're correct
                 Assert.Equal(1, result.Count);
@@ -78,7 +78,7 @@ namespace GitAutomation.Scripts.Config
             {
                 // Act to receive the expected FSA's
                 var timestamp = DateTimeOffset.Now;
-                var result = Invoke(ps => StandardParameters(ps, directory, tempDir, timestamp));
+                var result = Invoke(ps => StandardParameters(ps, directory.TemporaryDirectory, tempDir, timestamp));
 
                 // Assert that we're correct
                 Assert.Equal(1, result.Count);
