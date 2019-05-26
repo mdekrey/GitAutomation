@@ -12,5 +12,10 @@ namespace GitAutomation.State
 
         public T State { get; }
         public IAgentSpecification LastChangeBy { get; }
+
+        public StateUpdateEvent<U> WithState<U>(U newState)
+        {
+            return new StateUpdateEvent<U>(newState, LastChangeBy);
+        }
     }
 }

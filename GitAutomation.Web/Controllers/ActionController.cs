@@ -1,4 +1,5 @@
 ﻿using GitAutomation.DomainModels;
+using GitAutomation.State;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -21,7 +22,7 @@ namespace GitAutomation.Web.Controllers
         public IActionResult Post([FromBody] StandardAction body)
         {
             // TODO - authentication
-            dispatcher.Dispatch(body, AnonymousUserAgent.Instance);
+            dispatcher.Dispatch(new StateUpdateEvent<StandardAction>(body, AnonymousUserAgent.Instance));
             return Ok();
         }
 

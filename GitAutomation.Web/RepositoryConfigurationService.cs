@@ -121,13 +121,13 @@ namespace GitAutomation.Web
             {
                 logger.LogError(ex, "Unable to load configuration");
             }
-            dispatcher.Dispatch(new StandardAction("ConfigurationRepository:Loaded", new { configuration= config.Result, structure= structure.Result, startTimestamp }), SystemAgent.Instance);
+            dispatcher.Dispatch(new StateUpdateEvent<StandardAction>(new StandardAction("ConfigurationRepository:Loaded", new { configuration= config.Result, structure= structure.Result, startTimestamp }), SystemAgent.Instance));
             // clear out any interim config changes, as they're now out of date...
             configurationChanges.TryReceiveAll(out var _);
             if (!exists)
             {
                 // this action is not combined with updating the store as the Loaded action does not know that we aren't overriding it from a normal load
-                dispatcher.Dispatch(new StandardAction("ConfigurationRepository:Written", new{ startTimestamp }), SystemAgent.Instance);
+                dispatcher.Dispatch(new StateUpdateEvent<StandardAction>(new StandardAction("ConfigurationRepository:Written", new{ startTimestamp }), SystemAgent.Instance));
             }
         }
 

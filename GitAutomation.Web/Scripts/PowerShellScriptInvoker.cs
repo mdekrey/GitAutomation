@@ -1,5 +1,6 @@
 ﻿using GitAutomation.DomainModels;
 using GitAutomation.Extensions;
+using GitAutomation.State;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -63,7 +64,7 @@ namespace GitAutomation.Web.Scripts
             await foreach (var action in result.SuccessAsync)
             {
                 logger.LogDebug($"Dispatching script({invocationId}) action {JsonConvert.SerializeObject(action)}");
-                dispatcher.Dispatch(action, agentSpecification);
+                dispatcher.Dispatch(new StateUpdateEvent<StandardAction>(action, agentSpecification));
             }
         }
 

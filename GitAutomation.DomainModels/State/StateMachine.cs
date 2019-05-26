@@ -20,14 +20,14 @@ namespace GitAutomation.State
             this.reducer = reducer;
         }
 
-        public void Dispatch(StandardAction action, IAgentSpecification agent)
+        public void Dispatch(StateUpdateEvent<StandardAction> ev)
         {
             lock (state)
             {
                 var original = state.Value;
                 // TODO - authorization
-                var newState = reducer(original.State, action);
-                state.OnNext(new StateUpdateEvent<T>(newState, agent));
+                var newState = reducer(original.State, ev.State);
+                state.OnNext(ev.WithState(newState));
             }
         }
 
