@@ -23,6 +23,7 @@ namespace GitAutomation.DomainModels
                 "RepositoryStructure:SetOutOfDate" => SetReserveOutOfDate(original, action.Payload.ToObject<SetReserveOutOfDatePayload>()),
                 "RepositoryStructure:StabilizeNoUpstream" => StabilizeNoUpstream(original, action.Payload.ToObject<StabilizeNoUpstreamPayload>()),
                 "RepositoryStructure:PushedReserve" => PushedReserve(original, action.Payload.ToObject<StabilizePushedReservePayload>()),
+                "RepositoryStructure:CouldNotPush" => CouldNotPush(original, action.Payload.ToObject<CouldNotPushPayload>()),
                 "TargetRepository:Refs" => ClearPushOnReserves(original),
                 _ => original
             };
@@ -177,6 +178,19 @@ namespace GitAutomation.DomainModels
                 n => SetUpstreamCommits(n, payload.Reserve, payload.ReserveOutputCommits),
                 n => SetOutputCommitToBranch(n, payload.Reserve)
             );
+#nullable restore
+
+        class CouldNotPushPayload
+        {
+#nullable disable
+            public string Reserve { get; set; }
+        }
+
+        private static RepositoryStructure CouldNotPush(RepositoryStructure original, CouldNotPushPayload payload) =>
+            Chain(original,
+                n => SetBranchState(n, payload.Reserve, "CouldNotPush")
+            );
+#nullable restore
 
         private static BranchReserveBranch CreateOutputBranchReserveBranch(string commit)
         {

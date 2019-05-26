@@ -143,9 +143,13 @@ $branchParts = $outputBranch.Split("/", 2)
 $baseRemote = $branchParts[0]
 $outputBranchRemoteName = $branchParts[1]
 
+$pushFailed = false
 if ($push) {
 	Set-GitPassword "$($remotes[$baseRemote].password)"
 	git push "$($remotes[$baseRemote].repository)" "HEAD:refs/heads/$outputBranchRemoteName" | Write-Verbose
+	$pushFailed = $LastExitCode -ne 0
+	
+	$finalState = "CouldNotPush"
 }
 
 @{ "Conflicts" = $upstreamNeeded; "State" = $finalState; "Push" = $push } | ConvertTo-Json | Write-Verbose
@@ -171,6 +175,11 @@ if ($finalState -eq "Stable")
 	$payload.ReserveOutputCommits = $reserveChanges
 
 	return Build-StandardAction "RepositoryStructure:PushedReserve" $payload
+}
+elseif ($finalState -eq "CouldNotPush")
+{
+	return Build-StandardAction "RepositoryStructure:CouldNotPush" @{ "Reserve" = $name }
+
 }
 elseif ($finalState -eq "NeedsUpdate")
 {
