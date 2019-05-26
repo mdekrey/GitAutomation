@@ -1,7 +1,6 @@
 ﻿#!/usr/bin/env pwsh
 
 param(
-	[string] $repository,
 	[string] $password,
 	[string] $userEmail,
 	[string] $userName,

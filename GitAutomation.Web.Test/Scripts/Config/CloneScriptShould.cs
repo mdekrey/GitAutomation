@@ -49,18 +49,12 @@ namespace GitAutomation.Scripts.Config
         public void HandleAlreadyClonedDirectories()
         {
             using (var directory = workingGitDirectory.CreateCopy())
-            using (var tempDir = new TemporaryDirectory())
+            // Arrange it to already have a clone
+            using (var tempDir = directory.CreateCopy("--branch git-config"))
             {
-                // Arrange it to already have a clone
-                using (var ps = PowerShell.Create())
-                {
-                    ps.AddScript($"git clone --shared --branch git-config \"{directory.Path}\" \"{tempDir.Path}\"");
-                    ps.Invoke();
-                }
-
                 // Act to receive the expected FSA's
                 var timestamp = DateTimeOffset.Now;
-                var result = Invoke(ps => StandardParameters(ps, directory.TemporaryDirectory, tempDir, timestamp));
+                var result = Invoke(ps => StandardParameters(ps, directory.TemporaryDirectory, tempDir.TemporaryDirectory, timestamp));
 
                 // Assert that we're correct
                 Assert.Equal(1, result.Count);
@@ -108,7 +102,7 @@ namespace GitAutomation.Scripts.Config
 
         private static void StandardParameters(PowerShell ps, TemporaryDirectory repository, TemporaryDirectory checkout, DateTimeOffset timestamp)
         {
-                    ps.AddUnrestrictedCommand("./Scripts/Config/clone.ps1");
+            ps.AddUnrestrictedCommand("./Scripts/Config/clone.ps1");
             ps.AddParameter("repository", repository.Path);
             ps.AddParameter("password", "");
             ps.AddParameter("userEmail", "author@example.com");

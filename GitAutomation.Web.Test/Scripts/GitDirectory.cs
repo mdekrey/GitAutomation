@@ -28,14 +28,14 @@ namespace GitAutomation.Scripts
         public TemporaryDirectory TemporaryDirectory { get; }
         public string Path => TemporaryDirectory.Path;
 
-        public GitDirectory CreateCopy()
+        public GitDirectory CreateCopy(string args = "")
         {
             var result = new TemporaryDirectory();
 
             using (var ps = PowerShell.Create())
             {
                 ps.AddScript($"cd \"{result.Path}\"");
-                ps.AddScript($"git clone --shared \"{TemporaryDirectory.Path}\" .");
+                ps.AddScript($"git clone --shared {args} \"{TemporaryDirectory.Path}\" .");
                 ps.Invoke();
             }
 
