@@ -1,0 +1,7 @@
+.ReserveSelection_reserves {
+  margin: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 600px);
+  grid-auto-rows: auto;
+  max-width: 1800px;
+}

@@ -1,5 +1,4 @@
 import React from "react";
-import "./CreateReserve.css";
 import { useService } from "../../injector";
 import { useObservable } from "../../rxjs";
 import { ReserveLabel } from "./ReserveLabel";

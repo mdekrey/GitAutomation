@@ -108,6 +108,17 @@ namespace GitAutomation.Web
             System.Diagnostics.Debug.Assert(subscription != null);
         }
 
+        public IPowerShellStreams<PowerShellLine> LastScriptForReserve(string reserveName)
+        {
+            if (reserves.TryGetValue(reserveName, out var reserveFullState))
+            {
+                return reserveFullState.LastScript;
+            }
+
+            return null;
+        }
+
+
         private async Task ProcessReserve(string reserveName)
         {
             // guard against deleting the reserve while queued

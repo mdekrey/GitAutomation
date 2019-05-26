@@ -1,5 +1,4 @@
 import React from "react";
-import "./CreateReserve.css";
 import { ReserveSelection } from "./ReserveSelection";
 import { RouteComponentProps } from "react-router-dom";
 import { ReserveForm, CreateReserveFormFields } from "./ReserveForm";

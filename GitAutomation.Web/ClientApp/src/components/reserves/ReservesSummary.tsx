@@ -1,5 +1,6 @@
 import React from "react";
 import { BranchReserve } from "../../api";
+import { groupBy } from "../../data-manipulators";
 import { TextLine } from "../loading";
 import { CardContents, CardActionBar, LinkButton } from "../common";
 import { ReserveLabel } from "./ReserveLabel";
@@ -10,14 +11,9 @@ export function ReservesSummary({
   reserves: Record<string, BranchReserve> | undefined;
 }) {
   const reservesKeys = Object.keys(reserves || {});
-  const groups = reservesKeys.reduce<Record<string, string[]>>(
-    (prev, current) => {
-      const target = prev[reserves[current].ReserveType] || [];
-      prev[reserves[current].ReserveType] = target;
-      target.push(current);
-      return prev;
-    },
-    {}
+  const groups = groupBy(
+    reservesKeys,
+    current => reserves[current].ReserveType
   );
   const reserveTypes = Object.keys(groups);
   reserveTypes.sort();
@@ -67,7 +63,10 @@ export function ReservesSummary({
             Create a Reserve
           </LinkButton>
           {reservesKeys.length === 0 ? null : (
-            <LinkButton to={"/reserve-flows"}>View flows</LinkButton>
+            <>
+              <LinkButton to={"/reserve-flows"}>View flows</LinkButton>
+              <LinkButton to={"/reserves"}>View details</LinkButton>
+            </>
           )}
         </CardActionBar>
       )}

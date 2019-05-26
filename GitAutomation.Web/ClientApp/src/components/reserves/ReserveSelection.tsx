@@ -1,7 +1,7 @@
 import React from "react";
 import { TextParagraph } from "../loading";
 import { ReserveLabel } from "./ReserveLabel";
-import "./CreateReserve.css";
+import "./ReserveSelection.css";
 import {
   Button,
   Card,
@@ -25,7 +25,7 @@ export function ReserveSelection({
   return (
     <>
       <h1>Reserve Selection</h1>
-      <div className="CreateReserve_reserves">
+      <div className="ReserveSelection_reserves">
         {reserveTypes ? (
           Object.keys(reserveTypes).map(t => (
             <ReserveSelectionCard

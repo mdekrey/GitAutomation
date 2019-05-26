@@ -1,0 +1,8 @@
+.ReserveLabel_dot {
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-left: 0.6em;
+  border-radius: 0.6em;
+  background-color: var(--dot-color);
+}

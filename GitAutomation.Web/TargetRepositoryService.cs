@@ -20,8 +20,8 @@ namespace GitAutomation.Web
         private readonly PowerShellScriptInvoker scriptInvoker;
         private readonly ILogger logger;
         private readonly IDisposable subscription;
-        private IPowerShellStreams<PowerShellLine> lastFetchResult;
-        private IPowerShellStreams<PowerShellLine> lastLoadFromDiskResult;
+        public IPowerShellStreams<PowerShellLine> LastFetchResult { get; private set; }
+        public IPowerShellStreams<PowerShellLine> LastLoadFromDiskResult { get; private set; }
         private ImmutableSortedDictionary<TargetRepositoryState.TimestampType, DateTimeOffset> lastTimestamps;
         private readonly ActionBlock<Unit> changeProcessor;
 
@@ -59,14 +59,14 @@ namespace GitAutomation.Web
 
         internal async Task BeginFetch(DateTimeOffset startTimestamp)
         {
-            this.lastFetchResult = scriptInvoker.Invoke("$/Repository/clone.ps1", new { startTimestamp }, options, SystemAgent.Instance);
-            await lastFetchResult;
+            this.LastFetchResult = scriptInvoker.Invoke("$/Repository/clone.ps1", new { startTimestamp }, options, SystemAgent.Instance);
+            await LastFetchResult;
         }
 
         private async Task LoadFromDisk(DateTimeOffset startTimestamp)
         {
-            this.lastLoadFromDiskResult = scriptInvoker.Invoke("$/Repository/gitBranchStates.ps1", new { startTimestamp }, options, SystemAgent.Instance);
-            await lastLoadFromDiskResult;
+            this.LastLoadFromDiskResult = scriptInvoker.Invoke("$/Repository/gitBranchStates.ps1", new { startTimestamp }, options, SystemAgent.Instance);
+            await LastLoadFromDiskResult;
         }
 
         void IDisposable.Dispose()

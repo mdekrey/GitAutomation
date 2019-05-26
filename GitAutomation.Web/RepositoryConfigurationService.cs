@@ -27,8 +27,8 @@ namespace GitAutomation.Web
         private readonly ILogger logger;
         private readonly IDispatcher dispatcher;
         private readonly IDisposable subscription;
-        private IPowerShellStreams<PowerShellLine> lastLoadResult;
-        private IPowerShellStreams<PowerShellLine> lastPushResult;
+        public IPowerShellStreams<PowerShellLine> LastLoadResult { get; private set; }
+        public IPowerShellStreams<PowerShellLine> LastPushResult { get; private set; }
         private Meta meta;
 
         private readonly struct ConfigurationChange
@@ -96,8 +96,8 @@ namespace GitAutomation.Web
 
         internal async Task BeginLoad(DateTimeOffset startTimestamp)
         {
-            this.lastLoadResult = scriptInvoker.Invoke("$/Config/clone.ps1", new { startTimestamp }, options, SystemAgent.Instance);
-            await lastLoadResult;
+            this.LastLoadResult = scriptInvoker.Invoke("$/Config/clone.ps1", new { startTimestamp }, options, SystemAgent.Instance);
+            await LastLoadResult;
         }
 
         private async Task LoadFromDisk(DateTimeOffset startTimestamp)
@@ -162,15 +162,15 @@ namespace GitAutomation.Web
             );
 
             // TODO - convert agent to user name/email
-            lastPushResult = scriptInvoker.Invoke("$/Config/commit.ps1", new { startTimestamp, comment = e.Comment }, options, SystemAgent.Instance);
+            LastPushResult = scriptInvoker.Invoke("$/Config/commit.ps1", new { startTimestamp, comment = e.Comment }, options, SystemAgent.Instance);
             // TODO - I'm concerned there's a race condition in here given that committed changes are cleared out after a load from disk, not after fetch...
-            await lastPushResult;
+            await LastPushResult;
         }
 
         private async Task PushToRemote(DateTimeOffset startTimestamp)
         {
-            lastPushResult = scriptInvoker.Invoke("$/Config/push.ps1", new { startTimestamp }, options, SystemAgent.Instance);
-            await lastPushResult;
+            LastPushResult = scriptInvoker.Invoke("$/Config/push.ps1", new { startTimestamp }, options, SystemAgent.Instance);
+            await LastPushResult;
         }
 
         void IDisposable.Dispose()

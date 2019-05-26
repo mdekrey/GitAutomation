@@ -1,6 +1,6 @@
 import React from "react";
 import { TextLine } from "../loading";
-import "./CreateReserve.css";
+import "./ReserveLabel.css";
 import { useService } from "../../injector";
 import { useObservable } from "../../rxjs";
 
@@ -15,7 +15,7 @@ export function ReserveLabel({ reserveName }: { reserveName: string | null }) {
       {reserveType.Title}
       {reserveType.Color ? (
         <span
-          className="ReserveSelection_dot"
+          className="ReserveLabel_dot"
           style={
             {
               "--dot-color": `#${reserveType.Color}`,
