@@ -152,7 +152,13 @@ if ($push) {
 
 if ($finalState -eq "Stable")
 {
-	$payload = @{ "Reserve" = $name; "BranchCommits" = @{ } }
+	$payload = @{ "Reserve" = $name }
+	
+	$changedBranches = $branchDetails.Keys | ? { $branchDetails[$_] -ne $reserve.IncludedBranches[$_].LastCommit }
+	$branchChanges = @{}
+	$changedBranches | % { $branchChanges[$_] = $branchDetails[$_] }
+	$payload.BranchCommits = $branchChanges
+	
 	$payload.BranchCommits[$outputBranch] = git rev-parse HEAD
 	if ($newOutputBranch)
 	{
@@ -160,6 +166,7 @@ if ($finalState -eq "Stable")
 	}
 	
 	$reserveChanges = @{}
+	$changedReserves = $upstreamReserves.Keys | ? { $upstreamReserves[$_].OutputCommit -ne $reserve.Upstream[$_].LastOutput }
 	$changedReserves | % { $reserveChanges[$_] = $upstreamReserves[$_].OutputCommit }
 	$payload.ReserveOutputCommits = $reserveChanges
 

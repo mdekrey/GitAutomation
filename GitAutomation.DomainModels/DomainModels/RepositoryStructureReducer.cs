@@ -136,16 +136,12 @@ namespace GitAutomation.DomainModels
         {
 #nullable disable
             public string Reserve { get; set; }
-            public Dictionary<string, string> BranchCommits { get; set; }
-            public Dictionary<string, string> ReserveOutputCommits { get; set; }
 #nullable restore
         }
 
         private static RepositoryStructure SetReserveOutOfDate(RepositoryStructure original, SetReserveOutOfDatePayload payload) =>
             Chain(original,
-                n => SetBranchState(n, payload.Reserve, "OutOfDate"),
-                n => SetBranchCommits(n, payload.Reserve, payload.BranchCommits),
-                n => SetUpstreamCommits(n, payload.Reserve, payload.ReserveOutputCommits)
+                n => SetBranchState(n, payload.Reserve, "OutOfDate")
                 );
 
         class StabilizeNoUpstreamPayload

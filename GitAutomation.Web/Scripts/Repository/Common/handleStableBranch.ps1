@@ -44,5 +44,5 @@ if ($changedBranches.Count -or $changedReserves.Count)
 		return Build-StandardAction "RepositoryStructure:StabilizeNoUpstream" @{ "Reserve" = $name; "BranchCommits" = $branchChanges }
 	} 
 
-	return Build-StandardAction "RepositoryStructure:SetOutOfDate" @{ "Reserve" = $name; "BranchCommits" = $branchChanges; "ReserveOutputCommits" = $reserveChanges }
+	return Build-StandardAction "RepositoryStructure:SetOutOfDate" @{ "Reserve" = $name }
 }
