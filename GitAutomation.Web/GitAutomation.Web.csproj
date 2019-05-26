@@ -55,6 +55,9 @@
     <None Update="Scripts\Repository\clone.ps1">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Scripts\Repository\gitRevisionComparison.ps1">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Scripts\Repository\gitBranchStates.ps1">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
