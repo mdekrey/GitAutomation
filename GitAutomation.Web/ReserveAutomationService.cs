@@ -136,7 +136,8 @@ namespace GitAutomation.Web
                             reserveFullState.Data.UpstreamReserves,
                             workingPath = path,
                             automationOptions.WorkingRemote,
-                            automationOptions.DefaultRemote
+                            automationOptions.DefaultRemote,
+                            automationOptions.IntegrationPrefix
                         }, 
                         targetRepositoryOptions, 
                         SystemAgent.Instance

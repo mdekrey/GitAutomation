@@ -11,5 +11,6 @@ namespace GitAutomation.Web
         public string WorkspacePath { get; set; }
         public string WorkingRemote { get; set; }
         public string DefaultRemote { get; set; }
+        public string IntegrationPrefix { get; set; }
     }
 }

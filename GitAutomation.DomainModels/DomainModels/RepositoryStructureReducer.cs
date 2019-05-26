@@ -14,7 +14,7 @@ namespace GitAutomation.DomainModels
             {
                 // Basic reducers
                 "RepositoryStructure:StabilizeReserve" => StabilizeReserve(original, (string)action.Payload["Reserve"]),
-                "RepositoryStructure:SetReserveState" => SetBranchState(original, (string)action.Payload["Reserve"], (string)action.Payload["State"]),
+                "RepositoryStructure:SetReserveState" => SetReserveState(original, (string)action.Payload["Reserve"], (string)action.Payload["State"]),
                 "RepositoryStructure:SetOutputCommit" => SetOutputCommit(original, (string)action.Payload["Reserve"], (string)action.Payload["OutputCommit"]),
                 "RepositoryStructure:SetMeta" => SetMeta(original, (string)action.Payload["Reserve"], action.Payload["Meta"].ToObject<Dictionary<string, object>>()),
                 "RepositoryStructure:CreateReserve" => CreateReserve(original, action.Payload.ToObject<CreateReservePayload>()),
@@ -24,15 +24,16 @@ namespace GitAutomation.DomainModels
                 "RepositoryStructure:StabilizeNoUpstream" => StabilizeNoUpstream(original, action.Payload.ToObject<StabilizeNoUpstreamPayload>()),
                 "RepositoryStructure:PushedReserve" => PushedReserve(original, action.Payload.ToObject<StabilizePushedReservePayload>()),
                 "RepositoryStructure:CouldNotPush" => CouldNotPush(original, action.Payload.ToObject<CouldNotPushPayload>()),
+                "RepositoryStructure:ManualInterventionNeeded" => ManualInterventionNeeded(original, action.Payload.ToObject<ManualInterventionNeededPayload>()),
                 "TargetRepository:Refs" => ClearPushOnReserves(original),
                 _ => original
             };
         }
 
         private static RepositoryStructure StabilizeReserve(RepositoryStructure original, string branchReserveName) =>
-            SetBranchState(original, branchReserveName, "Stable");
+            SetReserveState(original, branchReserveName, "Stable");
 
-        private static RepositoryStructure SetBranchState(RepositoryStructure original, string branchReserveName, string status) =>
+        private static RepositoryStructure SetReserveState(RepositoryStructure original, string branchReserveName, string status) =>
             original.SetBranchReserves(b => b.UpdateItem(branchReserveName, branch => branch.SetStatus(status)));
 
         private static RepositoryStructure SetOutputCommit(RepositoryStructure original, string branchReserveName, string lastCommit) =>
@@ -142,7 +143,7 @@ namespace GitAutomation.DomainModels
 
         private static RepositoryStructure SetReserveOutOfDate(RepositoryStructure original, SetReserveOutOfDatePayload payload) =>
             Chain(original,
-                n => SetBranchState(n, payload.Reserve, "OutOfDate")
+                n => SetReserveState(n, payload.Reserve, "OutOfDate")
                 );
 
         class StabilizeNoUpstreamPayload
@@ -154,7 +155,7 @@ namespace GitAutomation.DomainModels
 
         private static RepositoryStructure StabilizeNoUpstream(RepositoryStructure original, StabilizeNoUpstreamPayload payload) =>
             Chain(original,
-                n => SetBranchState(n, payload.Reserve, "Stable"),
+                n => SetReserveState(n, payload.Reserve, "Stable"),
                 n => SetBranchCommits(n, payload.Reserve, payload.BranchCommits),
                 n => SetOutputCommitToBranch(n, payload.Reserve)
                 );
@@ -172,7 +173,7 @@ namespace GitAutomation.DomainModels
 
         private static RepositoryStructure PushedReserve(RepositoryStructure original, StabilizePushedReservePayload payload) =>
             Chain(original,
-                n => SetBranchState(n, payload.Reserve, "Pushed"),
+                n => SetReserveState(n, payload.Reserve, "Pushed"),
                 n => payload.NewOutput == null ? n : AddOutputBranch(n, payload.Reserve, payload.NewOutput, BranchReserve.EmptyCommit),
                 n => SetBranchCommits(n, payload.Reserve, payload.BranchCommits),
                 n => SetUpstreamCommits(n, payload.Reserve, payload.ReserveOutputCommits),
@@ -184,22 +185,85 @@ namespace GitAutomation.DomainModels
         {
 #nullable disable
             public string Reserve { get; set; }
+            public Dictionary<string, string> BranchCommits { get; set; }
+            public Dictionary<string, string> ReserveOutputCommits { get; set; }
         }
 
         private static RepositoryStructure CouldNotPush(RepositoryStructure original, CouldNotPushPayload payload) =>
             Chain(original,
-                n => SetBranchState(n, payload.Reserve, "CouldNotPush")
+                n => SetBranchCommits(n, payload.Reserve, payload.BranchCommits),
+                n => SetUpstreamCommits(n, payload.Reserve, payload.ReserveOutputCommits),
+                n => SetReserveState(n, payload.Reserve, "CouldNotPush")
             );
+#nullable restore
+
+        class ManualInterventionNeededPayload
+        {
+#nullable disable
+            public string Reserve { get; set; }
+            public string State { get; set; }
+            public ManualInterventionBranch[] NewBranches { get; set; }
+            public Dictionary<string, string> BranchCommits { get; set; }
+            public Dictionary<string, string> ReserveOutputCommits { get; set; }
+
+            internal class ManualInterventionBranch
+            {
+                public string Name { get; set; }
+                public string Commit { get; set; }
+                public string Role { get; set; }
+                public string Source { get; set; }
+            }
+        }
+
+        private static RepositoryStructure ManualInterventionNeeded(RepositoryStructure original, ManualInterventionNeededPayload payload) =>
+            Chain(original,
+                n => SetReserveState(n, payload.Reserve, payload.State),
+                n => payload.NewBranches.Aggregate(n, (prev, branch) =>
+                    AddIncludedBranch(prev, new AddIncludedBranchPayload
+                    {
+                        Reserve = payload.Reserve,
+                        Name = branch.Name,
+                        Commit = branch.Commit,
+                        Meta = new Dictionary<string, string> { { "Role", branch.Role }, { "Source", branch.Source } }
+                    })
+                ),
+                n => SetBranchCommits(n, payload.Reserve, payload.BranchCommits),
+                n => SetUpstreamCommits(n, payload.Reserve, payload.ReserveOutputCommits)
+            );
+#nullable restore
+
+        class AddIncludedBranchPayload
+        {
+#nullable disable
+            public string Reserve { get; set; }
+            public string Name { get; set; }
+            public string Commit { get; set; }
+            public Dictionary<string, string> Meta { get; set; }
+        }
+
+        private static RepositoryStructure AddIncludedBranch(RepositoryStructure original, AddIncludedBranchPayload payload) =>
+            original.SetBranchReserves(n => n.UpdateItem(payload.Reserve, reserve =>
+            {
+                return reserve.SetIncludedBranches(branches => branches.SetItem(payload.Name, CreateBranchReserveBranch(payload.Commit, payload.Meta)));
+            }));
 #nullable restore
 
         private static BranchReserveBranch CreateOutputBranchReserveBranch(string commit)
         {
-            return new BranchReserveBranch(
+            return CreateBranchReserveBranch(
                 commit,
                 new Dictionary<string, string>()
                 {
                     { "Role", "Output" }
-                }.ToImmutableSortedDictionary()
+                }
+            );
+        }
+
+        private static BranchReserveBranch CreateBranchReserveBranch(string commit, Dictionary<string, string> meta)
+        {
+            return new BranchReserveBranch(
+                commit,
+                meta.ToImmutableSortedDictionary()
             );
         }
 

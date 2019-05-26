@@ -82,7 +82,7 @@ namespace GitAutomation.Web
 
         private async Task DoRepositoryAction()
         {
-            if (lastTimestamps[StoredFieldModified] > lastTimestamps[Pushed])
+            if (lastTimestamps[LoadedFromDisk] > DateTimeOffset.MinValue && lastTimestamps[StoredFieldModified] > lastTimestamps[Pushed])
             {
                 await ConfigurationChangeCommitter();
             }

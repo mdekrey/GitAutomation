@@ -9,6 +9,7 @@ param(
 	[string] $checkoutPath,
 	[string] $workingPath,
 	[string] $defaultRemote,
+	[string] $integrationPrefix,
 	[string] $userEmail,
 	[string] $userName
 )
@@ -152,42 +153,48 @@ if ($push) {
 	$finalState = "CouldNotPush"
 }
 
-@{ "Conflicts" = $upstreamNeeded; "State" = $finalState; "Push" = $push } | ConvertTo-Json | Write-Verbose
+$payload = @{ "Reserve" = $name }
+	
+$changedBranches = $branchDetails.Keys | ? { $branchDetails[$_] -ne $reserve.IncludedBranches[$_].LastCommit }
+$payload.BranchCommits = @{}
+$changedBranches | % { $payload.BranchCommits[$_] = $branchDetails[$_] }
+
+$payload.ReserveOutputCommits = @{}
+$changedReserves = $upstreamReserves.Keys | ? { $upstreamReserves[$_].OutputCommit -ne $reserve.Upstream[$_].LastOutput }
+$changedReserves | % { $payload.ReserveOutputCommits[$_] = $upstreamReserves[$_].OutputCommit }
 
 if ($finalState -eq "Stable")
 {
-	$payload = @{ "Reserve" = $name }
-	
-	$changedBranches = $branchDetails.Keys | ? { $branchDetails[$_] -ne $reserve.IncludedBranches[$_].LastCommit }
-	$branchChanges = @{}
-	$changedBranches | % { $branchChanges[$_] = $branchDetails[$_] }
-	$payload.BranchCommits = $branchChanges
-	
 	$payload.BranchCommits[$outputBranch] = git rev-parse HEAD
 	if ($newOutputBranch)
 	{
 		$payload.NewOutput = $outputBranch
 	}
 	
-	$reserveChanges = @{}
-	$changedReserves = $upstreamReserves.Keys | ? { $upstreamReserves[$_].OutputCommit -ne $reserve.Upstream[$_].LastOutput }
-	$changedReserves | % { $reserveChanges[$_] = $upstreamReserves[$_].OutputCommit }
-	$payload.ReserveOutputCommits = $reserveChanges
-
 	return Build-StandardAction "RepositoryStructure:PushedReserve" $payload
 }
 elseif ($finalState -eq "CouldNotPush")
 {
-	return Build-StandardAction "RepositoryStructure:CouldNotPush" @{ "Reserve" = $name }
-
+	return Build-StandardAction "RepositoryStructure:CouldNotPush" $payload
 }
-elseif ($finalState -eq "NeedsUpdate")
+elseif (($finalState -eq "NeedsUpdate") -or ($finalState -eq "Conflicted"))
 {
+	$payload.NewBranches = @()
 
-}
-elseif ($finalState -eq "Conflicted")
-{
+	foreach ($entry in $upstreamNeeded)
+	{
+		$commit = $upstreamReserves[$entry].OutputCommit
+		$newBranchName = $integrationPrefix + $name + "/" + $entry
+		Set-GitPassword "$($remotes[$defaultRemote].password)"
+		git push "$($remotes[$defaultRemote].repository)" "$($commit):refs/heads/$($newBranchName)" | Write-Verbose
+		if ($LastExitCode -eq 0)
+		{
+			$payload.NewBranches += @{ "Name" = "$defaultRemote/$newBranchName"; "Commit" = $commit; "Role" = "Integration"; "Source" = $entry }
+		}
+	}
+	$payload.State = $finalState
 
+	return Build-StandardAction "RepositoryStructure:ManualInterventionNeeded" $payload
 }
 
 Pop-Location
