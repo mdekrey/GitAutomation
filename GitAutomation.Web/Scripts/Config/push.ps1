@@ -17,9 +17,9 @@ Start-Git $gitParams
 	if ($LastExitCode -ne 0)
 	{
 		git checkout "origin/$branchName"
-		return Build-StandardAction "ConfigurationRepository:GitCouldNotPush" @{ "startTimestamp" = $startTimestamp }
+		return Build-StandardAction "ConfigurationRepository:GitCouldNotPush" @{ "startTimestamp" = $startTimestamp } "Failed to push changes"
 	}
 	git checkout "origin/$branchName"
 End-Git $gitParams
 
-return Build-StandardAction "ConfigurationRepository:GitPushSuccess" @{ "startTimestamp" = $startTimestamp }
+return Build-StandardAction "ConfigurationRepository:GitPushSuccess" @{ "startTimestamp" = $startTimestamp } "Pushed changes"

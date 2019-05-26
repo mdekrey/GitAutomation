@@ -16,7 +16,7 @@ namespace GitAutomation.State
 
         public StateMachine(Func<T, StandardAction, T> reducer, T zeroState)
         {
-            this.state = new BehaviorSubject<StateUpdateEvent<T>>(new StateUpdateEvent<T>(zeroState, SystemAgent.Instance));
+            this.state = new BehaviorSubject<StateUpdateEvent<T>>(new StateUpdateEvent<T>(zeroState, SystemAgent.Instance, "Zero state"));
             this.reducer = reducer;
         }
 

@@ -24,8 +24,6 @@ namespace GitAutomation.Web
         private readonly ILogger logger;
         private readonly IStateMachine<AppState> stateMachine;
         private readonly IDisposable subscription;
-        private IPowerShellStreams<StandardAction> lastFetchResult;
-        private IPowerShellStreams<StandardAction> lastLoadFromDiskResult;
         private readonly ConcurrentDictionary<string, SingleReserveAutomation> reserves = new ConcurrentDictionary<string, SingleReserveAutomation>();
         private readonly ActionBlock<string> reserveProcessor;
 
@@ -52,7 +50,7 @@ namespace GitAutomation.Web
 
             public string Name { get; }
             public ReserveFullState Data { get; private set; }
-            public IPowerShellStreams<StandardAction> LastScript { get; set; }
+            public IPowerShellStreams<PowerShellLine> LastScript { get; set; }
 
             public SingleReserveAutomation(string name, IStateMachine<AppState> stateMachine, ReserveAutomationService service)
             {

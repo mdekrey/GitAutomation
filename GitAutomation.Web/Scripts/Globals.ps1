@@ -42,12 +42,15 @@ function Set-GitEnvironment ([string] $password, [string] $committerEmail, [stri
 	Set-GitPassword $password
 }
 
-function Build-StandardAction ([string] $action, [hashtable] $payload = @{})
+function Build-StandardAction ([string] $action, [hashtable] $payload = @{}, [string] $comment)
 {
-	@{ 
-		"action" = $action;
-		"payload" = $payload
-	} | ConvertTo-Json -Depth 10
+	@{
+		"Comment" = $comment;
+		"Action" = @{ 
+			"action" = $action;
+			"payload" = $payload
+		}
+	}| ConvertTo-Json -Depth 10
 }
 
 function Start-Git ([hashtable] $gitparams)

@@ -27,22 +27,20 @@ namespace GitAutomation.Web
         private readonly ILogger logger;
         private readonly IDispatcher dispatcher;
         private readonly IDisposable subscription;
-        private IPowerShellStreams<StandardAction> lastLoadResult;
-        private IPowerShellStreams<StandardAction> lastPushResult;
+        private IPowerShellStreams<PowerShellLine> lastLoadResult;
+        private IPowerShellStreams<PowerShellLine> lastPushResult;
         private Meta meta;
 
         private readonly struct ConfigurationChange
         {
-            public ConfigurationChange(DateTimeOffset timestamp, ConfigurationRepositoryState state, IAgentSpecification modifiedBy)
+            public ConfigurationChange(DateTimeOffset timestamp, StateUpdateEvent<ConfigurationRepositoryState> e)
             {
                 Timestamp = timestamp;
-                State = state;
-                ModifiedBy = modifiedBy;
+                Event = e;
             }
 
             public DateTimeOffset Timestamp { get; }
-            public ConfigurationRepositoryState State { get; }
-            public IAgentSpecification ModifiedBy { get; }
+            public StateUpdateEvent<ConfigurationRepositoryState> Event { get; }
 
         }
 
@@ -59,9 +57,9 @@ namespace GitAutomation.Web
             this.dispatcher = dispatcher;
             changeProcessor = new ActionBlock<Unit>(_ => DoRepositoryAction());
             subscription = stateMachine.StateUpdates
-                .Select(state => new { state.State.Configuration, state.LastChangeBy })
-                .DistinctUntilChanged(k => k.Configuration)
-                .Subscribe(e => OnStateUpdated(e.Configuration, e.LastChangeBy));
+                .Select(state => state.WithState(state.State.Configuration))
+                .DistinctUntilChanged(k => k.State)
+                .Subscribe(e => OnStateUpdated(e));
         }
 
         public void AssertStarted()
@@ -69,14 +67,14 @@ namespace GitAutomation.Web
             System.Diagnostics.Debug.Assert(subscription != null);
         }
 
-        private void OnStateUpdated(ConfigurationRepositoryState state, IAgentSpecification modifiedBy)
+        private void OnStateUpdated(StateUpdateEvent<ConfigurationRepositoryState> e)
         {
-            if (lastTimestamps != null && lastTimestamps[StoredFieldModified] != state.Timestamps[StoredFieldModified])
+            if (lastTimestamps != null && lastTimestamps[StoredFieldModified] != e.State.Timestamps[StoredFieldModified])
             {
-                configurationChanges.Post(new ConfigurationChange(state.Timestamps[StoredFieldModified], state, modifiedBy));
+                configurationChanges.Post(new ConfigurationChange(e.State.Timestamps[StoredFieldModified], e));
             }
 
-            lastTimestamps = state.Timestamps;
+            lastTimestamps = e.State.Timestamps;
             changeProcessor.Post(Unit.Default);
         }
 
@@ -121,13 +119,13 @@ namespace GitAutomation.Web
             {
                 logger.LogError(ex, "Unable to load configuration");
             }
-            dispatcher.Dispatch(new StateUpdateEvent<StandardAction>(new StandardAction("ConfigurationRepository:Loaded", new { configuration= config.Result, structure= structure.Result, startTimestamp }), SystemAgent.Instance));
+            dispatcher.Dispatch(new StateUpdateEvent<StandardAction>(new StandardAction("ConfigurationRepository:Loaded", new { configuration= config.Result, structure= structure.Result, startTimestamp }), SystemAgent.Instance, "Loaded from disk"));
             // clear out any interim config changes, as they're now out of date...
             configurationChanges.TryReceiveAll(out var _);
             if (!exists)
             {
                 // this action is not combined with updating the store as the Loaded action does not know that we aren't overriding it from a normal load
-                dispatcher.Dispatch(new StateUpdateEvent<StandardAction>(new StandardAction("ConfigurationRepository:Written", new{ startTimestamp }), SystemAgent.Instance));
+                dispatcher.Dispatch(new StateUpdateEvent<StandardAction>(new StandardAction("ConfigurationRepository:Written", new{ startTimestamp }), SystemAgent.Instance, "Initialize configuration with defaults"));
             }
         }
 
@@ -150,21 +148,21 @@ namespace GitAutomation.Web
             {
                 foreach (var change in changes)
                 {
-                    await CommitChange(change.Timestamp, change.State, change.ModifiedBy);
+                    await CommitChange(change.Timestamp, change.Event);
                 }
                 await PushToRemote(changes.Select(c => c.Timestamp).Max());
             }
         }
 
-        private async Task CommitChange(DateTimeOffset startTimestamp, ConfigurationRepositoryState state, IAgentSpecification modifiedBy)
+        private async Task CommitChange(DateTimeOffset startTimestamp, StateUpdateEvent<ConfigurationRepositoryState> e)
         {
             await Task.WhenAll(
-                SerializationUtils.SaveConfigurationAsync(meta, state.Configuration),
-                SerializationUtils.SaveStructureAsync(meta, state.Structure)
+                SerializationUtils.SaveConfigurationAsync(meta, e.State.Configuration),
+                SerializationUtils.SaveStructureAsync(meta, e.State.Structure)
             );
 
             // TODO - convert agent to user name/email
-            lastPushResult = scriptInvoker.Invoke("$/Config/commit.ps1", new { startTimestamp }, options, SystemAgent.Instance);
+            lastPushResult = scriptInvoker.Invoke("$/Config/commit.ps1", new { startTimestamp, comment = e.Comment }, options, SystemAgent.Instance);
             // TODO - I'm concerned there's a race condition in here given that committed changes are cleared out after a load from disk, not after fetch...
             await lastPushResult;
         }

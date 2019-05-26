@@ -20,8 +20,8 @@ namespace GitAutomation.Web
         private readonly PowerShellScriptInvoker scriptInvoker;
         private readonly ILogger logger;
         private readonly IDisposable subscription;
-        private IPowerShellStreams<StandardAction> lastFetchResult;
-        private IPowerShellStreams<StandardAction> lastLoadFromDiskResult;
+        private IPowerShellStreams<PowerShellLine> lastFetchResult;
+        private IPowerShellStreams<PowerShellLine> lastLoadFromDiskResult;
         private ImmutableSortedDictionary<TargetRepositoryState.TimestampType, DateTimeOffset> lastTimestamps;
         private readonly ActionBlock<Unit> changeProcessor;
 

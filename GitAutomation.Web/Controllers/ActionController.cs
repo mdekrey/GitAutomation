@@ -22,7 +22,7 @@ namespace GitAutomation.Web.Controllers
         public IActionResult Post([FromBody] StandardAction body)
         {
             // TODO - authentication
-            dispatcher.Dispatch(new StateUpdateEvent<StandardAction>(body, AnonymousUserAgent.Instance));
+            dispatcher.Dispatch(new StateUpdateEvent<StandardAction>(body, AnonymousUserAgent.Instance, "Via the UI"));
             return Ok();
         }
 

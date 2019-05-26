@@ -171,11 +171,11 @@ if ($finalState -eq "Stable")
 		$payload.NewOutput = $outputBranch
 	}
 	
-	return Build-StandardAction "RepositoryStructure:PushedReserve" $payload
+	return Build-StandardAction "RepositoryStructure:PushedReserve" $payload "Auto-merge changes to '$outputBranch' for '$name'"
 }
 elseif ($finalState -eq "CouldNotPush")
 {
-	return Build-StandardAction "RepositoryStructure:CouldNotPush" $payload
+	return Build-StandardAction "RepositoryStructure:CouldNotPush" $payload "Failed to push to '$outputBranch' for '$name'"
 }
 elseif (($finalState -eq "NeedsUpdate") -or ($finalState -eq "Conflicted"))
 {
@@ -194,7 +194,7 @@ elseif (($finalState -eq "NeedsUpdate") -or ($finalState -eq "Conflicted"))
 	}
 	$payload.State = $finalState
 
-	return Build-StandardAction "RepositoryStructure:ManualInterventionNeeded" $payload
+	return Build-StandardAction "RepositoryStructure:ManualInterventionNeeded" $payload "Need manual merging to '$outputBranch' for '$name'"
 }
 
 Pop-Location

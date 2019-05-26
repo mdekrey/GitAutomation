@@ -41,8 +41,8 @@ if ($changedBranches.Count -or $changedReserves.Count)
 
 	if (-not $upstreamReserves.Keys.Count)
 	{
-		return Build-StandardAction "RepositoryStructure:StabilizeNoUpstream" @{ "Reserve" = $name; "BranchCommits" = $branchChanges }
+		return Build-StandardAction "RepositoryStructure:StabilizeNoUpstream" @{ "Reserve" = $name; "BranchCommits" = $branchChanges } "Update reserve '$name' to reflect branch changes"
 	} 
 
-	return Build-StandardAction "RepositoryStructure:SetOutOfDate" @{ "Reserve" = $name }
+	return Build-StandardAction "RepositoryStructure:SetOutOfDate" @{ "Reserve" = $name } "Changes occurred to '$name'; need to update"
 }

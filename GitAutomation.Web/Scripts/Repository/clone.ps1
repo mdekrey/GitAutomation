@@ -27,7 +27,7 @@ if ((New-Item -ItemType Directory -Force -Path "$checkoutPath").FullName -ne (Ge
 	$checkoutPath | Write-Verbose
 	New-Item -ItemType Directory -Force -Path "$checkoutPath" | Write-Verbose
 	# The target directory could not be cloned
-	return Build-StandardAction "TargetRepository:DirectoryNotAccessible" @{ "startTimestamp" = $startTimestamp }
+	return Build-StandardAction "TargetRepository:DirectoryNotAccessible" @{ "startTimestamp" = $startTimestamp } "Could not mirror target; check permissions"
 }
 
 Push-Location "$checkoutPath"
@@ -36,20 +36,20 @@ if ($(git rev-parse --git-dir) -ne '.')
 	if ($LastExitCode -eq 0)
 	{
 		# A higher-up directory is a git repository
-		return Build-StandardAction "TargetRepository:GitNested" @{ "startTimestamp" = $startTimestamp; "value" = $(git rev-parse --git-dir) }
+		return Build-StandardAction "TargetRepository:GitNested" @{ "startTimestamp" = $startTimestamp; "value" = $(git rev-parse --git-dir) } "The target folder is already inside a git folder"
 	}
 
 	if ((Get-ChildItem "$checkoutPath" | Measure-Object).Count -ne 0)
 	{
 		# The working directory is dirty
-		return Build-StandardAction "TargetRepository:GitDirty" @{ "startTimestamp" = $startTimestamp }
+		return Build-StandardAction "TargetRepository:GitDirty" @{ "startTimestamp" = $startTimestamp } "Could not mirror target; the target directory was not empty"
 	}
 
 	if ((Init-BareRepository) -ne 0)
 	{
 		# Couldn't init; I believe one of the following conditions is true:
 		# 1. No write permissions
-		return Build-StandardAction "TargetRepository:GitCouldNotBeInitialized" @{ "startTimestamp" = $startTimestamp }
+		return Build-StandardAction "TargetRepository:GitCouldNotBeInitialized" @{ "startTimestamp" = $startTimestamp } "Could not mirror target; check permissions"
 	}
 }
 
@@ -69,7 +69,7 @@ foreach ($remote in $remotes.Keys)
 	if ($LastExitCode -ne 0)
 	{
 		# TODO - bad error code, should not halt, and should specify which remote
-		return Build-StandardAction "TargetRepository:GitPasswordIncorrect" @{ "startTimestamp" = $startTimestamp }
+		Build-StandardAction "TargetRepository:GitPasswordIncorrect" @{ "startTimestamp" = $startTimestamp; "remote" = $remote } "Could not fetch from $remote; make sure your repository url and credentials are correct"
 	}
 }
 Pop-Location

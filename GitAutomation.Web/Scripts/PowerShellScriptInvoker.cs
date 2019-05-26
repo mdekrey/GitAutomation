@@ -27,7 +27,7 @@ namespace GitAutomation.Web.Scripts
             customPath = options.Value.CheckoutPath;
         }
 
-        public IPowerShellStreams<StandardAction> Invoke(string scriptPath, object loggedParameters, object hiddenParameters, IAgentSpecification agentSpecification)
+        public IPowerShellStreams<PowerShellLine> Invoke(string scriptPath, object loggedParameters, object hiddenParameters, IAgentSpecification agentSpecification)
         {
             var invocationId = Guid.NewGuid();
             logger.LogInformation($"Invoking {scriptPath} ({invocationId}) with {JsonConvert.SerializeObject(loggedParameters)} as {agentSpecification}");
@@ -36,7 +36,7 @@ namespace GitAutomation.Web.Scripts
                 .AddUnrestrictedCommand(ResolveScriptPath(scriptPath))
                 .BindParametersToPowerShell(hiddenParameters)
                 .BindParametersToPowerShell(loggedParameters)
-                .InvokeAllStreams<StandardAction, string>(ps => JsonConvert.DeserializeObject<StandardAction>(ps));
+                .InvokeAllStreams<PowerShellLine, string>(ps => JsonConvert.DeserializeObject<PowerShellLine>(ps));
 
             Task.Run(() => ProcessError(result, invocationId));
             Task.Run(() => ProcessActions(result, agentSpecification, invocationId));
@@ -44,7 +44,7 @@ namespace GitAutomation.Web.Scripts
             return result;
         }
 
-        private async Task ProcessError(IPowerShellStreams<StandardAction> result, Guid invocationId)
+        private async Task ProcessError(IPowerShellStreams<PowerShellLine> result, Guid invocationId)
         {
             await foreach (var errorRecord in result.ErrorAsync)
             {
@@ -59,12 +59,15 @@ namespace GitAutomation.Web.Scripts
             }
         }
 
-        private async Task ProcessActions(IPowerShellStreams<StandardAction> result, IAgentSpecification agentSpecification, Guid invocationId)
+        private async Task ProcessActions(IPowerShellStreams<PowerShellLine> result, IAgentSpecification agentSpecification, Guid invocationId)
         {
-            await foreach (var action in result.SuccessAsync)
+            await foreach (var line in result.SuccessAsync)
             {
-                logger.LogDebug($"Dispatching script({invocationId}) action {JsonConvert.SerializeObject(action)}");
-                dispatcher.Dispatch(new StateUpdateEvent<StandardAction>(action, agentSpecification));
+                if (line.Action != null)
+                {
+                    logger.LogDebug($"Dispatching script({invocationId}) action {JsonConvert.SerializeObject(line.Action)}");
+                    dispatcher.Dispatch(new StateUpdateEvent<StandardAction>(line.Action.Value, agentSpecification, line.Comment));
+                }
             }
         }
 

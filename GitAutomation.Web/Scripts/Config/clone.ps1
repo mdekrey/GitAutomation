@@ -35,7 +35,7 @@ if ((New-Item -ItemType Directory -Force -Path "$checkoutPath").FullName -ne (Ge
 	$checkoutPath | Write-Verbose
 	New-Item -ItemType Directory -Force -Path "$checkoutPath" | Write-Verbose
 	# The target directory could not be cloned
-	return Build-StandardAction "ConfigurationRepository:DirectoryNotAccessible" @{ "startTimestamp" = $startTimestamp }
+	return Build-StandardAction "ConfigurationRepository:DirectoryNotAccessible" @{ "startTimestamp" = $startTimestamp } "Could not checkout configuration; check permissions"
 }
 
 Push-Location "$checkoutPath"
@@ -44,12 +44,12 @@ if ($(git rev-parse --git-dir) -ne '.git')
 	if ($LastExitCode -eq 0)
 	{
 		# A higher-up directory is a git repository
-		return Build-StandardAction "ConfigurationRepository:GitNested" @{ "startTimestamp" = $startTimestamp }
+		return Build-StandardAction "ConfigurationRepository:GitNested" @{ "startTimestamp" = $startTimestamp } "The target folder is already inside a git folder"
 	}
 
 	if ((Clone-RepositoryConfiguration) -eq 0)
 	{
-		return Build-StandardAction "ConfigurationRepository:ReadyToLoad" @{ "startTimestamp" = $startTimestamp }
+		return Build-StandardAction "ConfigurationRepository:ReadyToLoad" @{ "startTimestamp" = $startTimestamp } "Ready to load configuration from disk"
 	}
 
 	# Couldn't clone; one of the following conditions is true:
@@ -61,7 +61,7 @@ if ($(git rev-parse --git-dir) -ne '.git')
 		if ((Get-ChildItem "$checkoutPath" | Measure-Object).Count -ne 0)
 		{
 			# The working directory is dirty
-			Build-StandardAction "ConfigurationRepository:GitCouldNotClone" @{ "startTimestamp" = $startTimestamp }
+			Build-StandardAction "ConfigurationRepository:GitCouldNotClone" @{ "startTimestamp" = $startTimestamp } "Could not clone configuration; the target directory was not empty"
 			exit
 		}
 
@@ -70,7 +70,7 @@ if ($(git rev-parse --git-dir) -ne '.git')
 		if ($LastExitCode -ne 0)
 		{
 			# No permission to initialize
-			Build-StandardAction "ConfigurationRepository:GitCouldNotClone" @{ "startTimestamp" = $startTimestamp }
+			Build-StandardAction "ConfigurationRepository:GitCouldNotClone" @{ "startTimestamp" = $startTimestamp } "Could not initialize configuration repository; git init failed"
 			return
 		}
 		git remote add origin "$repository" | Out-Host
@@ -79,7 +79,7 @@ if ($(git rev-parse --git-dir) -ne '.git')
 	catch
 	{
 		# We probably couldn't create the drive
-		return Build-StandardAction "ConfigurationRepository:GitCouldNotClone" @{ "startTimestamp" = $startTimestamp }
+		return Build-StandardAction "ConfigurationRepository:GitCouldNotClone" @{ "startTimestamp" = $startTimestamp } "Could not initialize configuration repository; an exception was thrown"
 	}
 }
 	Pop-Location
@@ -92,7 +92,7 @@ git remote add origin "$repository" | Out-Host
 git fetch origin --prune --no-tags | Out-Host
 if ($LastExitCode -ne 0)
 {
-	return Build-StandardAction "ConfigurationRepository:GitPasswordIncorrect" @{ "startTimestamp" = $startTimestamp }
+	return Build-StandardAction "ConfigurationRepository:GitPasswordIncorrect" @{ "startTimestamp" = $startTimestamp } "Could not fetch from origin; make sure your repository url and credentials are correct"
 }
 
 git checkout "origin/$branchName" | Out-Host
@@ -107,8 +107,8 @@ if ($LastExitCode -ne 0)
 	# We clean all refs for better gc
 	git for-each-ref --format='%(refname:short)' refs/heads | ForEach-Object -Process {git branch -D $_} | Out-Host
 
-	return Build-StandardAction "ConfigurationRepository:GitNoBranch" @{ "startTimestamp" = $startTimestamp }
+	return Build-StandardAction "ConfigurationRepository:GitNoBranch" @{ "startTimestamp" = $startTimestamp } "Configuration branch could not be found"
 }
 End-Git $gitparams
 	
-return Build-StandardAction "ConfigurationRepository:ReadyToLoad" @{ "startTimestamp" = $startTimestamp }
+return Build-StandardAction "ConfigurationRepository:ReadyToLoad" @{ "startTimestamp" = $startTimestamp } "Ready to load configuration from disk"

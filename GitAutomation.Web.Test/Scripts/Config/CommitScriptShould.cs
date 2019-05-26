@@ -32,7 +32,7 @@ namespace GitAutomation.Scripts.Config
 
                 var actual = Invoke(ps =>
                 {
-                    ps.AddScript(@$"cd ""{directory.Path}""
+                    ps.AddScript($@"cd ""{directory.Path}""
 git log --format=oneline --no-decorate
 echo -
 cd ""{tempDir.Path}""
