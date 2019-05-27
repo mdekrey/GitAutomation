@@ -171,7 +171,14 @@ if ($finalState -eq "Stable")
 		$payload.NewOutput = $outputBranch
 	}
 	
-	return Build-StandardAction "RepositoryStructure:PushedReserve" $payload "Auto-merge changes to '$outputBranch' for '$name'"
+	if ($push)
+	{
+		return Build-StandardAction "RepositoryStructure:PushedReserve" $payload "Auto-merge changes to '$outputBranch' for '$name'"
+	}
+	else
+	{
+		return Build-StandardAction "RepositoryStructure:PushedReserve" $payload "No git changes needed for '$name'"
+	}
 }
 elseif ($finalState -eq "CouldNotPush")
 {
