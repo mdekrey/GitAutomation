@@ -228,7 +228,8 @@ namespace GitAutomation.DomainModels
                     })
                 ),
                 n => SetBranchCommits(n, payload.Reserve, payload.BranchCommits),
-                n => SetUpstreamCommits(n, payload.Reserve, payload.ReserveOutputCommits)
+                n => SetUpstreamCommits(n, payload.Reserve, payload.ReserveOutputCommits),
+                n => SetOutputCommitToBranch(n, payload.Reserve)
             );
 #nullable restore
 

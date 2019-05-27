@@ -1,0 +1,38 @@
+.DiffDisplay_base {
+  max-width: 10vw;
+  display: grid;
+  grid-template-columns: 50% 50%;
+  grid-template-rows: auto auto;
+  font-size: 0.75em;
+}
+
+.DiffDisplay_behindLabel,
+.DiffDisplay_aheadLabel {
+  padding: 0 0.5em;
+}
+
+.DiffDisplay_behind,
+.DiffDisplay_behindLabel {
+  text-align: right;
+  border-right: 1px solid black;
+}
+
+.DiffDisplay_ahead,
+.DiffDisplay_aheadLabel {
+  text-align: left;
+}
+
+.DiffDisplay_behind,
+.DiffDisplay_ahead {
+  font-size: 0.5rem;
+  line-height: 1em;
+  background-color: #eee;
+}
+
+.DiffDisplay_indicator {
+  display: inline-block;
+  background-color: #333;
+  height: 1em;
+  width: calc(100% * var(--size) / var(--basis));
+  vertical-align: bottom;
+}

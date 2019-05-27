@@ -29,3 +29,25 @@ input {
   font-size: 0.8em;
   opacity: 0.87;
 }
+
+dl {
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 1201px) {
+  dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-auto-rows: auto;
+  }
+
+  dt {
+    grid-column-start: 1;
+    min-width: 10vw;
+  }
+
+  dd {
+    grid-column-start: 2;
+  }
+}

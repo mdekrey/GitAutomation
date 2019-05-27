@@ -1,13 +1,12 @@
 import React from "react";
-import { BranchReserve } from "../../api";
 import { TextLine } from "../loading";
-import { CardContents, CardActionBar, LinkButton } from "../common";
 import { ReserveLabel } from "./ReserveLabel";
 import { useService } from "../../injector";
 import { useObservable } from "../../rxjs";
 import { groupBy } from "../../data-manipulators";
+import { Link } from "react-router-dom";
 
-export function ReserveList({  }: {}) {
+export function ReserveList() {
   const api = useService("api");
   const reserves = useObservable(api.reserves$, undefined, [api]) || {};
 
@@ -49,7 +48,11 @@ export function ReserveList({  }: {}) {
             <ul>
               {parentReserves.map(reserveName => (
                 <li key={reserveName}>
-                  {reserveName || "No upstream"}
+                  {reserveName ? (
+                    <Link to={`/reserves/${reserveName}`}>{reserveName}</Link>
+                  ) : (
+                    "No upstream"
+                  )}
                   {reserveName && (
                     <>
                       &nbsp;&mdash;&nbsp;

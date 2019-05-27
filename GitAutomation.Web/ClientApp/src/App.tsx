@@ -6,6 +6,7 @@ import {
   CreateReserve,
   ReserveFlows,
   ReserveList,
+  ReserveDetail,
 } from "./components/reserves";
 import {} from "./components/reserves";
 import "./App.css";
@@ -20,6 +21,7 @@ export function App() {
         <Route exact path="/create-reserve" component={CreateReserve} />
         <Route exact path="/reserve-flows" component={ReserveFlows} />
         <Route exact path="/reserves" component={ReserveList} />
+        <Route exact path="/reserves/:reserve+" component={ReserveDetail} />
       </Switch>
     </Layout>
   );
