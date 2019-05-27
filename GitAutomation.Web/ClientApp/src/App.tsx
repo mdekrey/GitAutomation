@@ -4,11 +4,10 @@ import { Layout } from "./components/Layout";
 import { Home } from "./components/Home";
 import {
   CreateReserve,
-  ReserveFlows,
   ReserveList,
   ReserveDetail,
 } from "./components/reserves";
-import {} from "./components/reserves";
+import { FlowDisplay } from "./components/flow";
 import "./App.css";
 
 export function App() {
@@ -19,7 +18,7 @@ export function App() {
         {prerenderedLoginScreen}
         <Route exact path="/" component={Home} />
         <Route exact path="/create-reserve" component={CreateReserve} />
-        <Route exact path="/reserve-flows" component={ReserveFlows} />
+        <Route exact path="/reserve-flows" component={FlowDisplay} />
         <Route exact path="/reserves" component={ReserveList} />
         <Route exact path="/reserves/:reserve+" component={ReserveDetail} />
       </Switch>

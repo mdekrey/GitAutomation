@@ -1,0 +1,9 @@
+.Flow_svg {
+  width: 100vw;
+  height: 100vh;
+  vertical-align: bottom;
+}
+
+.Flow_centered {
+  transform: translate(50vw, 50vh);
+}
