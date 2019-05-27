@@ -1,0 +1,11 @@
+.FlowArrow_container {
+  opacity: 0.87;
+  --arrowColor: #333;
+}
+.FlowArrow_line {
+  stroke: var(--arrowColor);
+  stroke-width: 1;
+}
+.FlowArrow_arrowhead {
+  fill: var(--arrowColor);
+}

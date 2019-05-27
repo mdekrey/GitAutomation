@@ -4,8 +4,6 @@ import {
   forceLink,
   forceSimulation,
   forceManyBody,
-  forceX,
-  forceY,
   forceCenter,
   Force,
 } from "d3-force";
@@ -67,7 +65,7 @@ export function FlowSimulation({
         .force("charge", forceManyBody().strength(-30))
         .force("center", forceCenter(0, 0))
         .force("flow", flowList),
-    [linksList]
+    [linksList, flowList]
   );
   // eslint-disable-next-line
   const [_rerenderIndicator, setTiming] = React.useState(new Date());
@@ -91,7 +89,7 @@ export function FlowSimulation({
     linksList.links(links);
     flowList.links(links);
     simulation.alpha(0.3).restart();
-  }, [linksList, links, simulation]);
+  }, [linksList, links, simulation, flowList]);
 
   return children ? children(simulation.nodes(), linksList.links()) : null;
 }

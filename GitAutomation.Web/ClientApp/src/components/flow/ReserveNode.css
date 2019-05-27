@@ -1,0 +1,17 @@
+.ReserveNode_node {
+  fill: #ccc;
+  stroke: var(--reserveColor);
+  stroke-width: 2px;
+  r: 5;
+}
+
+.ReserveNode_node_Stable {
+  fill: var(--reserveColor);
+  stroke: transparent;
+}
+
+.ReserveNode_node_Conflicted {
+  fill: red;
+  stroke: var(--reserveColor);
+  stroke-width: 2px;
+}
