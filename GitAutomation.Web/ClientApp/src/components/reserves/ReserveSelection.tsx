@@ -20,7 +20,7 @@ export function ReserveSelection({
   onSelectReserveType: (reserveType: string) => void;
 }) {
   const api = useService("api");
-  const reserveTypes = useObservable(api.reserveTypes$, undefined, [api]);
+  const reserveTypes = useObservable(api.reserveTypes$, undefined);
 
   return (
     <>

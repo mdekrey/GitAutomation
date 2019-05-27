@@ -6,7 +6,7 @@ import { useObservable } from "../../rxjs";
 
 export function ReserveLabel({ reserveName }: { reserveName: string | null }) {
   const api = useService("api");
-  const reserveTypes = useObservable(api.reserveTypes$, undefined, [api]);
+  const reserveTypes = useObservable(api.reserveTypes$, undefined);
   const reserveType =
     reserveName && reserveTypes ? reserveTypes[reserveName] : null;
 

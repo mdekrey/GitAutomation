@@ -9,11 +9,14 @@ import "./ReserveNode.css";
 export function ReserveNode({ node }: { node: FlowNode }) {
   const api = useService("api");
   const reserveColor = useObservable<string>(
-    api.reserveTypes$.pipe(
-      map(types => types[node.reserve.ReserveType].Color || "000")
+    React.useMemo(
+      () =>
+        api.reserveTypes$.pipe(
+          map(types => types[node.reserve.ReserveType].Color || "000")
+        ),
+      [api, node.reserve.ReserveType]
     ),
-    "000",
-    [api, node.reserve.ReserveType]
+    "000"
   );
 
   return (

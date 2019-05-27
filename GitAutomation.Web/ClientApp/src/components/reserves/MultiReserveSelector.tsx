@@ -19,9 +19,8 @@ export function MultiReserveSelector({
   const [selectingReserve, setSelectingReserve] = React.useState("");
   const api = useService("api");
   const allReserves = useObservable(
-    api.reserves$.pipe(map(r => Object.keys(r))),
-    undefined,
-    [api]
+    React.useMemo(() => api.reserves$.pipe(map(r => Object.keys(r))), [api]),
+    undefined
   );
   if (allReserves && allReserves.length === 0) {
     return <>No reserves available.</>;

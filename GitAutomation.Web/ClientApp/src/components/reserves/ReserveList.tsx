@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 
 export function ReserveList() {
   const api = useService("api");
-  const reserves = useObservable(api.reserves$, undefined, [api]) || {};
+  const reserves = useObservable(api.reserves$, undefined) || {};
 
   const reservesKeys = Object.keys(reserves);
   const groups = groupBy(reservesKeys, current =>

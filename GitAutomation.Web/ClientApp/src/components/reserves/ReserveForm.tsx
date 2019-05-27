@@ -22,20 +22,22 @@ export function ReserveForm({
   onUpdateForm: (form: CreateReserveFormFields) => void;
 }) {
   const api = useService("api");
-  const flowTypes = useObservable(api.flowTypes$, undefined, [api]);
+  const flowTypes = useObservable(api.flowTypes$, undefined);
   const unreservedBranchesService = useService("unreservedBranches");
   const unreservedBranches = useObservable(
     unreservedBranchesService.unreservedBranches$,
-    undefined,
-    [unreservedBranchesService]
+    undefined
   );
 
   const diffData = useObservable(
-    form.originalBranch
-      ? api.revisionDiff(form.originalBranch)
-      : of({ Reserves: [], Branches: [] }),
-    { Reserves: [], Branches: [] },
-    [api, form.originalBranch]
+    React.useMemo(
+      () =>
+        form.originalBranch
+          ? api.revisionDiff(form.originalBranch)
+          : of({ Reserves: [], Branches: [] }),
+      [api, form.originalBranch]
+    ),
+    { Reserves: [], Branches: [] }
   );
 
   if (form.flowType === null && flowTypes) {

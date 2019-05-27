@@ -9,7 +9,7 @@ import {
   Button,
   DisabledButton,
 } from "../common";
-import { useObservable, useSubscription } from "../../rxjs";
+import { useObservable } from "../../rxjs";
 import { of, Subscription } from "rxjs";
 import { useService } from "../../injector";
 
@@ -31,10 +31,18 @@ export function CreateReserve({ history, location }: RouteComponentProps) {
       flowType: null,
     }
   );
-  const valid = useObservable(isValid(reserveForm), false, [reserveForm]);
+  const valid = useObservable(
+    React.useMemo(() => isValid(reserveForm), [reserveForm]),
+    false
+  );
   const [submitting, setSubmitting] = React.useState(false);
   const cancellation = React.useMemo(() => new Subscription(), []);
-  useSubscription(() => cancellation, []);
+  React.useEffect(
+    () => () => {
+      cancellation.unsubscribe();
+    },
+    [cancellation]
+  );
 
   if (submitting) {
     return <h1>Submitting</h1>;

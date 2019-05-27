@@ -33,14 +33,19 @@ export function ReserveDetail({
   const reserve = match.params.reserve;
   const api = useService("api");
   const reserveData = useObservable(
-    api.reserves$.pipe(map(r => r[reserve])),
-    undefined,
-    [api, reserve]
+    React.useMemo(() => api.reserves$.pipe(map(r => r[reserve])), [
+      api,
+      reserve,
+    ]),
+    undefined
   );
   const diffData = useObservable(
-    reserveData ? api.revisionDiff(reserveData.OutputCommit) : never(),
-    { Reserves: [], Branches: [] },
-    [api, reserveData]
+    React.useMemo(
+      () =>
+        reserveData ? api.revisionDiff(reserveData.OutputCommit) : never(),
+      [api, reserveData]
+    ),
+    { Reserves: [], Branches: [] }
   );
   const basis = Math.max(
     ...[...diffData.Reserves, ...diffData.Branches].map(r =>

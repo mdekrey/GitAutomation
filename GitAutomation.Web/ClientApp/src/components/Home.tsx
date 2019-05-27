@@ -11,10 +11,9 @@ export function Home() {
   const unreservedBranchesService = useService("unreservedBranches");
   const unreservedBranches = useObservable(
     unreservedBranchesService.unreservedBranches$,
-    undefined,
-    [unreservedBranchesService]
+    undefined
   );
-  const reserves = useObservable(api.reserves$, undefined, [api]);
+  const reserves = useObservable(api.reserves$, undefined);
   const state = useIdle([unreservedBranches, reserves]);
   if (state === IdleState.InitialIdle) {
     return null;
