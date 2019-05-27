@@ -4,6 +4,7 @@ import { useObservable } from "../../rxjs";
 import { ReserveLabel } from "./ReserveLabel";
 import { MultiReserveSelector } from "./MultiReserveSelector";
 import { Button, Label } from "../common";
+import { of } from "rxjs";
 
 export interface CreateReserveFormFields {
   name: string;
@@ -27,6 +28,14 @@ export function ReserveForm({
     unreservedBranchesService.unreservedBranches$,
     undefined,
     [unreservedBranchesService]
+  );
+
+  const diffData = useObservable(
+    form.originalBranch
+      ? api.revisionDiff(form.originalBranch)
+      : of({ Reserves: [], Branches: [] }),
+    { Reserves: [], Branches: [] },
+    [api, form.originalBranch]
   );
 
   if (form.flowType === null && flowTypes) {
@@ -94,10 +103,13 @@ export function ReserveForm({
       <Label
         label="Upstream Reserves"
         target={
-          <MultiReserveSelector
-            value={form.upstream}
-            onChange={upstream => onUpdateForm({ ...form, upstream })}
-          />
+          <>
+            <MultiReserveSelector
+              value={form.upstream}
+              onChange={upstream => onUpdateForm({ ...form, upstream })}
+              diffData={diffData}
+            />
+          </>
         }
       />
     </>

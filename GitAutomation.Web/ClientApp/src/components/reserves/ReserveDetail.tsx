@@ -75,7 +75,7 @@ export function ReserveDetail({
                       <dd>
                         {diffData.Reserves.filter(r => r.name === upstream).map(
                           r => (
-                            <DiffDisplay basis={basis} {...r} />
+                            <DiffDisplay key={r.name} basis={basis} {...r} />
                           )
                         )}
                       </dd>
@@ -104,7 +104,7 @@ export function ReserveDetail({
                       <dd>
                         {diffData.Branches.filter(r => r.name === branch).map(
                           r => (
-                            <DiffDisplay basis={basis} {...r} />
+                            <DiffDisplay key={r.name} basis={basis} {...r} />
                           )
                         )}
                       </dd>

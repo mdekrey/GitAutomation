@@ -12,7 +12,7 @@ function adapt<T = any>(stream: signalR.IStreamResult<T>): Observable<T> {
   });
 }
 
-interface RevisionDiff {
+export interface RevisionDiff {
   name: string;
   commit: string;
   ahead: number;
@@ -79,16 +79,14 @@ export class ApiService {
   }
 
   public revisionDiff(commit: string) {
-    return ajax
-      .get(`/api/git/revision-diffs/${commit}`)
-      .pipe(
-        map(
-          resp =>
-            resp.response as {
-              Reserves: RevisionDiff[];
-              Branches: RevisionDiff[];
-            }
-        )
-      );
+    return ajax.get(`/api/git/revision-diffs/${commit}`).pipe(
+      map(
+        resp =>
+          resp.response as {
+            Reserves: RevisionDiff[];
+            Branches: RevisionDiff[];
+          }
+      )
+    );
   }
 }

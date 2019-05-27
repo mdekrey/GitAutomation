@@ -4,13 +4,17 @@ import { useObservable } from "../../rxjs";
 import "../../api";
 import { map } from "rxjs/operators";
 import { Button } from "../common";
+import { RevisionDiff } from "../../api";
+import { DiffDisplay } from "./DiffDisplay";
 
 export function MultiReserveSelector({
   value: currentReserves,
   onChange,
+  diffData = { Reserves: [], Branches: [] },
 }: {
   value: string[];
   onChange: (reserveNames: string[]) => void;
+  diffData?: { Reserves: RevisionDiff[]; Branches: RevisionDiff[] };
 }) {
   const [selectingReserve, setSelectingReserve] = React.useState("");
   const api = useService("api");
@@ -25,6 +29,13 @@ export function MultiReserveSelector({
   const remainingReserves = (allReserves || []).filter(
     r => currentReserves.indexOf(r) === -1 || r === selectingReserve
   );
+
+  const basis = Math.max(
+    ...[...diffData.Reserves, ...diffData.Branches].map(r =>
+      Math.max(r.ahead, r.behind)
+    )
+  );
+
   return (
     <>
       {remainingReserves.length ? (
@@ -57,6 +68,11 @@ export function MultiReserveSelector({
         {currentReserves.map(entry => (
           <li key={entry}>
             {entry}{" "}
+            {diffData.Reserves.filter(r => r.name === selectingReserve).map(
+              r => (
+                <DiffDisplay key={r.name} {...r} basis={basis} />
+              )
+            )}
             {entry !== selectingReserve ? (
               <Button
                 onClick={e => {
