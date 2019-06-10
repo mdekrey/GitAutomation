@@ -7,6 +7,7 @@ using GitAutomation.Extensions;
 using Newtonsoft.Json;
 using System.Linq;
 using GitAutomation.DomainModels;
+using GitAutomation.Web.Scripts;
 
 namespace GitAutomation.Scripts.Config
 {
@@ -39,9 +40,9 @@ namespace GitAutomation.Scripts.Config
 
                 // Assert that we're correct
                 Assert.Equal(1, result.Count);
-                var standardAction = JsonConvert.DeserializeObject<StandardAction>(result.Single());
-                Assert.Equal("ConfigurationRepository:GitNoBranch", standardAction.Action);
-                Assert.Equal(timestamp.ToString(), standardAction.Payload["startTimestamp"]);
+                var standardAction = JsonConvert.DeserializeObject<PowerShellLine>(result.Single());
+                Assert.Equal("ConfigurationRepository:GitNoBranch", standardAction.Action?.Action);
+                Assert.Equal(timestamp.ToString(), standardAction.Action?.Payload["startTimestamp"]);
             }
         }
 
@@ -58,9 +59,9 @@ namespace GitAutomation.Scripts.Config
 
                 // Assert that we're correct
                 Assert.Equal(1, result.Count);
-                var standardAction = JsonConvert.DeserializeObject<StandardAction>(result.Single());
-                Assert.Equal("ConfigurationRepository:ReadyToLoad", standardAction.Action);
-                Assert.Equal(timestamp.ToString(), standardAction.Payload["startTimestamp"]);
+                var standardAction = JsonConvert.DeserializeObject<PowerShellLine>(result.Single());
+                Assert.Equal("ConfigurationRepository:ReadyToLoad", standardAction.Action?.Action);
+                Assert.Equal(timestamp.ToString(), standardAction.Action?.Payload["startTimestamp"]);
             }
         }
 
@@ -76,9 +77,9 @@ namespace GitAutomation.Scripts.Config
 
                 // Assert that we're correct
                 Assert.Equal(1, result.Count);
-                var standardAction = JsonConvert.DeserializeObject<StandardAction>(result.Single());
-                Assert.Equal("ConfigurationRepository:ReadyToLoad", standardAction.Action);
-                Assert.Equal(timestamp.ToString(), standardAction.Payload["startTimestamp"]);
+                var standardAction = JsonConvert.DeserializeObject<PowerShellLine>(result.Single());
+                Assert.Equal("ConfigurationRepository:ReadyToLoad", standardAction.Action?.Action);
+                Assert.Equal(timestamp.ToString(), standardAction.Action?.Payload["startTimestamp"]);
             }
         }
 
@@ -94,9 +95,9 @@ namespace GitAutomation.Scripts.Config
 
                 // Assert that we're correct
                 Assert.Equal(1, result.Count);
-                var standardAction = JsonConvert.DeserializeObject<StandardAction>(result.Single());
-                Assert.Equal("ConfigurationRepository:GitPasswordIncorrect", standardAction.Action);
-                Assert.Equal(timestamp.ToString(), standardAction.Payload["startTimestamp"]);
+                var standardAction = JsonConvert.DeserializeObject<PowerShellLine>(result.Single());
+                Assert.Equal("ConfigurationRepository:GitPasswordIncorrect", standardAction.Action?.Action);
+                Assert.Equal(timestamp.ToString(), standardAction.Action?.Payload["startTimestamp"]);
             }
         }
 
