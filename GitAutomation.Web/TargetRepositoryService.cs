@@ -5,8 +5,8 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using GitAutomation.DomainModels;
+using GitAutomation.Scripting;
 using GitAutomation.State;
-using GitAutomation.Web.Scripts;
 using GitAutomation.Web.State;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -17,21 +17,21 @@ namespace GitAutomation.Web
     public class TargetRepositoryService : IDisposable
     {
         private readonly TargetRepositoryOptions options;
-        private readonly PowerShellScriptInvoker scriptInvoker;
+        private readonly IScriptInvoker scriptInvoker;
         private readonly ILogger logger;
         private readonly IDisposable subscription;
-        public IPowerShellStreams<PowerShellLine> LastFetchResult { get; private set; }
-        public IPowerShellStreams<PowerShellLine> LastLoadFromDiskResult { get; private set; }
-        private ImmutableSortedDictionary<TargetRepositoryState.TimestampType, DateTimeOffset> lastTimestamps;
+        public ScriptProgress LastFetchResult { get; private set; }
+        public ScriptProgress LastLoadFromDiskResult { get; private set; }
+        private ImmutableSortedDictionary<TargetRepositoryState.TimestampType, DateTimeOffset> lastTimestamps = ImmutableSortedDictionary<TargetRepositoryState.TimestampType, DateTimeOffset>.Empty;
         private readonly ActionBlock<Unit> changeProcessor;
 
-        public TargetRepositoryService(IOptions<TargetRepositoryOptions> options, PowerShellScriptInvoker scriptInvoker, ILogger<TargetRepositoryService> logger, IStateMachine<AppState> stateMachine)
+        public TargetRepositoryService(IOptions<TargetRepositoryOptions> options, IScriptInvoker scriptInvoker, ILogger<TargetRepositoryService> logger, IStateMachine<AppState> stateMachine)
         {
             this.options = options.Value;
             this.scriptInvoker = scriptInvoker;
             this.logger = logger;
             changeProcessor = new ActionBlock<Unit>(_ => DoRepositoryAction());
-            subscription = stateMachine.StateUpdates.Select(state => state.State.Target).Subscribe(OnStateUpdated);
+            subscription = stateMachine.StateUpdates.Select(state => state.Payload.Target).Subscribe(OnStateUpdated);
         }
 
         public void AssertStarted()

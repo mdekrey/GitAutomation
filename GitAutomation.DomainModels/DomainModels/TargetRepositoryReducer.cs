@@ -1,4 +1,5 @@
-﻿using GitAutomation.Optionals;
+﻿using GitAutomation.DomainModels.Actions;
+using GitAutomation.Optionals;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -10,67 +11,59 @@ namespace GitAutomation.DomainModels
 {
     public class TargetRepositoryReducer
     {
-        public static TargetRepositoryState Reduce(TargetRepositoryState original, StandardAction action) =>
-            action.Action switch
+        public static TargetRepositoryState Reduce(TargetRepositoryState original, IStandardAction a) =>
+            a switch
         {
-            "TargetRepository:DirectoryNotAccessible" => TargetDirectoryNotAccessible(original, action),
-            "TargetRepository:GitNested" => TargetRepositoryNested(original, action),
-            "TargetRepository:GitDirty" => TargetRepositoryDirty(original, action),
-            "TargetRepository:GitCouldNotBeInitialized" => TargetRepositoryCouldNotBeInitialized(original, action),
-            "TargetRepository:GitPasswordIncorrect" => TargetRepositoryPasswordIncorrect(original, action),
-            "TargetRepository:Fetched" => TargetFetched(original, action),
-            "TargetRepository:Refs" => TargetRefs(original, action),
-            "TargetRepository:NeedFetch" => NeedFetch(original),
-            "RepositoryStructure:PushedReserve" => NeedFetch(original),
+            DirectoryNotAccessibleAction action => TargetDirectoryNotAccessible(original, action),
+            GitNestedAction action => TargetRepositoryNested(original, action),
+            GitDirtyAction action => TargetRepositoryDirty(original, action),
+            GitCouldNotBeInitializedAction action => TargetRepositoryCouldNotBeInitialized(original, action),
+            GitPasswordIncorrectAction action => TargetRepositoryPasswordIncorrect(original, action),
+            FetchedAction action => TargetFetched(original, action),
+            RefsAction action => TargetRefs(original, action),
+            NeedFetchAction action => NeedFetch(original),
+            StabilizePushedReserveAction action => NeedFetch(original),
             _ => original
         };
 
         private static TargetRepositoryState NeedFetch(TargetRepositoryState original) =>
             original.With(timestampFunc: t => t.SetItem(NeededFetch, DateTimeOffset.Now));
 
-        private static TargetRepositoryState TargetDirectoryNotAccessible(TargetRepositoryState original, StandardAction action) =>
-            original.Timestamps[NeededFetch].IfApproximateMatch(action.Payload["startTimestamp"])
+        private static TargetRepositoryState TargetDirectoryNotAccessible(TargetRepositoryState original, DirectoryNotAccessibleAction action) =>
+            original.Timestamps[NeededFetch].IfApproximateMatch(action.StartTimestamp)
                 .Map(timestamp => original.With(lastError: TargetRepositoryState.TargetLastError.Error_DirectoryNotAccessible))
                 .OrElse(original);
 
-        private static TargetRepositoryState TargetRepositoryNested(TargetRepositoryState original, StandardAction action) =>
-            original.Timestamps[NeededFetch].IfApproximateMatch(action.Payload["startTimestamp"])
+        private static TargetRepositoryState TargetRepositoryNested(TargetRepositoryState original, GitNestedAction action) =>
+            original.Timestamps[NeededFetch].IfApproximateMatch(action.StartTimestamp)
                 .Map(timestamp => original.With(lastError: TargetRepositoryState.TargetLastError.Error_DirectoryNested))
                 .OrElse(original);
 
-        private static TargetRepositoryState TargetRepositoryDirty(TargetRepositoryState original, StandardAction action) =>
-            original.Timestamps[NeededFetch].IfApproximateMatch(action.Payload["startTimestamp"])
+        private static TargetRepositoryState TargetRepositoryDirty(TargetRepositoryState original, GitDirtyAction action) =>
+            original.Timestamps[NeededFetch].IfApproximateMatch(action.StartTimestamp)
                 .Map(timestamp => original.With(lastError: TargetRepositoryState.TargetLastError.Error_DirectoryDirty))
                 .OrElse(original);
 
-        private static TargetRepositoryState TargetRepositoryCouldNotBeInitialized(TargetRepositoryState original, StandardAction action) =>
-            original.Timestamps[NeededFetch].IfApproximateMatch(action.Payload["startTimestamp"])
+        private static TargetRepositoryState TargetRepositoryCouldNotBeInitialized(TargetRepositoryState original, GitCouldNotBeInitializedAction action) =>
+            original.Timestamps[NeededFetch].IfApproximateMatch(action.StartTimestamp)
                 .Map(timestamp => original.With(lastError: TargetRepositoryState.TargetLastError.Error_FailedToClone))
                 .OrElse(original);
 
-        private static TargetRepositoryState TargetRepositoryPasswordIncorrect(TargetRepositoryState original, StandardAction action) =>
-            original.Timestamps[NeededFetch].IfApproximateMatch(action.Payload["startTimestamp"])
+        private static TargetRepositoryState TargetRepositoryPasswordIncorrect(TargetRepositoryState original, GitPasswordIncorrectAction action) =>
+            original.Timestamps[NeededFetch].IfApproximateMatch(action.StartTimestamp)
                 .Map(timestamp => original.With(lastError: TargetRepositoryState.TargetLastError.Error_PasswordIncorrect))
                 .OrElse(original);
 
-        private static TargetRepositoryState TargetFetched(TargetRepositoryState original, StandardAction action) =>
-            original.Timestamps[NeededFetch].IfApproximateMatch(action.Payload["startTimestamp"])
+        private static TargetRepositoryState TargetFetched(TargetRepositoryState original, FetchedAction action) =>
+            original.Timestamps[NeededFetch].IfApproximateMatch(action.StartTimestamp)
                 .Map(timestamp => original.With(timestampFunc: t => t.SetItem(Fetched, DateTimeOffset.Now)))
                 .OrElse(original);
 
-        struct RefEntry
-        {
-#pragma warning disable CS0649 // These "unused" properties are for deserialization
-            public string Commit;
-            public string Name;
-#pragma warning enable CS0649
-        }
-
-        private static TargetRepositoryState TargetRefs(TargetRepositoryState original, StandardAction action) =>
-            original.Timestamps[Fetched].IfApproximateMatch(action.Payload["startTimestamp"])
+        private static TargetRepositoryState TargetRefs(TargetRepositoryState original, RefsAction action) =>
+            original.Timestamps[Fetched].IfApproximateMatch(action.StartTimestamp)
                 .Map(timestamp => original.With(
                     timestampFunc: t => t.SetItem(LoadedFromDisk, DateTimeOffset.Now), 
-                    branches: JsonConvert.DeserializeObject<RefEntry[]>(action.Payload["allRefs"].ToString()).ToImmutableSortedDictionary(k => k.Name, k => k.Commit)))
+                    branches: action.AllRefs.ToImmutableSortedDictionary(k => k.Name, k => k.Commit)))
                 .OrElse(original);
 
     }

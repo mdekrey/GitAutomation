@@ -19,10 +19,10 @@ namespace GitAutomation.Web.Controllers
         }
 
         [HttpPost]
-        public IActionResult Post([FromBody] StandardAction body)
+        public IActionResult Post([FromBody] IStandardAction body)
         {
             // TODO - authentication
-            dispatcher.Dispatch(new StateUpdateEvent<StandardAction>(body, AnonymousUserAgent.Instance, "Via the UI"));
+            dispatcher.Dispatch(new StateUpdateEvent<IStandardAction>(body, AnonymousUserAgent.Instance, "Via the UI"));
             return Ok();
         }
 

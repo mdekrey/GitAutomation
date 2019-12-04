@@ -29,7 +29,7 @@ namespace GitAutomation.Web.Hubs
         public ChannelReader<string> Query(string graphql, CancellationToken cancellation)
         {
             var ast = graphql.AsGraphQlAst();
-            var observable = stateMachine.StateUpdates.Select(e => ast.ToJson(e.State).ToString())
+            var observable = stateMachine.StateUpdates.Select(e => ast.ToJson(e.Payload).ToString())
                 .DistinctUntilChanged();
 
             var allCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellation, Context.ConnectionAborted);

@@ -1,4 +1,4 @@
-﻿using GitAutomation.Web.Scripts;
+﻿using GitAutomation.Scripting;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -40,19 +40,24 @@ namespace GitAutomation.Web.Controllers
             return ToResult(service.LastScriptForReserve(reserve));
         }
 
-        private IActionResult ToResult(IPowerShellStreams<PowerShellLine> streams)
+        private IActionResult ToResult(ScriptProgress streams)
         {
             if (streams == null)
             {
                 return NotFound();
             }
 
+            return streams.Completion.IsCompleted
+                ? ToResult(streams.Completion.Result)
+                : Ok(null); // TODO - input? output-in-progress?
+        }
+
+        private IActionResult ToResult(ScriptResult result)
+        {
             return Ok(new
             {
-                Actions = streams.Success,
-                Errors = streams.Error.Select(err => new { err.Exception.Message, err.ScriptStackTrace }),
-                Verbose = streams.Verbose.Select(v => v.Message),
-                streams.Exception
+                // TODO - input? output?
+                result.Exception
             });
         }
     }

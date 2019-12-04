@@ -8,10 +8,11 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using GitAutomation.DomainModels;
 using GitAutomation.DomainModels.Configuration;
+using GitAutomation.DomainModels.Configuration.Actions;
+using GitAutomation.Scripting;
 using GitAutomation.Serialization;
 using GitAutomation.Serialization.Defaults;
 using GitAutomation.State;
-using GitAutomation.Web.Scripts;
 using GitAutomation.Web.State;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -23,12 +24,12 @@ namespace GitAutomation.Web
     public class RepositoryConfigurationService : IDisposable
     {
         private readonly ConfigRepositoryOptions options;
-        private readonly PowerShellScriptInvoker scriptInvoker;
+        private readonly IScriptInvoker scriptInvoker;
         private readonly ILogger logger;
         private readonly IDispatcher dispatcher;
         private readonly IDisposable subscription;
-        public IPowerShellStreams<PowerShellLine> LastLoadResult { get; private set; }
-        public IPowerShellStreams<PowerShellLine> LastPushResult { get; private set; }
+        public ScriptProgress LastLoadResult { get; private set; }
+        public ScriptProgress LastPushResult { get; private set; }
         private Meta meta;
 
         private readonly struct ConfigurationChange
@@ -49,7 +50,7 @@ namespace GitAutomation.Web
         private readonly BufferBlock<ConfigurationChange> configurationChanges = new BufferBlock<ConfigurationChange>();
         private readonly ActionBlock<Unit> changeProcessor;
 
-        public RepositoryConfigurationService(IOptions<ConfigRepositoryOptions> options, PowerShellScriptInvoker scriptInvoker, ILogger<RepositoryConfigurationService> logger, IDispatcher dispatcher, IStateMachine<AppState> stateMachine)
+        public RepositoryConfigurationService(IOptions<ConfigRepositoryOptions> options, IScriptInvoker scriptInvoker, ILogger<RepositoryConfigurationService> logger, IDispatcher dispatcher, IStateMachine<AppState> stateMachine)
         {
             this.options = options.Value;
             this.scriptInvoker = scriptInvoker;
@@ -57,8 +58,8 @@ namespace GitAutomation.Web
             this.dispatcher = dispatcher;
             changeProcessor = new ActionBlock<Unit>(_ => DoRepositoryAction());
             subscription = stateMachine.StateUpdates
-                .Select(state => state.WithState(state.State.Configuration))
-                .DistinctUntilChanged(k => k.State)
+                .Select(state => state.WithState(state.Payload.Configuration))
+                .DistinctUntilChanged(k => k.Payload)
                 .Subscribe(e => OnStateUpdated(e));
         }
 
@@ -69,12 +70,12 @@ namespace GitAutomation.Web
 
         private void OnStateUpdated(StateUpdateEvent<ConfigurationRepositoryState> e)
         {
-            if (lastTimestamps != null && lastTimestamps[StoredFieldModified] != e.State.Timestamps[StoredFieldModified])
+            if (lastTimestamps != null && lastTimestamps[StoredFieldModified] != e.Payload.Timestamps[StoredFieldModified])
             {
-                configurationChanges.Post(new ConfigurationChange(e.State.Timestamps[StoredFieldModified], e));
+                configurationChanges.Post(new ConfigurationChange(e.Payload.Timestamps[StoredFieldModified], e));
             }
 
-            lastTimestamps = e.State.Timestamps;
+            lastTimestamps = e.Payload.Timestamps;
             changeProcessor.Post(Unit.Default);
         }
 
@@ -119,13 +120,13 @@ namespace GitAutomation.Web
             {
                 logger.LogError(ex, "Unable to load configuration");
             }
-            dispatcher.Dispatch(new StateUpdateEvent<StandardAction>(new StandardAction("ConfigurationRepository:Loaded", new { configuration= config.Result, structure= structure.Result, startTimestamp }), SystemAgent.Instance, "Loaded from disk"));
+            dispatcher.Dispatch(new StateUpdateEvent<IStandardAction>(new ConfigurationLoadedAction { Configuration= config.Result, Structure= structure.Result, StartTimestamp = startTimestamp }, SystemAgent.Instance, "Loaded from disk"));
             // clear out any interim config changes, as they're now out of date...
             configurationChanges.TryReceiveAll(out var _);
             if (!exists)
             {
                 // this action is not combined with updating the store as the Loaded action does not know that we aren't overriding it from a normal load
-                dispatcher.Dispatch(new StateUpdateEvent<StandardAction>(new StandardAction("ConfigurationRepository:Written", new{ startTimestamp }), SystemAgent.Instance, "Initialize configuration with defaults"));
+                dispatcher.Dispatch(new StateUpdateEvent<IStandardAction>(new ConfigurationWrittenAction { StartTimestamp = startTimestamp }, SystemAgent.Instance, "Initialize configuration with defaults"));
             }
         }
 
@@ -157,8 +158,8 @@ namespace GitAutomation.Web
         private async Task CommitChange(DateTimeOffset startTimestamp, StateUpdateEvent<ConfigurationRepositoryState> e)
         {
             await Task.WhenAll(
-                SerializationUtils.SaveConfigurationAsync(meta, e.State.Configuration),
-                SerializationUtils.SaveStructureAsync(meta, e.State.Structure)
+                SerializationUtils.SaveConfigurationAsync(meta, e.Payload.Configuration),
+                SerializationUtils.SaveStructureAsync(meta, e.Payload.Structure)
             );
 
             // TODO - convert agent to user name/email

@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using GitAutomation.DomainModels.Actions;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -8,24 +9,24 @@ namespace GitAutomation.DomainModels
 {
     public static class RepositoryStructureReducer
     {
-        public static RepositoryStructure Reduce(this RepositoryStructure original, StandardAction action)
+        public static RepositoryStructure Reduce(this RepositoryStructure original, IStandardAction a)
         {
-            return action.Action switch
+            return a switch
             {
                 // Basic reducers
-                "RepositoryStructure:StabilizeReserve" => StabilizeReserve(original, (string)action.Payload["Reserve"]),
-                "RepositoryStructure:SetReserveState" => SetReserveState(original, (string)action.Payload["Reserve"], (string)action.Payload["State"]),
-                "RepositoryStructure:SetOutputCommit" => SetOutputCommit(original, (string)action.Payload["Reserve"], (string)action.Payload["OutputCommit"]),
-                "RepositoryStructure:SetMeta" => SetMeta(original, (string)action.Payload["Reserve"], action.Payload["Meta"].ToObject<Dictionary<string, object>>()),
-                "RepositoryStructure:CreateReserve" => CreateReserve(original, action.Payload.ToObject<CreateReservePayload>()),
-                "RepositoryStructure:RemoveReserve" => RemoveReserve(original, (string)action.Payload["Reserve"]),
+                StabilizeReserveAction action => StabilizeReserve(original, (string)action.Reserve),
+                SetReserveStateAction action => SetReserveState(original, (string)action.Reserve, (string)action.State),
+                SetOutputCommitAction action => SetOutputCommit(original, (string)action.Reserve, (string)action.OutputCommit),
+                SetMetaAction action => SetMeta(original, (string)action.Reserve, action.Meta),
+                CreateReserveAction action => CreateReserve(original, action),
+                RemoveReserveAction action => RemoveReserve(original, (string)action.Reserve),
                 // Complex reducers
-                "RepositoryStructure:SetOutOfDate" => SetReserveOutOfDate(original, action.Payload.ToObject<SetReserveOutOfDatePayload>()),
-                "RepositoryStructure:StabilizeNoUpstream" => StabilizeNoUpstream(original, action.Payload.ToObject<StabilizeNoUpstreamPayload>()),
-                "RepositoryStructure:PushedReserve" => PushedReserve(original, action.Payload.ToObject<StabilizePushedReservePayload>()),
-                "RepositoryStructure:CouldNotPush" => CouldNotPush(original, action.Payload.ToObject<CouldNotPushPayload>()),
-                "RepositoryStructure:ManualInterventionNeeded" => ManualInterventionNeeded(original, action.Payload.ToObject<ManualInterventionNeededPayload>()),
-                "TargetRepository:Refs" => ClearPushOnReserves(original),
+                SetReserveOutOfDateAction action => SetReserveOutOfDate(original, action),
+                StabilizeNoUpstreamAction action => StabilizeNoUpstream(original, action),
+                StabilizePushedReserveAction action => PushedReserve(original, action),
+                CouldNotPushAction action => CouldNotPush(original, action),
+                ManualInterventionNeededAction action => ManualInterventionNeeded(original, action),
+                TargetRepositoryRefsAction action => ClearPushOnReserves(original),
                 _ => original
             };
         }
@@ -111,22 +112,13 @@ namespace GitAutomation.DomainModels
                         k => b[k].SetStatus("Stable")
                     )));
 
-        class CreateReservePayload
+        private static RepositoryStructure CreateReserve(RepositoryStructure original, CreateReserveAction action)
         {
-            public string Name { get; set; } = "";
-            public string Type { get; set; } = "";
-            public string FlowType { get; set; } = "";
-            public string[] Upstream { get; set; } = Array.Empty<string>();
-            public string? OriginalBranch { get; set; }
-        }
-
-        private static RepositoryStructure CreateReserve(RepositoryStructure original, CreateReservePayload data)
-        {
-            var result = Chain(original, n => AddReserve(n, data.Name, data.Type, data.FlowType));
-            result = data.Upstream.Aggregate(result, (n, upstream) => AddUpstreamToReserve(n, data.Name, upstream));
-            if (data.OriginalBranch != null)
+            var result = Chain(original, n => AddReserve(n, action.Name, action.Type, action.FlowType));
+            result = action.Upstream.Aggregate(result, (n, upstream) => AddUpstreamToReserve(n, action.Name, upstream));
+            if (action.OriginalBranch != null)
             {
-                result = AddOutputBranch(result, data.Name, data.OriginalBranch, BranchReserve.EmptyCommit);
+                result = AddOutputBranch(result, action.Name, action.OriginalBranch, BranchReserve.EmptyCommit);
             }
             return result;
         }
@@ -134,120 +126,56 @@ namespace GitAutomation.DomainModels
         private static RepositoryStructure AddOutputBranch(RepositoryStructure result, string name, string originalBranch, string emptyCommit) =>
             result.SetBranchReserves(reserves => reserves.UpdateItem(name, r => r.SetIncludedBranches(b => b.Add(originalBranch, CreateOutputBranchReserveBranch(emptyCommit)))));
 
-        class SetReserveOutOfDatePayload
-        {
-#nullable disable
-            public string Reserve { get; set; }
-#nullable restore
-        }
-
-        private static RepositoryStructure SetReserveOutOfDate(RepositoryStructure original, SetReserveOutOfDatePayload payload) =>
+        private static RepositoryStructure SetReserveOutOfDate(RepositoryStructure original, SetReserveOutOfDateAction action) =>
             Chain(original,
-                n => SetReserveState(n, payload.Reserve, "OutOfDate")
+                n => SetReserveState(n, action.Reserve, "OutOfDate")
                 );
 
-        class StabilizeNoUpstreamPayload
-        {
-#nullable disable
-            public string Reserve { get; set; }
-            public Dictionary<string, string> BranchCommits { get; set; }
-        }
-
-        private static RepositoryStructure StabilizeNoUpstream(RepositoryStructure original, StabilizeNoUpstreamPayload payload) =>
+        private static RepositoryStructure StabilizeNoUpstream(RepositoryStructure original, StabilizeNoUpstreamAction action) =>
             Chain(original,
-                n => SetReserveState(n, payload.Reserve, "Stable"),
-                n => SetBranchCommits(n, payload.Reserve, payload.BranchCommits),
-                n => SetOutputCommitToBranch(n, payload.Reserve)
+                n => SetReserveState(n, action.Reserve, "Stable"),
+                n => SetBranchCommits(n, action.Reserve, action.BranchCommits),
+                n => SetOutputCommitToBranch(n, action.Reserve)
                 );
 
-#nullable restore
-
-        class StabilizePushedReservePayload
-        {
-#nullable disable
-            public string Reserve { get; set; }
-            public Dictionary<string, string> BranchCommits { get; set; }
-            public Dictionary<string, string> ReserveOutputCommits { get; set; }
-            public string NewOutput { get; set; }
-        }
-
-        private static RepositoryStructure PushedReserve(RepositoryStructure original, StabilizePushedReservePayload payload) =>
+        private static RepositoryStructure PushedReserve(RepositoryStructure original, StabilizePushedReserveAction action) =>
             Chain(original,
-                n => SetReserveState(n, payload.Reserve, "Pushed"),
-                n => payload.NewOutput == null ? n : AddOutputBranch(n, payload.Reserve, payload.NewOutput, BranchReserve.EmptyCommit),
-                n => SetBranchCommits(n, payload.Reserve, payload.BranchCommits),
-                n => SetUpstreamCommits(n, payload.Reserve, payload.ReserveOutputCommits),
-                n => SetOutputCommitToBranch(n, payload.Reserve)
+                n => SetReserveState(n, action.Reserve, "Pushed"),
+                n => action.NewOutput == null ? n : AddOutputBranch(n, action.Reserve, action.NewOutput, BranchReserve.EmptyCommit),
+                n => SetBranchCommits(n, action.Reserve, action.BranchCommits),
+                n => SetUpstreamCommits(n, action.Reserve, action.ReserveOutputCommits),
+                n => SetOutputCommitToBranch(n, action.Reserve)
             );
-#nullable restore
 
-        class CouldNotPushPayload
-        {
-#nullable disable
-            public string Reserve { get; set; }
-            public Dictionary<string, string> BranchCommits { get; set; }
-            public Dictionary<string, string> ReserveOutputCommits { get; set; }
-        }
-
-        private static RepositoryStructure CouldNotPush(RepositoryStructure original, CouldNotPushPayload payload) =>
+        private static RepositoryStructure CouldNotPush(RepositoryStructure original, CouldNotPushAction action) =>
             Chain(original,
-                n => SetBranchCommits(n, payload.Reserve, payload.BranchCommits),
-                n => SetUpstreamCommits(n, payload.Reserve, payload.ReserveOutputCommits),
-                n => SetReserveState(n, payload.Reserve, "CouldNotPush")
+                n => SetBranchCommits(n, action.Reserve, action.BranchCommits),
+                n => SetUpstreamCommits(n, action.Reserve, action.ReserveOutputCommits),
+                n => SetReserveState(n, action.Reserve, "CouldNotPush")
             );
-#nullable restore
 
-        class ManualInterventionNeededPayload
-        {
-#nullable disable
-            public string Reserve { get; set; }
-            public string State { get; set; }
-            public ManualInterventionBranch[] NewBranches { get; set; }
-            public Dictionary<string, string> BranchCommits { get; set; }
-            public Dictionary<string, string> ReserveOutputCommits { get; set; }
-
-            internal class ManualInterventionBranch
-            {
-                public string Name { get; set; }
-                public string Commit { get; set; }
-                public string Role { get; set; }
-                public string Source { get; set; }
-            }
-        }
-
-        private static RepositoryStructure ManualInterventionNeeded(RepositoryStructure original, ManualInterventionNeededPayload payload) =>
+        private static RepositoryStructure ManualInterventionNeeded(RepositoryStructure original, ManualInterventionNeededAction action) =>
             Chain(original,
-                n => SetReserveState(n, payload.Reserve, payload.State),
-                n => payload.NewBranches.Aggregate(n, (prev, branch) =>
-                    AddIncludedBranch(prev, new AddIncludedBranchPayload
+                n => SetReserveState(n, action.Reserve, action.State),
+                n => action.NewBranches.Aggregate(n, (prev, branch) =>
+                    AddIncludedBranch(prev, new AddIncludedBranchAction
                     {
-                        Reserve = payload.Reserve,
+                        Reserve = action.Reserve,
                         Name = branch.Name,
                         Commit = branch.Commit,
                         Meta = new Dictionary<string, string> { { "Role", branch.Role }, { "Source", branch.Source } }
                     })
                 ),
-                n => SetBranchCommits(n, payload.Reserve, payload.BranchCommits),
-                n => SetUpstreamCommits(n, payload.Reserve, payload.ReserveOutputCommits),
-                n => SetOutputCommitToBranch(n, payload.Reserve)
+                n => SetBranchCommits(n, action.Reserve, action.BranchCommits),
+                n => SetUpstreamCommits(n, action.Reserve, action.ReserveOutputCommits),
+                n => SetOutputCommitToBranch(n, action.Reserve)
             );
-#nullable restore
 
-        class AddIncludedBranchPayload
-        {
-#nullable disable
-            public string Reserve { get; set; }
-            public string Name { get; set; }
-            public string Commit { get; set; }
-            public Dictionary<string, string> Meta { get; set; }
-        }
-
-        private static RepositoryStructure AddIncludedBranch(RepositoryStructure original, AddIncludedBranchPayload payload) =>
+        private static RepositoryStructure AddIncludedBranch(RepositoryStructure original, AddIncludedBranchAction payload) =>
             original.SetBranchReserves(n => n.UpdateItem(payload.Reserve, reserve =>
             {
                 return reserve.SetIncludedBranches(branches => branches.SetItem(payload.Name, CreateBranchReserveBranch(payload.Commit, payload.Meta)));
             }));
-#nullable restore
 
         private static BranchReserveBranch CreateOutputBranchReserveBranch(string commit)
         {

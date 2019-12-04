@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Management.Automation;
 using Xunit;
 
 namespace GitAutomation.Scripts
@@ -16,12 +15,7 @@ namespace GitAutomation.Scripts
             TemporaryDirectory = temporaryDirectory;
             if (!Directory.Exists(System.IO.Path.Combine(temporaryDirectory.Path, ".git")))
             {
-                using (var ps = PowerShell.Create())
-                {
-                    ps.AddScript($"cd \"{TemporaryDirectory.Path}\"");
-                    ps.AddScript("git init");
-                    ps.Invoke();
-                }
+                LibGit2Sharp.Repository.Init(TemporaryDirectory.Path);
             }
         }
 
@@ -32,12 +26,8 @@ namespace GitAutomation.Scripts
         {
             var result = new TemporaryDirectory();
 
-            using (var ps = PowerShell.Create())
-            {
-                ps.AddScript($"cd \"{result.Path}\"");
-                ps.AddScript($"git clone --shared {args} \"{TemporaryDirectory.Path}\" .");
-                ps.Invoke();
-            }
+            // TODO - is there a way to include the `shared` flag?
+            LibGit2Sharp.Repository.Clone(TemporaryDirectory.Path, result.Path);
 
             return new GitDirectory(result);
         }

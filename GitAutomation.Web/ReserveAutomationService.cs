@@ -1,6 +1,6 @@
 ﻿using GitAutomation.DomainModels;
+using GitAutomation.Scripting;
 using GitAutomation.State;
-using GitAutomation.Web.Scripts;
 using GitAutomation.Web.State;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
@@ -20,7 +21,7 @@ namespace GitAutomation.Web
     {
         private readonly TargetRepositoryOptions targetRepositoryOptions;
         private readonly AutomationOptions automationOptions;
-        private readonly PowerShellScriptInvoker scriptInvoker;
+        private readonly IScriptInvoker scriptInvoker;
         private readonly ILogger logger;
         private readonly IStateMachine<AppState> stateMachine;
         private readonly IDisposable subscription;
@@ -29,16 +30,16 @@ namespace GitAutomation.Web
 
         readonly struct ReserveFullState
         {
-            public ReserveFullState(BranchReserve reserve, Dictionary<string, string> branchDetails, Dictionary<string,BranchReserve> upstreamReserves)
+            public ReserveFullState(BranchReserve reserve, IDictionary<string, string> branchDetails, IDictionary<string, BranchReserve> upstreamReserves)
             {
                 Reserve = reserve;
-                BranchDetails = branchDetails;
-                UpstreamReserves = upstreamReserves;
+                BranchDetails = branchDetails.ToImmutableDictionary();
+                UpstreamReserves = upstreamReserves.ToImmutableDictionary();
             }
 
             public BranchReserve Reserve { get; }
-            public Dictionary<string, string> BranchDetails { get; }
-            public Dictionary<string, BranchReserve> UpstreamReserves { get; }
+            public ImmutableDictionary<string, string> BranchDetails { get; }
+            public ImmutableDictionary<string, BranchReserve> UpstreamReserves { get; }
             public bool IsValid => !UpstreamReserves.Values.Any(r => r == null);
         }
 
@@ -50,7 +51,7 @@ namespace GitAutomation.Web
 
             public string Name { get; }
             public ReserveFullState Data { get; private set; }
-            public IPowerShellStreams<PowerShellLine> LastScript { get; set; }
+            public ScriptResult LastScript { get; set; }
 
             public SingleReserveAutomation(string name, IStateMachine<AppState> stateMachine, ReserveAutomationService service)
             {
@@ -60,8 +61,8 @@ namespace GitAutomation.Web
                 subscription = stateMachine.StateUpdates
                     .Select(state =>
                     {
-                        var reserves = state.State.Configuration.Structure.BranchReserves;
-                        var branches = state.State.Target.Branches;
+                        var reserves = state.Payload.Configuration.Structure.BranchReserves;
+                        var branches = state.Payload.Target.Branches;
                         var reserve = reserves[name];
                         var branchDetails = reserve.IncludedBranches.Keys.ToDictionary(k => k, k => branches.ContainsKey(k) ? branches[k] : BranchReserve.EmptyCommit);
                         var upstreamReserves = reserve.Upstream.Keys.ToDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : null);
@@ -92,7 +93,7 @@ namespace GitAutomation.Web
             reserveProcessor.Post(name);
         }
 
-        public ReserveAutomationService(IOptions<TargetRepositoryOptions> options, IOptions<AutomationOptions> automationOptions, PowerShellScriptInvoker scriptInvoker, ILogger<TargetRepositoryService> logger, IStateMachine<AppState> stateMachine)
+        public ReserveAutomationService(IOptions<TargetRepositoryOptions> options, IOptions<AutomationOptions> automationOptions, IScriptInvoker scriptInvoker, ILogger<TargetRepositoryService> logger, IStateMachine<AppState> stateMachine)
         {
             this.targetRepositoryOptions = options.Value;
             this.automationOptions = automationOptions.Value;
@@ -108,7 +109,7 @@ namespace GitAutomation.Web
             System.Diagnostics.Debug.Assert(subscription != null);
         }
 
-        public IPowerShellStreams<PowerShellLine> LastScriptForReserve(string reserveName)
+        public ScriptResult LastScriptForReserve(string reserveName)
         {
             if (reserves.TryGetValue(reserveName, out var reserveFullState))
             {
@@ -158,11 +159,11 @@ namespace GitAutomation.Web
 
         private void OnStateUpdated(StateUpdateEvent<AppState> obj)
         {
-            foreach (var key in obj.State.Configuration.Structure.BranchReserves.Keys)
+            foreach (var key in obj.Payload.Configuration.Structure.BranchReserves.Keys)
             {
                 reserves.GetOrAdd(key, AutomationFactory);
             }
-            foreach (var entry in reserves.Keys.Except(obj.State.Configuration.Structure.BranchReserves.Keys).ToArray())
+            foreach (var entry in reserves.Keys.Except(obj.Payload.Configuration.Structure.BranchReserves.Keys).ToArray())
             {
                 if (reserves.Remove(entry, out var removed))
                 {

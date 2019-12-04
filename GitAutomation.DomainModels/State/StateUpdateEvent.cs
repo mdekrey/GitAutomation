@@ -4,14 +4,14 @@ namespace GitAutomation.State
 {
     public class StateUpdateEvent<T>
     {
-        public StateUpdateEvent(T state, IAgentSpecification lastChangeBy, string comment)
+        public StateUpdateEvent(T payload, IAgentSpecification lastChangeBy, string comment)
         {
-            State = state;
+            Payload = payload;
             LastChangeBy = lastChangeBy;
             Comment = comment;
         }
 
-        public T State { get; }
+        public T Payload { get; }
         public IAgentSpecification LastChangeBy { get; }
         public string Comment { get; private set; }
 

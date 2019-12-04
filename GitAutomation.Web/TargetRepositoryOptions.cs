@@ -4,7 +4,7 @@ namespace GitAutomation.Web
 {
     public class TargetRepositoryOptions
     {
-        public Dictionary<string, RemoteRepositoryOptions> Remotes { get; set; }
+        public Dictionary<string, RemoteRepositoryOptions> Remotes { get; set; } = new Dictionary<string, RemoteRepositoryOptions>();
         public string Repository { get; set; }
         public string Password { get; set; }
         public string UserEmail { get; set; }

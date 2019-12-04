@@ -1,7 +1,7 @@
 using GitAutomation.DomainModels;
+using GitAutomation.Scripting;
 using GitAutomation.State;
 using GitAutomation.Web.Hubs;
-using GitAutomation.Web.Scripts;
 using GitAutomation.Web.State;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -41,7 +41,7 @@ namespace GitAutomation.Web
             services.AddOptions<ConfigRepositoryOptions>().Configure(opt => Configuration.GetSection("configurationGit").Bind(opt));
             services.AddOptions<TargetRepositoryOptions>().Configure(opt => Configuration.GetSection("targetGit").Bind(opt));
             services.AddOptions<AutomationOptions>().Configure(opt => Configuration.GetSection("automation").Bind(opt));
-            services.AddSingleton<PowerShellScriptInvoker>();
+            services.AddSingleton<IScriptInvoker, ScriptInvoker>();
             services.AddSingleton<RepositoryConfigurationService>();
             services.AddSingleton<TargetRepositoryService>();
             services.AddSingleton<ReserveAutomationService>();

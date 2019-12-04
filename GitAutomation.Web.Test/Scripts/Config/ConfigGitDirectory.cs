@@ -1,7 +1,7 @@
 ﻿using GitAutomation.Serialization.Defaults;
+using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
-using System.Management.Automation;
 using System.Text;
 using Xunit;
 
@@ -13,15 +13,14 @@ namespace GitAutomation.Scripts.Config
         {
             DefaultsWriter.WriteDefaultsToDirectory(TemporaryDirectory.Path).Wait();
 
-
-            using (var ps = PowerShell.Create())
-            {
-                ps.AddScript($"cd \"{TemporaryDirectory.Path}\"");
-                ps.AddScript("git checkout -B git-config");
-                ps.AddScript("git add .");
-                ps.AddScript("git commit --author=\"A U Thor <author@example.com>\" -m \"Initial commit\"");
-                ps.Invoke();
-            }
+            using var repo = new LibGit2Sharp.Repository(TemporaryDirectory.Path);
+            repo.Refs.UpdateTarget("HEAD", "refs/heads/git-config");
+            Commands.Stage(repo, "*");
+            repo.Commit(
+                "Initial commit", 
+                new Signature("A U Thor", "author@example.com", DateTimeOffset.Now), 
+                new Signature("A U Thor", "author@example.com", DateTimeOffset.Now)
+            );
         }
     }
 

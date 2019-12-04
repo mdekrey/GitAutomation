@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Management.Automation;
 using System.Text;
 using Xunit;
-using GitAutomation.Extensions;
 using Newtonsoft.Json;
 using System.Linq;
 using GitAutomation.DomainModels;
-using GitAutomation.Web.Scripts;
+using GitAutomation.DomainModels.Configuration.Actions;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
+using GitAutomation.State;
+using Microsoft.Extensions.Logging;
+using GitAutomation.Web;
 
 namespace GitAutomation.Scripts.Config
 {
@@ -22,32 +25,27 @@ namespace GitAutomation.Scripts.Config
         }
 
         [Fact]
-        public void RecognizeAnEmptyBranch()
+        public async Task RecognizeAnEmptyBranch()
         {
             using (var directory = new GitDirectory())
             using (var tempDir = new TemporaryDirectory())
             {
                 // Arrange it to already have a clone
-                using (var ps = PowerShell.Create())
-                {
-                    ps.AddScript($"git clone --shared --branch git-config \"{directory.Path}\" \"{tempDir.Path}\"");
-                    ps.Invoke();
-                }
+                LibGit2Sharp.Repository.Clone(directory.Path, tempDir.Path);
 
                 // Act to receive the expected FSA's
                 var timestamp = DateTimeOffset.Now;
-                var result = Invoke(ps => StandardParameters(ps, directory.TemporaryDirectory, tempDir, timestamp));
+                var result = await Invoke(directory.TemporaryDirectory, tempDir, timestamp);
 
                 // Assert that we're correct
-                Assert.Equal(1, result.Count);
-                var standardAction = JsonConvert.DeserializeObject<PowerShellLine>(result.Single());
-                Assert.Equal("ConfigurationRepository:GitNoBranch", standardAction.Action?.Action);
-                Assert.Equal(timestamp.ToString(), standardAction.Action?.Payload["startTimestamp"]);
+                var standardAction = Assert.Single(result);
+                var action = Assert.IsType<GitNoBranchAction>(standardAction.Payload);
+                Assert.Equal(timestamp, action.StartTimestamp);
             }
         }
 
         [Fact]
-        public void HandleAlreadyClonedDirectories()
+        public async Task HandleAlreadyClonedDirectories()
         {
             using (var directory = workingGitDirectory.CreateCopy())
             // Arrange it to already have a clone
@@ -55,72 +53,93 @@ namespace GitAutomation.Scripts.Config
             {
                 // Act to receive the expected FSA's
                 var timestamp = DateTimeOffset.Now;
-                var result = Invoke(ps => StandardParameters(ps, directory.TemporaryDirectory, tempDir.TemporaryDirectory, timestamp));
+                var result = await Invoke(directory.TemporaryDirectory, tempDir.TemporaryDirectory, timestamp);
 
                 // Assert that we're correct
-                Assert.Equal(1, result.Count);
-                var standardAction = JsonConvert.DeserializeObject<PowerShellLine>(result.Single());
-                Assert.Equal("ConfigurationRepository:ReadyToLoad", standardAction.Action?.Action);
-                Assert.Equal(timestamp.ToString(), standardAction.Action?.Payload["startTimestamp"]);
+                var standardAction = Assert.Single(result);
+                var action = Assert.IsType<ReadyToLoadAction>(standardAction.Payload);
+                Assert.Equal(timestamp, action.StartTimestamp);
             }
         }
 
         [Fact]
-        public void CloneFreshDirectories()
+        public async Task CloneFreshDirectories()
         {
             using (var directory = workingGitDirectory.CreateCopy())
             using (var tempDir = new TemporaryDirectory())
             {
                 // Act to receive the expected FSA's
                 var timestamp = DateTimeOffset.Now;
-                var result = Invoke(ps => StandardParameters(ps, directory.TemporaryDirectory, tempDir, timestamp));
+                var result = await Invoke(directory.TemporaryDirectory, tempDir, timestamp);
 
                 // Assert that we're correct
-                Assert.Equal(1, result.Count);
-                var standardAction = JsonConvert.DeserializeObject<PowerShellLine>(result.Single());
-                Assert.Equal("ConfigurationRepository:ReadyToLoad", standardAction.Action?.Action);
-                Assert.Equal(timestamp.ToString(), standardAction.Action?.Payload["startTimestamp"]);
+                var standardAction = Assert.Single(result);
+                var action = Assert.IsType<ReadyToLoadAction>(standardAction.Payload);
+                Assert.Equal(timestamp, action.StartTimestamp);
             }
         }
 
         [Fact]
-        public void HandleBadTargetDirectories()
+        public async Task HandleBadTargetDirectories()
         {
             using (var directory = new TemporaryDirectory())
             using (var tempDir = new TemporaryDirectory())
             {
                 // Act to receive the expected FSA's
                 var timestamp = DateTimeOffset.Now;
-                var result = Invoke(ps => StandardParameters(ps, directory, tempDir, timestamp));
+                var result = await Invoke(directory, tempDir, timestamp);
 
                 // Assert that we're correct
-                Assert.Equal(1, result.Count);
-                var standardAction = JsonConvert.DeserializeObject<PowerShellLine>(result.Single());
-                Assert.Equal("ConfigurationRepository:GitPasswordIncorrect", standardAction.Action?.Action);
-                Assert.Equal(timestamp.ToString(), standardAction.Action?.Payload["startTimestamp"]);
+                var standardAction = Assert.Single(result);
+                var action = Assert.IsType<GitPasswordIncorrectAction>(standardAction.Payload);
+                Assert.Equal(timestamp, action.StartTimestamp);
             }
         }
 
-        private static void StandardParameters(PowerShell ps, TemporaryDirectory repository, TemporaryDirectory checkout, DateTimeOffset timestamp)
+        private static TargetRepositoryOptions StandardParameters(TemporaryDirectory repository, TemporaryDirectory checkout)
         {
-            ps.AddUnrestrictedCommand("./Scripts/Config/clone.ps1");
-            ps.AddParameter("repository", repository.Path);
-            ps.AddParameter("password", "");
-            ps.AddParameter("userEmail", "author@example.com");
-            ps.AddParameter("userName", "A U Thor");
-            ps.AddParameter("checkoutPath", checkout.Path);
-            ps.AddParameter("branchName", "git-config");
-            ps.AddParameter("startTimestamp", timestamp);
-        }
-
-        private ICollection<string> Invoke(Action<PowerShell> addParameters)
-        {
-            using (var ps = PowerShell.Create())
+            return new TargetRepositoryOptions
             {
-                ps.AddUnrestrictedCommand("./Scripts/Globals.ps1");
-                addParameters(ps);
-                return ps.Invoke<string>();
-            }
+                Repository = repository.Path,
+                Password = "",
+                UserEmail = "author@example.com",
+                UserName = "A U Thor",
+                CheckoutPath = checkout.Path,
+                Remotes =
+                {
+                    { "origin", new RemoteRepositoryOptions { Repository = repository.Path } }
+                }
+            };
+        }
+
+        private async Task<IList<StateUpdateEvent<IStandardAction>>> Invoke(TemporaryDirectory repository, TemporaryDirectory checkout, DateTimeOffset timestamp)
+        {
+            var resultList = new List<StateUpdateEvent<IStandardAction>>();
+            var script = new CloneScript(
+                Options.Create(StandardParameters(repository, checkout)),
+                new DispatchToList(resultList)
+            );
+            await script.Run(
+                new CloneScript.CloneScriptParams(timestamp, "git-config"),
+                LoggerFactory.Create(_ => { }).CreateLogger(this.GetType().FullName),
+                SystemAgent.Instance
+                );
+            return resultList;
+        }
+    }
+
+    internal class DispatchToList : IDispatcher
+    {
+        private List<StateUpdateEvent<IStandardAction>> resultList;
+
+        public DispatchToList(List<StateUpdateEvent<IStandardAction>> resultList)
+        {
+            this.resultList = resultList;
+        }
+
+        public void Dispatch(StateUpdateEvent<IStandardAction> ev)
+        {
+            resultList.Add(ev);
         }
     }
 }
