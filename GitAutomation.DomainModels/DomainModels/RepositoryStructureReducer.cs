@@ -26,7 +26,7 @@ namespace GitAutomation.DomainModels
                 StabilizePushedReserveAction action => PushedReserve(original, action),
                 CouldNotPushAction action => CouldNotPush(original, action),
                 ManualInterventionNeededAction action => ManualInterventionNeeded(original, action),
-                TargetRepositoryRefsAction action => ClearPushOnReserves(original),
+                RefsAction action => ClearPushOnReserves(original),
                 _ => original
             };
         }

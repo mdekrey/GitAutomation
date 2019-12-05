@@ -22,12 +22,6 @@ namespace GitAutomation.Web.Controllers
             return ToResult(service.LastPushResult);
         }
 
-        [HttpGet("target/last-load")]
-        public IActionResult GetTargetLastLoad([FromServices] TargetRepositoryService service)
-        {
-            return ToResult(service.LastLoadFromDiskResult);
-        }
-
         [HttpGet("target/last-fetch")]
         public IActionResult GetTargetLastFetch([FromServices] TargetRepositoryService service)
         {
@@ -40,7 +34,7 @@ namespace GitAutomation.Web.Controllers
             return ToResult(service.LastScriptForReserve(reserve));
         }
 
-        private IActionResult ToResult(ScriptProgress streams)
+        private IActionResult ToResult(ScriptProgress? streams)
         {
             if (streams == null)
             {

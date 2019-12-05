@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -18,18 +19,17 @@ namespace GitAutomation.Web
     {
         private readonly TargetRepositoryOptions options;
         private readonly IScriptInvoker scriptInvoker;
-        private readonly ILogger logger;
+        private readonly IDispatcher dispatcher;
         private readonly IDisposable subscription;
-        public ScriptProgress LastFetchResult { get; private set; }
-        public ScriptProgress LastLoadFromDiskResult { get; private set; }
+        public ScriptProgress? LastFetchResult { get; private set; }
         private ImmutableSortedDictionary<TargetRepositoryState.TimestampType, DateTimeOffset> lastTimestamps = ImmutableSortedDictionary<TargetRepositoryState.TimestampType, DateTimeOffset>.Empty;
         private readonly ActionBlock<Unit> changeProcessor;
 
-        public TargetRepositoryService(IOptions<TargetRepositoryOptions> options, IScriptInvoker scriptInvoker, ILogger<TargetRepositoryService> logger, IStateMachine<AppState> stateMachine)
+        public TargetRepositoryService(IOptions<TargetRepositoryOptions> options, IScriptInvoker scriptInvoker, IStateMachine<AppState> stateMachine, IDispatcher dispatcher)
         {
             this.options = options.Value;
             this.scriptInvoker = scriptInvoker;
-            this.logger = logger;
+            this.dispatcher = dispatcher;
             changeProcessor = new ActionBlock<Unit>(_ => DoRepositoryAction());
             subscription = stateMachine.StateUpdates.Select(state => state.Payload.Target).Subscribe(OnStateUpdated);
         }
@@ -53,7 +53,7 @@ namespace GitAutomation.Web
             }
             else if (lastTimestamps[Fetched] > lastTimestamps[LoadedFromDisk])
             {
-                await LoadFromDisk(lastTimestamps[Fetched]);
+                LoadFromDisk(lastTimestamps[Fetched]);
             }
         }
 
@@ -63,10 +63,15 @@ namespace GitAutomation.Web
             await LastFetchResult;
         }
 
-        private async Task LoadFromDisk(DateTimeOffset startTimestamp)
+        private void LoadFromDisk(DateTimeOffset startTimestamp)
         {
-            this.LastLoadFromDiskResult = scriptInvoker.Invoke("$/Repository/gitBranchStates.ps1", new { startTimestamp }, SystemAgent.Instance);
-            await LastLoadFromDiskResult;
+            using var repo = new LibGit2Sharp.Repository(options.CheckoutPath);
+
+            dispatcher.Dispatch(new DomainModels.Actions.RefsAction
+            {
+                StartTimestamp = startTimestamp,
+                AllRefs = repo.Branches.Select(r => new DomainModels.Actions.RefsAction.RefEntry { Name = r.FriendlyName, Commit = r.Tip.Sha }).ToArray()
+            }, SystemAgent.Instance);
         }
 
         void IDisposable.Dispose()

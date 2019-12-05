@@ -91,9 +91,4 @@ namespace GitAutomation.DomainModels.Actions
         public string Commit { get; set; }
         public Dictionary<string, string> Meta { get; set; }
     }
-
-
-    public struct TargetRepositoryRefsAction : IStandardAction
-    {
-    }
 }
