@@ -4,6 +4,7 @@ using GitAutomation.Scripting;
 using GitAutomation.State;
 using GitAutomation.Web;
 using GitAutomation.Web.State;
+using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -12,7 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace GitAutomation.Scripts.Repository
+namespace GitAutomation.Scripts.Branches
 {
     public class CloneScript : IScript<CloneScript.CloneScriptParams>
     {
@@ -52,9 +53,9 @@ namespace GitAutomation.Scripts.Repository
                 return;
             }
 
-            if (!LibGit2Sharp.Repository.IsValid(targetRepositoryOptions.CheckoutPath))
+            if (!Repository.IsValid(targetRepositoryOptions.CheckoutPath))
             {
-                var nested = LibGit2Sharp.Repository.Discover(targetRepositoryOptions.CheckoutPath);
+                var nested = Repository.Discover(targetRepositoryOptions.CheckoutPath);
                 if (nested != null)
                 {
                     dispatcher.Dispatch(new GitNestedAction { StartTimestamp = startTimestamp, Path = nested }, agent, "The target folder is already inside a git folder");
@@ -67,7 +68,7 @@ namespace GitAutomation.Scripts.Repository
                     return;
                 }
 
-                try { LibGit2Sharp.Repository.Init(targetRepositoryOptions.CheckoutPath, isBare: true); }
+                try { Repository.Init(targetRepositoryOptions.CheckoutPath, isBare: true); }
                 catch (Exception ex)
                 {
                     dispatcher.Dispatch(new GitCouldNotBeInitializedAction { StartTimestamp = startTimestamp }, agent, $"Could not mirror target; check permissions.\n\n{ex.ToString()}");
@@ -75,7 +76,7 @@ namespace GitAutomation.Scripts.Repository
                 }
             }
 
-            using var repo = new LibGit2Sharp.Repository(targetRepositoryOptions.CheckoutPath);
+            using var repo = new Repository(targetRepositoryOptions.CheckoutPath);
             foreach (var remote in targetRepositoryOptions.Remotes)
             {
                 try

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Text;
 using GitAutomation.DomainModels;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +17,21 @@ namespace GitAutomation.Scripting
             this.loggerFactory = loggerFactory;
         }
 
+        public Type GetScript<TParams>(string scriptName)
+        {
+            if (scriptName.Contains(","))
+            {
+                // security, since we don't want to load arbitrary assemblies.
+                throw new ArgumentException($"Cannot load generics or types from another assembly. Use the type's FullName property (assembly and class name). Got: {scriptName}");
+            }
+            var type = Type.GetType(scriptName);
+            if (!typeof(IScript<TParams>).IsAssignableFrom(type) || !type.IsClass || type.IsAbstract)
+            {
+                throw new ArgumentException($"Type ({type.AssemblyQualifiedName}) must be concrete and implement the interface '{typeof(IScript<TParams>).FullName}'.");
+            }
+            return type;
+        }
+
         public ScriptProgress Invoke<TParams>(Type scriptType, TParams loggedParameters, IAgentSpecification agentSpecification)
         {
             var script = ActivatorUtilities.GetServiceOrCreateInstance(serviceProvider, scriptType) as IScript<TParams>;
@@ -32,36 +45,6 @@ namespace GitAutomation.Scripting
             return new ScriptProgress(completion, logger.Logs, inputs: loggedParameters);
         }
 
-        private class WrappedLogger : ILogger
-        {
-            private ILogger logger;
-
-            private readonly ConcurrentQueue<LogMessage> logs = new ConcurrentQueue<LogMessage>();
-            public IEnumerable<LogMessage> Logs => logs;
-
-            public WrappedLogger(ILogger logger)
-            {
-                this.logger = logger;
-            }
-
-            public IDisposable BeginScope<TState>(TState state)
-            {
-                return logger.BeginScope(state);
-            }
-
-            public bool IsEnabled(LogLevel logLevel)
-            {
-                return logger.IsEnabled(logLevel);
-            }
-
-            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
-            {
-                if (IsEnabled(logLevel))
-                {
-                    logs.Enqueue(new LogMessage(logLevel, eventId, state, exception, formatter(state, exception)));
-                }
-                logger.Log(logLevel, eventId, state, exception, formatter);
-            }
-        }
+        
     }
 }

@@ -57,7 +57,7 @@ namespace GitAutomation.DomainModels.Actions
         public string Reserve { get; set; }
         public Dictionary<string, string> BranchCommits { get; set; }
         public Dictionary<string, string> ReserveOutputCommits { get; set; }
-        public string NewOutput { get; set; }
+        public string? NewOutput { get; set; }
     }
 
     public struct CouldNotPushAction : IStandardAction

@@ -59,7 +59,7 @@ namespace GitAutomation.Web
 
         internal async Task BeginFetch(DateTimeOffset startTimestamp)
         {
-            this.LastFetchResult = scriptInvoker.Invoke(typeof(Scripts.Repository.CloneScript), new Scripts.Repository.CloneScript.CloneScriptParams(startTimestamp), SystemAgent.Instance);
+            this.LastFetchResult = scriptInvoker.Invoke(typeof(Scripts.Branches.CloneScript), new Scripts.Branches.CloneScript.CloneScriptParams(startTimestamp), SystemAgent.Instance);
             await LastFetchResult;
         }
 

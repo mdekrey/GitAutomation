@@ -28,21 +28,6 @@ namespace GitAutomation.Web
         private readonly ConcurrentDictionary<string, SingleReserveAutomation> reserves = new ConcurrentDictionary<string, SingleReserveAutomation>();
         private readonly ActionBlock<string> reserveProcessor;
 
-        readonly struct ReserveFullState
-        {
-            public ReserveFullState(BranchReserve reserve, IDictionary<string, string> branchDetails, IDictionary<string, BranchReserve> upstreamReserves)
-            {
-                Reserve = reserve;
-                BranchDetails = branchDetails.ToImmutableDictionary();
-                UpstreamReserves = upstreamReserves.ToImmutableDictionary();
-            }
-
-            public BranchReserve Reserve { get; }
-            public ImmutableDictionary<string, string> BranchDetails { get; }
-            public ImmutableDictionary<string, BranchReserve> UpstreamReserves { get; }
-            public bool IsValid => !UpstreamReserves.Values.Any(r => r == null);
-        }
-
         class SingleReserveAutomation : IDisposable
         {
             private readonly IStateMachine<AppState> stateMachine;
@@ -51,7 +36,7 @@ namespace GitAutomation.Web
 
             public string Name { get; }
             public ReserveFullState Data { get; private set; }
-            public ScriptResult LastScript { get; set; }
+            public ScriptProgress? LastScript { get; set; }
 
             public SingleReserveAutomation(string name, IStateMachine<AppState> stateMachine, ReserveAutomationService service)
             {
@@ -109,7 +94,7 @@ namespace GitAutomation.Web
             System.Diagnostics.Debug.Assert(subscription != null);
         }
 
-        public ScriptResult LastScriptForReserve(string reserveName)
+        public ScriptProgress? LastScriptForReserve(string reserveName)
         {
             if (reserves.TryGetValue(reserveName, out var reserveFullState))
             {
@@ -137,22 +122,23 @@ namespace GitAutomation.Web
                 {
                     var path = Path.Combine(automationOptions.WorkspacePath, Path.GetRandomFileName());
                     Directory.CreateDirectory(path);
-                    reserveFullState.LastScript = await scriptInvoker.Invoke(
-                        scriptName,
-                        new
-                        {
-                            reserveFullState.Name,
-                            reserveFullState.Data.BranchDetails,
-                            reserveFullState.Data.Reserve,
-                            reserveFullState.Data.UpstreamReserves,
-                            workingPath = path,
-                            automationOptions.WorkingRemote,
-                            automationOptions.DefaultRemote,
-                            automationOptions.IntegrationPrefix
-                        },
-                        SystemAgent.Instance
-                    );
-                    Directory.Delete(path, recursive: true);
+                    try
+                    {
+                        reserveFullState.LastScript = scriptInvoker.Invoke(
+                            scriptInvoker.GetScript<ReserveScriptParameters>(scriptName),
+                            new ReserveScriptParameters(
+                                reserveFullState.Name,
+                                reserveFullState.Data,
+                                workingPath: path
+                            ),
+                            SystemAgent.Instance
+                        );
+                        await reserveFullState.LastScript;
+                    }
+                    finally
+                    {
+                        Directory.Delete(path, recursive: true);
+                    }
                 }
             }
         }
