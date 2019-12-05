@@ -120,7 +120,7 @@ namespace GitAutomation.Web
             {
                 logger.LogError(ex, "Unable to load configuration");
             }
-            dispatcher.Dispatch(new StateUpdateEvent<IStandardAction>(new ConfigurationLoadedAction { Configuration= config.Result, Structure= structure.Result, StartTimestamp = startTimestamp }, SystemAgent.Instance, "Loaded from disk"));
+            dispatcher.Dispatch(new StateUpdateEvent<IStandardAction>(new ConfigurationLoadedAction { Configuration = config.Result, Structure = structure.Result, StartTimestamp = startTimestamp }, SystemAgent.Instance, "Loaded from disk"));
             // clear out any interim config changes, as they're now out of date...
             configurationChanges.TryReceiveAll(out var _);
             if (!exists)
@@ -174,7 +174,7 @@ namespace GitAutomation.Web
 
         private async Task PushToRemote(DateTimeOffset startTimestamp)
         {
-            LastPushResult = scriptInvoker.Invoke("$/Config/push.ps1", new { startTimestamp }, SystemAgent.Instance);
+            LastPushResult = scriptInvoker.Invoke(typeof(Scripts.Config.PushScript), new Scripts.Config.PushScript.PushScriptParams(startTimestamp), SystemAgent.Instance);
             await LastPushResult;
         }
 
