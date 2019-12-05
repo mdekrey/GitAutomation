@@ -59,13 +59,13 @@ namespace GitAutomation.Web
 
         internal async Task BeginFetch(DateTimeOffset startTimestamp)
         {
-            this.LastFetchResult = scriptInvoker.Invoke("$/Repository/clone.ps1", new { startTimestamp }, options, SystemAgent.Instance);
+            this.LastFetchResult = scriptInvoker.Invoke(typeof(Scripts.Repository.CloneScript), new Scripts.Repository.CloneScript.CloneScriptParams(startTimestamp), SystemAgent.Instance);
             await LastFetchResult;
         }
 
         private async Task LoadFromDisk(DateTimeOffset startTimestamp)
         {
-            this.LastLoadFromDiskResult = scriptInvoker.Invoke("$/Repository/gitBranchStates.ps1", new { startTimestamp }, options, SystemAgent.Instance);
+            this.LastLoadFromDiskResult = scriptInvoker.Invoke("$/Repository/gitBranchStates.ps1", new { startTimestamp }, SystemAgent.Instance);
             await LastLoadFromDiskResult;
         }
 

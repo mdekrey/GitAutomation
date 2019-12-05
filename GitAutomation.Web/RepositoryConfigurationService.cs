@@ -28,9 +28,9 @@ namespace GitAutomation.Web
         private readonly ILogger logger;
         private readonly IDispatcher dispatcher;
         private readonly IDisposable subscription;
-        public ScriptProgress LastLoadResult { get; private set; }
-        public ScriptProgress LastPushResult { get; private set; }
-        private Meta meta;
+        public ScriptProgress? LastLoadResult { get; private set; }
+        public ScriptProgress? LastPushResult { get; private set; }
+        private Meta? meta;
 
         private readonly struct ConfigurationChange
         {
@@ -46,7 +46,7 @@ namespace GitAutomation.Web
         }
 
 
-        private ImmutableSortedDictionary<ConfigurationRepositoryState.ConfigurationTimestampType, DateTimeOffset> lastTimestamps;
+        private ImmutableSortedDictionary<ConfigurationRepositoryState.ConfigurationTimestampType, DateTimeOffset>? lastTimestamps = null;
         private readonly BufferBlock<ConfigurationChange> configurationChanges = new BufferBlock<ConfigurationChange>();
         private readonly ActionBlock<Unit> changeProcessor;
 
@@ -97,7 +97,7 @@ namespace GitAutomation.Web
 
         internal async Task BeginLoad(DateTimeOffset startTimestamp)
         {
-            this.LastLoadResult = scriptInvoker.Invoke("$/Config/clone.ps1", new { startTimestamp }, options, SystemAgent.Instance);
+            this.LastLoadResult = scriptInvoker.Invoke(typeof(Scripts.Config.CloneScript), new Scripts.Config.CloneScript.CloneScriptParams(startTimestamp), SystemAgent.Instance);
             await LastLoadResult;
         }
 
@@ -163,14 +163,18 @@ namespace GitAutomation.Web
             );
 
             // TODO - convert agent to user name/email
-            LastPushResult = scriptInvoker.Invoke("$/Config/commit.ps1", new { startTimestamp, comment = e.Comment }, options, SystemAgent.Instance);
+            LastPushResult = scriptInvoker.Invoke(
+                typeof(Scripts.Config.CommitScript),
+                new Scripts.Config.CommitScript.CommitScriptParams(startTimestamp, e.Comment),
+                SystemAgent.Instance
+            );
             // TODO - I'm concerned there's a race condition in here given that committed changes are cleared out after a load from disk, not after fetch...
             await LastPushResult;
         }
 
         private async Task PushToRemote(DateTimeOffset startTimestamp)
         {
-            LastPushResult = scriptInvoker.Invoke("$/Config/push.ps1", new { startTimestamp }, options, SystemAgent.Instance);
+            LastPushResult = scriptInvoker.Invoke("$/Config/push.ps1", new { startTimestamp }, SystemAgent.Instance);
             await LastPushResult;
         }
 

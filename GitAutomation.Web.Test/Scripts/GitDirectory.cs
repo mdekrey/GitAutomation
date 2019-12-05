@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LibGit2Sharp;
+using System;
 using System.IO;
 using Xunit;
 
@@ -22,12 +23,12 @@ namespace GitAutomation.Scripts
         public TemporaryDirectory TemporaryDirectory { get; }
         public string Path => TemporaryDirectory.Path;
 
-        public GitDirectory CreateCopy(string args = "")
+        public GitDirectory CreateCopy(CloneOptions? options = null)
         {
             var result = new TemporaryDirectory();
 
             // TODO - is there a way to include the `shared` flag?
-            LibGit2Sharp.Repository.Clone(TemporaryDirectory.Path, result.Path);
+            LibGit2Sharp.Repository.Clone(TemporaryDirectory.Path, result.Path, options ?? new CloneOptions());
 
             return new GitDirectory(result);
         }

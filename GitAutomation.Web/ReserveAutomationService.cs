@@ -138,8 +138,9 @@ namespace GitAutomation.Web
                     var path = Path.Combine(automationOptions.WorkspacePath, Path.GetRandomFileName());
                     Directory.CreateDirectory(path);
                     reserveFullState.LastScript = await scriptInvoker.Invoke(
-                        scriptName, 
-                        new {
+                        scriptName,
+                        new
+                        {
                             reserveFullState.Name,
                             reserveFullState.Data.BranchDetails,
                             reserveFullState.Data.Reserve,
@@ -148,8 +149,7 @@ namespace GitAutomation.Web
                             automationOptions.WorkingRemote,
                             automationOptions.DefaultRemote,
                             automationOptions.IntegrationPrefix
-                        }, 
-                        targetRepositoryOptions, 
+                        },
                         SystemAgent.Instance
                     );
                     Directory.Delete(path, recursive: true);

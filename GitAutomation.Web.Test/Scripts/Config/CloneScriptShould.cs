@@ -49,7 +49,7 @@ namespace GitAutomation.Scripts.Config
         {
             using (var directory = workingGitDirectory.CreateCopy())
             // Arrange it to already have a clone
-            using (var tempDir = directory.CreateCopy("--branch git-config"))
+            using (var tempDir = directory.CreateCopy(new LibGit2Sharp.CloneOptions { BranchName = "git-config" }))
             {
                 // Act to receive the expected FSA's
                 var timestamp = DateTimeOffset.Now;
@@ -96,19 +96,16 @@ namespace GitAutomation.Scripts.Config
             }
         }
 
-        private static TargetRepositoryOptions StandardParameters(TemporaryDirectory repository, TemporaryDirectory checkout)
+        private static ConfigRepositoryOptions StandardParameters(TemporaryDirectory repository, TemporaryDirectory checkout)
         {
-            return new TargetRepositoryOptions
+            return new ConfigRepositoryOptions
             {
                 Repository = repository.Path,
                 Password = "",
                 UserEmail = "author@example.com",
                 UserName = "A U Thor",
                 CheckoutPath = checkout.Path,
-                Remotes =
-                {
-                    { "origin", new RemoteRepositoryOptions { Repository = repository.Path } }
-                }
+                BranchName = "git-config"
             };
         }
 
@@ -120,7 +117,7 @@ namespace GitAutomation.Scripts.Config
                 new DispatchToList(resultList)
             );
             await script.Run(
-                new CloneScript.CloneScriptParams(timestamp, "git-config"),
+                new CloneScript.CloneScriptParams(timestamp),
                 LoggerFactory.Create(_ => { }).CreateLogger(this.GetType().FullName),
                 SystemAgent.Instance
                 );

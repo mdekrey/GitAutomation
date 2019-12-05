@@ -1,8 +1,15 @@
-﻿using System;
+﻿using GitAutomation.DomainModels;
+using GitAutomation.State;
+using GitAutomation.Web;
+using LibGit2Sharp;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace GitAutomation.Scripts.Config
@@ -17,51 +24,52 @@ namespace GitAutomation.Scripts.Config
             this.workingGitDirectory = workingGitDirectory;
         }
 
-//        [Fact]
-//        public void CommitWithoutPushing()
-//        { 
-//            using (var directory = workingGitDirectory.CreateCopy())
-//            using (var tempDir = directory.CreateCopy("--branch git-config"))
-//            {
-//                File.WriteAllText(Path.Combine(tempDir.Path, "test.txt"), "This is just a test commit, no need to update yaml.");
+        [Fact]
+        public async Task CommitWithoutPushing()
+        {
+            using (var directory = workingGitDirectory.CreateCopy())
+            using (var tempDir = directory.CreateCopy(new CloneOptions { BranchName = "git-config" }))
+            {
+                File.WriteAllText(Path.Combine(tempDir.Path, "test.txt"), "This is just a test commit, no need to update yaml.");
 
-//                var timestamp = DateTimeOffset.Now;
-//                Invoke(ps => StandardParameters(ps, tempDir.TemporaryDirectory, timestamp));
+                var timestamp = DateTimeOffset.Now;
+                await Invoke(tempDir.TemporaryDirectory, timestamp);
 
-//                var actual = Invoke(ps =>
-//                {
-//                    ps.AddScript($@"cd ""{directory.Path}""
-//git log --format=oneline --no-decorate
-//echo -
-//cd ""{tempDir.Path}""
-//git log --format=oneline --no-decorate");
-//                });
-//                var original = string.Join('\n', actual.TakeWhile(l => l != "-"));
-//                var next = string.Join('\n', actual.SkipWhile(l => l != "-").Skip(1));
-//                Assert.EndsWith(original, next);
-//                Assert.NotEqual(original, next);
-//            }
-//        }
+                using var newRepo = new LibGit2Sharp.Repository(tempDir.TemporaryDirectory.Path);
+                using var originalRepo = new LibGit2Sharp.Repository(directory.Path);
+                
+                var original = originalRepo.Head.Tip.Sha;
+                var next = newRepo.Head.Tip.Sha;
+                Assert.NotEqual(original, next);
+                Assert.Equal(original, newRepo.Head.Tip.Parents.Single().Sha);
+            }
+        }
 
-//        private static void StandardParameters(PowerShell ps, TemporaryDirectory checkout, DateTimeOffset timestamp)
-//        {
-//            ps.AddUnrestrictedCommand("./Scripts/Config/commit.ps1");
-//            ps.AddParameter("password", "");
-//            ps.AddParameter("userEmail", "author@example.com");
-//            ps.AddParameter("userName", "A U Thor");
-//            ps.AddParameter("checkoutPath", checkout.Path);
-//            ps.AddParameter("branchName", "git-config");
-//            ps.AddParameter("startTimestamp", timestamp);
-//        }
+        private static ConfigRepositoryOptions StandardParameters(TemporaryDirectory checkout)
+        {
+            return new ConfigRepositoryOptions
+            {
+                Password = "",
+                UserEmail = "author@example.com",
+                UserName = "A U Thor",
+                CheckoutPath = checkout.Path,
+                BranchName = "git-config"
+            };
+        }
 
-//        private ICollection<string> Invoke(Action<PowerShell> addParameters)
-//        {
-//            using (var ps = PowerShell.Create())
-//            {
-//                ps.AddUnrestrictedCommand("./Scripts/Globals.ps1");
-//                addParameters(ps);
-//                return ps.Invoke<string>();
-//            }
-//        }
+        private async Task<IList<StateUpdateEvent<IStandardAction>>> Invoke(TemporaryDirectory checkout, DateTimeOffset timestamp)
+        {
+            var resultList = new List<StateUpdateEvent<IStandardAction>>();
+            var script = new CommitScript(
+                Options.Create(StandardParameters(checkout)),
+                new DispatchToList(resultList)
+            );
+            await script.Run(
+                new CommitScript.CommitScriptParams(timestamp, "test commit"),
+                LoggerFactory.Create(_ => { }).CreateLogger(this.GetType().FullName),
+                SystemAgent.Instance
+                );
+            return resultList;
+        }
     }
 }

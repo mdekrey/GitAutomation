@@ -1,19 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+using System.Collections.Immutable;
 
 namespace GitAutomation.Scripting
 {
     public class ScriptResult
     {
-        public ScriptResult(AggregateException? exception)
+        public ScriptResult(AggregateException? exception, ImmutableList<LogMessage> logs, object? inputs)
         {
-            this.Exception = exception;
+            Exception = exception;
+            Logs = logs;
+            Inputs = inputs;
         }
 
         public AggregateException? Exception { get; }
-
+        public ImmutableList<LogMessage> Logs { get; }
+        public object? Inputs { get; }
     }
 }

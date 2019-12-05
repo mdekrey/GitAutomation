@@ -15,23 +15,21 @@ namespace GitAutomation.Scripts.Config
 {
     public class CloneScript : IScript<CloneScript.CloneScriptParams>
     {
-        private readonly TargetRepositoryOptions targetRepositoryOptions;
+        private readonly ConfigRepositoryOptions configRepositoryOptions;
         private readonly IDispatcher dispatcher;
 
         public class CloneScriptParams
         {
-            public CloneScriptParams(DateTimeOffset startTimestamp, string branchName)
+            public CloneScriptParams(DateTimeOffset startTimestamp)
             {
                 StartTimestamp = startTimestamp;
-                BranchName = branchName;
             }
             public DateTimeOffset StartTimestamp { get; }
-            public string BranchName { get; }
         }
 
-        public CloneScript(IOptions<TargetRepositoryOptions> options, IDispatcher dispatcher)
+        public CloneScript(IOptions<ConfigRepositoryOptions> options, IDispatcher dispatcher)
         {
-            this.targetRepositoryOptions = options.Value;
+            this.configRepositoryOptions = options.Value;
             this.dispatcher = dispatcher;
         }
 
@@ -53,16 +51,16 @@ namespace GitAutomation.Scripts.Config
                 return;
             }
 
-            if (!LibGit2Sharp.Repository.IsValid(targetRepositoryOptions.CheckoutPath))
+            if (!LibGit2Sharp.Repository.IsValid(configRepositoryOptions.CheckoutPath))
             {
-                var nested = LibGit2Sharp.Repository.Discover(targetRepositoryOptions.CheckoutPath);
+                var nested = LibGit2Sharp.Repository.Discover(configRepositoryOptions.CheckoutPath);
                 if (nested != null)
                 {
                     dispatcher.Dispatch(new GitNestedAction { StartTimestamp = startTimestamp, Path = nested }, agent, "The target folder is already inside a git folder");
                     return;
                 }
 
-                if (CloneRepositoryConfiguration(parameters.BranchName))
+                if (CloneRepositoryConfiguration())
                 {
                     dispatcher.Dispatch(new ReadyToLoadAction { StartTimestamp = startTimestamp }, agent, "Ready to load configuration from disk");
                     return;
@@ -74,19 +72,19 @@ namespace GitAutomation.Scripts.Config
                     return;
                 }
 
-                try { LibGit2Sharp.Repository.Init(targetRepositoryOptions.CheckoutPath, isBare: true); }
+                try { LibGit2Sharp.Repository.Init(configRepositoryOptions.CheckoutPath, isBare: true); }
                 catch (Exception ex)
                 {
                     dispatcher.Dispatch(new GitCouldNotCloneAction { StartTimestamp = startTimestamp }, agent, $"Could not initialize configuration repository; git init failed.\n\n{ex.ToString()}");
                     return;
                 }
-                using var repoTemp = new LibGit2Sharp.Repository(targetRepositoryOptions.CheckoutPath);
-                repoTemp.Network.Remotes.Add("origin", targetRepositoryOptions.Repository);
+                using var repoTemp = new LibGit2Sharp.Repository(configRepositoryOptions.CheckoutPath);
+                repoTemp.Network.Remotes.Add("origin", configRepositoryOptions.Repository);
             }
 
-            using var repo = new LibGit2Sharp.Repository(targetRepositoryOptions.CheckoutPath);
+            using var repo = new LibGit2Sharp.Repository(configRepositoryOptions.CheckoutPath);
             repo.Network.Remotes.Remove("origin");
-            repo.Network.Remotes.Add("origin", targetRepositoryOptions.Repository);
+            repo.Network.Remotes.Add("origin", configRepositoryOptions.Repository);
             try
             {
                 repo.Network.Fetch("origin", Enumerable.Empty<string>(), new FetchOptions
@@ -104,14 +102,14 @@ namespace GitAutomation.Scripts.Config
 
             try
             {
-                Commands.Checkout(repo, repo.Branches[$"origin/{parameters.BranchName}"]);
+                Commands.Checkout(repo, repo.Branches[$"origin/{configRepositoryOptions.BranchName}"]);
             }
             catch (Exception ex)
             {
                 try { Commands.Checkout(repo, repo.Head.Tip); } catch { }
-                if (repo.Branches[parameters.BranchName] != null)
+                if (repo.Branches[configRepositoryOptions.BranchName] != null)
                 {
-                    repo.Branches.Remove(parameters.BranchName);
+                    repo.Branches.Remove(configRepositoryOptions.BranchName);
                 }
                 repo.Refs.UpdateTarget("HEAD", "refs/heads/git-config");
                 try { repo.Reset(ResetMode.Hard); } catch { }
@@ -130,13 +128,14 @@ namespace GitAutomation.Scripts.Config
             dispatcher.Dispatch(new ReadyToLoadAction { StartTimestamp = startTimestamp }, agent, "Ready to load configuration from disk");
         }
 
-        private bool CloneRepositoryConfiguration(string branchName)
+        private bool CloneRepositoryConfiguration()
         {
             try
             {
-                LibGit2Sharp.Repository.Clone(targetRepositoryOptions.Repository, targetRepositoryOptions.CheckoutPath, new CloneOptions
+                LibGit2Sharp.Repository.Clone(configRepositoryOptions.Repository, configRepositoryOptions.CheckoutPath, new CloneOptions
                 {
-                    BranchName = branchName
+                    BranchName = configRepositoryOptions.BranchName,
+                    // CredentialsProvider = // TODO - passwords
                 });
                 return true;
             }
@@ -150,7 +149,7 @@ namespace GitAutomation.Scripts.Config
         {
             try
             {
-                var targetDirectory = System.IO.Directory.CreateDirectory(targetRepositoryOptions.CheckoutPath);
+                var targetDirectory = System.IO.Directory.CreateDirectory(configRepositoryOptions.CheckoutPath);
                 return targetDirectory.Exists
                     ? targetDirectory
                     : null;

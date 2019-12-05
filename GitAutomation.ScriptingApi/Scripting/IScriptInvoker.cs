@@ -7,6 +7,11 @@ namespace GitAutomation.Scripting
 {
     public interface IScriptInvoker
     {
-        ScriptProgress Invoke(string scriptPath, object loggedParameters, object hiddenParameters, IAgentSpecification agentSpecification);
+        ScriptProgress Invoke<TParams>(Type script, TParams loggedParameters, IAgentSpecification agentSpecification);
+        // where script : IScript<TParams>;
+
+        [Obsolete]
+        ScriptProgress Invoke(string script, object loggedParameters, IAgentSpecification agentSpecification) =>
+            throw new InvalidOperationException();
     }
 }

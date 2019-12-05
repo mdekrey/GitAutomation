@@ -24,7 +24,7 @@ namespace GitAutomation.Scripts
             {
                 Directory.Delete(Path, true);
             }
-            catch
+            catch (Exception ex)
             {
                 // some files were still open. Perhaps the user browsed to the folder so TortoiseGit attached?
             }
