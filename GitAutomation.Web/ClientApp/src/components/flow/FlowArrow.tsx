@@ -8,7 +8,7 @@ export interface FlowPoint {
 }
 
 export function FlowArrow({
-  className,
+  className = "",
   source,
   target,
 }: {
@@ -20,7 +20,7 @@ export function FlowArrow({
   const translate = `translate(${target.x}px, ${target.y}px)`;
   const rotate = `rotate(${angle}rad)`;
   return (
-    <g className={`FlowArrow_container ${className || ""}`}>
+    <g className={`FlowArrow_container ${className}`}>
       <line
         x1={source.x}
         y1={source.y}
