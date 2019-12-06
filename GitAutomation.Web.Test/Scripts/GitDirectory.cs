@@ -7,16 +7,21 @@ namespace GitAutomation.Scripts
 {
     public class GitDirectory : IDisposable
     {
-        public GitDirectory() : this(new TemporaryDirectory())
+        public GitDirectory() : this(new TemporaryDirectory(), false)
         {
         }
 
-        public GitDirectory(TemporaryDirectory temporaryDirectory)
+        public GitDirectory(bool isBare) : this(new TemporaryDirectory(), isBare)
+        {
+        }
+
+        public GitDirectory(TemporaryDirectory temporaryDirectory, bool isBare)
         {
             TemporaryDirectory = temporaryDirectory;
-            if (!Directory.Exists(System.IO.Path.Combine(temporaryDirectory.Path, ".git")))
+            
+            if (!LibGit2Sharp.Repository.IsValid(temporaryDirectory.Path))
             {
-                LibGit2Sharp.Repository.Init(TemporaryDirectory.Path);
+                LibGit2Sharp.Repository.Init(TemporaryDirectory.Path, isBare);
             }
         }
 
@@ -25,12 +30,13 @@ namespace GitAutomation.Scripts
 
         public GitDirectory CreateCopy(CloneOptions? options = null)
         {
+            options ??= new CloneOptions();
             var result = new TemporaryDirectory();
 
             // TODO - is there a way to include the `shared` flag?
-            LibGit2Sharp.Repository.Clone(TemporaryDirectory.Path, result.Path, options ?? new CloneOptions());
+            Repository.Clone(TemporaryDirectory.Path, result.Path, options);
 
-            return new GitDirectory(result);
+            return new GitDirectory(result, options.IsBare);
         }
 
         public void Dispose()

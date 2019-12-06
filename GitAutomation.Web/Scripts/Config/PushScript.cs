@@ -38,14 +38,14 @@ namespace GitAutomation.Scripts.Config
 
             try
             {
-                repo.Network.Push(repo.Network.Remotes["origin"], "HEAD", configRepositoryOptions.BranchName, new LibGit2Sharp.PushOptions
+                repo.Network.Push(repo.Network.Remotes["origin"], $"HEAD:refs/heads/{configRepositoryOptions.BranchName}", new LibGit2Sharp.PushOptions
                 {
                     // CredentialsProvider = // TODO - password
                 });
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Unable to push to remote");
+                logger.LogError(ex, "Unable to push configuration to remote");
                 dispatcher.Dispatch(new GitCouldNotPushAction { StartTimestamp = parameters.StartTimestamp }, agent, "Failed to push changes");
                 return;
             }
