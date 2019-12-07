@@ -40,7 +40,7 @@ namespace GitAutomation.Scripts.Config
             {
                 repo.Network.Push(repo.Network.Remotes["origin"], $"HEAD:refs/heads/{configRepositoryOptions.BranchName}", new LibGit2Sharp.PushOptions
                 {
-                    // CredentialsProvider = // TODO - password
+                    CredentialsProvider = configRepositoryOptions.ToCredentialsProvider()
                 });
             }
             catch (Exception ex)

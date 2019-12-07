@@ -11,6 +11,7 @@ using Microsoft.Extensions.Options;
 using GitAutomation.State;
 using Microsoft.Extensions.Logging;
 using GitAutomation.Web;
+using LibGit2Sharp;
 
 namespace GitAutomation.Scripts.Config
 {
@@ -76,6 +77,9 @@ namespace GitAutomation.Scripts.Config
                 var standardAction = Assert.Single(result);
                 var action = Assert.IsType<ReadyToLoadAction>(standardAction.Payload);
                 Assert.Equal(timestamp, action.StartTimestamp);
+                Assert.True(Repository.IsValid(tempDir.Path));
+                using var repo = new Repository(tempDir.Path);
+                Assert.False(repo.Info.IsBare);
             }
         }
 

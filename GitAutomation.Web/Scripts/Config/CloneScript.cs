@@ -72,7 +72,7 @@ namespace GitAutomation.Scripts.Config
                     return;
                 }
 
-                try { LibGit2Sharp.Repository.Init(configRepositoryOptions.CheckoutPath, isBare: true); }
+                try { LibGit2Sharp.Repository.Init(configRepositoryOptions.CheckoutPath, isBare: false); }
                 catch (Exception ex)
                 {
                     dispatcher.Dispatch(new GitCouldNotCloneAction { StartTimestamp = startTimestamp }, agent, $"Could not initialize configuration repository; git init failed.\n\n{ex.ToString()}");
@@ -134,6 +134,7 @@ namespace GitAutomation.Scripts.Config
             {
                 LibGit2Sharp.Repository.Clone(configRepositoryOptions.Repository, configRepositoryOptions.CheckoutPath, new CloneOptions
                 {
+                    IsBare = false,
                     BranchName = configRepositoryOptions.BranchName,
                     // CredentialsProvider = // TODO - passwords
                 });
