@@ -81,15 +81,12 @@ export function CreateReserve({ history, location }: RouteComponentProps) {
       setSubmitting(true);
       cancellation.add(
         api
-          .submitAction({
-            action: "RepositoryStructure:CreateReserve",
-            payload: {
-              Name: reserveForm.name,
-              Type: reserveForm.type,
-              OriginalBranch: reserveForm.originalBranch,
-              Upstream: reserveForm.upstream,
-              FlowType: reserveForm.flowType,
-            },
+          .createReserve({
+            Name: reserveForm.name,
+            Type: reserveForm.type,
+            OriginalBranch: reserveForm.originalBranch,
+            Upstream: reserveForm.upstream,
+            FlowType: reserveForm.flowType,
           })
           .subscribe(() => history.push("/"), () => history.push("/"))
       );

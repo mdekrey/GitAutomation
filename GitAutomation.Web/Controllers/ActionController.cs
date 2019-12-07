@@ -1,4 +1,5 @@
 ﻿using GitAutomation.DomainModels;
+using GitAutomation.DomainModels.Actions;
 using GitAutomation.State;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -18,13 +19,17 @@ namespace GitAutomation.Web.Controllers
             this.dispatcher = dispatcher;
         }
 
-        [HttpPost]
-        public IActionResult Post([FromBody] IStandardAction body)
+        private IActionResult Post(IStandardAction body)
         {
             // TODO - authentication
-            dispatcher.Dispatch(new StateUpdateEvent<IStandardAction>(body, AnonymousUserAgent.Instance, "Via the UI"));
+            dispatcher.Dispatch(body, AnonymousUserAgent.Instance, "Via the UI");
             return Ok();
         }
 
+        [HttpPost]
+        public IActionResult CreateReserve([FromBody] CreateReserveAction body)
+        {
+            return Post(body);
+        }
     }
 }

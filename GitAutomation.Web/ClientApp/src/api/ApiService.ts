@@ -69,13 +69,21 @@ export class ApiService {
 
   public readonly flowTypes$ = of(["Automatic"]);
 
-  public submitAction(action: {
-    action: string;
-    payload: Record<string, any>;
-  }) {
-    return ajax.post("/api/action", action, {
+  private submitAction(path: string, action: Record<string, any>) {
+
+    return ajax.post(`/api/action/${path}`, action, {
       "Content-Type": "application/json",
     });
+  }
+
+  public createReserve(action: {
+    Name?: string | null;
+    Type?: string | null;
+    FlowType?: string | null;
+    Upstream?: string[] | null;
+    OriginalBranch?: string | null;
+  }) {
+    return this.submitAction("CreateReserve", action);
   }
 
   public revisionDiff(commit: string) {
