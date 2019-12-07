@@ -3,7 +3,6 @@ using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Xunit;
 
 namespace GitAutomation.Scripts.Config
 {
@@ -27,9 +26,4 @@ namespace GitAutomation.Scripts.Config
             );
         }
     }
-
-
-    [CollectionDefinition("GitConfiguration collection")]
-    public class ConfigGitDirectoryDefinition : ICollectionFixture<ConfigGitDirectory>
-    { }
 }
