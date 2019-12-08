@@ -28,7 +28,6 @@ namespace GitAutomation.Scripts.Branches.Common
             var reserve = parameters.ReserveFullState.Reserve;
 
             await Task.Yield();
-            using var repo = new Repository(parameters.WorkingPath);
             var changedBranches = branchDetails.Keys.Where(bd => branchDetails[bd] != reserve.IncludedBranches[bd].LastCommit);
             var changedReserves = upstreamReserves.Keys.Where(r => upstreamReserves[r].OutputCommit != reserve.Upstream[r].LastOutput);
 

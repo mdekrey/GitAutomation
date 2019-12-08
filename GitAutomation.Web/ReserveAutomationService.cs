@@ -51,7 +51,7 @@ namespace GitAutomation.Web
                         var reserve = reserves[name];
                         var branchDetails = reserve.IncludedBranches.Keys.ToDictionary(k => k, k => branches.ContainsKey(k) ? branches[k] : BranchReserve.EmptyCommit);
                         var upstreamReserves = reserve.Upstream.Keys.ToDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : null);
-                        return new ReserveFullState (reserve, branchDetails, upstreamReserves );
+                        return new ReserveFullState(reserve, branchDetails, upstreamReserves);
                     })
                     // TODO - this isn't fast, but it does work
                     .DistinctUntilChanged(e => JsonConvert.SerializeObject(e))

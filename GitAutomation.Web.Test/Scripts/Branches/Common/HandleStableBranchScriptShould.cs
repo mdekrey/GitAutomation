@@ -7,24 +7,27 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace GitAutomation.Scripts.Branches
+namespace GitAutomation.Scripts.Branches.Common
 {
     [Collection("GitBranch collection")]
-    public class BranchCloneScriptShould
+    public class HandleStableBranchScriptShould
     {
         private const string UserEmail = "author@example.com";
         private const string UserName = "A U Thor";
         private readonly GitDirectory workingGitDirectory;
 
-        public BranchCloneScriptShould(BranchGitDirectory workingGitDirectory)
+        public HandleStableBranchScriptShould(BranchGitDirectory workingGitDirectory)
         {
             this.workingGitDirectory = workingGitDirectory;
+            using var newRepo = new Repository(workingGitDirectory.Path);
+            newRepo.Refs.UpdateTarget("HEAD", "refs/heads/origin/master");
             WriteUpdatesAndCommit(workingGitDirectory.Path, "InitialCommit", new Dictionary<string, string> { { "readme.md", "This is a test" } });
         }
 
@@ -42,24 +45,26 @@ namespace GitAutomation.Scripts.Branches
         }
 
         [Fact]
-        public async Task CloneFreshRemotes()
+        public async Task UpdateStabilizedBranch()
         {
             using var tempDir = new TemporaryDirectory();
 
             // Act to receive the expected FSA's
-            var timestamp = DateTimeOffset.Now;
-            var result = await Invoke(workingGitDirectory.TemporaryDirectory, tempDir, timestamp);
+            var result = await Invoke(workingGitDirectory.TemporaryDirectory, tempDir, "master", new Dictionary<string, BranchReserve>
+            {
+                { "master", new BranchReserve("dontcare", "dontcare", "Stable", 
+                    ImmutableSortedDictionary<string, UpstreamReserve>.Empty,
+                    includedBranches: new[] { ("origin/master", new BranchReserveBranch(BranchReserve.EmptyCommit, ImmutableSortedDictionary<string, string>.Empty)) }.ToImmutableSortedDictionary(b => b.Item1, b => b.Item2), 
+                    outputCommit: BranchReserve.EmptyCommit, 
+                    meta: ImmutableSortedDictionary<string, object>.Empty) }
+            });
 
             // Assert that we're correct
             var standardAction = Assert.Single(result);
-            
-            var action = Assert.IsType<FetchedAction>(standardAction.Payload);
-            Assert.Equal(timestamp, action.StartTimestamp);
 
-            using var newRepo = new Repository(tempDir.Path);
-            var cannonicalNames = newRepo.Branches.Select(b => b.CanonicalName).ToArray();
-            var name = Assert.Single(cannonicalNames);
-            Assert.Equal("refs/heads/origin/master", name);
+            using var repo = new Repository(workingGitDirectory.Path);
+            var action = Assert.IsType<StabilizeNoUpstreamAction>(standardAction.Payload);
+            Assert.Equal(repo.Branches["refs/heads/origin/master"].Tip.Sha, action.BranchCommits["origin/master"]);
         }
 
         // TODO - more tests
@@ -81,15 +86,20 @@ namespace GitAutomation.Scripts.Branches
             };
         }
 
-        private async Task<IList<StateUpdateEvent<IStandardAction>>> Invoke(TemporaryDirectory repository, TemporaryDirectory checkout, DateTimeOffset timestamp)
+        private async Task<IList<StateUpdateEvent<IStandardAction>>> Invoke(TemporaryDirectory repository, TemporaryDirectory tempPath, string reserveName, Dictionary<string, BranchReserve> reserves)
         {
+            using var repo = new Repository(repository.Path);
             var resultList = new List<StateUpdateEvent<IStandardAction>>();
-            var script = new CloneScript(
-                Options.Create(StandardParameters(repository, checkout)),
+            var script = new HandleStableBranchScript(
                 new DispatchToList(resultList)
             );
+            var reserve = reserves[reserveName];
             await script.Run(
-                new CloneScript.CloneScriptParams(timestamp),
+                new ReserveScriptParameters("master", new ReserveFullState(
+                    reserve,
+                    reserve.IncludedBranches.Keys.ToDictionary(k => k, k => repo.Branches[k] != null ? repo.Branches[k].Tip.Sha : BranchReserve.EmptyCommit),
+                    reserve.Upstream.Keys.ToDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : null)
+                ), tempPath.Path),
                 LoggerFactory.Create(_ => { }).CreateLogger(this.GetType().FullName),
                 SystemAgent.Instance
                 );
