@@ -27,22 +27,20 @@ namespace GitAutomation.Scripts.Config
         [Fact]
         public async Task CommitWithoutPushing()
         {
-            using (var directory = workingGitDirectory.CreateCopy())
-            using (var tempDir = directory.CreateCopy(new CloneOptions { BranchName = "git-config" }))
-            {
-                File.WriteAllText(Path.Combine(tempDir.Path, "test.txt"), "This is just a test commit, no need to update yaml.");
+            using var directory = workingGitDirectory.CreateCopy();
+            using var tempDir = directory.CreateCopy(new CloneOptions { BranchName = "git-config" });
+            File.WriteAllText(Path.Combine(tempDir.Path, "test.txt"), "This is just a test commit, no need to update yaml.");
 
-                var timestamp = DateTimeOffset.Now;
-                await Invoke(tempDir.TemporaryDirectory, timestamp);
+            var timestamp = DateTimeOffset.Now;
+            await Invoke(tempDir.TemporaryDirectory, timestamp);
 
-                using var newRepo = new LibGit2Sharp.Repository(tempDir.TemporaryDirectory.Path);
-                using var originalRepo = new LibGit2Sharp.Repository(directory.Path);
-                
-                var original = originalRepo.Head.Tip.Sha;
-                var next = newRepo.Head.Tip.Sha;
-                Assert.NotEqual(original, next);
-                Assert.Equal(original, newRepo.Head.Tip.Parents.Single().Sha);
-            }
+            using var newRepo = new LibGit2Sharp.Repository(tempDir.TemporaryDirectory.Path);
+            using var originalRepo = new LibGit2Sharp.Repository(directory.Path);
+
+            var original = originalRepo.Head.Tip.Sha;
+            var next = newRepo.Head.Tip.Sha;
+            Assert.NotEqual(original, next);
+            Assert.Equal(original, newRepo.Head.Tip.Parents.Single().Sha);
         }
 
         private static ConfigRepositoryOptions StandardParameters(TemporaryDirectory checkout)

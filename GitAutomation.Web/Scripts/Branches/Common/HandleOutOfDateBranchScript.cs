@@ -70,6 +70,7 @@ namespace GitAutomation.Scripts.Branches.Common
 
             var push = false;
             Repository.Clone(checkoutPath, workingPath);
+            // TODO - clone'd remote should be using automationOptions.WorkingRemote, but is probably origin
             using var repo = new Repository(workingPath);
             if (newOutputBranch)
             {

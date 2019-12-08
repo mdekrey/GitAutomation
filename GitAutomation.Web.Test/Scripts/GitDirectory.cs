@@ -30,7 +30,21 @@ namespace GitAutomation.Scripts
 
         public GitDirectory CreateCopy(CloneOptions? options = null)
         {
-            options ??= new CloneOptions();
+            options ??= new CloneOptions() { };
+            var result = new TemporaryDirectory();
+
+            // TODO - is there a way to include the `shared` flag?
+            Repository.Clone(TemporaryDirectory.Path, result.Path, options);
+            using var repo = new Repository(result.Path);
+            Commands.Fetch(repo, "origin", new[] { "refs/heads/*:refs/heads/*" }, new FetchOptions { }, "");
+            repo.Network.Remotes.Remove("origin");
+
+            return new GitDirectory(result, options.IsBare);
+        }
+
+        public GitDirectory CreateClone(CloneOptions? options = null)
+        {
+            options ??= new CloneOptions() { };
             var result = new TemporaryDirectory();
 
             // TODO - is there a way to include the `shared` flag?

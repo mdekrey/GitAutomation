@@ -27,26 +27,25 @@ namespace GitAutomation.Scripts.Config
         [Fact]
         public async Task PushCommittedChanges()
         {
-            using (var directory = workingGitDirectory.CreateCopy(new CloneOptions { IsBare = true }))
-            using (var tempDir = directory.CreateCopy(new CloneOptions { BranchName = "git-config" }))
-            {
-                File.WriteAllText(Path.Combine(tempDir.Path, "test.txt"), "This is just a test commit, no need to update yaml.");
+            using var directory = workingGitDirectory.CreateCopy(new CloneOptions { IsBare = true });
+            using var tempDir = directory.CreateClone(new CloneOptions { BranchName = "git-config" });
 
-                var configRepositoryOptions = StandardParameters(tempDir.TemporaryDirectory);
-                using var newRepo = new LibGit2Sharp.Repository(tempDir.TemporaryDirectory.Path);
-                Commands.Stage(newRepo, "*");
-                var author = new Signature(configRepositoryOptions.UserName, configRepositoryOptions.UserEmail, DateTimeOffset.Now);
-                newRepo.Commit("Test commit", author, author);
+            File.WriteAllText(Path.Combine(tempDir.Path, "test.txt"), "This is just a test commit, no need to update yaml.");
 
-                var timestamp = DateTimeOffset.Now;
-                var actions = await Invoke(tempDir.TemporaryDirectory, timestamp);
+            var configRepositoryOptions = StandardParameters(tempDir.TemporaryDirectory);
+            using var newRepo = new LibGit2Sharp.Repository(tempDir.TemporaryDirectory.Path);
+            Commands.Stage(newRepo, "*");
+            var author = new Signature(configRepositoryOptions.UserName, configRepositoryOptions.UserEmail, DateTimeOffset.Now);
+            newRepo.Commit("Test commit", author, author);
 
-                using var originalRepo = new LibGit2Sharp.Repository(directory.Path);
+            var timestamp = DateTimeOffset.Now;
+            var actions = await Invoke(tempDir.TemporaryDirectory, timestamp);
 
-                var original = originalRepo.Head.Tip.Sha;
-                var next = newRepo.Head.Tip.Sha;
-                Assert.Equal(original, next);
-            }
+            using var originalRepo = new LibGit2Sharp.Repository(directory.Path);
+
+            var original = originalRepo.Head.Tip.Sha;
+            var next = newRepo.Head.Tip.Sha;
+            Assert.Equal(original, next);
         }
 
         private static ConfigRepositoryOptions StandardParameters(TemporaryDirectory checkout)
