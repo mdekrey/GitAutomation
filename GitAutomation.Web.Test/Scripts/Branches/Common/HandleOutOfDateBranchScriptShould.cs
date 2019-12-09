@@ -98,6 +98,102 @@ namespace GitAutomation.Scripts.Branches.Common
             Assert.Equal("feature-b", action.Reserve);
         }
 
+        [Fact]
+        public async Task HandleUpstreamConflictingBranch()
+        {
+            using var gitDir = new GitDirectory(isBare: true);
+            using var checkout = workingGitDirectory.CreateCopy(new CloneOptions { IsBare = true });
+            using var tempDir = new TemporaryDirectory();
+
+            using var repo = new Repository(checkout.Path);
+            var originalFeatureA = repo.Branches["origin/feature-a"].Tip.Sha;
+            var originalInfrastructure = repo.Branches["origin/infrastructure"].Tip.Sha;
+
+            // Act to receive the expected FSA's
+            var result = await Invoke(gitDir.TemporaryDirectory, tempDir, checkout, "feature-a", new Dictionary<string, BranchReserve>
+            {
+                { "feature-a", new BranchReserve("dontcare", "Automatic", "Stable",
+                    Upstream(("infrastructure", new UpstreamReserve(repo.Branches["origin/infrastructure"].Tip.Sha))),
+                    IncludedBranches(
+                        ("origin/feature-a", new BranchReserveBranch(repo.Branches["origin/feature-a"].Tip.Sha, Metadata(("Role", "Output"))))
+                    ),
+                    outputCommit: repo.Branches["origin/feature-a"].Tip.Sha,
+                    meta: Metadata()) },
+                { "infrastructure", new BranchReserve("dontcare", "dontcare", "Stable",
+                    Upstream(),
+                    IncludedBranches(
+                        ("origin/infrastructure", new BranchReserveBranch(repo.Branches["origin/infrastructure"].Tip.Sha, Metadata(("Role", "Output"))))
+                    ),
+                    outputCommit: repo.Branches["origin/infrastructure"].Tip.Sha,
+                    meta: Metadata()) }
+            });
+
+            // Assert that we're correct
+            var standardAction = Assert.Single(result);
+
+            using var targetRepo = new Repository(gitDir.Path);
+
+            var action = Assert.IsType<ManualInterventionNeededAction>(standardAction.Payload);
+            Assert.Empty(action.BranchCommits);
+            Assert.Empty(action.ReserveOutputCommits);
+            Assert.Equal("Conflicted", action.State);
+            Assert.Equal("feature-a", action.Reserve);
+            var newBranch = Assert.Single(action.NewBranches);
+            Assert.Equal("origin/merge/feature-a/infrastructure", newBranch.Name);
+            Assert.Equal(originalInfrastructure, targetRepo.Branches["merge/feature-a/infrastructure"].Tip.Sha);
+            Assert.Equal(originalInfrastructure, newBranch.Commit);
+            Assert.Equal("Integration", newBranch.Role);
+            Assert.Equal("infrastructure", newBranch.Source);
+        }
+
+        [Fact]
+        public async Task HandleManualInterventionMerge()
+        {
+            using var gitDir = new GitDirectory(isBare: true);
+            using var checkout = workingGitDirectory.CreateCopy(new CloneOptions { IsBare = true });
+            using var tempDir = new TemporaryDirectory();
+
+            using var repo = new Repository(checkout.Path);
+            var originalFeatureB = repo.Branches["origin/feature-b"].Tip.Sha;
+            var originalInfrastructure = repo.Branches["origin/infrastructure"].Tip.Sha;
+
+            // Act to receive the expected FSA's
+            var result = await Invoke(gitDir.TemporaryDirectory, tempDir, checkout, "feature-b", new Dictionary<string, BranchReserve>
+            {
+                { "feature-b", new BranchReserve("dontcare", "Manual", "Stable",
+                    Upstream(("infrastructure", new UpstreamReserve(repo.Branches["origin/infrastructure"].Tip.Sha))),
+                    IncludedBranches(
+                        ("origin/feature-b", new BranchReserveBranch(repo.Branches["origin/feature-b"].Tip.Sha, Metadata(("Role", "Output"))))
+                    ),
+                    outputCommit: repo.Branches["origin/feature-b"].Tip.Sha,
+                    meta: Metadata()) },
+                { "infrastructure", new BranchReserve("dontcare", "dontcare", "Stable",
+                    Upstream(),
+                    IncludedBranches(
+                        ("origin/infrastructure", new BranchReserveBranch(repo.Branches["origin/infrastructure"].Tip.Sha, Metadata(("Role", "Output"))))
+                    ),
+                    outputCommit: repo.Branches["origin/infrastructure"].Tip.Sha,
+                    meta: Metadata()) }
+            });
+
+            // Assert that we're correct
+            var standardAction = Assert.Single(result);
+
+            using var targetRepo = new Repository(gitDir.Path);
+
+            var action = Assert.IsType<ManualInterventionNeededAction>(standardAction.Payload);
+            Assert.Empty(action.BranchCommits);
+            Assert.Empty(action.ReserveOutputCommits);
+            Assert.Equal("NeedsUpdate", action.State);
+            Assert.Equal("feature-b", action.Reserve);
+            var newBranch = Assert.Single(action.NewBranches);
+            Assert.Equal("origin/merge/feature-b/infrastructure", newBranch.Name);
+            Assert.Equal(originalInfrastructure, targetRepo.Branches["merge/feature-b/infrastructure"].Tip.Sha);
+            Assert.Equal(originalInfrastructure, newBranch.Commit);
+            Assert.Equal("Integration", newBranch.Role);
+            Assert.Equal("infrastructure", newBranch.Source);
+        }
+
         // TODO - more tests
 
         private ImmutableSortedDictionary<string, BranchReserveBranch> IncludedBranches(params (string key, BranchReserveBranch value)[] upstream)
@@ -145,7 +241,7 @@ namespace GitAutomation.Scripts.Branches.Common
 
         private async Task<IList<StateUpdateEvent<IStandardAction>>> Invoke(TemporaryDirectory repository, TemporaryDirectory tempPath, GitDirectory checkout, string reserveName, Dictionary<string, BranchReserve> reserves)
         {
-            using var repo = new Repository(repository.Path);
+            using var repo = new Repository(checkout.Path);
             var resultList = new List<StateUpdateEvent<IStandardAction>>();
             var script = new HandleOutOfDateBranchScript(
                 new DispatchToList(resultList),
@@ -161,7 +257,7 @@ namespace GitAutomation.Scripts.Branches.Common
                 ), tempPath.Path),
                 LoggerFactory.Create(_ => { }).CreateLogger(this.GetType().FullName),
                 SystemAgent.Instance
-                );
+            );
             return resultList;
         }
     }

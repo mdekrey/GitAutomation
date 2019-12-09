@@ -138,14 +138,7 @@ namespace GitAutomation.Scripts.Branches.Common
             {
                 try
                 {
-                    if (repo.Network.Remotes[baseRemote] == null)
-                    {
-                        repo.Network.Remotes.Add(baseRemote, options.Remotes[baseRemote].Repository);
-                    }
-                    repo.Network.Push(repo.Network.Remotes[baseRemote], $"HEAD:refs/heads/{outputBranchRemoteName}", new PushOptions
-                    {
-                        // CredentialsProvider = // TODO - password
-                    });
+                    EnsureRemoteAndPush(repo, baseRemote, $"HEAD:refs/heads/{outputBranchRemoteName}");
                 }
                 catch (Exception ex)
                 {
@@ -183,6 +176,7 @@ namespace GitAutomation.Scripts.Branches.Common
                     break;
                 case "NeedsUpdate":
                 case "Conflicted":
+                    // TODO - check if two upstream branches are the actual reason for the conflict
                     var newBranches = upstreamNeeded.Select(entry =>
                     {
                         var commit = upstreamReserves[entry].OutputCommit;
@@ -190,8 +184,10 @@ namespace GitAutomation.Scripts.Branches.Common
                         var remoteBranchName = $"{defaultRemote}/{newBranchName}";
                         if (repo.Branches[remoteBranchName] != null && (!reserve.IncludedBranches.ContainsKey(remoteBranchName) || reserve.IncludedBranches[remoteBranchName].Meta["Role"] != "Integration"))
                         {
+                            // TODO - should warn or something here
                             return default;
                         }
+                        repo.CreateBranch(remoteBranchName, commit);
                         return new ManualInterventionNeededAction.ManualInterventionBranch
                         {
                             Commit = commit,
@@ -200,9 +196,8 @@ namespace GitAutomation.Scripts.Branches.Common
                             Source = entry
                         };
                     }).Where(b => b.Name != null).ToArray();
-                    var refspecs = string.Join(' ', newBranches.Select(b => $"{b.Commit}:refs/heads/${b.Name.Substring(defaultRemote.Length + 1)}"));
-                    // TODO - credentials!
-                    repo.Network.Push(repo.Network.Remotes[defaultRemote], refspecs);
+                    var refspecs = newBranches.Select(b => $"refs/heads/{b.Name}:refs/heads/{b.Name.Substring(defaultRemote.Length + 1)}").ToArray();
+                    EnsureRemoteAndPush(repo, defaultRemote, refspecs);
 
                     dispatcher.Dispatch(new ManualInterventionNeededAction
                     {
@@ -214,6 +209,18 @@ namespace GitAutomation.Scripts.Branches.Common
                     }, agent, $"Need manual merging to '{outputBranchName}' for '{name}'");
                     break;
             }
+        }
+
+        private void EnsureRemoteAndPush(Repository repo, string remoteName, params string[] refSpecs)
+        {
+            if (repo.Network.Remotes[remoteName] == null)
+            {
+                repo.Network.Remotes.Add(remoteName, options.Remotes[remoteName].Repository);
+            }
+            repo.Network.Push(repo.Network.Remotes[remoteName], refSpecs, new PushOptions
+            {
+                // CredentialsProvider = // TODO - password
+            });
         }
     }
 }
