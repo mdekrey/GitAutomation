@@ -70,8 +70,12 @@ namespace GitAutomation.Scripts.Branches.Common
 
             var push = false;
             Repository.Clone(checkoutPath, workingPath);
-            // TODO - clone'd remote should be using automationOptions.WorkingRemote, but is probably origin
             using var repo = new Repository(workingPath);
+            Commands.Fetch(repo, "origin", new[] { "refs/heads/*:refs/heads/*" }, new FetchOptions { }, "");
+            foreach (var r in repo.Network.Remotes.ToArray())
+            {
+                repo.Network.Remotes.Remove(r.Name);
+            }
             if (newOutputBranch)
             {
                 if (repo.Branches[outputBranchName] != null)
@@ -134,7 +138,14 @@ namespace GitAutomation.Scripts.Branches.Common
             {
                 try
                 {
-                    repo.Network.Push(repo.Network.Remotes[baseRemote], $"HEAD:refs/heads/{outputBranchRemoteName}");
+                    if (repo.Network.Remotes[baseRemote] == null)
+                    {
+                        repo.Network.Remotes.Add(baseRemote, options.Remotes[baseRemote].Repository);
+                    }
+                    repo.Network.Push(repo.Network.Remotes[baseRemote], $"HEAD:refs/heads/{outputBranchRemoteName}", new PushOptions
+                    {
+                        // CredentialsProvider = // TODO - password
+                    });
                 }
                 catch (Exception ex)
                 {

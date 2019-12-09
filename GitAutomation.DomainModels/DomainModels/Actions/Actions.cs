@@ -24,7 +24,7 @@ namespace GitAutomation.DomainModels.Actions
     public struct SetMetaAction : IStandardAction
     {
         public string Reserve { get; set; }
-        public IDictionary<string, object> Meta { get; set; }
+        public IDictionary<string, string> Meta { get; set; }
     }
 
     public struct CreateReserveAction : IStandardAction

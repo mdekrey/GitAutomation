@@ -35,13 +35,13 @@ namespace GitAutomation.DomainModels.Test
                 Status = "Stable",
                 Upstream = new Dictionary<string, UpstreamReserve.Builder>(),
                 OutputCommit = BranchReserve.EmptyCommit,
-                Meta = new Dictionary<string, object>()
+                Meta = new Dictionary<string, string>()
             }.Build();
             var builder = original.ToBuilder();
             builder.ReserveType = ("ReleaseCandidate");
             builder.FlowType = ("Manual");
             builder.Status = ("OutOfDate");
-            builder.Meta = new Dictionary<string, object> { { "Owner", "mdekrey" } };
+            builder.Meta = new Dictionary<string, string> { { "Owner", "mdekrey" } };
             builder.Upstream = new Dictionary<string, UpstreamReserve.Builder> { { "foo", new UpstreamReserve.Builder { LastOutput = "0123456789ABCDEF", Role = "Source" } } };
 
             var actual = builder.Build();
@@ -67,7 +67,7 @@ namespace GitAutomation.DomainModels.Test
                 upstream: null, // This causes the error
                 includedBranches: ImmutableSortedDictionary<string, BranchReserveBranch>.Empty,
                 outputCommit: BranchReserve.EmptyCommit,
-                meta: ImmutableSortedDictionary<string, object>.Empty));
+                meta: ImmutableSortedDictionary<string, string>.Empty));
             Assert.ThrowsException<ArgumentException>(() => new BranchReserve(
                 reserveType: "Normal",
                 flowType: "Auto",
@@ -75,7 +75,7 @@ namespace GitAutomation.DomainModels.Test
                 upstream: ImmutableSortedDictionary<string, UpstreamReserve>.Empty,
                 includedBranches: null, // This causes the error
                 outputCommit: BranchReserve.EmptyCommit,
-                meta: ImmutableSortedDictionary<string, object>.Empty));
+                meta: ImmutableSortedDictionary<string, string>.Empty));
             Assert.ThrowsException<ArgumentException>(() => new BranchReserve(
                 reserveType: "Normal",
                 flowType: "Auto",
@@ -83,7 +83,7 @@ namespace GitAutomation.DomainModels.Test
                 upstream: ImmutableSortedDictionary<string, UpstreamReserve>.Empty,
                 includedBranches: ImmutableSortedDictionary<string, BranchReserveBranch>.Empty,
                 outputCommit: "", // This causes the error
-                meta: ImmutableSortedDictionary<string, object>.Empty));
+                meta: ImmutableSortedDictionary<string, string>.Empty));
         }
     }
 }

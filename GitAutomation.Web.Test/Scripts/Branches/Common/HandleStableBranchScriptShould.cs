@@ -19,29 +19,11 @@ namespace GitAutomation.Scripts.Branches.Common
     [Collection("GitBranch collection")]
     public class HandleStableBranchScriptShould
     {
-        private const string UserEmail = "author@example.com";
-        private const string UserName = "A U Thor";
         private readonly GitDirectory workingGitDirectory;
 
         public HandleStableBranchScriptShould(BranchGitDirectory workingGitDirectory)
         {
             this.workingGitDirectory = workingGitDirectory;
-            using var newRepo = new Repository(workingGitDirectory.Path);
-            newRepo.Refs.UpdateTarget("HEAD", "refs/heads/origin/master");
-            WriteUpdatesAndCommit(workingGitDirectory.Path, "InitialCommit", new Dictionary<string, string> { { "readme.md", "This is a test" } });
-        }
-
-        private void WriteUpdatesAndCommit(string path, string commitMessage, Dictionary<string, string> fileContents)
-        {
-            foreach (var file in fileContents)
-            {
-                File.WriteAllText(Path.Combine(path, file.Key), file.Value);
-            }
-
-            using var newRepo = new Repository(path);
-            Commands.Stage(newRepo, "*");
-            var author = new Signature(UserName, UserEmail, DateTimeOffset.Now);
-            newRepo.Commit(commitMessage, author, author);
         }
 
         [Fact]
@@ -56,7 +38,7 @@ namespace GitAutomation.Scripts.Branches.Common
                     ImmutableSortedDictionary<string, UpstreamReserve>.Empty,
                     includedBranches: new[] { ("origin/master", new BranchReserveBranch(BranchReserve.EmptyCommit, ImmutableSortedDictionary<string, string>.Empty)) }.ToImmutableSortedDictionary(b => b.Item1, b => b.Item2), 
                     outputCommit: BranchReserve.EmptyCommit, 
-                    meta: ImmutableSortedDictionary<string, object>.Empty) }
+                    meta: ImmutableSortedDictionary<string, string>.Empty) }
             });
 
             // Assert that we're correct
@@ -80,8 +62,8 @@ namespace GitAutomation.Scripts.Branches.Common
                 },
                 Repository = repository.Path,
                 Password = "",
-                UserEmail = UserEmail,
-                UserName = UserName,
+                UserEmail = BranchGitDirectory.UserEmail,
+                UserName = BranchGitDirectory.UserName,
                 CheckoutPath = checkout.Path,
             };
         }

@@ -22,23 +22,9 @@ namespace GitAutomation.Scripts.Branches
         private const string UserName = "A U Thor";
         private readonly GitDirectory workingGitDirectory;
 
-        public BranchCloneScriptShould(BranchGitDirectory workingGitDirectory)
+        public BranchCloneScriptShould(BranchGitDirectoryOrigin workingGitDirectory)
         {
             this.workingGitDirectory = workingGitDirectory;
-            WriteUpdatesAndCommit(workingGitDirectory.Path, "InitialCommit", new Dictionary<string, string> { { "readme.md", "This is a test" } });
-        }
-
-        private void WriteUpdatesAndCommit(string path, string commitMessage, Dictionary<string, string> fileContents)
-        {
-            foreach (var file in fileContents)
-            {
-                File.WriteAllText(Path.Combine(path, file.Key), file.Value);
-            }
-
-            using var newRepo = new Repository(path);
-            Commands.Stage(newRepo, "*");
-            var author = new Signature(UserName, UserEmail, DateTimeOffset.Now);
-            newRepo.Commit(commitMessage, author, author);
         }
 
         [Fact]
@@ -57,9 +43,9 @@ namespace GitAutomation.Scripts.Branches
             Assert.Equal(timestamp, action.StartTimestamp);
 
             using var newRepo = new Repository(tempDir.Path);
-            var cannonicalNames = newRepo.Branches.Select(b => b.CanonicalName).ToArray();
-            var name = Assert.Single(cannonicalNames);
-            Assert.Equal("refs/heads/origin/master", name);
+            var canonicalNames = newRepo.Branches.Select(b => b.CanonicalName).OrderBy(n => n).ToArray();
+            Assert.Equal(canonicalNames,
+                new[] { "refs/heads/origin/master", "refs/heads/origin/feature-a", "refs/heads/origin/feature-b", "refs/heads/origin/infrastructure" }.OrderBy(n => n));
         }
 
         // TODO - more tests

@@ -28,7 +28,7 @@ namespace GitAutomation
                     Upstream = { { "line/1.0", new UpstreamReserve("0123456789012345678901234567890000000000").ToBuilder()} },
                     IncludedBranches = { { "feature/a", new BranchReserveBranch.Builder { LastCommit = BranchReserve.EmptyCommit } } },
                     OutputCommit = BranchReserve.EmptyCommit,
-                    Meta = new Dictionary<string, object> { { "Owner", "mdekrey" } } }
+                    Meta = new Dictionary<string, string> { { "Owner", "mdekrey" } } }
                 },
                 { "feature/b", new BranchReserve.Builder() {
                     ReserveType = "Feature",

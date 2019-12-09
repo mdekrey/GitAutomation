@@ -40,7 +40,7 @@ namespace GitAutomation.DomainModels
         private static RepositoryStructure SetOutputCommit(RepositoryStructure original, string branchReserveName, string lastCommit) =>
             original.SetBranchReserves(b => b.UpdateItem(branchReserveName, branch => branch.SetOutputCommit(lastCommit)));
 
-        private static RepositoryStructure SetMeta(RepositoryStructure original, string branchReserveName, IDictionary<string, object> meta) =>
+        private static RepositoryStructure SetMeta(RepositoryStructure original, string branchReserveName, IDictionary<string, string> meta) =>
             original.SetBranchReserves(b => b.UpdateItem(branchReserveName, branch => branch.SetMeta(oldMeta => oldMeta.SetItems(meta))));
 
         // TODO - make a chainable reducer
@@ -66,7 +66,7 @@ namespace GitAutomation.DomainModels
             original.SetBranchReserves(br =>
                 br.UpdateItem(reserve, targetReserve =>
                 {
-                    var outputBranch = targetReserve.IncludedBranches.Where(branch => branch.Value.Meta.TryGetValue("Role", out var role) && role == "Output").ToArray();
+                    var outputBranch = targetReserve.IncludedBranches.Where(branch => branch.Value.Meta.TryGetValue("Role", out var role) && (string)role == "Output").ToArray();
                     if (outputBranch.Length == 1)
                     {
                         targetReserve = targetReserve.SetOutputCommit(outputBranch[0].Value.LastCommit);
@@ -88,7 +88,7 @@ namespace GitAutomation.DomainModels
                     upstream: ImmutableSortedDictionary<string, UpstreamReserve>.Empty,
                     includedBranches: ImmutableSortedDictionary<string, BranchReserveBranch>.Empty,
                     outputCommit: BranchReserve.EmptyCommit,
-                    meta: ImmutableSortedDictionary<string, object>.Empty))
+                    meta: ImmutableSortedDictionary<string, string>.Empty))
             );
 
         private static RepositoryStructure RemoveReserve(RepositoryStructure original, string branchReserveName) =>

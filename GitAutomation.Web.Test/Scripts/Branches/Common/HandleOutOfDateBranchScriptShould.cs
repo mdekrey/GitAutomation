@@ -19,42 +19,12 @@ namespace GitAutomation.Scripts.Branches.Common
     [Collection("GitBranch collection")]
     public class HandleOutOfDateBranchScriptShould
     {
-        private const string UserEmail = "author@example.com";
-        private const string UserName = "A U Thor";
         private readonly GitDirectory workingGitDirectory;
 
         public HandleOutOfDateBranchScriptShould(BranchGitDirectory workingGitDirectory)
         {
             this.workingGitDirectory = workingGitDirectory;
             using var newRepo = new Repository(workingGitDirectory.Path);
-            newRepo.Refs.UpdateTarget("HEAD", "refs/heads/origin/master");
-            WriteUpdatesAndCommit(newRepo, workingGitDirectory.Path, "Initial Commit", new Dictionary<string, string> { { "readme.md", "This is a test" } });
-            newRepo.Refs.UpdateTarget("HEAD", "refs/heads/origin/feature-a");
-            WriteUpdatesAndCommit(newRepo, workingGitDirectory.Path, "Modify message", new Dictionary<string, string> { { "readme.md", "This is a simple test" } });
-            Commands.Checkout(newRepo, "refs/heads/origin/master");
-            newRepo.Refs.UpdateTarget("HEAD", "refs/heads/origin/infrastructure");
-            WriteUpdatesAndCommit(newRepo, workingGitDirectory.Path, "Modify message", new Dictionary<string, string> { { "readme.md", "This is a basic test" } });
-            Commands.Checkout(newRepo, "refs/heads/origin/master");
-            newRepo.Refs.UpdateTarget("HEAD", "refs/heads/origin/feature-b");
-            WriteUpdatesAndCommit(newRepo, workingGitDirectory.Path, "Modify message", new Dictionary<string, string> { { "additional.md", "This is another file" } });
-        
-            newRepo.Refs.UpdateTarget("HEAD", "refs/heads/origin/master");
-        }
-
-        private void WriteUpdatesAndCommit(Repository newRepo, string path, string commitMessage, Dictionary<string, string> fileContents)
-        {
-            foreach (var file in fileContents)
-            {
-                File.WriteAllText(Path.Combine(path, file.Key), file.Value);
-            }
-
-            Commands.Stage(newRepo, "*");
-            var author = new Signature(UserName, UserEmail, DateTimeOffset.Now);
-            var commit = newRepo.Commit(commitMessage, author, author);
-            if (newRepo.Branches[newRepo.Head.CanonicalName] == null)
-            {
-                newRepo.CreateBranch(newRepo.Head.CanonicalName, commit);
-            }
         }
 
         [Fact]
@@ -68,11 +38,11 @@ namespace GitAutomation.Scripts.Branches.Common
             {
                 { "master", new BranchReserve("dontcare", "dontcare", "Stable", 
                     ImmutableSortedDictionary<string, UpstreamReserve>.Empty,
-                    includedBranches: new[] { 
+                    IncludedBranches( 
                         ("origin/master", new BranchReserveBranch(BranchReserve.EmptyCommit, Metadata(("Role", "Output"))))
-                    }.ToImmutableSortedDictionary(b => b.Item1, b => b.Item2), 
+                    ),
                     outputCommit: BranchReserve.EmptyCommit, 
-                    meta: ImmutableSortedDictionary<string, object>.Empty) }
+                    meta: Metadata()) }
             });
 
             // Assert that we're correct
@@ -86,13 +56,64 @@ namespace GitAutomation.Scripts.Branches.Common
             Assert.Equal("master", action.Reserve);
         }
 
-        private ImmutableSortedDictionary<string, string>? Metadata(params (string key, string value)[] metadata)
+        [Fact]
+        public async Task MergeUpstreamBranch()
         {
-            return metadata.ToImmutableSortedDictionary(p => p.key, p => p.value);
+            using var gitDir = new GitDirectory(isBare: true);
+            using var checkout = workingGitDirectory.CreateCopy(new CloneOptions { IsBare = true });
+            using var tempDir = new TemporaryDirectory();
+
+            using var repo = new Repository(checkout.Path);
+            var originalFeatureB = repo.Branches["origin/feature-b"].Tip.Sha;
+
+            // Act to receive the expected FSA's
+            var result = await Invoke(gitDir.TemporaryDirectory, tempDir, checkout, "feature-b", new Dictionary<string, BranchReserve>
+            {
+                { "feature-b", new BranchReserve("dontcare", "Automatic", "Stable",
+                    Upstream(("infrastructure", new UpstreamReserve(repo.Branches["origin/infrastructure"].Tip.Sha))),
+                    IncludedBranches(
+                        ("origin/feature-b", new BranchReserveBranch(repo.Branches["origin/feature-b"].Tip.Sha, Metadata(("Role", "Output"))))
+                    ),
+                    outputCommit: repo.Branches["origin/feature-b"].Tip.Sha,
+                    meta: Metadata()) },
+                { "infrastructure", new BranchReserve("dontcare", "dontcare", "Stable",
+                    Upstream(),
+                    IncludedBranches(
+                        ("origin/infrastructure", new BranchReserveBranch(repo.Branches["origin/infrastructure"].Tip.Sha, Metadata(("Role", "Output"))))
+                    ),
+                    outputCommit: repo.Branches["origin/infrastructure"].Tip.Sha,
+                    meta: Metadata()) }
+            });
+
+            // Assert that we're correct
+            var standardAction = Assert.Single(result);
+
+            using var targetRepo = new Repository(gitDir.Path);
+
+            var action = Assert.IsType<StabilizePushedReserveAction>(standardAction.Payload);
+            Assert.NotEqual(originalFeatureB, action.BranchCommits["origin/feature-b"]);
+            Assert.Equal(targetRepo.Branches["refs/heads/feature-b"].Tip.Sha, action.BranchCommits["origin/feature-b"]);
+            Assert.Empty(action.ReserveOutputCommits);
+            Assert.Null(action.NewOutput);
+            Assert.Equal("feature-b", action.Reserve);
         }
 
         // TODO - more tests
 
+        private ImmutableSortedDictionary<string, BranchReserveBranch> IncludedBranches(params (string key, BranchReserveBranch value)[] upstream)
+        {
+            return upstream.ToImmutableSortedDictionary(p => p.key, p => p.value);
+        }
+
+        private ImmutableSortedDictionary<string, UpstreamReserve> Upstream(params (string key, UpstreamReserve value)[] upstream)
+        {
+            return upstream.ToImmutableSortedDictionary(p => p.key, p => p.value);
+        }
+
+        private ImmutableSortedDictionary<string, string> Metadata(params (string key, string value)[] metadata)
+        {
+            return metadata.ToImmutableSortedDictionary(p => p.key, p => p.value);
+        }
 
         private static TargetRepositoryOptions StandardParameters(TemporaryDirectory repository, TemporaryDirectory checkout)
         {
@@ -104,8 +125,8 @@ namespace GitAutomation.Scripts.Branches.Common
                 },
                 Repository = repository.Path,
                 Password = "",
-                UserEmail = UserEmail,
-                UserName = UserName,
+                UserEmail = BranchGitDirectory.UserEmail,
+                UserName = BranchGitDirectory.UserName,
                 CheckoutPath = checkout.Path,
             };
         }
@@ -133,10 +154,10 @@ namespace GitAutomation.Scripts.Branches.Common
             );
             var reserve = reserves[reserveName];
             await script.Run(
-                new ReserveScriptParameters("master", new ReserveFullState(
+                new ReserveScriptParameters(reserveName, new ReserveFullState(
                     reserve,
                     reserve.IncludedBranches.Keys.ToDictionary(k => k, k => repo.Branches[k] != null ? repo.Branches[k].Tip.Sha : BranchReserve.EmptyCommit),
-                    reserve.Upstream.Keys.ToDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : null)
+                    reserve.Upstream.Keys.ToDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : throw new InvalidOperationException($"Unknown upstream: {upstream}"))
                 ), tempPath.Path),
                 LoggerFactory.Create(_ => { }).CreateLogger(this.GetType().FullName),
                 SystemAgent.Instance
