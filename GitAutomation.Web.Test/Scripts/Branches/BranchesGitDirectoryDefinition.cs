@@ -50,9 +50,6 @@ namespace GitAutomation.Scripts.Branches
 
     public class BranchGitDirectory : GitDirectory
     {
-        public const string UserEmail = "author@example.com";
-        public const string UserName = "A U Thor";
-
         public BranchGitDirectory()
         {
             using var newRepo = new Repository(Path);
@@ -79,7 +76,7 @@ namespace GitAutomation.Scripts.Branches
             }
 
             Commands.Stage(newRepo, "*");
-            var author = new Signature(UserName, UserEmail, DateTimeOffset.Now);
+            var author = new Signature(BranchGitDirectoryOrigin.UserName, BranchGitDirectoryOrigin.UserEmail, DateTimeOffset.Now);
             newRepo.Commit(commitMessage, author, author);
         }
 

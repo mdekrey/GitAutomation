@@ -79,19 +79,19 @@ namespace GitAutomation.Scripts.Config
                     return;
                 }
                 using var repoTemp = new LibGit2Sharp.Repository(configRepositoryOptions.CheckoutPath);
-                repoTemp.Network.Remotes.Add("origin", configRepositoryOptions.Repository);
+                repoTemp.Network.Remotes.Add("origin", configRepositoryOptions.Repository.Url);
             }
 
             using var repo = new LibGit2Sharp.Repository(configRepositoryOptions.CheckoutPath);
             repo.Network.Remotes.Remove("origin");
-            repo.Network.Remotes.Add("origin", configRepositoryOptions.Repository);
+            repo.Network.Remotes.Add("origin", configRepositoryOptions.Repository.Url);
             try
             {
                 repo.Network.Fetch("origin", Enumerable.Empty<string>(), new FetchOptions
                 {
                     Prune = true,
                     TagFetchMode = LibGit2Sharp.TagFetchMode.None,
-                    // CredentialsProvider = // TODO - password
+                    CredentialsProvider = configRepositoryOptions.Repository.ToCredentialsProvider()
                 });
             }
             catch (Exception ex)
@@ -132,11 +132,11 @@ namespace GitAutomation.Scripts.Config
         {
             try
             {
-                LibGit2Sharp.Repository.Clone(configRepositoryOptions.Repository, configRepositoryOptions.CheckoutPath, new CloneOptions
+                LibGit2Sharp.Repository.Clone(configRepositoryOptions.Repository.Url, configRepositoryOptions.CheckoutPath, new CloneOptions
                 {
                     IsBare = false,
                     BranchName = configRepositoryOptions.BranchName,
-                    // CredentialsProvider = // TODO - passwords
+                    CredentialsProvider = configRepositoryOptions.Repository.ToCredentialsProvider()
                 });
                 return true;
             }

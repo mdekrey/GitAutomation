@@ -37,8 +37,7 @@ namespace GitAutomation.Scripts.Branches.Common
             var workingPath = parameters.WorkingPath;
             var defaultRemote = automationOptions.DefaultRemote;
             var integrationPrefix = automationOptions.IntegrationPrefix;
-            var userEmail = options.UserEmail;
-            var userName = options.UserName;
+            var gitIdentity = options.GitIdentity.ToGitIdentity();
 
             // 1. If any upstream is not Stable, exit.
             // 2. get Output branch
@@ -107,7 +106,7 @@ namespace GitAutomation.Scripts.Branches.Common
                     else
                     {
                         var message = $"Auto-merge {upstream}";
-                        var result = repo.Merge(commit, new Signature(userName, userEmail, DateTimeOffset.Now), new MergeOptions
+                        var result = repo.Merge(commit, new Signature(gitIdentity, DateTimeOffset.Now), new MergeOptions
                         {
                             CommitOnSuccess = false
                         });
@@ -122,7 +121,7 @@ namespace GitAutomation.Scripts.Branches.Common
                             case MergeStatus.UpToDate:
                                 break;
                             case MergeStatus.NonFastForward:
-                                repo.Commit(message, new Signature(userName, userEmail, DateTimeOffset.Now), new Signature(userName, userEmail, DateTimeOffset.Now));
+                                repo.Commit(message, new Signature(gitIdentity, DateTimeOffset.Now), new Signature(gitIdentity, DateTimeOffset.Now));
                                 push = true;
                                 break;
                         }
@@ -215,11 +214,11 @@ namespace GitAutomation.Scripts.Branches.Common
         {
             if (repo.Network.Remotes[remoteName] == null)
             {
-                repo.Network.Remotes.Add(remoteName, options.Remotes[remoteName].Repository);
+                repo.Network.Remotes.Add(remoteName, options.Remotes[remoteName].Url);
             }
             repo.Network.Push(repo.Network.Remotes[remoteName], refSpecs, new PushOptions
             {
-                // CredentialsProvider = // TODO - password
+                CredentialsProvider = options.Remotes[remoteName].ToCredentialsProvider()
             });
         }
     }

@@ -1,5 +1,6 @@
 ﻿using GitAutomation.DomainModels;
 using GitAutomation.DomainModels.Actions;
+using GitAutomation.DomainModels.Git;
 using GitAutomation.State;
 using GitAutomation.Web;
 using LibGit2Sharp;
@@ -215,12 +216,15 @@ namespace GitAutomation.Scripts.Branches.Common
         {
             return new TargetRepositoryOptions
             {
-                Remotes = new Dictionary<string, RemoteRepositoryOptions>
+                Remotes = new Dictionary<string, RepositoryConfiguration>
                 {
-                    { "origin", new RemoteRepositoryOptions { Repository = repository.Path } }
+                    { "origin", new RepositoryConfiguration { Url = repository.Path } }
                 },
-                UserEmail = BranchGitDirectory.UserEmail,
-                UserName = BranchGitDirectory.UserName,
+                GitIdentity = new GitIdentity
+                {
+                    UserEmail = BranchGitDirectoryOrigin.UserEmail,
+                    UserName = BranchGitDirectoryOrigin.UserName,
+                },
                 CheckoutPath = checkout.Path,
             };
         }

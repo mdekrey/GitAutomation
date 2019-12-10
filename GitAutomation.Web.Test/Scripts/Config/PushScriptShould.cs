@@ -52,7 +52,6 @@ namespace GitAutomation.Scripts.Config
         {
             return new ConfigRepositoryOptions
             {
-                Password = "",
                 UserEmail = "author@example.com",
                 UserName = "A U Thor",
                 CheckoutPath = checkout.Path,

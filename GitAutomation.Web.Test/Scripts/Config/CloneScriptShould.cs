@@ -99,8 +99,11 @@ namespace GitAutomation.Scripts.Config
         {
             return new ConfigRepositoryOptions
             {
-                Repository = repository.Path,
-                Password = "",
+                Repository = new DomainModels.Git.RepositoryConfiguration
+                {
+                    Url = repository.Path,
+                    Password = "",
+                },
                 UserEmail = "author@example.com",
                 UserName = "A U Thor",
                 CheckoutPath = checkout.Path,

@@ -49,6 +49,8 @@ namespace GitAutomation.Web
             services.AddSingleton(_ => new StateMachine<AppState>(AppState.Reducer, AppState.ZeroState));
             services.AddSingleton<IDispatcher>(sp => sp.GetRequiredService<StateMachine<AppState>>());
             services.AddSingleton<IStateMachine<AppState>>(sp => sp.GetRequiredService<StateMachine<AppState>>());
+
+            services.AddSpaStaticFiles(options => options.RootPath = "/");
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -67,7 +69,8 @@ namespace GitAutomation.Web
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
-            app.UseSpaStaticFiles();
+
+            app.UseRouting();
 
             app.UseEndpoints(endpoints =>
             {

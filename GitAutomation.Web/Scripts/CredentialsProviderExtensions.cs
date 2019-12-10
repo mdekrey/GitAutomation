@@ -1,4 +1,5 @@
-﻿using GitAutomation.Web;
+﻿using GitAutomation.DomainModels.Git;
+using GitAutomation.Web;
 using LibGit2Sharp;
 using LibGit2Sharp.Handlers;
 using System;
@@ -10,10 +11,10 @@ namespace GitAutomation.Scripts
 {
     public static class CredentialsProviderExtensions
     {
-        public static CredentialsHandler ToCredentialsProvider(this ConfigRepositoryOptions options)
+        public static CredentialsHandler ToCredentialsProvider(this RepositoryConfiguration options)
         {
             return (url, usernameFromUrl, credentialTypes) =>
-                options.Repository == url
+                options.Url == url
                     ? new UsernamePasswordCredentials { Password = options.Password, Username = usernameFromUrl }
                     : null;
         }

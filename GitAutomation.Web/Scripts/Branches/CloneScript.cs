@@ -46,7 +46,7 @@ namespace GitAutomation.Scripts.Branches
             // 4. Directory exists with no clone without permissions
             // 5. No clone
 
-            var targetDirectory = CreateDirectory(agent, startTimestamp);
+            var targetDirectory = CreateDirectory();
             if (targetDirectory == null)
             {
                 dispatcher.Dispatch(new DirectoryNotAccessibleAction { StartTimestamp = startTimestamp }, agent, "Could not mirror target; check permissions");
@@ -84,11 +84,11 @@ namespace GitAutomation.Scripts.Branches
                     var actualRemote = repo.Network.Remotes[remote.Key];
                     if (actualRemote == null)
                     {
-                        actualRemote = repo.Network.Remotes.Add(remote.Key, remote.Value.Repository);
+                        actualRemote = repo.Network.Remotes.Add(remote.Key, remote.Value.Url);
                     }
                     repo.Network.Remotes.Update(remote.Key, r =>
                     {
-                        r.Url = r.PushUrl = remote.Value.Repository;
+                        r.Url = r.PushUrl = remote.Value.Url;
                         r.FetchRefSpecs.Clear();
                         r.FetchRefSpecs.Add($"+refs/heads/*:refs/heads/{remote.Key}/*");
                         r.TagFetchMode = LibGit2Sharp.TagFetchMode.None;
@@ -98,7 +98,7 @@ namespace GitAutomation.Scripts.Branches
                     {
                         Prune = true,
                         TagFetchMode = LibGit2Sharp.TagFetchMode.None,
-                        // CredentialsProvider = // TODO - password
+                        CredentialsProvider = remote.Value.ToCredentialsProvider()
                     });
                 }
                 catch (Exception ex)
@@ -110,7 +110,7 @@ namespace GitAutomation.Scripts.Branches
             dispatcher.Dispatch(new FetchedAction { StartTimestamp = startTimestamp }, agent);
         }
 
-        private DirectoryInfo? CreateDirectory(IAgentSpecification agent, DateTimeOffset startTimestamp)
+        private DirectoryInfo? CreateDirectory()
         {
             try
             {

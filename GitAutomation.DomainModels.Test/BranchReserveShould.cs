@@ -64,7 +64,7 @@ namespace GitAutomation.DomainModels.Test
                 reserveType: "Normal",
                 flowType: "Auto",
                 status: "Stable",
-                upstream: null, // This causes the error
+                upstream: null!, // This causes the error
                 includedBranches: ImmutableSortedDictionary<string, BranchReserveBranch>.Empty,
                 outputCommit: BranchReserve.EmptyCommit,
                 meta: ImmutableSortedDictionary<string, string>.Empty));
@@ -73,7 +73,7 @@ namespace GitAutomation.DomainModels.Test
                 flowType: "Auto",
                 status: "Stable",
                 upstream: ImmutableSortedDictionary<string, UpstreamReserve>.Empty,
-                includedBranches: null, // This causes the error
+                includedBranches: null!, // This causes the error
                 outputCommit: BranchReserve.EmptyCommit,
                 meta: ImmutableSortedDictionary<string, string>.Empty));
             Assert.ThrowsException<ArgumentException>(() => new BranchReserve(
