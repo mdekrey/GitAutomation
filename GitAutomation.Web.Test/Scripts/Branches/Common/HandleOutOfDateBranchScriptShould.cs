@@ -219,8 +219,6 @@ namespace GitAutomation.Scripts.Branches.Common
                 {
                     { "origin", new RemoteRepositoryOptions { Repository = repository.Path } }
                 },
-                Repository = repository.Path,
-                Password = "",
                 UserEmail = BranchGitDirectory.UserEmail,
                 UserName = BranchGitDirectory.UserName,
                 CheckoutPath = checkout.Path,
@@ -249,13 +247,14 @@ namespace GitAutomation.Scripts.Branches.Common
                 Options.Create(AutomationOptions())
             );
             var reserve = reserves[reserveName];
+            using var loggerFactory = LoggerFactory.Create(_ => { });
             await script.Run(
                 new ReserveScriptParameters(reserveName, new ReserveFullState(
                     reserve,
                     reserve.IncludedBranches.Keys.ToDictionary(k => k, k => repo.Branches[k] != null ? repo.Branches[k].Tip.Sha : BranchReserve.EmptyCommit),
                     reserve.Upstream.Keys.ToDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : throw new InvalidOperationException($"Unknown upstream: {upstream}"))
                 ), tempPath.Path),
-                LoggerFactory.Create(_ => { }).CreateLogger(this.GetType().FullName),
+                loggerFactory.CreateLogger(this.GetType().FullName),
                 SystemAgent.Instance
             );
             return resultList;

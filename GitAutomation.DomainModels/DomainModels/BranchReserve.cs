@@ -145,7 +145,7 @@ namespace GitAutomation.DomainModels
             }
             public Dictionary<string, UpstreamReserve.Builder> Upstream
             {
-                get => upstream = upstream ?? original.Upstream.ToDictionary(k => k.Key, k => k.Value.ToBuilder());
+                get => upstream ??= original.Upstream.ToDictionary(k => k.Key, k => k.Value.ToBuilder());
                 set
                 {
                     original = original.SetUpstream(_ => value.ToImmutableSortedDictionary(kvp => kvp.Key, kvp => kvp.Value.Build()));
@@ -154,7 +154,7 @@ namespace GitAutomation.DomainModels
             }
             public Dictionary<string, BranchReserveBranch.Builder> IncludedBranches
             {
-                get => includedBranches = includedBranches ?? original.IncludedBranches.ToDictionary(k => k.Key, k => k.Value.ToBuilder());
+                get => includedBranches ??= original.IncludedBranches.ToDictionary(k => k.Key, k => k.Value.ToBuilder());
                 set
                 {
                     original = original.SetIncludedBranches(_ => value.ToImmutableSortedDictionary(kvp => kvp.Key, kvp => kvp.Value.Build()));
@@ -168,7 +168,7 @@ namespace GitAutomation.DomainModels
             }
             public Dictionary<string, string> Meta
             {
-                get => meta = meta ?? new Dictionary<string, string>(original.Meta);
+                get => meta ??= new Dictionary<string, string>(original.Meta);
                 set
                 {
                     original = original.SetMeta(_ => value.ToImmutableSortedDictionary());

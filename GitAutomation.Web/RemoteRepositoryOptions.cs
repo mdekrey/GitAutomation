@@ -1,4 +1,6 @@
-﻿namespace GitAutomation.Web
+﻿#nullable disable warnings
+
+namespace GitAutomation.Web
 {
     public class RemoteRepositoryOptions
     {

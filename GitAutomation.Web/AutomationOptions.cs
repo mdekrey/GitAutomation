@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+#nullable disable warnings
 
 namespace GitAutomation.Web
 {

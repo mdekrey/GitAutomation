@@ -104,7 +104,7 @@ namespace GitAutomation.Scripts.Config
             {
                 Commands.Checkout(repo, repo.Branches[$"origin/{configRepositoryOptions.BranchName}"]);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 try { Commands.Checkout(repo, repo.Head.Tip); } catch { }
                 if (repo.Branches[configRepositoryOptions.BranchName] != null)

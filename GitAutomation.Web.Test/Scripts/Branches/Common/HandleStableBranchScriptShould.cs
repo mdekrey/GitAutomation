@@ -51,23 +51,6 @@ namespace GitAutomation.Scripts.Branches.Common
 
         // TODO - more tests
 
-
-        private static TargetRepositoryOptions StandardParameters(TemporaryDirectory repository, TemporaryDirectory checkout)
-        {
-            return new TargetRepositoryOptions
-            {
-                Remotes = new Dictionary<string, RemoteRepositoryOptions>
-                {
-                    { "origin", new RemoteRepositoryOptions { Repository = repository.Path } }
-                },
-                Repository = repository.Path,
-                Password = "",
-                UserEmail = BranchGitDirectory.UserEmail,
-                UserName = BranchGitDirectory.UserName,
-                CheckoutPath = checkout.Path,
-            };
-        }
-
         private async Task<IList<StateUpdateEvent<IStandardAction>>> Invoke(TemporaryDirectory repository, TemporaryDirectory tempPath, string reserveName, Dictionary<string, BranchReserve> reserves)
         {
             using var repo = new Repository(repository.Path);
@@ -76,13 +59,14 @@ namespace GitAutomation.Scripts.Branches.Common
                 new DispatchToList(resultList)
             );
             var reserve = reserves[reserveName];
+            using var loggerFactory = LoggerFactory.Create(_ => { });
             await script.Run(
                 new ReserveScriptParameters("master", new ReserveFullState(
                     reserve,
                     reserve.IncludedBranches.Keys.ToDictionary(k => k, k => repo.Branches[k] != null ? repo.Branches[k].Tip.Sha : BranchReserve.EmptyCommit),
-                    reserve.Upstream.Keys.ToDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : null)
+                    reserve.Upstream.Keys.ToDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : throw new InvalidOperationException($"Unknown Reserve: {upstream}"))
                 ), tempPath.Path),
-                LoggerFactory.Create(_ => { }).CreateLogger(this.GetType().FullName),
+                loggerFactory.CreateLogger(this.GetType().FullName),
                 SystemAgent.Instance
                 );
             return resultList;

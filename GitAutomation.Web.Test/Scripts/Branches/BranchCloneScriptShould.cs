@@ -59,8 +59,6 @@ namespace GitAutomation.Scripts.Branches
                 {
                     { "origin", new RemoteRepositoryOptions { Repository = repository.Path } }
                 },
-                Repository = repository.Path,
-                Password = "",
                 UserEmail = UserEmail,
                 UserName = UserName,
                 CheckoutPath = checkout.Path,
@@ -74,9 +72,10 @@ namespace GitAutomation.Scripts.Branches
                 Options.Create(StandardParameters(repository, checkout)),
                 new DispatchToList(resultList)
             );
+            using var loggerFactory = LoggerFactory.Create(_ => { });
             await script.Run(
                 new CloneScript.CloneScriptParams(timestamp),
-                LoggerFactory.Create(_ => { }).CreateLogger(this.GetType().FullName),
+                loggerFactory.CreateLogger(this.GetType().FullName),
                 SystemAgent.Instance
                 );
             return resultList;

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace GitAutomation.Web.Controllers
 {
+    // TODO - replace this with GraphLinqQL
     [Route("api/[controller]")]
     public class GraphQLController : Controller
     {
@@ -27,6 +28,8 @@ namespace GitAutomation.Web.Controllers
 
         public class GraphQlBody
         {
+#nullable disable warnings
+
             public string OperationName { get; set; }
             public string Query { get; set; }
             public object Variables { get; set; }

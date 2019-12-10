@@ -27,6 +27,7 @@ namespace GitAutomation.Scripts
             catch (Exception ex)
             {
                 // some files were still open. Perhaps the user browsed to the folder so TortoiseGit attached?
+                Console.WriteLine(ex);
             }
         }
     }

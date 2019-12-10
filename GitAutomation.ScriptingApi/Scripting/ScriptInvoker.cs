@@ -34,17 +34,16 @@ namespace GitAutomation.Scripting
 
         public ScriptProgress Invoke<TParams>(Type scriptType, TParams loggedParameters, IAgentSpecification agentSpecification)
         {
-            var script = ActivatorUtilities.GetServiceOrCreateInstance(serviceProvider, scriptType) as IScript<TParams>;
-            if (script == null)
+            // TODO - scope the service provider?
+            if (ActivatorUtilities.GetServiceOrCreateInstance(serviceProvider, scriptType) is IScript<TParams> script)
             {
-                throw new ArgumentException($"Provided script type {scriptType.FullName} cannot take params of type {typeof(TParams).FullName}", paramName: nameof(scriptType));
+                var logger = new WrappedLogger(loggerFactory.CreateLogger(scriptType));
+                var completion = script.Run(loggedParameters, logger, agentSpecification);
+                return new ScriptProgress(completion, logger.Logs, inputs: loggedParameters);
             }
-
-            var logger = new WrappedLogger(loggerFactory.CreateLogger(scriptType));
-            var completion = script.Run(loggedParameters, logger, agentSpecification);
-            return new ScriptProgress(completion, logger.Logs, inputs: loggedParameters);
+            throw new ArgumentException($"Provided script type {scriptType.FullName} cannot take params of type {typeof(TParams).FullName}", paramName: nameof(scriptType));
         }
 
-        
+
     }
 }

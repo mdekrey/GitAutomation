@@ -69,16 +69,10 @@ namespace GitAutomation.Web
             app.UseStaticFiles();
             app.UseSpaStaticFiles();
 
-            app.UseMvc(routes =>
+            app.UseEndpoints(endpoints =>
             {
-                routes.MapRoute(
-                    name: "default",
-                    template: "{controller}/{action=Index}/{id?}");
-            });
-
-            app.UseSignalR(options =>
-            {
-                options.MapHub<GraphQLHub>("/hub");
+                endpoints.MapControllerRoute("default", "{controller}/{action=Index}/{id?}");
+                endpoints.MapHub<GraphQLHub>("/hub");
             });
 
             app.UseSpa(spa =>

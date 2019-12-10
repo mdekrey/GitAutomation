@@ -30,7 +30,7 @@ namespace GitAutomation.Web.GraphQL
 
         public static JToken ToJson(this GraphQLDocument ast, object subject)
         {
-            return ToJson(ast, (ast.Definitions.First() as GraphQLOperationDefinition).SelectionSet, subject);
+            return ToJson(ast, ((GraphQLOperationDefinition)ast.Definitions.First()).SelectionSet, subject);
         }
 
         private static JToken ToJson(GraphQLDocument ast, GraphQLSelectionSet currentNode, object subject)
@@ -64,7 +64,7 @@ namespace GitAutomation.Web.GraphQL
                     p.GetIndexParameters().Select(p => p.ParameterType).SequenceEqual(indexerParameters) 
                     && p.Name == "Item"
                 );
-            object GetValue(string keyName)
+            object? GetValue(string keyName)
             {
                 try
                 {
@@ -91,7 +91,7 @@ namespace GitAutomation.Web.GraphQL
                 {
                     var displayName = (fieldSelection.Alias ?? fieldSelection.Name).Value;
                     var actualName = fieldSelection.Name.Value;
-                    result.Add(displayName, ToJson(ast, fieldSelection.SelectionSet, GetValue(actualName)));
+                    result.Add(displayName, ToJson(ast, fieldSelection.SelectionSet, GetValue(actualName)!));
                 }
                 else if (selection is GraphQLFragmentSpread fragmentSpread)
                 {

@@ -71,7 +71,7 @@ namespace GitAutomation.DomainModels
             }
             public Dictionary<string, string> Meta
             {
-                get => meta = meta ?? new Dictionary<string, string>(original.Meta);
+                get => meta ??= new Dictionary<string, string>(original.Meta);
                 set
                 {
                     original = original.SetMeta(_ => value.ToImmutableSortedDictionary());

@@ -81,6 +81,10 @@ namespace GitAutomation.Web
 
         private async Task DoRepositoryAction()
         {
+            if (lastTimestamps == null)
+            {
+                return;
+            }
             if (lastTimestamps[LoadedFromDisk] > DateTimeOffset.MinValue && lastTimestamps[StoredFieldModified] > lastTimestamps[Pushed])
             {
                 await ConfigurationChangeCommitter();
@@ -106,7 +110,7 @@ namespace GitAutomation.Web
             var exists = SerializationUtils.MetaExists(options.CheckoutPath);
             if (!exists)
             {
-                await CreateDefaultConfiguration(startTimestamp);
+                await CreateDefaultConfiguration();
             }
 
             meta = await SerializationUtils.LoadMetaAsync(options.CheckoutPath);
@@ -130,7 +134,7 @@ namespace GitAutomation.Web
             }
         }
 
-        private async Task CreateDefaultConfiguration(DateTimeOffset startTimestamp)
+        private async Task CreateDefaultConfiguration()
         {
             try
             {
@@ -157,6 +161,11 @@ namespace GitAutomation.Web
 
         private async Task CommitChange(DateTimeOffset startTimestamp, StateUpdateEvent<ConfigurationRepositoryState> e)
         {
+            if (meta == null)
+            {
+                return;
+            }
+
             await Task.WhenAll(
                 SerializationUtils.SaveConfigurationAsync(meta, e.Payload.Configuration),
                 SerializationUtils.SaveStructureAsync(meta, e.Payload.Structure)

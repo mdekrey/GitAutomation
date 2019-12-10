@@ -12,7 +12,7 @@ namespace GitAutomation
     [TestClass]
     public class YamlTest
     {
-        private static RepositoryStructure testRepository = new RepositoryStructure.Builder()
+        private readonly static RepositoryStructure testRepository = new RepositoryStructure.Builder()
         {
             BranchReserves = new Dictionary<string, BranchReserve.Builder> {
                 { "line/1.0", new BranchReserve.Builder() {
@@ -50,7 +50,7 @@ namespace GitAutomation
                     OutputCommit = BranchReserve.EmptyCommit } },
             }
         }.Build();
-        private static string testYaml = @"
+        private readonly static string testYaml = @"
 branchReserves:
   feature/a:
     reserveType: Feature

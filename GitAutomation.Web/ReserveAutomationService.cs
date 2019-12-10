@@ -19,7 +19,6 @@ namespace GitAutomation.Web
 {
     public class ReserveAutomationService
     {
-        private readonly TargetRepositoryOptions targetRepositoryOptions;
         private readonly AutomationOptions automationOptions;
         private readonly IScriptInvoker scriptInvoker;
         private readonly ILogger logger;
@@ -30,7 +29,6 @@ namespace GitAutomation.Web
 
         class SingleReserveAutomation : IDisposable
         {
-            private readonly IStateMachine<AppState> stateMachine;
             private readonly ReserveAutomationService service;
             private readonly IDisposable subscription;
 
@@ -41,7 +39,6 @@ namespace GitAutomation.Web
             public SingleReserveAutomation(string name, IStateMachine<AppState> stateMachine, ReserveAutomationService service)
             {
                 this.Name = name;
-                this.stateMachine = stateMachine;
                 this.service = service;
                 subscription = stateMachine.StateUpdates
                     .Select(state =>
@@ -51,7 +48,7 @@ namespace GitAutomation.Web
                         var reserve = reserves[name];
                         var branchDetails = reserve.IncludedBranches.Keys.ToDictionary(k => k, k => branches.ContainsKey(k) ? branches[k] : BranchReserve.EmptyCommit);
                         var upstreamReserves = reserve.Upstream.Keys.ToDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : null);
-                        return new ReserveFullState(reserve, branchDetails, upstreamReserves);
+                        return new ReserveFullState(reserve, branchDetails, upstreamReserves!);
                     })
                     // TODO - this isn't fast, but it does work
                     .DistinctUntilChanged(e => JsonConvert.SerializeObject(e))
@@ -78,9 +75,8 @@ namespace GitAutomation.Web
             reserveProcessor.Post(name);
         }
 
-        public ReserveAutomationService(IOptions<TargetRepositoryOptions> options, IOptions<AutomationOptions> automationOptions, IScriptInvoker scriptInvoker, ILogger<TargetRepositoryService> logger, IStateMachine<AppState> stateMachine)
+        public ReserveAutomationService(IOptions<AutomationOptions> automationOptions, IScriptInvoker scriptInvoker, ILogger<TargetRepositoryService> logger, IStateMachine<AppState> stateMachine)
         {
-            this.targetRepositoryOptions = options.Value;
             this.automationOptions = automationOptions.Value;
             this.scriptInvoker = scriptInvoker;
             this.logger = logger;
@@ -122,6 +118,7 @@ namespace GitAutomation.Web
                 {
                     var path = Path.Combine(automationOptions.WorkspacePath, Path.GetRandomFileName());
                     Directory.CreateDirectory(path);
+                    logger.LogInformation("For '{reserveName}' with status '{Status}' as type '{ReserveType}', run script '{scriptName}' in path '{path}'", reserveName, reserve.Status, reserve.ReserveType, scriptName, path);
                     try
                     {
                         reserveFullState.LastScript = scriptInvoker.Invoke(
@@ -134,6 +131,7 @@ namespace GitAutomation.Web
                             SystemAgent.Instance
                         );
                         await reserveFullState.LastScript;
+                        logger.LogInformation("For '{reserveName}' with status '{Status}' as type '{ReserveType}', successfully ran script '{scriptName}' in path '{path}'", reserveName, reserve.Status, reserve.ReserveType, scriptName, path);
                     }
                     finally
                     {
