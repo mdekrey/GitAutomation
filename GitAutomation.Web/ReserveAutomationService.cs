@@ -130,8 +130,15 @@ namespace GitAutomation.Web
                             ),
                             SystemAgent.Instance
                         );
-                        await reserveFullState.LastScript;
-                        logger.LogInformation("For '{reserveName}' with status '{Status}' as type '{ReserveType}', successfully ran script '{scriptName}' in path '{path}'", reserveName, reserve.Status, reserve.ReserveType, scriptName, path);
+                        var result = await reserveFullState.LastScript;
+                        if (result.Exception == null)
+                        {
+                            logger.LogInformation("For '{reserveName}' with status '{Status}' as type '{ReserveType}', successfully ran script '{scriptName}' in path '{path}'", reserveName, reserve.Status, reserve.ReserveType, scriptName, path);
+                        }
+                        else
+                        {
+                            logger.LogError(result.Exception, "For '{reserveName}' with status '{Status}' as type '{ReserveType}', failed to run script '{scriptName}' in path '{path}'", reserveName, reserve.Status, reserve.ReserveType, scriptName, path);
+                        }
                     }
                     finally
                     {

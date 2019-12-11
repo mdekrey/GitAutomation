@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Text;
 using GitAutomation.DomainModels;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,17 +20,22 @@ namespace GitAutomation.Scripting
 
         public Type GetScript<TParams>(string scriptName)
         {
-            if (scriptName.Contains(","))
+            var type = Type.GetType(scriptName, GetLoadedAssemblyByName, null);
+            if (type == null)
             {
-                // security, since we don't want to load arbitrary assemblies.
-                throw new ArgumentException($"Cannot load generics or types from another assembly. Use the type's FullName property (assembly and class name). Got: {scriptName}");
+                throw new ArgumentException($"Type ({scriptName}) was not found in loaded assemblies.");
             }
-            var type = Type.GetType(scriptName);
             if (!typeof(IScript<TParams>).IsAssignableFrom(type) || !type.IsClass || type.IsAbstract)
             {
                 throw new ArgumentException($"Type ({type.AssemblyQualifiedName}) must be concrete and implement the interface '{typeof(IScript<TParams>).FullName}'.");
             }
             return type;
+        }
+
+        private static System.Reflection.Assembly GetLoadedAssemblyByName(System.Reflection.AssemblyName asmName)
+        {
+            return AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(asm => asm.FullName == asmName.FullName) 
+                ?? AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(asm => asm.GetName().Name == asmName.Name);
         }
 
         public ScriptProgress Invoke<TParams>(Type scriptType, TParams loggedParameters, IAgentSpecification agentSpecification)

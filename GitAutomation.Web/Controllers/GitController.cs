@@ -1,4 +1,5 @@
-﻿using GitAutomation.State;
+﻿using GitAutomation.DomainModels;
+using GitAutomation.State;
 using GitAutomation.Web.State;
 using LibGit2Sharp;
 using Microsoft.AspNetCore.Mvc;
@@ -29,13 +30,26 @@ namespace GitAutomation.Web.Controllers
             return Ok(new
             {
                 Branches = repo.Branches.Where(b => b.CanonicalName.StartsWith("refs/heads/"))
-                    .Select(b => HistoryInfo(b.FriendlyName, b.Tip)),
+                    .Select(b => HistoryInfo(b.FriendlyName, b.Tip)).ToArray(),
                 Reserves = stateMachine.State.Configuration.Structure.BranchReserves
-                    .Select(kvp => HistoryInfo(kvp.Key, (Commit)repo.Lookup(kvp.Value.OutputCommit, ObjectType.Commit)))
+                    .Select(kvp => (key: kvp.Key, commit: repo.Lookup<Commit>(kvp.Value.OutputCommit)))
+                    .Where(kvp => kvp.commit != null)
+                    .Select(kvp => HistoryInfo(kvp.key, kvp.commit))
+                    .ToArray()
             });
 
-            object HistoryInfo(string name, Commit outputCommit)
+            object? HistoryInfo(string name, Commit outputCommit)
             {
+                if (outputCommit == null)
+                {
+                    return new
+                    {
+                        name,
+                        Commit = BranchReserve.EmptyCommit,
+                        Behind = int.MaxValue,
+                        Ahead = 0
+                    };
+                }
                 var historyDivergence = repo.ObjectDatabase.CalculateHistoryDivergence(commit, outputCommit);
                 return new
                 {

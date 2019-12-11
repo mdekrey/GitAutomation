@@ -26,7 +26,7 @@ namespace GitAutomation.Web.Controllers
             return Ok();
         }
 
-        [HttpPost]
+        [HttpPost("CreateReserve")]
         public IActionResult CreateReserve([FromBody] CreateReserveAction body)
         {
             return Post(body);

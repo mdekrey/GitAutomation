@@ -8,8 +8,8 @@
             the bug resulted from.
         color: "377fc0"
         stateScripts: 
-            Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript
-            OutOfDate: GitAutomation.Scripts.Branches.Common.HandleOutOfDateBranchScript
+            Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript, GitAutomation.Web
+            OutOfDate: GitAutomation.Scripts.Branches.Common.HandleOutOfDateBranchScript, GitAutomation.Web
     rc:
         title: Release Candidate
         helpLink: http://scaledgitflow.com#3ce6
@@ -17,8 +17,8 @@
             on a release candidate.
         color: "6f256f"
         stateScripts: 
-            Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript
-            OutOfDate: GitAutomation.Scripts.Branches.Common.HandleOutOfDateBranchScript
+            Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript, GitAutomation.Web
+            OutOfDate: GitAutomation.Scripts.Branches.Common.HandleOutOfDateBranchScript, GitAutomation.Web
     line:
         title: Service Line
         helpLink: http://scaledgitflow.com#2fa1
@@ -27,8 +27,8 @@
             directly on a service line.
         color: "6fce1f"
         stateScripts: 
-            Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript
-            OutOfDate: GitAutomation.Scripts.Branches.Common.HandleOutOfDateBranchScript
+            Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript, GitAutomation.Web
+            OutOfDate: GitAutomation.Scripts.Branches.Common.HandleOutOfDateBranchScript, GitAutomation.Web
     hotfix:
         title: Hot Fix
         helpLink: http://scaledgitflow.com#7a21
@@ -36,8 +36,8 @@
             feature and release candidate as one, and are intended for quick individual fixes.
         color: "ff733b"
         stateScripts: 
-            Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript
-            OutOfDate: GitAutomation.Scripts.Branches.Common.HandleOutOfDateBranchScript
+            Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript, GitAutomation.Web
+            OutOfDate: GitAutomation.Scripts.Branches.Common.HandleOutOfDateBranchScript, GitAutomation.Web
     infrastructure:
         title: Infrastructure
         helpLink: http://scaledgitflow.com#efa9
@@ -50,8 +50,8 @@
             methodologies.)
         color: "377fc0"
         stateScripts: 
-            Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript
-            OutOfDate: GitAutomation.Scripts.Branches.Common.HandleOutOfDateBranchScript
+            Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript, GitAutomation.Web
+            OutOfDate: GitAutomation.Scripts.Branches.Common.HandleOutOfDateBranchScript, GitAutomation.Web
     integration:
         title: Integration
         helpLink: http://scaledgitflow.com#1f74
@@ -61,4 +61,4 @@
             special cases should be worked on an integration branch.
         color: "626262"
         stateScripts: 
-            Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript
+            Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript, GitAutomation.Web

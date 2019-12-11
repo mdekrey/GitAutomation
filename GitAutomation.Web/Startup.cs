@@ -28,7 +28,7 @@ namespace GitAutomation.Web
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc(options => options.EnableEndpointRouting = false)
-                .AddNewtonsoftJson();
+                .AddNewtonsoftJson(opt => opt.UseMemberCasing());
 
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration =>
