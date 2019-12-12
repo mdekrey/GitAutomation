@@ -26,11 +26,9 @@ namespace GitAutomation.Serialization.Defaults
             var pathPartCount = Math.Max(1, remainingName.Count(c => c == '.') - 1);
             var outPath = Path.Combine(path, string.Join("/", remainingName.Split(EmbeddedResourceSeparators, pathPartCount)));
             Directory.CreateDirectory(Path.GetDirectoryName(outPath));
-            using (var stream = assembly.GetManifestResourceStream(resourceName))
-            using (var file = File.Create(outPath))
-            {
-                await stream.CopyToAsync(file);
-            }
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            using var file = File.Create(outPath);
+            await stream.CopyToAsync(file);
         }
     }
 }

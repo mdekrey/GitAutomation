@@ -23,6 +23,7 @@ namespace GitAutomation.DomainModels
             RefsAction action => TargetRefs(original, action),
             NeedFetchAction _ => NeedFetch(original),
             StabilizePushedReserveAction _ => NeedFetch(original),
+            Configuration.Actions.ConfigurationLoadedAction _ => NeedFetch(original),
             _ => original
         };
 

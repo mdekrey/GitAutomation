@@ -103,47 +103,72 @@ namespace GitAutomation.Web
 
         private async Task ProcessReserve(string reserveName)
         {
-            // guard against deleting the reserve while queued
-            if (reserves.TryGetValue(reserveName, out var reserveFullState))
+            try
             {
-                // if we're not valid, don't process anything
-                if (!reserveFullState.Data.IsValid)
+                // guard against deleting the reserve while queued
+                if (reserves.TryGetValue(reserveName, out var reserveFullState))
                 {
-                    return;
-                }
+                    // if we're not valid, don't process anything
+                    if (!reserveFullState.Data.IsValid)
+                    {
+                        return;
+                    }
 
-                var reserve = reserveFullState.Data.Reserve;
-                var scripts = stateMachine.State.Configuration.Configuration.ReserveTypes[reserve.ReserveType].StateScripts;
-                if (scripts.TryGetValue(reserve.Status, out var scriptName))
+                    var reserve = reserveFullState.Data.Reserve;
+                    var scripts = stateMachine.State.Configuration.Configuration.ReserveTypes[reserve.ReserveType].StateScripts;
+                    if (scripts.TryGetValue(reserve.Status, out var scriptName))
+                    {
+                        var path = Path.Combine(automationOptions.WorkspacePath, Path.GetRandomFileName());
+                        Directory.CreateDirectory(path);
+                        logger.LogInformation("For '{reserveName}' with status '{Status}' as type '{ReserveType}', run script '{scriptName}' in path '{path}'", reserveName, reserve.Status, reserve.ReserveType, scriptName, path);
+                        try
+                        {
+                            reserveFullState.LastScript = scriptInvoker.Invoke(
+                                scriptInvoker.GetScript<ReserveScriptParameters>(scriptName),
+                                new ReserveScriptParameters(
+                                    reserveFullState.Name,
+                                    reserveFullState.Data,
+                                    workingPath: path
+                                ),
+                                SystemAgent.Instance
+                            );
+                            var result = await reserveFullState.LastScript;
+                            if (result.Exception == null)
+                            {
+                                logger.LogInformation("For '{reserveName}' with status '{Status}' as type '{ReserveType}', successfully ran script '{scriptName}' in path '{path}'", reserveName, reserve.Status, reserve.ReserveType, scriptName, path);
+                            }
+                            else
+                            {
+                                logger.LogError(result.Exception, "For '{reserveName}' with status '{Status}' as type '{ReserveType}', failed to run script '{scriptName}' in path '{path}'", reserveName, reserve.Status, reserve.ReserveType, scriptName, path);
+                            }
+                        }
+                        finally
+                        {
+                            SafeDelete(path);
+                        }
+                    }
+                }
+            } catch (Exception ex)
+            {
+                logger.LogError(ex, "Error in reserve automation process block, while trying to process {reserveName}", reserveName);
+            }
+        }
+
+        private async void SafeDelete(string path)
+        {
+            var count = 0;
+            var success = false;
+            while (!success && count < 10)
+            {
+                try
                 {
-                    var path = Path.Combine(automationOptions.WorkspacePath, Path.GetRandomFileName());
-                    Directory.CreateDirectory(path);
-                    logger.LogInformation("For '{reserveName}' with status '{Status}' as type '{ReserveType}', run script '{scriptName}' in path '{path}'", reserveName, reserve.Status, reserve.ReserveType, scriptName, path);
-                    try
-                    {
-                        reserveFullState.LastScript = scriptInvoker.Invoke(
-                            scriptInvoker.GetScript<ReserveScriptParameters>(scriptName),
-                            new ReserveScriptParameters(
-                                reserveFullState.Name,
-                                reserveFullState.Data,
-                                workingPath: path
-                            ),
-                            SystemAgent.Instance
-                        );
-                        var result = await reserveFullState.LastScript;
-                        if (result.Exception == null)
-                        {
-                            logger.LogInformation("For '{reserveName}' with status '{Status}' as type '{ReserveType}', successfully ran script '{scriptName}' in path '{path}'", reserveName, reserve.Status, reserve.ReserveType, scriptName, path);
-                        }
-                        else
-                        {
-                            logger.LogError(result.Exception, "For '{reserveName}' with status '{Status}' as type '{ReserveType}', failed to run script '{scriptName}' in path '{path}'", reserveName, reserve.Status, reserve.ReserveType, scriptName, path);
-                        }
-                    }
-                    finally
-                    {
-                        Directory.Delete(path, recursive: true);
-                    }
+                    Directory.Delete(path, recursive: true);
+                    success = true;
+                }
+                catch
+                {
+                    await Task.Delay(1000);
+                    count++;
                 }
             }
         }

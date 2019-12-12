@@ -36,20 +36,23 @@ namespace GitAutomation.Scripts.Config
 
         public async Task Run(CommitScriptParams parameters, ILogger logger, IAgentSpecification agent)
         {
+            logger.LogInformation("Begin commit configuration");
             await Task.Yield();
             var startTimestamp = parameters.StartTimestamp;
 
             using var repo = new LibGit2Sharp.Repository(configRepositoryOptions.CheckoutPath);
             Commands.Stage(repo, "*");
-            var author = new Signature(configRepositoryOptions.UserName, configRepositoryOptions.UserEmail, DateTimeOffset.Now);
+            var author = new Signature(configRepositoryOptions.GitIdentity.ToGitIdentity(), DateTimeOffset.Now);
             try
             {
                 repo.Commit(parameters.Comment, author, author);
             }
             catch (Exception ex)
             {
+                logger.LogError(ex, $"Failed to commit changes, message was: '{parameters.Comment}'");
                 dispatcher.Dispatch(new GitCouldNotCommitAction { StartTimestamp = startTimestamp }, agent, $"Failed to commit changes\n\n{ex.ToString()}");
             }
+            logger.LogInformation("Complete commit configuration");
         }
     }
 }

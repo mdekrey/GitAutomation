@@ -67,11 +67,17 @@ namespace GitAutomation.Web
         {
             using var repo = new LibGit2Sharp.Repository(options.CheckoutPath);
 
+            var refs = repo.Branches.Select(r => new DomainModels.Actions.RefsAction.RefEntry { Name = r.FriendlyName, Commit = r.Tip.Sha }).ToArray();
+            var refText = string.Join(@"
+    ", refs.Select(r => $"{r.Name}: {r.Commit}"));
+
             dispatcher.Dispatch(new DomainModels.Actions.RefsAction
             {
                 StartTimestamp = startTimestamp,
-                AllRefs = repo.Branches.Select(r => new DomainModels.Actions.RefsAction.RefEntry { Name = r.FriendlyName, Commit = r.Tip.Sha }).ToArray()
-            }, SystemAgent.Instance);
+                AllRefs = refs
+            }, SystemAgent.Instance, $@"Fetched refs
+
+    {refText}");
         }
 
         void IDisposable.Dispose()

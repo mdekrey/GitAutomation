@@ -107,7 +107,7 @@ namespace GitAutomation.Scripts.Branches
                 }
             }
 
-            dispatcher.Dispatch(new FetchedAction { StartTimestamp = startTimestamp }, agent);
+            dispatcher.Dispatch(new FetchedAction { StartTimestamp = startTimestamp }, agent, "Fresh clone");
         }
 
         private DirectoryInfo? CreateDirectory()

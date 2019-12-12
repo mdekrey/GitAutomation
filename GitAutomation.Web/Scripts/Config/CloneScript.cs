@@ -103,6 +103,7 @@ namespace GitAutomation.Scripts.Config
             try
             {
                 Commands.Checkout(repo, repo.Branches[$"origin/{configRepositoryOptions.BranchName}"]);
+                try { repo.Reset(ResetMode.Hard); } catch { }
             }
             catch (Exception)
             {

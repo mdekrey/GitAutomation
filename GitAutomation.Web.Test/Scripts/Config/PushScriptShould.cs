@@ -35,7 +35,7 @@ namespace GitAutomation.Scripts.Config
             var configRepositoryOptions = StandardParameters(tempDir.TemporaryDirectory);
             using var newRepo = new LibGit2Sharp.Repository(tempDir.TemporaryDirectory.Path);
             Commands.Stage(newRepo, "*");
-            var author = new Signature(configRepositoryOptions.UserName, configRepositoryOptions.UserEmail, DateTimeOffset.Now);
+            var author = new Signature(configRepositoryOptions.GitIdentity.ToGitIdentity(), DateTimeOffset.Now);
             newRepo.Commit("Test commit", author, author);
 
             var timestamp = DateTimeOffset.Now;
@@ -52,8 +52,11 @@ namespace GitAutomation.Scripts.Config
         {
             return new ConfigRepositoryOptions
             {
-                UserEmail = "author@example.com",
-                UserName = "A U Thor",
+                GitIdentity = new DomainModels.Git.GitIdentity
+                {
+                    UserEmail = "author@example.com",
+                    UserName = "A U Thor",
+                },
                 CheckoutPath = checkout.Path,
                 BranchName = "git-config"
             };

@@ -104,8 +104,11 @@ namespace GitAutomation.Scripts.Config
                     Url = repository.Path,
                     Password = "",
                 },
-                UserEmail = "author@example.com",
-                UserName = "A U Thor",
+                GitIdentity = new DomainModels.Git.GitIdentity
+                {
+                    UserEmail = "author@example.com",
+                    UserName = "A U Thor",
+                },
                 CheckoutPath = checkout.Path,
                 BranchName = "git-config"
             };

@@ -47,8 +47,11 @@ namespace GitAutomation.Scripts.Config
         {
             return new ConfigRepositoryOptions
             {
-                UserEmail = "author@example.com",
-                UserName = "A U Thor",
+                GitIdentity = new DomainModels.Git.GitIdentity
+                {
+                    UserEmail = "author@example.com",
+                    UserName = "A U Thor",
+                },
                 CheckoutPath = checkout.Path,
                 BranchName = "git-config"
             };

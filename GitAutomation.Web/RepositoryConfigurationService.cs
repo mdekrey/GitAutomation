@@ -85,21 +85,31 @@ namespace GitAutomation.Web
             {
                 return;
             }
-            if (lastTimestamps[LoadedFromDisk] > DateTimeOffset.MinValue && lastTimestamps[StoredFieldModified] > lastTimestamps[Pushed])
+            if (lastTimestamps[LoadedFromDisk] > DateTimeOffset.MinValue && configurationChanges.Count > 0)
             {
+                logger.LogInformation("Begin write changes");
                 await ConfigurationChangeCommitter();
+                logger.LogInformation("Finish write changes");
             }
             else if (lastTimestamps[NeedPull] > lastTimestamps[Pulled])
             {
-                await BeginLoad(lastTimestamps[NeedPull]);
+                logger.LogInformation("Begin pull");
+                await BeginPull(lastTimestamps[NeedPull]);
+                logger.LogInformation("Finish pull");
             }
             else if (lastTimestamps[Pulled] > lastTimestamps[LoadedFromDisk])
             {
+                logger.LogInformation("Begin load from disk");
                 await LoadFromDisk(lastTimestamps[Pulled]);
+                logger.LogInformation("Finish load from disk");
+            }
+            else
+            {
+                logger.LogWarning($"Repository action did nothing, {configurationChanges.Count} config changes pending");
             }
         }
 
-        internal async Task BeginLoad(DateTimeOffset startTimestamp)
+        internal async Task BeginPull(DateTimeOffset startTimestamp)
         {
             this.LastLoadResult = scriptInvoker.Invoke(typeof(Scripts.Config.CloneScript), new Scripts.Config.CloneScript.CloneScriptParams(startTimestamp), SystemAgent.Instance);
             await LastLoadResult;
@@ -125,6 +135,7 @@ namespace GitAutomation.Web
                 logger.LogError(ex, "Unable to load configuration");
             }
             dispatcher.Dispatch(new StateUpdateEvent<IStandardAction>(new ConfigurationLoadedAction { Configuration = config.Result, Structure = structure.Result, StartTimestamp = startTimestamp }, SystemAgent.Instance, "Loaded from disk"));
+            logger.LogInformation("Clearing out pending configuration changes");
             // clear out any interim config changes, as they're now out of date...
             configurationChanges.TryReceiveAll(out var _);
             if (!exists)
@@ -149,13 +160,27 @@ namespace GitAutomation.Web
 
         private async Task ConfigurationChangeCommitter()
         {
-            if (configurationChanges.TryReceiveAll(out var changes))
+            DateTimeOffset? timestamp = null;
+            while (configurationChanges.TryReceiveAll(out var changes))
             {
                 foreach (var change in changes)
                 {
-                    await CommitChange(change.Timestamp, change.Event);
+                    try
+                    {
+                        await CommitChange(change.Timestamp, change.Event);
+                    } catch { }
                 }
-                await PushToRemote(changes.Select(c => c.Timestamp).Max());
+                timestamp ??= changes.Select(c => c.Timestamp).Max();
+            }
+
+            switch (timestamp)
+            {
+                case DateTimeOffset ts:
+                    await PushToRemote(ts);
+                    break;
+                case null:
+                    logger.LogWarning("Change committer found no changes");
+                    break;
             }
         }
 

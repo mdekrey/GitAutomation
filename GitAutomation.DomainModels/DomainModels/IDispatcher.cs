@@ -12,7 +12,7 @@ namespace GitAutomation.DomainModels
 
     public static class DispatcherExtensions
     {
-        public static void Dispatch(this IDispatcher dispatcher, IStandardAction action, IAgentSpecification lastChangeBy, string comment = "") =>
+        public static void Dispatch(this IDispatcher dispatcher, IStandardAction action, IAgentSpecification lastChangeBy, string comment) =>
             dispatcher.Dispatch(new StateUpdateEvent<IStandardAction>(action, lastChangeBy, comment));
     }
 }

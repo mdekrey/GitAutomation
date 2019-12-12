@@ -24,6 +24,7 @@ namespace GitAutomation.DomainModels
                 SetReserveOutOfDateAction action => SetReserveOutOfDate(original, action),
                 StabilizeNoUpstreamAction action => StabilizeNoUpstream(original, action),
                 StabilizePushedReserveAction action => PushedReserve(original, action),
+                StabilizeRemoteUpdatedReserveAction action => ReceivedReserve(original, action),
                 CouldNotPushAction action => CouldNotPush(original, action),
                 ManualInterventionNeededAction action => ManualInterventionNeeded(original, action),
                 RefsAction _ => ClearPushOnReserves(original),
@@ -142,6 +143,14 @@ namespace GitAutomation.DomainModels
             Chain(original,
                 n => SetReserveState(n, action.Reserve, "Pushed"),
                 n => action.NewOutput == null ? n : AddOutputBranch(n, action.Reserve, action.NewOutput, BranchReserve.EmptyCommit),
+                n => SetBranchCommits(n, action.Reserve, action.BranchCommits),
+                n => SetUpstreamCommits(n, action.Reserve, action.ReserveOutputCommits),
+                n => SetOutputCommitToBranch(n, action.Reserve)
+            );
+
+        private static RepositoryStructure ReceivedReserve(RepositoryStructure original, StabilizeRemoteUpdatedReserveAction action) =>
+            Chain(original,
+                n => SetReserveState(n, action.Reserve, "Stable"),
                 n => SetBranchCommits(n, action.Reserve, action.BranchCommits),
                 n => SetUpstreamCommits(n, action.Reserve, action.ReserveOutputCommits),
                 n => SetOutputCommitToBranch(n, action.Reserve)

@@ -13,8 +13,6 @@ namespace GitAutomation.Serialization
 {
     public static class SerializationUtils
     {
-        private static readonly ReaderWriterLockSlim lockSlim = new ReaderWriterLockSlim();
-
         public static ISerializer Serializer => new SerializerBuilder()
                 .DisableAliases()
                 .WithNamingConvention(new CamelCaseNamingConvention())
@@ -50,12 +48,10 @@ namespace GitAutomation.Serialization
 
         private static async Task<T> ReadYamlFileAsync<T>(string path)
         {
-            using (var file = File.OpenRead(path))
-            using (var textReader = new StreamReader(file))
-            {
-                var text = await textReader.ReadToEndAsync();
-                return Deserializer.Deserialize<T>(text);
-            }
+            using var file = File.OpenRead(path);
+            using var textReader = new StreamReader(file);
+            var text = await textReader.ReadToEndAsync();
+            return Deserializer.Deserialize<T>(text);
         }
 
         public static async Task SaveStructureAsync(Meta meta, RepositoryStructure structure)

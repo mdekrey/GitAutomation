@@ -28,12 +28,12 @@ namespace GitAutomation.Scripts.Branches.Common
             var reserve = parameters.ReserveFullState.Reserve;
 
             await Task.Yield();
-            var changedBranches = branchDetails.Keys.Where(bd => branchDetails[bd] != reserve.IncludedBranches[bd].LastCommit);
-            var changedReserves = upstreamReserves.Keys.Where(r => upstreamReserves[r].OutputCommit != reserve.Upstream[r].LastOutput);
+            var changedBranches = branchDetails.Keys.Where(bd => branchDetails[bd] != reserve.IncludedBranches[bd].LastCommit).ToArray();
+            var changedReserves = upstreamReserves.Keys.Where(r => upstreamReserves[r].OutputCommit != reserve.Upstream[r].LastOutput).ToArray();
 
             if (changedBranches.Any() || changedReserves.Any())
             {
-
+                logger.LogInformation($"Reserve {parameters.Name} changes: branches ({string.Join(',', changedBranches)}), reserves ({string.Join(',', changedReserves)})");
                 if (upstreamReserves.Any())
                 {
                     dispatcher.Dispatch(new SetReserveOutOfDateAction { Reserve = name }, agent, $"Changes occurred to '{name}'; need to update");

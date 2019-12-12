@@ -11,12 +11,7 @@ namespace GitAutomation.DomainModels.Configuration
         public static ConfigurationRepositoryState Reduce(ConfigurationRepositoryState original, IStandardAction action)
         {
             var result = original.With(structure: RepositoryStructureReducer.Reduce(original.Structure, action));
-            if (result.Structure != original.Structure)
-            {
-                result = ConfigurationWritten(result);
-            }
-
-            return (action switch
+            result = action switch
             {
                 DirectoryNotAccessibleAction a => ConfigurationDirectoryNotAccessible(result, a),
                 ReadyToLoadAction a => ConfigurationReadyToLoad(result, a),
@@ -30,7 +25,13 @@ namespace GitAutomation.DomainModels.Configuration
                 ConfigurationLoadedAction a => ConfigurationLoaded(result, a),
                 ConfigurationWrittenAction _ => ConfigurationWritten(result),
                 _ => result,
-            });
+            };
+            if (result.Structure != original.Structure || result.Configuration != original.Configuration)
+            {
+                result = ConfigurationWritten(result);
+            }
+
+            return result;
         }
 
         private static ConfigurationRepositoryState ConfigurationRepositoryNoBranch(ConfigurationRepositoryState original, GitNoBranchAction action) =>

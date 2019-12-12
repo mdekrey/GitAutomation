@@ -60,6 +60,13 @@ namespace GitAutomation.DomainModels.Actions
         public string? NewOutput { get; set; }
     }
 
+    public struct StabilizeRemoteUpdatedReserveAction : IStandardAction
+    {
+        public string Reserve { get; set; }
+        public Dictionary<string, string> BranchCommits { get; set; }
+        public Dictionary<string, string> ReserveOutputCommits { get; set; }
+    }
+
     public struct CouldNotPushAction : IStandardAction
     {
         public string Reserve { get; set; }

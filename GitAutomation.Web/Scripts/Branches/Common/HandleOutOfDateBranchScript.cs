@@ -157,13 +157,25 @@ namespace GitAutomation.Scripts.Branches.Common
             {
                 case "Stable":
                     branchCommits[outputBranchName] = repo.Head.Tip.Sha;
-                    dispatcher.Dispatch(new StabilizePushedReserveAction
+                    if (push)
                     {
-                        BranchCommits = branchCommits,
-                        NewOutput = newOutputBranch ? outputBranchName : null,
-                        Reserve = name,
-                        ReserveOutputCommits = reserveOutputCommits
-                    }, agent, push ? $"Auto-merge changes to '{outputBranchName}' for '{name}'" : $"No git changes needed for '{name}'");
+                        dispatcher.Dispatch(new StabilizePushedReserveAction
+                        {
+                            BranchCommits = branchCommits,
+                            NewOutput = newOutputBranch ? outputBranchName : null,
+                            Reserve = name,
+                            ReserveOutputCommits = reserveOutputCommits
+                        }, agent, $"Auto-merge changes to '{outputBranchName}' for '{name}'");
+                    } else
+                    {
+
+                        dispatcher.Dispatch(new StabilizeRemoteUpdatedReserveAction
+                        {
+                            BranchCommits = branchCommits,
+                            Reserve = name,
+                            ReserveOutputCommits = reserveOutputCommits
+                        }, agent, $"No git changes needed for '{name}'");
+                    }
                     break;
                 case "CouldNotPush":
                     dispatcher.Dispatch(new CouldNotPushAction
