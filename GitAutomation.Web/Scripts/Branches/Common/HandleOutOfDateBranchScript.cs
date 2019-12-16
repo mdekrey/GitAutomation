@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -17,6 +18,10 @@ namespace GitAutomation.Scripts.Branches.Common
         private readonly IDispatcher dispatcher;
         private readonly TargetRepositoryOptions options;
         private readonly AutomationOptions automationOptions;
+        protected static readonly MergeOptions standardMergeOptions = new MergeOptions
+        {
+            CommitOnSuccess = false
+        };
 
         public HandleOutOfDateBranchScript(IDispatcher dispatcher, IOptions<TargetRepositoryOptions> options, IOptions<AutomationOptions> automationOptions)
         {
@@ -68,13 +73,7 @@ namespace GitAutomation.Scripts.Branches.Common
                 };
 
             var push = false;
-            Repository.Clone(checkoutPath, workingPath);
-            using var repo = new Repository(workingPath);
-            Commands.Fetch(repo, "origin", new[] { "refs/heads/*:refs/heads/*" }, new FetchOptions { }, "");
-            foreach (var r in repo.Network.Remotes.ToArray())
-            {
-                repo.Network.Remotes.Remove(r.Name);
-            }
+            using var repo = CloneAsLocal(checkoutPath, workingPath);
             if (newOutputBranch)
             {
                 if (repo.Branches[outputBranchName] != null)
@@ -94,10 +93,9 @@ namespace GitAutomation.Scripts.Branches.Common
             var upstreamNeeded = new List<string>();
             foreach (var upstream in upstreamReserves.Keys)
             {
-                var commit = repo.Lookup<Commit>(upstreamReserves[upstream].OutputCommit);
-                var history = repo.ObjectDatabase.CalculateHistoryDivergence(repo.Head.Tip, commit);
-                if (history.BehindBy > 0)
+                if (NeedsCommit(repo, upstreamReserves[upstream].OutputCommit, out var commit))
                 {
+                    // TODO - detect upstream history loss, where the tip that was merged is no longer in upstream, using reserve.Upstream[upstream].LastOutput. This probably goes to NeedsUpdate or other special state, and we should stop trying to merge anything.
                     if (reserve.FlowType != "Automatic")
                     {
                         finalState = "NeedsUpdate";
@@ -106,15 +104,13 @@ namespace GitAutomation.Scripts.Branches.Common
                     else
                     {
                         var message = $"Auto-merge {upstream}";
-                        var result = repo.Merge(commit, new Signature(gitIdentity, DateTimeOffset.Now), new MergeOptions
-                        {
-                            CommitOnSuccess = false
-                        });
+                        var result = repo.Merge(commit, new Signature(gitIdentity, DateTimeOffset.Now), standardMergeOptions);
                         switch (result.Status)
                         {
                             case MergeStatus.Conflicts:
                                 finalState = "Conflicted";
                                 repo.Reset(ResetMode.Hard);
+                                // TODO - do we need to clean up added files?
                                 upstreamNeeded.Add(upstream);
                                 break;
                             case MergeStatus.FastForward:
@@ -166,7 +162,8 @@ namespace GitAutomation.Scripts.Branches.Common
                             Reserve = name,
                             ReserveOutputCommits = reserveOutputCommits
                         }, agent, $"Auto-merge changes to '{outputBranchName}' for '{name}'");
-                    } else
+                    }
+                    else
                     {
 
                         dispatcher.Dispatch(new StabilizeRemoteUpdatedReserveAction
@@ -187,39 +184,91 @@ namespace GitAutomation.Scripts.Branches.Common
                     break;
                 case "NeedsUpdate":
                 case "Conflicted":
-                    // TODO - check if two upstream branches are the actual reason for the conflict
-                    var newBranches = upstreamNeeded.Select(entry =>
+                    if (await ConflictsExistUpstream(repo, upstreamReserves, name, logger, agent))
                     {
-                        var commit = upstreamReserves[entry].OutputCommit;
-                        var newBranchName = integrationPrefix + name + "/" + entry;
-                        var remoteBranchName = $"{defaultRemote}/{newBranchName}";
-                        if (repo.Branches[remoteBranchName] != null && (!reserve.IncludedBranches.ContainsKey(remoteBranchName) || reserve.IncludedBranches[remoteBranchName].Meta["Role"] != "Integration"))
+                        // TODO - when integration branches are added, remove this
+                        dispatcher.Dispatch(new ManualInterventionNeededAction
                         {
-                            // TODO - should warn or something here
-                            return default;
-                        }
-                        repo.CreateBranch(remoteBranchName, commit);
-                        return new ManualInterventionNeededAction.ManualInterventionBranch
+                            BranchCommits = branchCommits,
+                            ReserveOutputCommits = reserveOutputCommits,
+                            Reserve = name,
+                            State = "Conflicted",
+                            NewBranches = new ManualInterventionNeededAction.ManualInterventionBranch[0],
+                        }, agent, $"Conflicts detected upstream from '{name}'");
+                    }
+                    else
+                    {
+                        // TODO - temporary integration branches should be removed somewhere - maybe when it becomes stable?
+                        var newBranches = upstreamNeeded.Select(entry =>
                         {
-                            Commit = commit,
-                            Name = remoteBranchName,
-                            Role = "Integration",
-                            Source = entry
-                        };
-                    }).Where(b => b.Name != null).ToArray();
-                    var refspecs = newBranches.Select(b => $"refs/heads/{b.Name}:refs/heads/{b.Name.Substring(defaultRemote.Length + 1)}").ToArray();
-                    EnsureRemoteAndPush(repo, defaultRemote, refspecs);
+                            var commit = upstreamReserves[entry].OutputCommit;
+                            var newBranchName = integrationPrefix + name + "/" + entry;
+                            var remoteBranchName = $"{defaultRemote}/{newBranchName}";
+                            if (repo.Branches[remoteBranchName] != null && (!reserve.IncludedBranches.ContainsKey(remoteBranchName) || reserve.IncludedBranches[remoteBranchName].Meta["Role"] != "Integration"))
+                            {
+                                // TODO - should warn or something here
+                                return default;
+                            }
+                            repo.CreateBranch(remoteBranchName, commit);
+                            return new ManualInterventionNeededAction.ManualInterventionBranch
+                            {
+                                Commit = commit,
+                                Name = remoteBranchName,
+                                Role = "Integration",
+                                Source = entry
+                            };
+                        }).Where(b => b.Name != null).ToArray();
+                        var refspecs = newBranches.Select(b => $"refs/heads/{b.Name}:refs/heads/{b.Name.Substring(defaultRemote.Length + 1)}").ToArray();
+                        EnsureRemoteAndPush(repo, defaultRemote, refspecs);
 
-                    dispatcher.Dispatch(new ManualInterventionNeededAction
-                    {
-                        BranchCommits = branchCommits,
-                        ReserveOutputCommits = reserveOutputCommits,
-                        Reserve = name,
-                        State = finalState,
-                        NewBranches = newBranches,
-                    }, agent, $"Need manual merging to '{outputBranchName}' for '{name}'");
+                        dispatcher.Dispatch(new ManualInterventionNeededAction
+                        {
+                            BranchCommits = branchCommits,
+                            ReserveOutputCommits = reserveOutputCommits,
+                            Reserve = name,
+                            State = finalState,
+                            NewBranches = newBranches,
+                        }, agent, $"Need manual merging to '{outputBranchName}' for '{name}'");
+                    }
                     break;
             }
+        }
+
+        private Repository CloneAsLocal(string checkoutPath, string workingPath)
+        {
+            Repository.Init(workingPath, isBare: false);
+            var repo = new Repository(workingPath);
+            repo.Network.Remotes.Add(automationOptions.WorkingRemote, checkoutPath);
+            Commands.Fetch(repo, automationOptions.WorkingRemote, new[] { "refs/heads/*:refs/heads/*" }, new FetchOptions { }, "");
+            return repo;
+        }
+
+        private bool NeedsCommit(Repository repo, string outputCommit, out Commit commit)
+        {
+            commit = repo.Lookup<Commit>(outputCommit);
+            var history = commit == null ? null : repo.ObjectDatabase.CalculateHistoryDivergence(repo.Head.Tip, commit);
+            return history?.BehindBy != 0;
+        }
+
+        private async Task<bool> ConflictsExistUpstream(Repository repo, ImmutableDictionary<string, BranchReserve> upstreamReserves, string name, ILogger logger, IAgentSpecification agent)
+        {
+            await Task.Yield();
+            var conflictingUpstream = new List<(string, string)>();
+            var reserveNames = upstreamReserves.Keys.ToArray();
+            // TODO - see if any are already upstream of others. If so, remove them. (Filter? Issue removals?)
+            for (var i = 0; i < reserveNames.Length - 1; i++)
+            {
+                for (var j = i + 1; j < reserveNames.Length; j++)
+                {
+                    if (!repo.ObjectDatabase.CanMergeWithoutConflict(repo.Lookup<Commit>(upstreamReserves[reserveNames[i]].OutputCommit), repo.Lookup<Commit>(upstreamReserves[reserveNames[j]].OutputCommit)))
+                    {
+                        conflictingUpstream.Add((reserveNames[i], reserveNames[j]));
+                    }
+                }
+            }
+
+            // TODO - make integration branches
+            return conflictingUpstream.Any();
         }
 
         private void EnsureRemoteAndPush(Repository repo, string remoteName, params string[] refSpecs)

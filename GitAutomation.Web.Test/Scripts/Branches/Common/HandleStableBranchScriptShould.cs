@@ -63,8 +63,8 @@ namespace GitAutomation.Scripts.Branches.Common
             await script.Run(
                 new ReserveScriptParameters("master", new ReserveFullState(
                     reserve,
-                    reserve.IncludedBranches.Keys.ToDictionary(k => k, k => repo.Branches[k] != null ? repo.Branches[k].Tip.Sha : BranchReserve.EmptyCommit),
-                    reserve.Upstream.Keys.ToDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : throw new InvalidOperationException($"Unknown Reserve: {upstream}"))
+                    reserve.IncludedBranches.Keys.ToImmutableDictionary(k => k, k => repo.Branches[k] != null ? repo.Branches[k].Tip.Sha : BranchReserve.EmptyCommit),
+                    reserve.Upstream.Keys.ToImmutableDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : throw new InvalidOperationException($"Unknown Reserve: {upstream}"))
                 ), tempPath.Path),
                 loggerFactory.CreateLogger(this.GetType().FullName),
                 SystemAgent.Instance

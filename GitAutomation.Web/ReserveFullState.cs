@@ -8,11 +8,11 @@ namespace GitAutomation.Web
 {
     public readonly struct ReserveFullState
     {
-        public ReserveFullState(BranchReserve reserve, IDictionary<string, string> branchDetails, IDictionary<string, BranchReserve> upstreamReserves)
+        public ReserveFullState(BranchReserve reserve, ImmutableDictionary<string, string> branchDetails, ImmutableDictionary<string, BranchReserve> upstreamReserves)
         {
             Reserve = reserve;
-            BranchDetails = branchDetails.ToImmutableDictionary();
-            UpstreamReserves = upstreamReserves.ToImmutableDictionary();
+            BranchDetails = branchDetails;
+            UpstreamReserves = upstreamReserves;
         }
 
         public BranchReserve Reserve { get; }

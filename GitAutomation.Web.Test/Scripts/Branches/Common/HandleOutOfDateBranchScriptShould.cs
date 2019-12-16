@@ -50,10 +50,9 @@ namespace GitAutomation.Scripts.Branches.Common
             var standardAction = Assert.Single(result);
 
             using var repo = new Repository(workingGitDirectory.Path);
-            var action = Assert.IsType<StabilizePushedReserveAction>(standardAction.Payload);
+            var action = Assert.IsType<StabilizeRemoteUpdatedReserveAction>(standardAction.Payload);
             Assert.Equal(repo.Branches["refs/heads/origin/master"].Tip.Sha, action.BranchCommits["origin/master"]);
             Assert.Empty(action.ReserveOutputCommits);
-            Assert.Null(action.NewOutput);
             Assert.Equal("master", action.Reserve);
         }
 
@@ -235,7 +234,7 @@ namespace GitAutomation.Scripts.Branches.Common
             {
                 WorkerCount = 1,
                 WorkspacePath = "NA",
-                WorkingRemote = "origin",
+                WorkingRemote = "local",
                 DefaultRemote = "origin",
                 IntegrationPrefix = "merge/",
             };
@@ -255,8 +254,8 @@ namespace GitAutomation.Scripts.Branches.Common
             await script.Run(
                 new ReserveScriptParameters(reserveName, new ReserveFullState(
                     reserve,
-                    reserve.IncludedBranches.Keys.ToDictionary(k => k, k => repo.Branches[k] != null ? repo.Branches[k].Tip.Sha : BranchReserve.EmptyCommit),
-                    reserve.Upstream.Keys.ToDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : throw new InvalidOperationException($"Unknown upstream: {upstream}"))
+                    reserve.IncludedBranches.Keys.ToImmutableDictionary(k => k, k => repo.Branches[k] != null ? repo.Branches[k].Tip.Sha : BranchReserve.EmptyCommit),
+                    reserve.Upstream.Keys.ToImmutableDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : throw new InvalidOperationException($"Unknown upstream: {upstream}"))
                 ), tempPath.Path),
                 loggerFactory.CreateLogger(this.GetType().FullName),
                 SystemAgent.Instance

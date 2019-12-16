@@ -46,8 +46,8 @@ namespace GitAutomation.Web
                         var reserves = state.Payload.Configuration.Structure.BranchReserves;
                         var branches = state.Payload.Target.Branches;
                         var reserve = reserves[name];
-                        var branchDetails = reserve.IncludedBranches.Keys.ToDictionary(k => k, k => branches.ContainsKey(k) ? branches[k] : BranchReserve.EmptyCommit);
-                        var upstreamReserves = reserve.Upstream.Keys.ToDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : null);
+                        var branchDetails = reserve.IncludedBranches.Keys.ToImmutableDictionary(k => k, k => branches.ContainsKey(k) ? branches[k] : BranchReserve.EmptyCommit);
+                        var upstreamReserves = reserve.Upstream.Keys.ToImmutableDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : null);
                         return new ReserveFullState(reserve, branchDetails, upstreamReserves!);
                     })
                     // TODO - this isn't fast, but it does work

@@ -137,6 +137,7 @@ namespace GitAutomation.Web
             dispatcher.Dispatch(new StateUpdateEvent<IStandardAction>(new ConfigurationLoadedAction { Configuration = config.Result, Structure = structure.Result, StartTimestamp = startTimestamp }, SystemAgent.Instance, "Loaded from disk"));
             logger.LogInformation("Clearing out pending configuration changes");
             // clear out any interim config changes, as they're now out of date...
+            // TODO - I'm concerned there's a race condition in here given that committed changes are cleared out after a load from disk, not after fetch...
             configurationChanges.TryReceiveAll(out var _);
             if (!exists)
             {
@@ -202,7 +203,6 @@ namespace GitAutomation.Web
                 new Scripts.Config.CommitScript.CommitScriptParams(startTimestamp, e.Comment),
                 SystemAgent.Instance
             );
-            // TODO - I'm concerned there's a race condition in here given that committed changes are cleared out after a load from disk, not after fetch...
             await LastPushResult;
         }
 
