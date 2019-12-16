@@ -16,6 +16,7 @@ namespace GitAutomation.Scripts.Branches.Common
     public class HandleOutOfDateBranchScript : IScript<ReserveScriptParameters>
     {
         private readonly IDispatcher dispatcher;
+        private readonly IBranchNaming branchNaming;
         private readonly TargetRepositoryOptions options;
         private readonly AutomationOptions automationOptions;
         protected static readonly MergeOptions standardMergeOptions = new MergeOptions
@@ -23,9 +24,10 @@ namespace GitAutomation.Scripts.Branches.Common
             CommitOnSuccess = false
         };
 
-        public HandleOutOfDateBranchScript(IDispatcher dispatcher, IOptions<TargetRepositoryOptions> options, IOptions<AutomationOptions> automationOptions)
+        public HandleOutOfDateBranchScript(IDispatcher dispatcher, IOptions<TargetRepositoryOptions> options, IOptions<AutomationOptions> automationOptions, IBranchNaming branchNaming)
         {
             this.dispatcher = dispatcher;
+            this.branchNaming = branchNaming;
             this.options = options.Value;
             this.automationOptions = automationOptions.Value;
         }
@@ -61,7 +63,7 @@ namespace GitAutomation.Scripts.Branches.Common
 
                     if (push)
                     {
-                        var (baseRemote, outputBranchRemoteName) = GetRemotePartsFromBranch(outputBranchName);
+                        var (baseRemote, outputBranchRemoteName) = branchNaming.SplitCheckoutRepositoryBranchName(outputBranchName);
                         try
                         {
                             EnsureRemoteAndPush(repo, baseRemote, $"HEAD:refs/heads/{outputBranchRemoteName}");
@@ -85,7 +87,7 @@ namespace GitAutomation.Scripts.Branches.Common
             var (newOutputBranch, outputBranchName) =
                 outputBranches.Length switch
                 {
-                    0 => (true, $"{automationOptions.DefaultRemote}/{parameters.Name}"), // TODO - maybe the branch name should have a factory...
+                    0 => (true, branchNaming.GetCheckoutRepositoryBranchName(automationOptions.DefaultRemote, parameters.Name)),
                     1 => (false, outputBranches[0]),
                     _ => (false, null),
                 };
@@ -160,9 +162,6 @@ namespace GitAutomation.Scripts.Branches.Common
 
         private async Task HandleFinalState(ILogger logger, IAgentSpecification agent, ReserveScriptParameters parameters, Repository repo, bool push, bool newOutputBranch, string outputBranchName, string finalState, List<string> upstreamNeeded)
         {
-            var defaultRemote = automationOptions.DefaultRemote;
-            var integrationPrefix = automationOptions.IntegrationPrefix;
-
             var branchCommits = parameters.BranchDetails.Where(b => b.Value != parameters.Reserve.IncludedBranches[b.Key].LastCommit)
                                     .ToDictionary(b => b.Key, b => b.Value);
             var reserveOutputCommits = parameters.UpstreamReserves.Where(r => r.Value.OutputCommit != parameters.Reserve.Upstream[r.Key].LastOutput)
@@ -184,7 +183,7 @@ namespace GitAutomation.Scripts.Branches.Common
                     HandleFailedToPush(agent, parameters.Name, outputBranchName, branchCommits, reserveOutputCommits);
                     break;
                 case "NeedsUpdate":
-                    HandleManualIntegration(agent, parameters.Name, parameters.Reserve, parameters.UpstreamReserves, defaultRemote, integrationPrefix, repo, outputBranchName, finalState, upstreamNeeded, branchCommits, reserveOutputCommits);
+                    HandleManualIntegration(agent, parameters, repo, outputBranchName, finalState, upstreamNeeded, branchCommits, reserveOutputCommits);
                     break;
                 case "Conflicted":
                     if (await ConflictsExistUpstream(repo, parameters.UpstreamReserves, parameters.Name, logger, agent))
@@ -193,7 +192,7 @@ namespace GitAutomation.Scripts.Branches.Common
                     }
                     else
                     {
-                        HandleManualIntegration(agent, parameters.Name, parameters.Reserve, parameters.UpstreamReserves, defaultRemote, integrationPrefix, repo, outputBranchName, finalState, upstreamNeeded, branchCommits, reserveOutputCommits);
+                        HandleManualIntegration(agent, parameters, repo, outputBranchName, finalState, upstreamNeeded, branchCommits, reserveOutputCommits);
                     }
                     break;
             }
@@ -232,15 +231,17 @@ namespace GitAutomation.Scripts.Branches.Common
             }, agent, $"Failed to push to '{outputBranchName}' for '{name}'");
         }
 
-        private ManualInterventionNeededAction.ManualInterventionBranch[] CreateTemporaryIntegrationBranches(string name, BranchReserve reserve, ImmutableDictionary<string, BranchReserve> upstreamReserves, string defaultRemote, string integrationPrefix, Repository repo, List<string> upstreamNeeded)
+        private ManualInterventionNeededAction.ManualInterventionBranch[] CreateTemporaryIntegrationBranches(ReserveScriptParameters parameters, Repository repo, List<string> upstreamNeeded)
         {
+            var defaultRemote = automationOptions.DefaultRemote;
+
             // TODO - temporary integration branches should be removed somewhere - maybe when it becomes stable?
             var newBranches = upstreamNeeded.Select(entry =>
             {
-                var commit = upstreamReserves[entry].OutputCommit;
-                var newBranchName = integrationPrefix + name + "/" + entry;
-                var remoteBranchName = $"{defaultRemote}/{newBranchName}";
-                if (repo.Branches[remoteBranchName] != null && (!reserve.IncludedBranches.ContainsKey(remoteBranchName) || reserve.IncludedBranches[remoteBranchName].Meta["Role"] != "Integration"))
+                var commit = parameters.UpstreamReserves[entry].OutputCommit;
+                var newBranchName = branchNaming.GenerateIntegrationBranchName(parameters.Name, entry);
+                var remoteBranchName = branchNaming.GetCheckoutRepositoryBranchName(defaultRemote, newBranchName);
+                if (repo.Branches[remoteBranchName] != null && (!parameters.Reserve.IncludedBranches.ContainsKey(remoteBranchName) || parameters.Reserve.IncludedBranches[remoteBranchName].Meta["Role"] != "Integration"))
                 {
                     // TODO - should warn or something here
                     return default;
@@ -259,18 +260,18 @@ namespace GitAutomation.Scripts.Branches.Common
             return newBranches;
         }
 
-        private void HandleManualIntegration(IAgentSpecification agent, string name, BranchReserve reserve, ImmutableDictionary<string, BranchReserve> upstreamReserves, string defaultRemote, string integrationPrefix, Repository repo, string outputBranchName, string finalState, List<string> upstreamNeeded, Dictionary<string, string> branchCommits, Dictionary<string, string> reserveOutputCommits)
+        private void HandleManualIntegration(IAgentSpecification agent, ReserveScriptParameters parameters, Repository repo, string outputBranchName, string finalState, List<string> upstreamNeeded, Dictionary<string, string> branchCommits, Dictionary<string, string> reserveOutputCommits)
         {
-            var newBranches = CreateTemporaryIntegrationBranches(name, reserve, upstreamReserves, defaultRemote, integrationPrefix, repo, upstreamNeeded);
+            var newBranches = CreateTemporaryIntegrationBranches(parameters, repo, upstreamNeeded);
 
             dispatcher.Dispatch(new ManualInterventionNeededAction
             {
                 BranchCommits = branchCommits,
                 ReserveOutputCommits = reserveOutputCommits,
-                Reserve = name,
+                Reserve = parameters.Name,
                 State = finalState,
                 NewBranches = newBranches,
-            }, agent, $"Need manual merging to '{outputBranchName}' for '{name}'");
+            }, agent, $"Need manual merging to '{outputBranchName}' for '{parameters.Name}'");
         }
 
         private void HandleUpstreamConflicts(IAgentSpecification agent, string name, Dictionary<string, string> branchCommits, Dictionary<string, string> reserveOutputCommits)
@@ -284,12 +285,6 @@ namespace GitAutomation.Scripts.Branches.Common
                 State = "Conflicted",
                 NewBranches = new ManualInterventionNeededAction.ManualInterventionBranch[0],
             }, agent, $"Conflicts detected upstream from '{name}'");
-        }
-
-        private static (string baseRemote, string outputBranchRemoteName) GetRemotePartsFromBranch(string outputBranchName)
-        {
-            var branchParts = outputBranchName.Split('/', 2);
-            return (baseRemote: branchParts[0], outputBranchRemoteName: branchParts[1]);
         }
 
         private static string[] GetOutputBranches(BranchReserve reserve)
