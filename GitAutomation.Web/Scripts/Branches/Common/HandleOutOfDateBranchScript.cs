@@ -33,16 +33,6 @@ namespace GitAutomation.Scripts.Branches.Common
         public async Task Run(ReserveScriptParameters parameters, ILogger logger, IAgentSpecification agent)
         {
             await Task.Yield();
-            var name = parameters.Name;
-            var reserve = parameters.ReserveFullState.Reserve;
-            var branchDetails = parameters.ReserveFullState.BranchDetails;
-            var upstreamReserves = parameters.ReserveFullState.UpstreamReserves;
-            var remotes = options.Remotes;
-            var checkoutPath = options.CheckoutPath;
-            var workingPath = parameters.WorkingPath;
-            var defaultRemote = automationOptions.DefaultRemote;
-            var integrationPrefix = automationOptions.IntegrationPrefix;
-            var gitIdentity = options.GitIdentity.ToGitIdentity();
 
             // 1. If any upstream is not Stable, exit.
             // 2. get Output branch
@@ -54,49 +44,89 @@ namespace GitAutomation.Scripts.Branches.Common
             //   5.a. Make a conflict branch
             //   5.b. Push output and then mark as stable
 
-            if (upstreamReserves.Any(r => r.Value.Status != "Stable"))
+            if (parameters.UpstreamReserves.Any(r => r.Value.Status != "Stable"))
             {
-                logger.LogInformation($"Had upstream reserves ({string.Join(", ", upstreamReserves.Where(r => r.Value.Status != "Stable").Select(r => r.Key))}) in non-Stable state. Deferring.", upstreamReserves.Where(r => r.Value.Status != "Stable").ToArray());
+                logger.LogInformation($"Had upstream reserves ({string.Join(", ", parameters.UpstreamReserves.Where(r => r.Value.Status != "Stable").Select(r => r.Key))}) in non-Stable state. Deferring.", parameters.UpstreamReserves.Where(r => r.Value.Status != "Stable").ToArray());
                 return;
             }
-            var outputBranches = reserve.IncludedBranches.Keys.Where(k => reserve.IncludedBranches[k].Meta["Role"] == "Output").ToArray();
-            if (outputBranches.Length > 1)
+            using var repo = CloneAsLocal(options.CheckoutPath, parameters.WorkingPath);
+            var prepared = PrepareOutputBranch(parameters, logger, repo);
+            switch (prepared)
             {
-                logger.LogError($"Had multiple output branches: {string.Join(", ", outputBranches)}", outputBranches);
-                return;
+                case null:
+                    return;
+                case (var push, var newOutputBranch, var outputBranchName):
+                    var (pushAfterMerge, finalState, upstreamNeeded) = MergeUpstreamReserves(parameters, repo);
+                    push = push || pushAfterMerge;
+
+                    if (push)
+                    {
+                        var (baseRemote, outputBranchRemoteName) = GetRemotePartsFromBranch(outputBranchName);
+                        try
+                        {
+                            EnsureRemoteAndPush(repo, baseRemote, $"HEAD:refs/heads/{outputBranchRemoteName}");
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, $"Could not push to {baseRemote} branch {outputBranchRemoteName}", baseRemote, outputBranchRemoteName);
+                            finalState = "CouldNotPush";
+                        }
+                    }
+
+                    await HandleFinalState(logger, agent, parameters, repo, push, newOutputBranch, outputBranchName, finalState, upstreamNeeded);
+
+                    break;
             }
+        }
+
+        private (bool push, bool newOutputBranch, string outputBranchName)? PrepareOutputBranch(ReserveScriptParameters parameters, ILogger logger, Repository repo)
+        {
+            var outputBranches = GetOutputBranches(parameters.Reserve);
             var (newOutputBranch, outputBranchName) =
-                outputBranches.SingleOrDefault() switch
+                outputBranches.Length switch
                 {
-                    null => (true, "foo"),
-                    var value => (false, value),
+                    0 => (true, $"{automationOptions.DefaultRemote}/{parameters.Name}"), // TODO - maybe the branch name should have a factory...
+                    1 => (false, outputBranches[0]),
+                    _ => (false, null),
                 };
 
             var push = false;
-            using var repo = CloneAsLocal(checkoutPath, workingPath);
+            if (outputBranchName == null)
+            {
+                logger.LogError($"Had multiple output branches: {string.Join(", ", outputBranches)}", outputBranches);
+                return null;
+            }
+
             if (newOutputBranch)
             {
                 if (repo.Branches[outputBranchName] != null)
                 {
                     logger.LogError($"Default output branch '{outputBranchName}' already exists but was not allocated to reserve.", outputBranchName);
-                    return;
+                    return null;
                 }
                 push = true;
-                Commands.Checkout(repo, upstreamReserves.First().Value.OutputCommit);
+                Commands.Checkout(repo, parameters.UpstreamReserves.First().Value.OutputCommit);
             }
             else
             {
                 Commands.Checkout(repo, outputBranchName);
             }
 
+            return (push, newOutputBranch, outputBranchName);
+        }
+
+        private (bool push, string finalState, List<string> upstreamNeeded) MergeUpstreamReserves(ReserveScriptParameters parameters,  Repository repo)
+        {
+            var gitIdentity = options.GitIdentity.ToGitIdentity();
+            var push = false;
             var finalState = "Stable";
             var upstreamNeeded = new List<string>();
-            foreach (var upstream in upstreamReserves.Keys)
+            foreach (var upstream in parameters.UpstreamReserves.Keys)
             {
-                if (NeedsCommit(repo, upstreamReserves[upstream].OutputCommit, out var commit))
+                if (NeedsCommit(repo, parameters.UpstreamReserves[upstream].OutputCommit, out var commit))
                 {
                     // TODO - detect upstream history loss, where the tip that was merged is no longer in upstream, using reserve.Upstream[upstream].LastOutput. This probably goes to NeedsUpdate or other special state, and we should stop trying to merge anything.
-                    if (reserve.FlowType != "Automatic")
+                    if (parameters.Reserve.FlowType != "Automatic")
                     {
                         finalState = "NeedsUpdate";
                         upstreamNeeded.Add(upstream);
@@ -125,113 +155,146 @@ namespace GitAutomation.Scripts.Branches.Common
                 }
             }
 
-            var branchParts = outputBranchName.Split('/', 2);
-            var baseRemote = branchParts[0];
-            var outputBranchRemoteName = branchParts[1];
+            return (push, finalState, upstreamNeeded);
+        }
 
-            if (push)
-            {
-                try
-                {
-                    EnsureRemoteAndPush(repo, baseRemote, $"HEAD:refs/heads/{outputBranchRemoteName}");
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, $"Could not push to {baseRemote} branch {outputBranchRemoteName}", baseRemote, outputBranchRemoteName);
-                    finalState = "CouldNotPush";
-                }
-            }
+        private async Task HandleFinalState(ILogger logger, IAgentSpecification agent, ReserveScriptParameters parameters, Repository repo, bool push, bool newOutputBranch, string outputBranchName, string finalState, List<string> upstreamNeeded)
+        {
+            var defaultRemote = automationOptions.DefaultRemote;
+            var integrationPrefix = automationOptions.IntegrationPrefix;
 
-            var branchCommits = branchDetails
-                .Where(b => b.Value != reserve.IncludedBranches[b.Key].LastCommit)
-                .ToDictionary(b => b.Key, b => b.Value);
-            var reserveOutputCommits = upstreamReserves
-                .Where(r => r.Value.OutputCommit != reserve.Upstream[r.Key].LastOutput)
-                .ToDictionary(r => r.Key, r => upstreamReserves[r.Key].OutputCommit);
+            var branchCommits = parameters.BranchDetails.Where(b => b.Value != parameters.Reserve.IncludedBranches[b.Key].LastCommit)
+                                    .ToDictionary(b => b.Key, b => b.Value);
+            var reserveOutputCommits = parameters.UpstreamReserves.Where(r => r.Value.OutputCommit != parameters.Reserve.Upstream[r.Key].LastOutput)
+                .ToDictionary(r => r.Key, r => parameters.UpstreamReserves[r.Key].OutputCommit);
 
             switch (finalState)
             {
                 case "Stable":
-                    branchCommits[outputBranchName] = repo.Head.Tip.Sha;
                     if (push)
                     {
-                        dispatcher.Dispatch(new StabilizePushedReserveAction
-                        {
-                            BranchCommits = branchCommits,
-                            NewOutput = newOutputBranch ? outputBranchName : null,
-                            Reserve = name,
-                            ReserveOutputCommits = reserveOutputCommits
-                        }, agent, $"Auto-merge changes to '{outputBranchName}' for '{name}'");
+                        HandlePushedOutput(agent, parameters.Name, repo, newOutputBranch, outputBranchName, branchCommits, reserveOutputCommits);
                     }
                     else
                     {
-
-                        dispatcher.Dispatch(new StabilizeRemoteUpdatedReserveAction
-                        {
-                            BranchCommits = branchCommits,
-                            Reserve = name,
-                            ReserveOutputCommits = reserveOutputCommits
-                        }, agent, $"No git changes needed for '{name}'");
+                        HandleStabilizedReserve(agent, parameters.Name, repo, outputBranchName, branchCommits, reserveOutputCommits);
                     }
                     break;
                 case "CouldNotPush":
-                    dispatcher.Dispatch(new CouldNotPushAction
-                    {
-                        BranchCommits = branchCommits,
-                        ReserveOutputCommits = reserveOutputCommits,
-                        Reserve = name
-                    }, agent, $"Failed to push to '{outputBranchName}' for '{name}'");
+                    HandleFailedToPush(agent, parameters.Name, outputBranchName, branchCommits, reserveOutputCommits);
                     break;
                 case "NeedsUpdate":
+                    HandleManualIntegration(agent, parameters.Name, parameters.Reserve, parameters.UpstreamReserves, defaultRemote, integrationPrefix, repo, outputBranchName, finalState, upstreamNeeded, branchCommits, reserveOutputCommits);
+                    break;
                 case "Conflicted":
-                    if (await ConflictsExistUpstream(repo, upstreamReserves, name, logger, agent))
+                    if (await ConflictsExistUpstream(repo, parameters.UpstreamReserves, parameters.Name, logger, agent))
                     {
-                        // TODO - when integration branches are added, remove this
-                        dispatcher.Dispatch(new ManualInterventionNeededAction
-                        {
-                            BranchCommits = branchCommits,
-                            ReserveOutputCommits = reserveOutputCommits,
-                            Reserve = name,
-                            State = "Conflicted",
-                            NewBranches = new ManualInterventionNeededAction.ManualInterventionBranch[0],
-                        }, agent, $"Conflicts detected upstream from '{name}'");
+                        HandleUpstreamConflicts(agent, parameters.Name, branchCommits, reserveOutputCommits);
                     }
                     else
                     {
-                        // TODO - temporary integration branches should be removed somewhere - maybe when it becomes stable?
-                        var newBranches = upstreamNeeded.Select(entry =>
-                        {
-                            var commit = upstreamReserves[entry].OutputCommit;
-                            var newBranchName = integrationPrefix + name + "/" + entry;
-                            var remoteBranchName = $"{defaultRemote}/{newBranchName}";
-                            if (repo.Branches[remoteBranchName] != null && (!reserve.IncludedBranches.ContainsKey(remoteBranchName) || reserve.IncludedBranches[remoteBranchName].Meta["Role"] != "Integration"))
-                            {
-                                // TODO - should warn or something here
-                                return default;
-                            }
-                            repo.CreateBranch(remoteBranchName, commit);
-                            return new ManualInterventionNeededAction.ManualInterventionBranch
-                            {
-                                Commit = commit,
-                                Name = remoteBranchName,
-                                Role = "Integration",
-                                Source = entry
-                            };
-                        }).Where(b => b.Name != null).ToArray();
-                        var refspecs = newBranches.Select(b => $"refs/heads/{b.Name}:refs/heads/{b.Name.Substring(defaultRemote.Length + 1)}").ToArray();
-                        EnsureRemoteAndPush(repo, defaultRemote, refspecs);
-
-                        dispatcher.Dispatch(new ManualInterventionNeededAction
-                        {
-                            BranchCommits = branchCommits,
-                            ReserveOutputCommits = reserveOutputCommits,
-                            Reserve = name,
-                            State = finalState,
-                            NewBranches = newBranches,
-                        }, agent, $"Need manual merging to '{outputBranchName}' for '{name}'");
+                        HandleManualIntegration(agent, parameters.Name, parameters.Reserve, parameters.UpstreamReserves, defaultRemote, integrationPrefix, repo, outputBranchName, finalState, upstreamNeeded, branchCommits, reserveOutputCommits);
                     }
                     break;
             }
+        }
+
+        private void HandlePushedOutput(IAgentSpecification agent, string name, Repository repo, bool newOutputBranch, string outputBranchName, Dictionary<string, string> branchCommits, Dictionary<string, string> reserveOutputCommits)
+        {
+            branchCommits[outputBranchName] = repo.Head.Tip.Sha;
+            dispatcher.Dispatch(new StabilizePushedReserveAction
+            {
+                BranchCommits = branchCommits,
+                NewOutput = newOutputBranch ? outputBranchName : null,
+                Reserve = name,
+                ReserveOutputCommits = reserveOutputCommits
+            }, agent, $"Auto-merge changes to '{outputBranchName}' for '{name}'");
+        }
+
+        private void HandleStabilizedReserve(IAgentSpecification agent, string name, Repository repo, string outputBranchName, Dictionary<string, string> branchCommits, Dictionary<string, string> reserveOutputCommits)
+        {
+            branchCommits[outputBranchName] = repo.Head.Tip.Sha;
+            dispatcher.Dispatch(new StabilizeRemoteUpdatedReserveAction
+            {
+                BranchCommits = branchCommits,
+                Reserve = name,
+                ReserveOutputCommits = reserveOutputCommits
+            }, agent, $"No git changes needed for '{name}'");
+        }
+
+        private void HandleFailedToPush(IAgentSpecification agent, string name, string outputBranchName, Dictionary<string, string> branchCommits, Dictionary<string, string> reserveOutputCommits)
+        {
+            dispatcher.Dispatch(new CouldNotPushAction
+            {
+                BranchCommits = branchCommits,
+                ReserveOutputCommits = reserveOutputCommits,
+                Reserve = name
+            }, agent, $"Failed to push to '{outputBranchName}' for '{name}'");
+        }
+
+        private ManualInterventionNeededAction.ManualInterventionBranch[] CreateTemporaryIntegrationBranches(string name, BranchReserve reserve, ImmutableDictionary<string, BranchReserve> upstreamReserves, string defaultRemote, string integrationPrefix, Repository repo, List<string> upstreamNeeded)
+        {
+            // TODO - temporary integration branches should be removed somewhere - maybe when it becomes stable?
+            var newBranches = upstreamNeeded.Select(entry =>
+            {
+                var commit = upstreamReserves[entry].OutputCommit;
+                var newBranchName = integrationPrefix + name + "/" + entry;
+                var remoteBranchName = $"{defaultRemote}/{newBranchName}";
+                if (repo.Branches[remoteBranchName] != null && (!reserve.IncludedBranches.ContainsKey(remoteBranchName) || reserve.IncludedBranches[remoteBranchName].Meta["Role"] != "Integration"))
+                {
+                    // TODO - should warn or something here
+                    return default;
+                }
+                repo.CreateBranch(remoteBranchName, commit);
+                return new ManualInterventionNeededAction.ManualInterventionBranch
+                {
+                    Commit = commit,
+                    Name = remoteBranchName,
+                    Role = "Integration",
+                    Source = entry
+                };
+            }).Where(b => b.Name != null).ToArray();
+            var refspecs = newBranches.Select(b => $"refs/heads/{b.Name}:refs/heads/{b.Name.Substring(defaultRemote.Length + 1)}").ToArray();
+            EnsureRemoteAndPush(repo, defaultRemote, refspecs);
+            return newBranches;
+        }
+
+        private void HandleManualIntegration(IAgentSpecification agent, string name, BranchReserve reserve, ImmutableDictionary<string, BranchReserve> upstreamReserves, string defaultRemote, string integrationPrefix, Repository repo, string outputBranchName, string finalState, List<string> upstreamNeeded, Dictionary<string, string> branchCommits, Dictionary<string, string> reserveOutputCommits)
+        {
+            var newBranches = CreateTemporaryIntegrationBranches(name, reserve, upstreamReserves, defaultRemote, integrationPrefix, repo, upstreamNeeded);
+
+            dispatcher.Dispatch(new ManualInterventionNeededAction
+            {
+                BranchCommits = branchCommits,
+                ReserveOutputCommits = reserveOutputCommits,
+                Reserve = name,
+                State = finalState,
+                NewBranches = newBranches,
+            }, agent, $"Need manual merging to '{outputBranchName}' for '{name}'");
+        }
+
+        private void HandleUpstreamConflicts(IAgentSpecification agent, string name, Dictionary<string, string> branchCommits, Dictionary<string, string> reserveOutputCommits)
+        {
+            // TODO - add integration reserves, then switch this to "stabilize" based on their output
+            dispatcher.Dispatch(new ManualInterventionNeededAction
+            {
+                BranchCommits = branchCommits,
+                ReserveOutputCommits = reserveOutputCommits,
+                Reserve = name,
+                State = "Conflicted",
+                NewBranches = new ManualInterventionNeededAction.ManualInterventionBranch[0],
+            }, agent, $"Conflicts detected upstream from '{name}'");
+        }
+
+        private static (string baseRemote, string outputBranchRemoteName) GetRemotePartsFromBranch(string outputBranchName)
+        {
+            var branchParts = outputBranchName.Split('/', 2);
+            return (baseRemote: branchParts[0], outputBranchRemoteName: branchParts[1]);
+        }
+
+        private static string[] GetOutputBranches(BranchReserve reserve)
+        {
+            return reserve.IncludedBranches.Keys.Where(k => reserve.IncludedBranches[k].Meta["Role"] == "Output").ToArray();
         }
 
         private Repository CloneAsLocal(string checkoutPath, string workingPath)

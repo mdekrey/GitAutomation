@@ -33,7 +33,7 @@ namespace GitAutomation.Web
             private readonly IDisposable subscription;
 
             public string Name { get; }
-            public ReserveFullState Data { get; private set; }
+            public ReserveAutomationState Data { get; private set; }
             public ScriptProgress? LastScript { get; set; }
 
             public SingleReserveAutomation(string name, IStateMachine<AppState> stateMachine, ReserveAutomationService service)
@@ -48,7 +48,7 @@ namespace GitAutomation.Web
                         var reserve = reserves[name];
                         var branchDetails = reserve.IncludedBranches.Keys.ToImmutableDictionary(k => k, k => branches.ContainsKey(k) ? branches[k] : BranchReserve.EmptyCommit);
                         var upstreamReserves = reserve.Upstream.Keys.ToImmutableDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : null);
-                        return new ReserveFullState(reserve, branchDetails, upstreamReserves!);
+                        return new ReserveAutomationState(reserve, branchDetails, upstreamReserves!);
                     })
                     // TODO - this isn't fast, but it does work
                     .DistinctUntilChanged(e => JsonConvert.SerializeObject(e))
@@ -58,7 +58,7 @@ namespace GitAutomation.Web
                     });
             }
 
-            private void ReceiveNewState(ReserveFullState data)
+            private void ReceiveNewState(ReserveAutomationState data)
             {
                 this.Data = data;
                 service.AddReserveProcessing(Name);
@@ -127,7 +127,9 @@ namespace GitAutomation.Web
                                 scriptInvoker.GetScript<ReserveScriptParameters>(scriptName),
                                 new ReserveScriptParameters(
                                     reserveFullState.Name,
-                                    reserveFullState.Data,
+                                    reserveFullState.Data.Reserve,
+                                    reserveFullState.Data.BranchDetails,
+                                    reserveFullState.Data.UpstreamReserves,
                                     workingPath: path
                                 ),
                                 SystemAgent.Instance

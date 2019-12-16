@@ -61,11 +61,11 @@ namespace GitAutomation.Scripts.Branches.Common
             var reserve = reserves[reserveName];
             using var loggerFactory = LoggerFactory.Create(_ => { });
             await script.Run(
-                new ReserveScriptParameters("master", new ReserveFullState(
+                new ReserveScriptParameters("master",
                     reserve,
                     reserve.IncludedBranches.Keys.ToImmutableDictionary(k => k, k => repo.Branches[k] != null ? repo.Branches[k].Tip.Sha : BranchReserve.EmptyCommit),
-                    reserve.Upstream.Keys.ToImmutableDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : throw new InvalidOperationException($"Unknown Reserve: {upstream}"))
-                ), tempPath.Path),
+                    reserve.Upstream.Keys.ToImmutableDictionary(k => k, upstream => reserves.ContainsKey(upstream) ? reserves[upstream] : throw new InvalidOperationException($"Unknown Reserve: {upstream}")),
+                    tempPath.Path),
                 loggerFactory.CreateLogger(this.GetType().FullName),
                 SystemAgent.Instance
                 );

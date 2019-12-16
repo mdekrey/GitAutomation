@@ -6,9 +6,9 @@ using System.Reactive.Linq;
 
 namespace GitAutomation.Web
 {
-    public readonly struct ReserveFullState
+    readonly struct ReserveAutomationState
     {
-        public ReserveFullState(BranchReserve reserve, ImmutableDictionary<string, string> branchDetails, ImmutableDictionary<string, BranchReserve> upstreamReserves)
+        public ReserveAutomationState(BranchReserve reserve, ImmutableDictionary<string, string> branchDetails, ImmutableDictionary<string, BranchReserve> upstreamReserves)
         {
             Reserve = reserve;
             BranchDetails = branchDetails;
