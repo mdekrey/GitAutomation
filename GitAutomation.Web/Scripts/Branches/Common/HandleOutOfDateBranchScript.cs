@@ -141,8 +141,7 @@ namespace GitAutomation.Scripts.Branches.Common
                         {
                             case MergeStatus.Conflicts:
                                 finalState = "Conflicted";
-                                repo.Reset(ResetMode.Hard);
-                                // TODO - do we need to clean up added files?
+                                ResetAndClean(repo);
                                 upstreamNeeded.Add(upstream);
                                 break;
                             case MergeStatus.FastForward:
@@ -158,6 +157,18 @@ namespace GitAutomation.Scripts.Branches.Common
             }
 
             return (push, finalState, upstreamNeeded);
+        }
+
+        private static void ResetAndClean(Repository repo)
+        {
+            repo.Reset(ResetMode.Hard);
+            foreach (var entry in repo.RetrieveStatus())
+            {
+                if (entry.State != FileStatus.Unaltered)
+                {
+                    System.IO.File.Delete(System.IO.Path.Combine(repo.Info.Path, entry.FilePath));
+                }
+            }
         }
 
         private async Task HandleFinalState(ILogger logger, IAgentSpecification agent, ReserveScriptParameters parameters, Repository repo, bool push, bool newOutputBranch, string outputBranchName, string finalState, List<string> upstreamNeeded)
