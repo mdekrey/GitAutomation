@@ -53,7 +53,7 @@ namespace GitAutomation.Scripts.Branches.Common
                 logger.LogInformation($"Had upstream reserves ({string.Join(", ", parameters.UpstreamReserves.Where(r => r.Value.Status != "Stable").Select(r => r.Key))}) in non-Stable state. Deferring.", parameters.UpstreamReserves.Where(r => r.Value.Status != "Stable").ToArray());
                 return;
             }
-            using var repo = CloneAsLocal(options.CheckoutPath, parameters.WorkingPath);
+            using var repo = GitRepositoryUtilities.CloneAsLocal(options.CheckoutPath, parameters.WorkingPath, automationOptions);
             var prepared = PrepareOutputBranch(parameters, logger, repo);
             switch (prepared)
             {
@@ -85,7 +85,7 @@ namespace GitAutomation.Scripts.Branches.Common
 
         private (bool push, bool newOutputBranch, string outputBranchName)? PrepareOutputBranch(ReserveScriptParameters parameters, ILogger logger, Repository repo)
         {
-            var outputBranches = GetOutputBranches(parameters.Reserve);
+            var outputBranches = parameters.Reserve.GetBranchesByRole("Output");
             var (newOutputBranch, outputBranchName) =
                 outputBranches.Length switch
                 {
@@ -143,7 +143,7 @@ namespace GitAutomation.Scripts.Branches.Common
                         {
                             case MergeStatus.Conflicts:
                                 finalState = "Conflicted";
-                                ResetAndClean(repo);
+                                GitRepositoryUtilities.ResetAndClean(repo);
                                 upstreamNeeded.Add(upstream);
                                 break;
                             case MergeStatus.FastForward:
@@ -159,18 +159,6 @@ namespace GitAutomation.Scripts.Branches.Common
             }
 
             return (push, finalState, upstreamNeeded);
-        }
-
-        private static void ResetAndClean(Repository repo)
-        {
-            repo.Reset(ResetMode.Hard);
-            foreach (var entry in repo.RetrieveStatus())
-            {
-                if (entry.State != FileStatus.Unaltered)
-                {
-                    System.IO.File.Delete(System.IO.Path.Combine(repo.Info.Path, entry.FilePath));
-                }
-            }
         }
 
         private async Task HandleFinalState(ILogger logger, IAgentSpecification agent, ReserveScriptParameters parameters, Repository repo, bool push, bool newOutputBranch, string outputBranchName, string finalState, List<string> upstreamNeeded)
@@ -310,21 +298,7 @@ namespace GitAutomation.Scripts.Branches.Common
             }, agent, $"Conflicts detected upstream from '{name}'");
         }
 
-        private static string[] GetOutputBranches(BranchReserve reserve)
-        {
-            return reserve.IncludedBranches.Keys.Where(k => reserve.IncludedBranches[k].Meta["Role"] == "Output").ToArray();
-        }
-
-        private Repository CloneAsLocal(string checkoutPath, string workingPath)
-        {
-            Repository.Init(workingPath, isBare: false);
-            var repo = new Repository(workingPath);
-            repo.Network.Remotes.Add(automationOptions.WorkingRemote, checkoutPath);
-            Commands.Fetch(repo, automationOptions.WorkingRemote, new[] { "refs/heads/*:refs/heads/*" }, new FetchOptions { }, "");
-            return repo;
-        }
-
-        private bool NeedsCommit(Repository repo, string outputCommit, out Commit commit)
+        private static bool NeedsCommit(Repository repo, string outputCommit, out Commit commit)
         {
             commit = repo.Lookup<Commit>(outputCommit);
             var history = commit == null ? null : repo.ObjectDatabase.CalculateHistoryDivergence(repo.Head.Tip, commit);
@@ -343,6 +317,7 @@ namespace GitAutomation.Scripts.Branches.Common
                 {
                     if (!repo.ObjectDatabase.CanMergeWithoutConflict(repo.Lookup<Commit>(parameters.UpstreamReserves[reserveNames[i]].OutputCommit), repo.Lookup<Commit>(parameters.UpstreamReserves[reserveNames[j]].OutputCommit)))
                     {
+                        logger.LogInformation($"Conflict found between reserves '{reserveNames[i]}' and '{reserveNames[j]}'");
                         conflictingUpstream.Add((reserveNames[i], reserveNames[j]));
                     }
                 }

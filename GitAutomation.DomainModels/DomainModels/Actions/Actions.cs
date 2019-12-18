@@ -128,4 +128,9 @@ namespace GitAutomation.DomainModels.Actions
         public string SourceBranch { get; set; }
         public string TargetBranch { get; set; }
     }
+
+    public struct DeleteBranchAction : IStandardAction
+    {
+        public string TargetBranch { get; set; }
+    }
 }

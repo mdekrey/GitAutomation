@@ -10,6 +10,7 @@
         stateScripts: 
             Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript, GitAutomation.Web
             OutOfDate: GitAutomation.Scripts.Branches.Common.HandleOutOfDateBranchScript, GitAutomation.Web
+            NeedsUpdate: GitAutomation.Scripts.Branches.Common.HandleNeedsUpdateScript, GitAutomation.Web
     rc:
         title: Release Candidate
         helpLink: http://scaledgitflow.com#3ce6
@@ -18,7 +19,6 @@
         color: "6f256f"
         stateScripts: 
             Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript, GitAutomation.Web
-            OutOfDate: GitAutomation.Scripts.Branches.Common.HandleOutOfDateBranchScript, GitAutomation.Web
     line:
         title: Service Line
         helpLink: http://scaledgitflow.com#2fa1
@@ -29,6 +29,7 @@
         stateScripts: 
             Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript, GitAutomation.Web
             OutOfDate: GitAutomation.Scripts.Branches.Common.HandleOutOfDateBranchScript, GitAutomation.Web
+            NeedsUpdate: GitAutomation.Scripts.Branches.Common.HandleNeedsUpdateScript, GitAutomation.Web
     hotfix:
         title: Hot Fix
         helpLink: http://scaledgitflow.com#7a21
@@ -38,6 +39,7 @@
         stateScripts: 
             Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript, GitAutomation.Web
             OutOfDate: GitAutomation.Scripts.Branches.Common.HandleOutOfDateBranchScript, GitAutomation.Web
+            NeedsUpdate: GitAutomation.Scripts.Branches.Common.HandleNeedsUpdateScript, GitAutomation.Web
     infrastructure:
         title: Infrastructure
         helpLink: http://scaledgitflow.com#efa9
@@ -52,6 +54,7 @@
         stateScripts: 
             Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript, GitAutomation.Web
             OutOfDate: GitAutomation.Scripts.Branches.Common.HandleOutOfDateBranchScript, GitAutomation.Web
+            NeedsUpdate: GitAutomation.Scripts.Branches.Common.HandleNeedsUpdateScript, GitAutomation.Web
     integration:
         title: Integration
         helpLink: http://scaledgitflow.com#1f74
@@ -62,3 +65,4 @@
         color: "626262"
         stateScripts: 
             Stable: GitAutomation.Scripts.Branches.Common.HandleStableBranchScript, GitAutomation.Web
+            NeedsUpdate: GitAutomation.Scripts.Branches.Common.HandleNeedsUpdateScript, GitAutomation.Web

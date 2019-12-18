@@ -42,6 +42,8 @@ namespace GitAutomation.Web
             services.AddOptions<TargetRepositoryOptions>().Configure(opt => Configuration.GetSection("targetGit").Bind(opt));
             services.AddOptions<AutomationOptions>().Configure(opt => Configuration.GetSection("automation").Bind(opt));
             services.AddSingleton<IScriptInvoker, ScriptInvoker>();
+            services.AddSingleton<IBranchNaming, DefaultBranchNaming>();
+            services.AddSingleton<IIntegrationReserveUtilities, IntegrationReserveUtilities>();
             services.AddSingleton<RepositoryConfigurationService>();
             services.AddSingleton<TargetRepositoryService>();
             services.AddSingleton<ReserveAutomationService>();

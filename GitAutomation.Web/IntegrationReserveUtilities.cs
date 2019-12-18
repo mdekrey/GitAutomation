@@ -43,7 +43,7 @@ namespace GitAutomation
 
         class IntegrationGraph
         {
-            private Lazy<ImmutableDictionary<string, ImmutableHashSet<string>>> integrationFeatures;
+            private readonly Lazy<ImmutableDictionary<string, ImmutableHashSet<string>>> integrationFeatures;
 
             public IntegrationGraph(ImmutableDictionary<string, BranchReserve> reserves)
             {

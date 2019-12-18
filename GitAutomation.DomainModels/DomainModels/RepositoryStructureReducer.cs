@@ -21,6 +21,7 @@ namespace GitAutomation.DomainModels
                 SetMetaAction action => SetMeta(original, action.Reserve, action.Meta),
                 CreateReserveAction action => CreateReserve(original, action),
                 RemoveReserveAction action => RemoveReserve(original, action.Reserve),
+                DeleteBranchAction action => RemoveBranch(original, action.TargetBranch),
                 // Complex reducers
                 SetReserveOutOfDateAction action => SetReserveOutOfDate(original, action),
                 StabilizeNoUpstreamAction action => StabilizeNoUpstream(original, action),
@@ -107,6 +108,9 @@ namespace GitAutomation.DomainModels
                             )
                  )
             );
+
+        private static RepositoryStructure RemoveBranch(RepositoryStructure original, string branchName) =>
+            original.SetBranchReserves(b => b.UpdateAll((_, r) => r.SetIncludedBranches(branches => branches.Remove(branchName))));
 
         private static RepositoryStructure ClearPushOnReserves(RepositoryStructure original) =>
             original.SetBranchReserves(b =>
