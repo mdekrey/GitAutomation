@@ -129,21 +129,28 @@ namespace GitAutomation.Scripts.Branches.Common
             });
 
             // Assert that we're correct
-            var standardAction = Assert.Single(result);
-
             using var targetRepo = new Repository(gitDir.Path);
-
-            var action = Assert.IsType<ManualInterventionNeededAction>(standardAction.Payload);
-            Assert.Empty(action.BranchCommits);
-            Assert.Empty(action.ReserveOutputCommits);
-            Assert.Equal("Conflicted", action.State);
-            Assert.Equal("feature-a", action.Reserve);
-            var newBranch = Assert.Single(action.NewBranches);
-            Assert.Equal("origin/merge/feature-a_infrastructure", newBranch.Name);
-            Assert.Equal(originalInfrastructure, targetRepo.Branches["merge/feature-a_infrastructure"].Tip.Sha);
-            Assert.Equal(originalInfrastructure, newBranch.Commit);
-            Assert.Equal("Integration", newBranch.Role);
-            Assert.Equal("infrastructure", newBranch.Source);
+            Assert.Collection(result,
+            standardAction =>
+            {
+                var action = Assert.IsType<RequestManualPullAction>(standardAction.Payload);
+                Assert.Equal("origin/merge/feature-a_infrastructure", action.SourceBranch);
+                Assert.Equal("origin/feature-a", action.TargetBranch);
+            },
+            standardAction =>
+            {
+                var action = Assert.IsType<ManualInterventionNeededAction>(standardAction.Payload);
+                Assert.Empty(action.BranchCommits);
+                Assert.Empty(action.ReserveOutputCommits);
+                Assert.Equal("Conflicted", action.State);
+                Assert.Equal("feature-a", action.Reserve);
+                var newBranch = Assert.Single(action.NewBranches);
+                Assert.Equal("origin/merge/feature-a_infrastructure", newBranch.Name);
+                Assert.Equal(originalInfrastructure, targetRepo.Branches["merge/feature-a_infrastructure"].Tip.Sha);
+                Assert.Equal(originalInfrastructure, newBranch.Commit);
+                Assert.Equal("Integration", newBranch.Role);
+                Assert.Equal("infrastructure", newBranch.Source);
+            });
         }
 
         [Fact]
@@ -250,21 +257,29 @@ namespace GitAutomation.Scripts.Branches.Common
             });
 
             // Assert that we're correct
-            var standardAction = Assert.Single(result);
-
             using var targetRepo = new Repository(gitDir.Path);
 
-            var action = Assert.IsType<ManualInterventionNeededAction>(standardAction.Payload);
-            Assert.Empty(action.BranchCommits);
-            Assert.Empty(action.ReserveOutputCommits);
-            Assert.Equal("NeedsUpdate", action.State);
-            Assert.Equal("feature-b", action.Reserve);
-            var newBranch = Assert.Single(action.NewBranches);
-            Assert.Equal("origin/merge/feature-b_infrastructure", newBranch.Name);
-            Assert.Equal(originalInfrastructure, targetRepo.Branches["merge/feature-b_infrastructure"].Tip.Sha);
-            Assert.Equal(originalInfrastructure, newBranch.Commit);
-            Assert.Equal("Integration", newBranch.Role);
-            Assert.Equal("infrastructure", newBranch.Source);
+            Assert.Collection(result,
+            standardAction =>
+            {
+                var action = Assert.IsType<RequestManualPullAction>(standardAction.Payload);
+                Assert.Equal("origin/merge/feature-b_infrastructure", action.SourceBranch);
+                Assert.Equal("origin/feature-b", action.TargetBranch);
+            },
+            standardAction =>
+            {
+                var action = Assert.IsType<ManualInterventionNeededAction>(standardAction.Payload);
+                Assert.Empty(action.BranchCommits);
+                Assert.Empty(action.ReserveOutputCommits);
+                Assert.Equal("NeedsUpdate", action.State);
+                Assert.Equal("feature-b", action.Reserve);
+                var newBranch = Assert.Single(action.NewBranches);
+                Assert.Equal("origin/merge/feature-b_infrastructure", newBranch.Name);
+                Assert.Equal(originalInfrastructure, targetRepo.Branches["merge/feature-b_infrastructure"].Tip.Sha);
+                Assert.Equal(originalInfrastructure, newBranch.Commit);
+                Assert.Equal("Integration", newBranch.Role);
+                Assert.Equal("infrastructure", newBranch.Source);
+            });
         }
 
         // TODO - more tests

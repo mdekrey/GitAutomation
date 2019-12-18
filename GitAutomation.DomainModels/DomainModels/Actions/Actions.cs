@@ -122,4 +122,10 @@ namespace GitAutomation.DomainModels.Actions
         public string Commit { get; set; }
         public Dictionary<string, string> Meta { get; set; }
     }
+
+    public struct RequestManualPullAction : IStandardAction
+    {
+        public string SourceBranch { get; set; }
+        public string TargetBranch { get; set; }
+    }
 }

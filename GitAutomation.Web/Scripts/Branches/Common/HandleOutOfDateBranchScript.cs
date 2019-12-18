@@ -276,6 +276,16 @@ namespace GitAutomation.Scripts.Branches.Common
         private void HandleManualIntegration(IAgentSpecification agent, ReserveScriptParameters parameters, Repository repo, string outputBranchName, string finalState, List<string> upstreamNeeded, Dictionary<string, string> branchCommits, Dictionary<string, string> reserveOutputCommits)
         {
             var newBranches = CreateTemporaryIntegrationBranches(parameters, repo, upstreamNeeded);
+            var message = $"Need manual merging to '{outputBranchName}' for '{parameters.Name}'";
+
+            foreach (var branch in newBranches)
+            {
+                dispatcher.Dispatch(new RequestManualPullAction
+                {
+                    TargetBranch = outputBranchName,
+                    SourceBranch = branch.Name
+                }, agent, message);
+            }
 
             dispatcher.Dispatch(new ManualInterventionNeededAction
             {
@@ -284,12 +294,12 @@ namespace GitAutomation.Scripts.Branches.Common
                 Reserve = parameters.Name,
                 State = finalState,
                 NewBranches = newBranches,
-            }, agent, $"Need manual merging to '{outputBranchName}' for '{parameters.Name}'");
+            }, agent, message);
         }
 
         private void HandleUpstreamConflicts(IAgentSpecification agent, string name, Dictionary<string, string> branchCommits, Dictionary<string, string> reserveOutputCommits)
         {
-            // TODO - add integration reserves, then switch this to "stabilize" based on their output
+            // TODO - ManualInterventionNeededAction isn't really the best here, but it works
             dispatcher.Dispatch(new ManualInterventionNeededAction
             {
                 BranchCommits = branchCommits,
