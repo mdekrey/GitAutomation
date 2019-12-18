@@ -147,6 +147,79 @@ namespace GitAutomation.Scripts.Branches.Common
         }
 
         [Fact]
+        public async Task HandlePeerConflictingBranch()
+        {
+            using var gitDir = new GitDirectory(isBare: true);
+            using var checkout = workingGitDirectory.CreateCopy(new CloneOptions { IsBare = true });
+            using var tempDir = new TemporaryDirectory();
+
+            using var repo = new Repository(checkout.Path);
+            var originalFeatureA = repo.Branches["origin/feature-a"].Tip.Sha;
+            var originalInfrastructure = repo.Branches["origin/infrastructure"].Tip.Sha;
+
+            // Act to receive the expected FSA's
+            var result = await Invoke(gitDir.TemporaryDirectory, tempDir, checkout, "feature-b", new Dictionary<string, BranchReserve>
+            {
+                { "feature-b", new BranchReserve("dontcare", "Automatic", "Stable",
+                    Upstream(("infrastructure", new UpstreamReserve(repo.Branches["origin/infrastructure"].Tip.Sha)), ("feature-a", new UpstreamReserve(repo.Branches["origin/feature-a"].Tip.Sha))),
+                    IncludedBranches(
+                        ("origin/feature-b", new BranchReserveBranch(repo.Branches["origin/feature-b"].Tip.Sha, Metadata(("Role", "Output"))))
+                    ),
+                    outputCommit: repo.Branches["origin/feature-b"].Tip.Sha,
+                    meta: Metadata()) },
+                { "feature-a", new BranchReserve("dontcare", "Automatic", "Stable",
+                    Upstream(),
+                    IncludedBranches(
+                        ("origin/feature-a", new BranchReserveBranch(repo.Branches["origin/feature-a"].Tip.Sha, Metadata(("Role", "Output"))))
+                    ),
+                    outputCommit: repo.Branches["origin/feature-a"].Tip.Sha,
+                    meta: Metadata()) },
+                { "infrastructure", new BranchReserve("dontcare", "dontcare", "Stable",
+                    Upstream(),
+                    IncludedBranches(
+                        ("origin/infrastructure", new BranchReserveBranch(repo.Branches["origin/infrastructure"].Tip.Sha, Metadata(("Role", "Output"))))
+                    ),
+                    outputCommit: repo.Branches["origin/infrastructure"].Tip.Sha,
+                    meta: Metadata()) }
+            });
+
+            // Assert that we're correct
+            using var targetRepo = new Repository(gitDir.Path);
+
+            Assert.Collection(result,
+                // create reserve for a/infrastructure conflict
+                standardAction =>
+                {
+                    var action = Assert.IsType<CreateReserveAction>(standardAction.Payload);
+                    Assert.Equal("Automatic", action.FlowType);
+                    Assert.Collection(action.Upstream, r => Assert.Equal("feature-a", r), r => Assert.Equal("infrastructure", r));
+                    Assert.Equal("integration", action.Type);
+                    Assert.Equal("integ/feature-a_infrastructure", action.Name);
+                    Assert.Null(action.OriginalBranch);
+                },
+                // add reserve to feature-b
+                standardAction =>
+                {
+                    var action = Assert.IsType<AddUpstreamReserveAction>(standardAction.Payload);
+                    Assert.Equal("feature-b", action.Target);
+                    Assert.Equal("integ/feature-a_infrastructure", action.Upstream);
+                    Assert.Null(action.Role);
+                    Assert.Null(action.Meta);
+                },
+                standardAction =>
+                {
+                    // finalize feature-b status
+                    var action = Assert.IsType<ManualInterventionNeededAction>(standardAction.Payload);
+                    Assert.Empty(action.BranchCommits);
+                    Assert.Empty(action.ReserveOutputCommits);
+                    Assert.Empty(action.NewBranches);
+                    Assert.Equal("OutOfDate", action.State);
+                    Assert.Equal("feature-b", action.Reserve);
+                }
+            );
+        }
+
+        [Fact]
         public async Task HandleManualInterventionMerge()
         {
             using var gitDir = new GitDirectory(isBare: true);
@@ -248,7 +321,8 @@ namespace GitAutomation.Scripts.Branches.Common
                 new DispatchToList(resultList),
                 Options.Create(StandardParameters(repository, checkout.TemporaryDirectory)),
                 Options.Create(AutomationOptions()),
-                new DefaultBranchNaming(Options.Create(AutomationOptions()))
+                new DefaultBranchNaming(Options.Create(AutomationOptions())),
+                new IntegrationReserveUtilities()
             );
             var reserve = reserves[reserveName];
             using var loggerFactory = LoggerFactory.Create(_ => { });

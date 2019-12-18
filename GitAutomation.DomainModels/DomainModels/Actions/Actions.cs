@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Text;
 
 namespace GitAutomation.DomainModels.Actions
@@ -34,6 +35,29 @@ namespace GitAutomation.DomainModels.Actions
         public string FlowType { get; set; } // = "";
         public string[] Upstream { get; set; } // = Array.Empty<string>();
         public string? OriginalBranch { get; set; }
+    }
+
+    public struct AddUpstreamReserveAction : IStandardAction
+    {
+        public string Target { get; set; }
+        public string Upstream { get; set; }
+        public string? Role { get; set; }
+        public IDictionary<string, string>? Meta { get; set; }
+
+        internal UpstreamReserve BuildReserve()
+        {
+            var result = new UpstreamReserve(BranchReserve.EmptyCommit);
+            if (Role != null)
+            {
+                result = result.SetRole(Role);
+            }
+            if (Meta != null)
+            {
+                var meta = Meta.ToImmutableSortedDictionary();
+                result = result.SetMeta(_ => meta);
+            }
+            return result;
+        }
     }
 
     public struct RemoveReserveAction : IStandardAction

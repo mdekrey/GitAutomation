@@ -14,12 +14,13 @@ namespace GitAutomation.DomainModels
             return a switch
             {
                 // Basic reducers
-                StabilizeReserveAction action => StabilizeReserve(original, (string)action.Reserve),
-                SetReserveStateAction action => SetReserveState(original, (string)action.Reserve, (string)action.State),
-                SetOutputCommitAction action => SetOutputCommit(original, (string)action.Reserve, (string)action.OutputCommit),
-                SetMetaAction action => SetMeta(original, (string)action.Reserve, action.Meta),
+                StabilizeReserveAction action => StabilizeReserve(original, action.Reserve),
+                SetReserveStateAction action => SetReserveState(original, action.Reserve, action.State),
+                SetOutputCommitAction action => SetOutputCommit(original, action.Reserve, action.OutputCommit),
+                AddUpstreamReserveAction action => AddUpstreamReserveAction(original, action.Target, action.Upstream, action.BuildReserve()),
+                SetMetaAction action => SetMeta(original, action.Reserve, action.Meta),
                 CreateReserveAction action => CreateReserve(original, action),
-                RemoveReserveAction action => RemoveReserve(original, (string)action.Reserve),
+                RemoveReserveAction action => RemoveReserve(original, action.Reserve),
                 // Complex reducers
                 SetReserveOutOfDateAction action => SetReserveOutOfDate(original, action),
                 StabilizeNoUpstreamAction action => StabilizeNoUpstream(original, action),
@@ -40,6 +41,9 @@ namespace GitAutomation.DomainModels
 
         private static RepositoryStructure SetOutputCommit(RepositoryStructure original, string branchReserveName, string lastCommit) =>
             original.SetBranchReserves(b => b.UpdateItem(branchReserveName, branch => branch.SetOutputCommit(lastCommit)));
+
+        private static RepositoryStructure AddUpstreamReserveAction(RepositoryStructure original, string branchReserveName, string upstreamName, UpstreamReserve reserveDetails) =>
+            original.SetBranchReserves(b => b.UpdateItem(branchReserveName, branch => branch.SetUpstream(upstream => upstream.Add(upstreamName, reserveDetails))));
 
         private static RepositoryStructure SetMeta(RepositoryStructure original, string branchReserveName, IDictionary<string, string> meta) =>
             original.SetBranchReserves(b => b.UpdateItem(branchReserveName, branch => branch.SetMeta(oldMeta => oldMeta.SetItems(meta))));

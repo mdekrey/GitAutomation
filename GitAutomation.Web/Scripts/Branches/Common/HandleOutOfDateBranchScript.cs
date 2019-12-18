@@ -17,6 +17,7 @@ namespace GitAutomation.Scripts.Branches.Common
     {
         private readonly IDispatcher dispatcher;
         private readonly IBranchNaming branchNaming;
+        private readonly IIntegrationReserveUtilities integrationReserveUtilities;
         private readonly TargetRepositoryOptions options;
         private readonly AutomationOptions automationOptions;
         protected static readonly MergeOptions standardMergeOptions = new MergeOptions
@@ -24,10 +25,11 @@ namespace GitAutomation.Scripts.Branches.Common
             CommitOnSuccess = false
         };
 
-        public HandleOutOfDateBranchScript(IDispatcher dispatcher, IOptions<TargetRepositoryOptions> options, IOptions<AutomationOptions> automationOptions, IBranchNaming branchNaming)
+        public HandleOutOfDateBranchScript(IDispatcher dispatcher, IOptions<TargetRepositoryOptions> options, IOptions<AutomationOptions> automationOptions, IBranchNaming branchNaming, IIntegrationReserveUtilities integrationReserveUtilities)
         {
             this.dispatcher = dispatcher;
             this.branchNaming = branchNaming;
+            this.integrationReserveUtilities = integrationReserveUtilities;
             this.options = options.Value;
             this.automationOptions = automationOptions.Value;
         }
@@ -197,7 +199,7 @@ namespace GitAutomation.Scripts.Branches.Common
                     HandleManualIntegration(agent, parameters, repo, outputBranchName, finalState, upstreamNeeded, branchCommits, reserveOutputCommits);
                     break;
                 case "Conflicted":
-                    if (await ConflictsExistUpstream(repo, parameters.UpstreamReserves, parameters.Name, logger, agent))
+                    if (await ConflictsExistUpstream(repo, parameters, logger, agent))
                     {
                         HandleUpstreamConflicts(agent, parameters.Name, branchCommits, reserveOutputCommits);
                     }
@@ -293,7 +295,7 @@ namespace GitAutomation.Scripts.Branches.Common
                 BranchCommits = branchCommits,
                 ReserveOutputCommits = reserveOutputCommits,
                 Reserve = name,
-                State = "Conflicted",
+                State = "OutOfDate",
                 NewBranches = new ManualInterventionNeededAction.ManualInterventionBranch[0],
             }, agent, $"Conflicts detected upstream from '{name}'");
         }
@@ -319,24 +321,27 @@ namespace GitAutomation.Scripts.Branches.Common
             return history?.BehindBy != 0;
         }
 
-        private async Task<bool> ConflictsExistUpstream(Repository repo, ImmutableDictionary<string, BranchReserve> upstreamReserves, string name, ILogger logger, IAgentSpecification agent)
+        private async Task<bool> ConflictsExistUpstream(Repository repo, ReserveScriptParameters parameters, ILogger logger, IAgentSpecification agent)
         {
             await Task.Yield();
             var conflictingUpstream = new List<(string, string)>();
-            var reserveNames = upstreamReserves.Keys.ToArray();
+            var reserveNames = parameters.UpstreamReserves.Keys.OrderBy(k => k).ToArray();
             // TODO - see if any are already upstream of others. If so, remove them. (Filter? Issue removals?)
             for (var i = 0; i < reserveNames.Length - 1; i++)
             {
                 for (var j = i + 1; j < reserveNames.Length; j++)
                 {
-                    if (!repo.ObjectDatabase.CanMergeWithoutConflict(repo.Lookup<Commit>(upstreamReserves[reserveNames[i]].OutputCommit), repo.Lookup<Commit>(upstreamReserves[reserveNames[j]].OutputCommit)))
+                    if (!repo.ObjectDatabase.CanMergeWithoutConflict(repo.Lookup<Commit>(parameters.UpstreamReserves[reserveNames[i]].OutputCommit), repo.Lookup<Commit>(parameters.UpstreamReserves[reserveNames[j]].OutputCommit)))
                     {
                         conflictingUpstream.Add((reserveNames[i], reserveNames[j]));
                     }
                 }
             }
 
-            // TODO - make integration branches
+            foreach (var action in integrationReserveUtilities.AddUpstreamConflicts(parameters.Name, conflictingUpstream, parameters.UpstreamReserves))
+            {
+                dispatcher.Dispatch(action, agent, $"Upstream conflicts detected in {parameters.Name}");
+            }
             return conflictingUpstream.Any();
         }
 
