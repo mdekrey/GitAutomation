@@ -49,8 +49,8 @@ namespace GitAutomation.Scripts.Config
             {
                 GitIdentity = new DomainModels.Git.GitIdentity
                 {
-                    UserEmail = "author@example.com",
-                    UserName = "A U Thor",
+                    UserEmail = TestingConstants.UserEmail,
+                    UserName = TestingConstants.UserName,
                 },
                 CheckoutPath = checkout.Path,
                 BranchName = "git-config"

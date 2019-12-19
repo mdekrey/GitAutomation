@@ -332,14 +332,12 @@ namespace GitAutomation.Scripts.Branches.Common
 
         private void EnsureRemoteAndPush(Repository repo, string remoteName, params string[] refSpecs)
         {
-            if (repo.Network.Remotes[remoteName] == null)
-            {
-                repo.Network.Remotes.Add(remoteName, options.Remotes[remoteName].Url);
-            }
+            repo.EnsureRemote(remoteName, options);
             repo.Network.Push(repo.Network.Remotes[remoteName], refSpecs, new PushOptions
             {
                 CredentialsProvider = options.Remotes[remoteName].ToCredentialsProvider()
             });
         }
+
     }
 }

@@ -34,11 +34,14 @@ namespace GitAutomation.Scripts.Branches.Common
             using var gitDir = new GitDirectory(isBare: true);
             using var checkout = workingGitDirectory.CreateCopy(new CloneOptions { IsBare = true });
             using var tempDir = new TemporaryDirectory();
-
+            
+            using var originalRepo = new Repository(gitDir.Path);
             using var repo = new Repository(checkout.Path);
             var originalMaster = repo.Branches["origin/master"].Tip.Sha;
             var originalFeatureA = repo.Branches["origin/feature-a"].Tip.Sha;
             repo.Branches.Add("origin/merge/master_feature-a", originalMaster);
+            repo.Network.Remotes.Add("origin", gitDir.Path);
+            repo.Network.Push(repo.Network.Remotes["origin"], repo.Branches.Select(b => $"{b.CanonicalName}:{b.CanonicalName.Replace("origin/", "")}"));
 
             // Act to receive the expected FSA's
             var result = await Invoke(gitDir.TemporaryDirectory, tempDir, checkout, "feature-a", new Dictionary<string, BranchReserve>
@@ -74,6 +77,8 @@ namespace GitAutomation.Scripts.Branches.Common
                     var action = Assert.IsType<StabilizeReserveAction>(standardAction.Payload);
                     Assert.Equal("feature-a", action.Reserve);
                 });
+
+            Assert.Null(originalRepo.Branches["merge/master_feature-a"]);
         }
 
         [Fact]
@@ -200,8 +205,8 @@ namespace GitAutomation.Scripts.Branches.Common
                 },
                 GitIdentity = new GitIdentity
                 {
-                    UserEmail = BranchGitDirectoryOrigin.UserEmail,
-                    UserName = BranchGitDirectoryOrigin.UserName,
+                    UserEmail = TestingConstants.UserEmail,
+                    UserName = TestingConstants.UserName,
                 },
                 CheckoutPath = checkout.Path,
             };
@@ -226,7 +231,8 @@ namespace GitAutomation.Scripts.Branches.Common
             var script = new HandleNeedsUpdateScript(
                 new DispatchToList(resultList),
                 Options.Create(StandardParameters(repository, checkout.TemporaryDirectory)),
-                Options.Create(AutomationOptions())
+                Options.Create(AutomationOptions()),
+                new DefaultBranchNaming(Options.Create(AutomationOptions()))
             );
             var reserve = reserves[reserveName];
             using var loggerFactory = LoggerFactory.Create(_ => { });

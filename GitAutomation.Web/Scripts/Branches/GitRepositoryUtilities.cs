@@ -32,5 +32,16 @@ namespace GitAutomation.Scripts.Branches
             }
         }
 
+        public static void EnsureRemote(this Repository repo, string remoteName, TargetRepositoryOptions options)
+        {
+            if (repo.Network.Remotes[remoteName]?.PushUrl != options.Remotes[remoteName].Url)
+            {
+                repo.Network.Remotes.Remove(remoteName);
+            }
+            if (repo.Network.Remotes[remoteName] == null)
+            {
+                repo.Network.Remotes.Add(remoteName, options.Remotes[remoteName].Url);
+            }
+        }
     }
 }

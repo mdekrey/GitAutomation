@@ -60,8 +60,8 @@ namespace GitAutomation.Scripts.Branches
                 },
                 GitIdentity = new GitIdentity
                 {
-                    UserEmail = BranchGitDirectoryOrigin.UserEmail,
-                    UserName = BranchGitDirectoryOrigin.UserName,
+                    UserEmail = TestingConstants.UserEmail,
+                    UserName = TestingConstants.UserName,
                 },
                 CheckoutPath = checkout.Path,
             };

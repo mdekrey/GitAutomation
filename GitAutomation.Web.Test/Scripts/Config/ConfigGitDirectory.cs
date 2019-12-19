@@ -21,8 +21,8 @@ namespace GitAutomation.Scripts.Config
             Commands.Stage(repo, "*");
             repo.Commit(
                 "Initial commit",
-                new Signature("A U Thor", "author@example.com", DateTimeOffset.Now),
-                new Signature("A U Thor", "author@example.com", DateTimeOffset.Now)
+                new Signature(TestingConstants.UserName, TestingConstants.UserEmail, DateTimeOffset.Now),
+                new Signature(TestingConstants.UserName, TestingConstants.UserEmail, DateTimeOffset.Now)
             );
         }
     }
