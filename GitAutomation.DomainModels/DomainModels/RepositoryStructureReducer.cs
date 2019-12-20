@@ -51,7 +51,7 @@ namespace GitAutomation.DomainModels
 
         // TODO - make a chainable reducer
         // TODO - make these all callable via the reducer
-        private static RepositoryStructure SetUpstreamCommits(RepositoryStructure original, string reserve, Dictionary<string, string> reserveOutputCommits) =>
+        private static RepositoryStructure SetUpstreamCommits(RepositoryStructure original, string reserve, IDictionary<string, string> reserveOutputCommits) =>
             original.SetBranchReserves(br =>
                 br.UpdateItem(reserve, reserve =>
                     reserve
@@ -59,7 +59,7 @@ namespace GitAutomation.DomainModels
                 )
             );
 
-        private static RepositoryStructure SetBranchCommits(RepositoryStructure original, string reserve, Dictionary<string, string> branchCommits) =>
+        private static RepositoryStructure SetBranchCommits(RepositoryStructure original, string reserve, IDictionary<string, string> branchCommits) =>
             original.SetBranchReserves(br =>
                 br.UpdateItem(reserve, reserve =>
                     reserve.SetIncludedBranches(branches =>
@@ -205,7 +205,7 @@ namespace GitAutomation.DomainModels
             );
         }
 
-        private static BranchReserveBranch CreateBranchReserveBranch(string commit, Dictionary<string, string> meta)
+        private static BranchReserveBranch CreateBranchReserveBranch(string commit, IDictionary<string, string> meta)
         {
             return new BranchReserveBranch(
                 commit,

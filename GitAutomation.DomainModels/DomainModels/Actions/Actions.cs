@@ -73,29 +73,29 @@ namespace GitAutomation.DomainModels.Actions
     public struct StabilizeNoUpstreamAction : IStandardAction
     {
         public string Reserve { get; set; }
-        public Dictionary<string, string> BranchCommits { get; set; }
+        public IDictionary<string, string> BranchCommits { get; set; }
     }
 
     public struct StabilizePushedReserveAction : IStandardAction
     {
         public string Reserve { get; set; }
-        public Dictionary<string, string> BranchCommits { get; set; }
-        public Dictionary<string, string> ReserveOutputCommits { get; set; }
+        public IDictionary<string, string> BranchCommits { get; set; }
+        public IDictionary<string, string> ReserveOutputCommits { get; set; }
         public string? NewOutput { get; set; }
     }
 
     public struct StabilizeRemoteUpdatedReserveAction : IStandardAction
     {
         public string Reserve { get; set; }
-        public Dictionary<string, string> BranchCommits { get; set; }
-        public Dictionary<string, string> ReserveOutputCommits { get; set; }
+        public IDictionary<string, string> BranchCommits { get; set; }
+        public IDictionary<string, string> ReserveOutputCommits { get; set; }
     }
 
     public struct CouldNotPushAction : IStandardAction
     {
         public string Reserve { get; set; }
-        public Dictionary<string, string> BranchCommits { get; set; }
-        public Dictionary<string, string> ReserveOutputCommits { get; set; }
+        public IDictionary<string, string> BranchCommits { get; set; }
+        public IDictionary<string, string> ReserveOutputCommits { get; set; }
     }
 
     public struct ManualInterventionNeededAction : IStandardAction
@@ -103,8 +103,8 @@ namespace GitAutomation.DomainModels.Actions
         public string Reserve { get; set; }
         public string State { get; set; }
         public ManualInterventionBranch[] NewBranches { get; set; }
-        public Dictionary<string, string> BranchCommits { get; set; }
-        public Dictionary<string, string> ReserveOutputCommits { get; set; }
+        public IDictionary<string, string> BranchCommits { get; set; }
+        public IDictionary<string, string> ReserveOutputCommits { get; set; }
 
         public struct ManualInterventionBranch
         {
@@ -120,7 +120,7 @@ namespace GitAutomation.DomainModels.Actions
         public string Reserve { get; set; }
         public string Name { get; set; }
         public string Commit { get; set; }
-        public Dictionary<string, string> Meta { get; set; }
+        public IDictionary<string, string> Meta { get; set; }
     }
 
     public struct RequestManualPullAction : IStandardAction

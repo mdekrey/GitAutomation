@@ -10,5 +10,6 @@ namespace GitAutomation.DomainModels
         (string remoteName, string branchName) SplitCheckoutRepositoryBranchName(string checkoutRepositoryBranchName);
 
         string GenerateIntegrationBranchName(params string[] reserveNames);
+        string GetDefaultOutputBranchName(string reserveName);
     }
 }

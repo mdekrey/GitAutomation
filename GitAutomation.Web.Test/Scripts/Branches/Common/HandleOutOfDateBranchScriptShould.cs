@@ -1,9 +1,11 @@
 ﻿using GitAutomation.DomainModels;
 using GitAutomation.DomainModels.Actions;
 using GitAutomation.DomainModels.Git;
+using GitAutomation.Scripts.Branches.Common.Steps;
 using GitAutomation.State;
 using GitAutomation.Web;
 using LibGit2Sharp;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -142,7 +144,7 @@ namespace GitAutomation.Scripts.Branches.Common
                 var action = Assert.IsType<ManualInterventionNeededAction>(standardAction.Payload);
                 Assert.Empty(action.BranchCommits);
                 Assert.Empty(action.ReserveOutputCommits);
-                Assert.Equal("Conflicted", action.State);
+                Assert.Equal("NeedsUpdate", action.State);
                 Assert.Equal("feature-a", action.Reserve);
                 var newBranch = Assert.Single(action.NewBranches);
                 Assert.Equal("origin/merge/feature-a_infrastructure", newBranch.Name);
@@ -299,46 +301,49 @@ namespace GitAutomation.Scripts.Branches.Common
             return metadata.ToImmutableSortedDictionary(p => p.key, p => p.value);
         }
 
-        private static TargetRepositoryOptions StandardParameters(TemporaryDirectory repository, TemporaryDirectory checkout)
+        private static Action<TargetRepositoryOptions> StandardParameters(TemporaryDirectory repository, TemporaryDirectory checkout)
         {
-            return new TargetRepositoryOptions
+            return (options) =>
             {
-                Remotes = new Dictionary<string, RepositoryConfiguration>
+                options.Remotes = new Dictionary<string, RepositoryConfiguration>
                 {
                     { "origin", new RepositoryConfiguration { Url = repository.Path } }
-                },
-                GitIdentity = new GitIdentity
+                };
+                options.GitIdentity = new GitIdentity
                 {
                     UserEmail = TestingConstants.UserEmail,
                     UserName = TestingConstants.UserName,
-                },
-                CheckoutPath = checkout.Path,
+                };
+                options.CheckoutPath = checkout.Path;
             };
         }
 
-        private static AutomationOptions AutomationOptions()
+        private static void AutomationOptions(AutomationOptions options)
         {
-            return new AutomationOptions
-            {
-                WorkerCount = 1,
-                WorkspacePath = "NA",
-                WorkingRemote = "local",
-                DefaultRemote = "origin",
-                IntegrationPrefix = "merge/",
-            };
+            options.WorkerCount = 1;
+            options.WorkspacePath = "NA";
+            options.WorkingRemote = "local";
+            options.DefaultRemote = "origin";
+            options.IntegrationPrefix = "merge/";
         }
 
         private async Task<IList<StateUpdateEvent<IStandardAction>>> Invoke(TemporaryDirectory repository, TemporaryDirectory tempPath, GitDirectory checkout, string reserveName, Dictionary<string, BranchReserve> reserves)
         {
-            using var repo = new Repository(checkout.Path);
             var resultList = new List<StateUpdateEvent<IStandardAction>>();
-            var script = new HandleOutOfDateBranchScript(
-                new DispatchToList(resultList),
-                Options.Create(StandardParameters(repository, checkout.TemporaryDirectory)),
-                Options.Create(AutomationOptions()),
-                new DefaultBranchNaming(Options.Create(AutomationOptions())),
-                new IntegrationReserveUtilities()
-            );
+            var serviceCollection = new ServiceCollection();
+            serviceCollection.AddOptions<AutomationOptions>().Configure(AutomationOptions);
+            serviceCollection.AddOptions<TargetRepositoryOptions>().Configure(StandardParameters(repository, checkout.TemporaryDirectory));
+            serviceCollection.AddSingleton<IDispatcher>(new DispatchToList(resultList));
+            serviceCollection.AddTransient<IBranchNaming, DefaultBranchNaming>();
+            serviceCollection.AddTransient<IIntegrationReserveUtilities, IntegrationReserveUtilities>();
+            serviceCollection.AddTransient<HandleOutOfDateBranchScript>();
+            serviceCollection.AddTransient<AutomaticFlowStrategy>();
+            serviceCollection.AddTransient<ManualFlowStrategy>();
+            serviceCollection.AddTransient<TemporaryIntegrationBranchLifecycle>();
+            var serviceProvider = serviceCollection.BuildServiceProvider();
+
+            using var repo = new Repository(checkout.Path);
+            var script = serviceProvider.GetRequiredService<HandleOutOfDateBranchScript>();
             var reserve = reserves[reserveName];
             using var loggerFactory = LoggerFactory.Create(_ => { });
             await script.Run(

@@ -24,6 +24,9 @@ namespace GitAutomation.Web
             return automationOptions.IntegrationPrefix + string.Join('_', reserveNames);
         }
 
+        public string GetDefaultOutputBranchName(string reserveName) =>
+            GetCheckoutRepositoryBranchName(automationOptions.DefaultRemote, reserveName);
+
         public string GetCheckoutRepositoryBranchName(string remoteName, string branchName) =>
             $"{remoteName}/{branchName}";
 
