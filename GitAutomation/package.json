@@ -40,7 +40,7 @@
     "html-loader": "0.5.1",
     "html-minifier": "^3.5.5",
     "html-minifier-loader": "^1.4.0",
-    "immer": "1.1.0",
+    "immer": "9.0.6",
     "ramda": "^0.24.1",
     "raw-loader": "^0.5.1",
     "react": "16.2.0",
